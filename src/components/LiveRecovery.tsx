@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
+import { TrainingLoadPanel, type TrainingSummary } from './TrainingLoadPanel'
 import { Icon } from './Icon'
 import { garminSupabase, garminSupabaseReady, garminSupabaseUrl, garminPublishableKey } from '../lib/garminSupabase'
 import '../styles/garmin-recovery.css'
@@ -14,7 +15,7 @@ type Day = {
   body_battery_max: number | null
   synced_at: string
 }
-type HealthResponse = { source: string; requestedDays: number; metrics: Day[] }
+type HealthResponse = { source: string; requestedDays: number; metrics: Day[]; training?: TrainingSummary | null }
 
 type MetricInfo = { key: MetricKey; title: string; unit: string; icon: string; accent: string }
 const sleep: MetricInfo = { key: 'sleep_seconds', title: 'Schlafdauer', unit: 'h', icon: 'moon', accent: 'lime' }
@@ -150,15 +151,7 @@ export function LiveRecovery({ active, period, onGoSettings }: { active: boolean
           <div className="ri-metric-grid">{recovery.map(info => <MetricCard key={info.key} info={info} days={days} period={period}/>)}</div>
           <p className="ri-fineprint">Vergleiche mit dem gewählten Zeitraum; eine belastbare persönliche Baseline folgt mit mehr Historie. Symptome und Befinden gehen vor Wearable-Werten.</p>
         </section>
-        <section className="ri-domain ri-training" aria-label="Trainingsbelastungsindikatoren">
-          <GroupTitle index="03" title="Trainingsbelastung" icon="activity" description="Wie viel hast du trainiert – und wie intensiv war es?" aside="Datenaufbau"/>
-          <div className="ri-training-grid">
-            <div><span>UMFANG</span><strong>7 / 28 Tage</strong><p>Laufkilometer und Trainingszeit</p></div>
-            <div><span>INTENSITÄT</span><strong>HF-Zonen</strong><p>Easy-Anteil und intensive Belastung</p></div>
-            <div><span>BEANSPRUCHUNG</span><strong>RPE & Verlauf</strong><p>Subjektive Anstrengung plus Einheitenkontext</p></div>
-          </div>
-          <div className="ri-training-warning"><Icon name="activity"/><p><strong>Noch keine belastbare Trainingslast berechnet.</strong> Der Garmin-Aktivitätenbestand ist derzeit nur teilweise importiert. Wir vervollständigen die Historie, bevor der Coach daraus eine Trainingsfreigabe oder Belastungswarnung ableitet.</p></div>
-        </section>
+        <TrainingLoadPanel training={data.training ?? null}/>
         <div className="recovery-live-note">Datenquelle: Garmin Personal API via Supabase. Die Coach-Empfehlung oberhalb dieser Ansicht ist weiterhin eine gekennzeichnete Demo und nicht aus diesen Messwerten errechnet.</div>
       </>}
     </section>
