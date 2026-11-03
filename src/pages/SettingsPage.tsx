@@ -1,5 +1,6 @@
 import type { Page } from '../navigation'
 import { GarminAuthSettings } from '../components/GarminAuthSettings'
+import { HeartRateZonesSettings } from '../components/HeartRateZonesSettings'
 
 export function SettingsPage({ active }: { active: boolean; onGo: (page: Page) => void }) {
   return <section className={active ? 'page active' : 'page'}>
@@ -9,5 +10,6 @@ export function SettingsPage({ active }: { active: boolean; onGo: (page: Page) =
       <article><small>COACH MODE</small><h3>Aktiver Coach mit Freigabe</h3><p>Trainingsempfehlungen sind derzeit eine Demo. Echte Änderungen am Plan werden nicht vorgenommen.</p><label className="toggle"><input type="checkbox" checked disabled/> Coach-Änderungen immer bestätigen</label></article>
     </div>
     <GarminAuthSettings/>
+    <HeartRateZonesSettings active={active}/>
   </section>
 }

@@ -1,0 +1,7 @@
+.lsi-ref-zone{display:flex;flex-direction:column;gap:6px;min-width:220px;flex:1;color:#ecf3ff}
+.lsi-ref-zone>span{font-size:11px;color:#9facc4}
+.lsi-ref-zone>strong{font-size:14px;padding:11px 12px;background:#111a2e;border:1px solid #3a4864;border-radius:9px}
+.lsi-ref-zone>small{color:#aab9d1;font-size:11px;line-height:1.55}
+.lsi-ref-zone details{margin-top:7px;color:#acb9ce;font-size:11px}
+.lsi-ref-zone summary{cursor:pointer}
+.lsi-ref-zone input{display:block;width:100%;margin-top:8px;border:1px solid #394763;background:#0c1425;border-radius:8px;padding:10px;color:#ecf3ff}

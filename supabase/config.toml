@@ -21,3 +21,6 @@ verify_jwt = false
 # Auth JWT verified inside this private function.
 [functions.read-garmin-session]
 verify_jwt = false
+
+[functions.sync-garmin-hr-profile]
+verify_jwt = false

@@ -1,0 +1,28 @@
+.hrz-wrap{margin-top:26px;padding:24px;border:1px solid #33405e;background:linear-gradient(140deg,#151e32,#0d1424);border-radius:20px;color:#eaf1ff}
+.hrz-wrap *{box-sizing:border-box}
+.hrz-header{display:flex;gap:18px;justify-content:space-between;align-items:flex-start}
+.hrz-header h3{font-size:23px;letter-spacing:-.7px;margin:9px 0 6px}
+.hrz-header p{font-size:13px;color:#aebbd1;margin:0}
+.hrz-header button{flex-shrink:0;border:1px solid #3a4963;padding:10px 14px;border-radius:10px;background:#1a263c;color:#ecf4ff;cursor:pointer}
+.hrz-header button:disabled{opacity:.6;cursor:default}
+.hrz-meta{display:flex;flex-wrap:wrap;gap:10px 26px;margin:22px 0 17px;font-size:12px;color:#b2bfd7}
+.hrz-meta strong{color:#f2f5ff;font-weight:600}
+.hrz-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.hrz-metrics>div{padding:16px;border:1px solid #34415b;border-radius:12px;background:#101729;display:flex;flex-direction:column;gap:9px;min-width:0}
+.hrz-metrics small{font-size:11px;letter-spacing:.05em;color:#9dabbe;text-transform:uppercase}
+.hrz-metrics strong{font-size:21px;letter-spacing:-.5px}
+.hrz-metrics span{font-size:11px;color:#8f9eb7;overflow-wrap:anywhere}
+.hrz-zone-list{border:1px solid #34415b;border-radius:12px;background:#0e1628;padding:9px 17px}
+.hrz-zone-row{display:flex;gap:10px;align-items:center;border-bottom:1px solid #253149;min-height:43px;font-size:14px}
+.hrz-zone-row strong{flex:1;font-size:13px}
+.hrz-zone-row>span:last-child{font-variant-numeric:tabular-nums;font-weight:650}
+.hrz-marker{width:8px;height:8px;border-radius:100%;background:#a6b2c8}
+.hrz-marker-1{background:#75a8f9}.hrz-marker-2{background:#65d3bf}.hrz-marker-3{background:#bae87c}.hrz-marker-4{background:#f5bc74}.hrz-marker-5{background:#eb8a9d}
+.hrz-zone-caption{font-size:11px;color:#a6b3cb;line-height:1.6}
+.hrz-message,.hrz-warning,.hrz-error{padding:12px 14px;border-radius:9px;font-size:13px;line-height:1.5;background:#1b283e;color:#c8d7ef}
+.hrz-error,.hrz-warning{border:1px solid #70523e;color:#f5c19d}
+.hrz-history{margin-top:16px;color:#acbbd2;font-size:12px}
+.hrz-history summary{cursor:pointer}.hrz-history p{margin:8px 0}
+.hrz-science{border-top:1px solid #2a3650;margin:19px 0 0;padding-top:14px;font-size:12px;color:#acb9d0;line-height:1.65}
+.hrz-science strong{color:#e0e8f6}
+@media(max-width:720px){.hrz-wrap{padding:17px}.hrz-header{flex-wrap:wrap}.hrz-metrics{grid-template-columns:1fr}.hrz-header button{width:100%}}

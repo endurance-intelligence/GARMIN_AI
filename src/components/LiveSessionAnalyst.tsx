@@ -132,7 +132,7 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
             {analysis.signals.map((s,i)=><div className={`lsa-signal ${s.level}`} key={`${i}-${s.title}`}><b>{s.title}</b><p>{s.explanation}</p></div>)}
           </article>
         </div>
-        <SessionGoalReview key={details.activity.id} samples={details.details.samples} lapCount={details.details.lapCount}/>
+        <SessionGoalReview key={details.activity.id} samples={details.details.samples} lapCount={details.details.lapCount} activityDate={details.activity.date}/>
         <p className="lsa-foot">Keine Trainingsfreigabe und keine automatische Änderung am Trainingsplan. Runden, HF-Zonen, Trainingstyp, Höhenprofil und Wetter werden erst berücksichtigt, wenn diese Daten verifiziert vorliegen.</p>
       </>}
     </>}

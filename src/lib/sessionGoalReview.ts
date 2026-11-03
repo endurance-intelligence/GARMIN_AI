@@ -17,6 +17,7 @@ export function reviewSessionGoal(
   hrCap: number | null,
   recentIllness: boolean,
   lapCount: number,
+  capIsGarminReference = false,
 ): GoalReview {
   const result = analyzeSession(samples)
   const hrs = samples.map(p => p.hr).filter(isValidHR)
@@ -35,9 +36,9 @@ export function reviewSessionGoal(
       const above = hrs.filter(hr => hr > cap).length
       const share = 100 * above / hrs.length
       signals.push({
-        level: share >= 15 ? 'attention' : share <= 5 ? 'positive' : 'info',
-        title: share >= 15 ? 'Häufig oberhalb deiner HF-Vorgabe' : 'HF-Vorgabe im Messpunktvergleich',
-        explanation: `${above} von ${hrs.length} gültigen HF-Messpunkten (${fmt(share)} %) lagen oberhalb deiner selbst gesetzten Grenze von ${cap} bpm. Dies ist ein Messpunktanteil, keine exakte Zeitangabe oder medizinische Trainingsfreigabe.`,
+        level: capIsGarminReference ? 'info' : share >= 15 ? 'attention' : share <= 5 ? 'positive' : 'info',
+        title: capIsGarminReference ? 'Garmin-Zone im Messpunktvergleich' : share >= 15 ? 'Häufig oberhalb deiner HF-Vorgabe' : 'HF-Vorgabe im Messpunktvergleich',
+        explanation: `${above} von ${hrs.length} gültigen HF-Messpunkten (${fmt(share)} %) lagen oberhalb der ${capIsGarminReference ? 'für den Lauftag gespeicherten Garmin-Zonenreferenz' : 'selbst gesetzten Grenze'} von ${cap} bpm. ${capIsGarminReference ? 'Garmin-Z2 ist keine bestätigte LT1/VT1-Grenze und daher kein Beleg für zu hohe oder zu niedrige Easy-Intensität. ' : ''}Dies ist ein Messpunktanteil, keine exakte Zeitangabe oder medizinische Trainingsfreigabe.`,
       })
     }
     if (result.hrChange !== null && result.speedChangePercent !== null && Math.abs(result.speedChangePercent) <= 5 && result.hrChange >= 5) {
