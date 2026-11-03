@@ -4,3 +4,6 @@ project_id = "garmin-ai"
 # 256-bit shared secret. The function *always* verifies this before work.
 [functions.sync-garmin]
 verify_jwt = false
+
+[functions.sync-garmin-health]
+verify_jwt = false
