@@ -2,6 +2,7 @@ import {useState} from 'react'
 import {Icon} from './components/Icon'
 import {CoachPage} from './pages/CoachPage'
 import {TrainingPage} from './pages/TrainingPage'
+import {LiveGarminActivities} from './components/LiveGarminActivities'
 import {RacePage} from './pages/RacePage'
 import {GearPage} from './pages/GearPage'
 import {SettingsPage} from './pages/SettingsPage'
@@ -35,6 +36,7 @@ function App() {
       <header className="topbar"><div className="crumbs"><span>WORKSPACE</span><span className="slash">/</span><strong>{navigation.find(n=>n.id===page)?.name}</strong></div><div className="top-actions"><div className="mobile-brand" style={{display:'none'}}><div className="brand-logo"><Icon name="activity"/></div>GARMIN_AI</div><span className="date">DESIGN CONCEPT / NOV 2026</span><span className="pill"><span className="pulse"/> DEMO MODE</span><div className="round-icon"><Icon name="bell"/></div></div></header>
       <CoachPage active={page==='home'} onGo={go}/>
       <TrainingPage active={page==='training'} onGo={go}/>
+      <LiveGarminActivities active={page==='training'}/>
       <RacePage active={page==='race'} onGo={go}/>
       <GearPage active={page==='gear'} onGo={go}/>
       <SettingsPage active={page==='settings'} onGo={go}/>

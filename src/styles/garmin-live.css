@@ -1,0 +1,17 @@
+.garmin-live-page{padding:0 0 18px;margin-top:20px}
+.garmin-live-card{border:1px solid rgba(165,176,252,.17);border-radius:23px;background:linear-gradient(120deg,rgba(37,43,72,.46),rgba(13,21,33,.88));padding:26px 29px}
+.garmin-live-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.garmin-live-heading h3{font-size:25px;letter-spacing:-.055em;margin:10px 0 5px}
+.garmin-live-heading p{font-size:12px;color:#97a6bf;margin:0;line-height:1.6}
+.garmin-live-heading button{white-space:nowrap}
+.garmin-live-info{background:rgba(126,137,194,.08);border-radius:12px;color:#bcc5d7;font-size:12px;line-height:1.65;padding:14px 17px}
+.garmin-live-list{display:flex;flex-direction:column}
+.garmin-live-row{display:flex;gap:14px;align-items:center;border-top:1px solid rgba(188,205,255,.09);padding:14px 0}
+.garmin-live-main{display:flex;flex-direction:column;gap:6px;min-width:135px;flex:1}
+.garmin-live-main strong{font-size:13px;color:#edf1ff}
+.garmin-live-main small{font-size:10px;color:#91a0bb}
+.garmin-live-numbers{display:flex;gap:12px;flex-wrap:wrap;color:#bfcaff;font-size:11px;align-items:center}
+.garmin-live-link{color:#a59bff;padding:8px;border-radius:10px}
+.garmin-live-link:hover{background:rgba(165,155,255,.12)}
+.garmin-live-note{font-size:10px;color:#75849e;border-top:1px solid rgba(188,205,255,.08);padding-top:12px;margin-top:6px;line-height:1.65}
+@media(max-width:760px){.garmin-live-card{padding:19px}.garmin-live-heading{flex-direction:column}.garmin-live-heading h3{font-size:21px}.garmin-live-row{align-items:flex-start}.garmin-live-numbers{gap:7px}.garmin-live-numbers span{background:rgba(160,157,255,.06);border-radius:8px;padding:4px 6px}}
