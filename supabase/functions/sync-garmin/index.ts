@@ -128,6 +128,27 @@ Deno.serve(async (req: Request) => {
   try {
     const rows = await readActivities(apiKey)
     if (rows.length > 0) {
+      // Preserve RPE/Feeling enriched by the separate detail job; the ten-item
+      // list response contains no such fields for most activities.
+      const ids = rows.map(row => row.activity_id)
+      const { data: current, error: lookupError } = await admin.from('garmin_activities')
+        .select('activity_id,rpe_raw,feeling_raw,raw_activity')
+        .in('activity_id', ids)
+      if (lookupError) throw new Error(`Database lookup: ${lookupError.code}`)
+      type Existing = { activity_id: string; rpe_raw: unknown; feeling_raw: unknown; raw_activity: unknown }
+      const previous = new Map<string, Existing>((current ?? []).map((item: Existing) => [String(item.activity_id), item]))
+      for (const row of rows) {
+        const existing = previous.get(row.activity_id)
+        if (!existing) continue
+        row.rpe_raw ??= asNumber(existing.rpe_raw)
+        row.feeling_raw ??= asNumber(existing.feeling_raw)
+        const oldRaw = asObject(existing.raw_activity)
+        const freshRaw = asObject(row.raw_activity)
+        row.raw_activity = { ...oldRaw, ...freshRaw,
+          ...(freshRaw.summaryDTO === undefined && oldRaw.summaryDTO !== undefined
+            ? { summaryDTO: oldRaw.summaryDTO } : {}),
+        }
+      }
       const { error } = await admin.from('garmin_activities').upsert(rows, {
         onConflict: 'activity_id',
       })
