@@ -7,3 +7,7 @@ verify_jwt = false
 
 [functions.sync-garmin-health]
 verify_jwt = false
+
+# JWT is validated inside read-garmin-health for publishable-key projects.
+[functions.read-garmin-health]
+verify_jwt = false

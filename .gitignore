@@ -29,3 +29,6 @@ supabase/.branches/
 supabase/.profiles/
 supabase/.env
 supabase/functions/.env
+
+# GARMIN_AI local UI config
+.env.local
