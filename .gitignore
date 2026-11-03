@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# GARMIN_AI private Supabase files
+supabase/.temp/
+supabase/.branches/
+supabase/.profiles/
+supabase/.env
+supabase/functions/.env

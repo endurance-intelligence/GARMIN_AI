@@ -1,0 +1,6 @@
+project_id = "garmin-ai"
+
+# No public JWT check at gateway because synchronization uses a separate
+# 256-bit shared secret. The function *always* verifies this before work.
+[functions.sync-garmin]
+verify_jwt = false
