@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { garminPublishableKey, garminSupabase, garminSupabaseReady, garminSupabaseUrl } from '../lib/garminSupabase'
 import { analyzeSession } from '../lib/sessionAnalysis'
+import { SessionGoalReview } from './SessionGoalReview'
 import type { SessionSample } from '../lib/sessionAnalysis'
 import '../styles/session-live.css'
 
@@ -131,6 +132,7 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
             {analysis.signals.map((s,i)=><div className={`lsa-signal ${s.level}`} key={`${i}-${s.title}`}><b>{s.title}</b><p>{s.explanation}</p></div>)}
           </article>
         </div>
+        <SessionGoalReview key={details.activity.id} samples={details.details.samples} lapCount={details.details.lapCount}/>
         <p className="lsa-foot">Keine Trainingsfreigabe und keine automatische Änderung am Trainingsplan. Runden, HF-Zonen, Trainingstyp, Höhenprofil und Wetter werden erst berücksichtigt, wenn diese Daten verifiziert vorliegen.</p>
       </>}
     </>}
