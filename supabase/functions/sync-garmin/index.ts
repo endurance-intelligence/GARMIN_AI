@@ -1,6 +1,7 @@
-/** GARMIN_AI v0.3.0 - server-side Garmin -> Supabase ingestion.
- *  No browser caller, no personal API key in frontend, no external writes to Garmin.
- *  Protected by a separate 256-bit sync secret; rejects unauthorized calls.
+/** GARMIN_AI v0.3.1 - scheduled Garmin -> Supabase ingestion.
+ *  Garmin API key stays in Supabase Edge secrets; 256-bit scheduler token
+ *  lives in encrypted Postgres Vault, verified through a service-role-only RPC.
+ *  Neither token nor Garmin data is public. Garmin access is read-only.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
@@ -25,16 +26,6 @@ function json(data: unknown, status = 200): Response {
     status,
     headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
   })
-}
-async function authorized(actual: string | null, expected: string): Promise<boolean> {
-  if (!actual || !expected || expected.length < 32) return false
-  const hash = async (s: string) => new Uint8Array(
-    await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))
-  )
-  const [a, b] = await Promise.all([hash(actual), hash(expected)])
-  let diff = 0
-  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i]
-  return diff === 0
 }
 function adminKey(): string {
   const modern = Deno.env.get('SUPABASE_SECRET_KEYS')
@@ -110,10 +101,8 @@ async function readActivities(key: string) {
 
 Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
-  const syncSecret = Deno.env.get('GARMIN_SYNC_SECRET') ?? ''
-  if (!await authorized(req.headers.get('x-garmin-sync-secret'), syncSecret)) {
-    return json({ error: 'Unauthorized' }, 401)
-  }
+  const submittedToken = req.headers.get('x-garmin-sync-secret') ?? ''
+  if (!/^[a-f0-9]{64}$/.test(submittedToken)) return json({ error: 'Unauthorized' }, 401)
   const apiKey = Deno.env.get('GARMIN_API_KEY') ?? ''
   const url = Deno.env.get('SUPABASE_URL') ?? ''
   if (!apiKey || !url) return json({ error: 'Server configuration incomplete' }, 503)
@@ -124,6 +113,17 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
   } catch { return json({ error: 'Supabase admin configuration incomplete' }, 503) }
+
+  // The verifier is service-role-only; the token lives solely in encrypted
+  // Supabase Vault, never in Git, browser code or an Edge Function environment.
+  const { data: allowed, error: authorizationError } = await admin.rpc(
+    'garmin_verify_cron_token', { p_token: submittedToken }
+  )
+  if (authorizationError) {
+    console.error('GARMIN_AI scheduler authorization unavailable:', authorizationError.code)
+    return json({ error: 'Authorization service unavailable' }, 503)
+  }
+  if (allowed !== true) return json({ error: 'Unauthorized' }, 401)
 
   try {
     const rows = await readActivities(apiKey)
