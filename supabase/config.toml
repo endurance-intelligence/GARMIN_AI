@@ -11,3 +11,6 @@ verify_jwt = false
 # JWT is validated inside read-garmin-health for publishable-key projects.
 [functions.read-garmin-health]
 verify_jwt = false
+
+[functions.backfill-garmin-history]
+verify_jwt = false
