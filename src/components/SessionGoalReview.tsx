@@ -7,6 +7,9 @@ import {useGarminHrProfile} from '../lib/useGarminHrProfile'
 import '../styles/session-intelligence.css'
 import '../styles/hr-profile-session.css'
 import {IntensityEvidencePanel} from './IntensityEvidencePanel'
+import {assessIntensity} from '../lib/intensityEvidence'
+import {coachFinding} from '../lib/coachFeedback'
+import '../styles/coach-feedback.css'
 
 const goals:{value:SessionGoal;label:string}[]=[
   {value:'unknown',label:'Noch nicht zugeordnet'},
@@ -19,9 +22,16 @@ const goals:{value:SessionGoal;label:string}[]=[
 export function SessionGoalReview({samples,lapCount,activityDate}:{
   samples:SessionSample[];lapCount:number;activityDate:string|null
 }) {
-  const [goal,setGoal]=useState<SessionGoal>('unknown')
-  const [limitText,setLimitText]=useState('')
-  const [recentIllness,setRecentIllness]=useState(false)
+  // A new activity must not inherit an earlier activity's manual objective or illness context.
+  // The parent also keys this component by Garmin activity id; the date guard is defensive.
+  const contextKey=activityDate??'no-date'
+  const [context,setContext]=useState<{key:string;goal:SessionGoal;limitText:string;recentIllness:boolean}>(
+    {key:contextKey,goal:'unknown',limitText:'',recentIllness:false})
+  const current=context.key===contextKey?context:{key:contextKey,goal:'unknown' as SessionGoal,limitText:'',recentIllness:false}
+  const {goal,limitText,recentIllness}=current
+  const setGoal=(next:SessionGoal)=>setContext({...current,goal:next})
+  const setLimitText=(next:string)=>setContext({...current,limitText:next})
+  const setRecentIllness=(next:boolean)=>setContext({...current,recentIllness:next})
   const {data}=useGarminHrProfile(true)
   const runTime=activityDate?Date.parse(activityDate):NaN
   // A newer Garmin profile cannot be retroactively assigned to an older run.
@@ -35,8 +45,15 @@ export function SessionGoalReview({samples,lapCount,activityDate}:{
   const autoCap=manualValid===null && reference!==null
   const review=useMemo(()=>reviewSessionGoal(samples,goal,appliedCap,recentIllness,lapCount,autoCap),
     [samples,goal,appliedCap,recentIllness,lapCount,autoCap])
+  const referenceKind=historical?'historical':data?.profile?'current':'missing'
+  const intensity=useMemo(()=>assessIntensity(samples,historical?.profile??data?.profile??null),
+    [samples,historical?.profile,data?.profile])
+  const finding=useMemo(()=>coachFinding({samples,goal,recentIllness,lapCount,
+    cap:appliedCap,capSource:manualValid!==null?'manual':reference!==null?'historical-garmin':'none',
+    intensity,profileSource:referenceKind}),
+    [samples,goal,recentIllness,lapCount,appliedCap,manualValid,reference,intensity,referenceKind])
   return <section className="lsi-wrap" aria-label="Trainingszielbezogene Analyse">
-    <div className="lsi-heading"><div><span className="micro-label">SESSION INTELLIGENCE / v0.6.2</span><h3>Wofür war diese Einheit gedacht?</h3></div><span className="lsi-pill">Manueller Trainingszweck · Garmin-Referenz automatisch</span></div>
+    <div className="lsi-heading"><div><span className="micro-label">SESSION INTELLIGENCE / v0.7.1</span><h3>Wofür war diese Einheit gedacht?</h3></div><span className="lsi-pill">Manueller Trainingszweck · Garmin-Referenz automatisch</span></div>
     <p className="lsi-description">Der Coach nutzt echte HF- und Tempodaten. Gerätezonen sind eine Orientierung, keine getesteten Stoffwechselschwellen.</p>
     <div className="lsi-controls">
       <label>Trainingsziel<select value={goal} onChange={event=>setGoal(event.target.value as SessionGoal)}>{goals.map(g=><option key={g.value} value={g.value}>{g.label}</option>)}</select></label>
@@ -47,8 +64,17 @@ export function SessionGoalReview({samples,lapCount,activityDate}:{
       </div>}
       <label className="lsi-illness"><input type="checkbox" checked={recentIllness} onChange={event=>setRecentIllness(event.target.checked)}/><span>Wiedereinstieg nach Erkrankung</span></label>
     </div>
+    <article className={`cfb-panel cfb-${finding.level}`} aria-label="Coach-Befund">
+      <div className="cfb-eyebrow">COACH-BEFUND · DATENBASIERT</div>
+      <h4>{finding.title}</h4>
+      <p>{finding.explanation}</p>
+      <small>{finding.evidence}</small>
+    </article>
     <IntensityEvidencePanel samples={samples} activityDate={activityDate} profileData={data} />
-    <div className="lsi-signals">{review.signals.map((signal,index)=><article key={`${signal.title}-${index}`} className={`lsi-signal lsi-${signal.level}`}><strong>{signal.title}</strong><p>{signal.explanation}</p></article>)}</div>
+    <details className="cfb-more">
+      <summary>Messdaten und Einschränkungen ({review.signals.length})</summary>
+      <div className="lsi-signals">{review.signals.map((signal,index)=><article key={`${signal.title}-${index}`} className={`lsi-signal lsi-${signal.level}`}><strong>{signal.title}</strong><p>{signal.explanation}</p></article>)}</div>
+    </details>
     <p className="lsi-disclaimer">Trainingszweck und eigene Angaben werden nicht gespeichert. Keine automatische Änderung an Garmin oder Trainingsplan.</p>
   </section>
 }
