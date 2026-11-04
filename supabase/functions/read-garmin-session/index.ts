@@ -8,7 +8,7 @@ const projectUrl = Deno.env.get('SUPABASE_URL') || ''
 const ownerEmail = (Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL') || '').trim().toLowerCase()
 const runningTypes = ['running', 'track_running', 'treadmill_running', 'ultra_run']
 
-type NumericPoint = { i: number; hr?: number; speed?: number; elapsed?: number; distance?: number }
+type NumericPoint = { i: number; hr?: number; speed?: number; elapsed?: number; distance?: number; elevation?: number; power?: number; cadence?: number }
 
 function key(kind: 'publishable' | 'secret'): string {
   const modern = kind === 'publishable' ? 'SUPABASE_PUBLISHABLE_KEYS' : 'SUPABASE_SECRET_KEYS'
@@ -46,12 +46,18 @@ function point(value: unknown, i: number): NumericPoint | null {
   const speed = numeric(v.speed)
   const elapsed = numeric(v.elapsed)
   const distance = numeric(v.distance)
+  const elevation = numeric(v.elevation)
+  const power = numeric(v.power)
+  const cadence = numeric(v.cadence)
   // Whitelist only analysis metrics. Discard raw descriptors and any GPS payloads.
   const p: NumericPoint = { i }
   if (hr !== null && hr >= 35 && hr <= 220) p.hr = hr
   if (speed !== null && speed >= 0 && speed <= 20) p.speed = speed
   if (elapsed !== null && elapsed >= 0) p.elapsed = elapsed
   if (distance !== null && distance >= 0) p.distance = distance
+  if (elevation !== null && elevation >= -500 && elevation <= 9000) p.elevation = elevation
+  if (power !== null && power >= 0 && power <= 2500) p.power = power
+  if (cadence !== null && cadence >= 0 && cadence <= 250) p.cadence = cadence
   return Object.keys(p).length > 1 ? p : null
 }
 
@@ -93,7 +99,7 @@ Deno.serve(async (req: Request) => {
       const activities = data ?? []
       const ids = activities.map(a => String(a.activity_id))
       const details = ids.length ? await admin.from('garmin_activity_details')
-        .select('activity_id,status,hr_sample_count,sample_count,lap_count')
+        .select('activity_id,status,hr_sample_count,sample_count,lap_count,fit_status')
         .in('activity_id', ids) : { data: [], error: null }
       if (details.error) throw new Error(`detail-list ${details.error.code}`)
       const status = new Map((details.data ?? []).map(d => [String(d.activity_id), d]))
@@ -104,6 +110,7 @@ Deno.serve(async (req: Request) => {
         detailStatus: status.get(String(a.activity_id))?.status ?? 'not-imported',
         hrSamples: status.get(String(a.activity_id))?.hr_sample_count ?? 0,
         laps: status.get(String(a.activity_id))?.lap_count ?? 0,
+        fitStatus: status.get(String(a.activity_id))?.fit_status ?? 'not-imported',
       })) }, 200, headers)
     }
 
@@ -113,11 +120,20 @@ Deno.serve(async (req: Request) => {
     if (activityError) throw new Error(`activity ${activityError.code}`)
     if (!activity || !runningTypes.includes(activity.sport_type)) return json({ error: 'Running activity not found' }, 404, headers)
     const { data: detail, error: detailError } = await admin.from('garmin_activity_details')
-      .select('status,samples,hr_sample_count,lap_count,laps,summary,fetched_at')
+      .select('status,samples,hr_sample_count,lap_count,laps,summary,fetched_at,fit_status,fit_record_count,fit_laps,fit_events,fit_sessions,fit_workout_steps,fit_terrain,fit_quality,fit_fetched_at')
       .eq('activity_id', id).maybeSingle()
     if (detailError) throw new Error(`details ${detailError.code}`)
-    const rawSamples: unknown[] = Array.isArray(detail?.samples) ? detail.samples : []
-    const samples = rawSamples.slice(0, 1800).map((s, index) => point(s, index)).filter(p => p !== null)
+    const useFit = detail?.fit_status === 'complete' && numeric(detail?.fit_record_count) !== null && (detail?.fit_record_count ?? 0) > 1
+    let rawSamples: unknown[] = Array.isArray(detail?.samples) ? detail.samples : []
+    if (useFit) {
+      const { data: chunks, error: chunkError } = await admin.from('garmin_fit_record_chunks')
+        .select('records').eq('activity_id', id).order('chunk_index', { ascending: true })
+      if (chunkError) throw new Error(`fit-chunks ${chunkError.code}`)
+      rawSamples = (chunks ?? []).flatMap(c => Array.isArray(c.records) ? c.records : [])
+    }
+    const sampled = rawSamples.length <= 1800 ? rawSamples : Array.from({ length: 1800 }, (_, i) =>
+      rawSamples[Math.floor(i * (rawSamples.length - 1) / 1799)])
+    const samples = sampled.map((s, index) => point(s, index)).filter(p => p !== null)
     const summary = detail?.summary && typeof detail.summary === 'object' ? detail.summary as Record<string, unknown> : {}
     return json({
       source: 'Garmin / Supabase',
@@ -137,6 +153,15 @@ Deno.serve(async (req: Request) => {
           return { index: numeric(l.index), elapsedS: numeric(l.elapsed_s), distanceM: numeric(l.distance_m), avgHr: numeric(l.avg_hr) }
         }) : [],
         fetchedAt: detail?.fetched_at ?? null,
+        fitStatus: detail?.fit_status ?? 'not-imported',
+        fitFetchedAt: detail?.fit_fetched_at ?? null,
+        sampleSource: useFit ? 'original-fit' : 'garmin-api-chart',
+        fitRecordCount: detail?.fit_record_count ?? 0,
+        fitLapCount: Array.isArray(detail?.fit_laps) ? detail.fit_laps.length : 0,
+        fitEventCount: Array.isArray(detail?.fit_events) ? detail.fit_events.length : 0,
+        fitWorkoutStepCount: Array.isArray(detail?.fit_workout_steps) ? detail.fit_workout_steps.length : 0,
+        fitQuality: detail?.fit_quality ?? {},
+        terrainWindows: Array.isArray(detail?.fit_terrain) ? detail.fit_terrain.slice(0, 10000) : [],
         samples,
       },
     }, 200, headers)
