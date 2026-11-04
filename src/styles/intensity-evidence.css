@@ -1,0 +1,13 @@
+/* GARMIN_AI v0.7.0 - compact intensity distribution in existing session UI */
+.iie-wrap{margin:18px 0 12px;padding:17px 18px;background:#101a2c;border:1px solid #293b58;border-radius:14px}
+.iie-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.iie-top h4{font-size:19px;letter-spacing:-.035em;margin:5px 0 0;color:#f4f6ff}
+.iie-reference{font-size:10px;font-weight:600;border:1px solid #354663;padding:6px 9px;border-radius:999px;color:#b2bfda}
+.iie-meta,.iie-muted,.iie-note,.iie-foot{font-size:12px;line-height:1.55;color:#afbdd5}
+.iie-meta{margin:7px 0 15px}.iie-bands{display:grid;gap:9px;margin:12px 0 14px}
+.iie-row{display:grid;grid-template-columns:72px minmax(40px,1fr) 65px 90px;gap:12px;align-items:center}
+.iie-label{font-size:11px;font-weight:700;color:#e9edf8}.iie-track{height:9px;border-radius:10px;background:#263449;overflow:hidden}
+.iie-fill{height:100%;border-radius:10px;min-width:0}.iie-number{font-size:11px;font-variant-numeric:tabular-nums;text-align:right;font-weight:700;color:#e7ebf8}
+.iie-range{font-size:10px;color:#93a3bb;text-align:right}.iie-note{margin:10px 0}.iie-foot{border-top:1px solid #293b58;padding-top:10px;margin:12px 0 0;color:#8799b6}
+.iie-warning{font-size:11px;color:#edc595;background:#2c2530;border:1px solid #5d453f;border-radius:9px;padding:9px 11px}
+@media(max-width:620px){.iie-row{grid-template-columns:48px minmax(34px,1fr) 55px;gap:7px}.iie-range{grid-column:2/4;text-align:left;margin-top:-6px}.iie-top{flex-direction:column}}

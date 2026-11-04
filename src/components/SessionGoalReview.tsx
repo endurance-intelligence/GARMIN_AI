@@ -6,6 +6,7 @@ import {safeZoneMax} from '../lib/garminHrProfile'
 import {useGarminHrProfile} from '../lib/useGarminHrProfile'
 import '../styles/session-intelligence.css'
 import '../styles/hr-profile-session.css'
+import {IntensityEvidencePanel} from './IntensityEvidencePanel'
 
 const goals:{value:SessionGoal;label:string}[]=[
   {value:'unknown',label:'Noch nicht zugeordnet'},
@@ -46,6 +47,7 @@ export function SessionGoalReview({samples,lapCount,activityDate}:{
       </div>}
       <label className="lsi-illness"><input type="checkbox" checked={recentIllness} onChange={event=>setRecentIllness(event.target.checked)}/><span>Wiedereinstieg nach Erkrankung</span></label>
     </div>
+    <IntensityEvidencePanel samples={samples} activityDate={activityDate} profileData={data} />
     <div className="lsi-signals">{review.signals.map((signal,index)=><article key={`${signal.title}-${index}`} className={`lsi-signal lsi-${signal.level}`}><strong>{signal.title}</strong><p>{signal.explanation}</p></article>)}</div>
     <p className="lsi-disclaimer">Trainingszweck und eigene Angaben werden nicht gespeichert. Keine automatische Änderung an Garmin oder Trainingsplan.</p>
   </section>
