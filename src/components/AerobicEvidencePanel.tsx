@@ -11,12 +11,37 @@ type Run = {
   validHr:number;total:number;timing:'elapsed'|'timestamp'|'unverified'
   timelineGapCount:number;hrArtifactCount:number
 }
+type WorkerHealth = {
+  scheduler:{configured:boolean;active:boolean|null;schedule:string|null;
+    lastDispatchAt:string|null;lastDispatchStatus:string|null};
+  progress:{storedLastHour:number;storedLast24h:number;lastStoredAt:string|null;
+    queued:number;retry:number;processing:number;paused:number;
+    unavailable:number;notEnqueued:number};
+}
+function formatTime(raw:string|null):string{
+  if(!raw)return 'Keine Angabe'
+  const date=new Date(raw)
+  return Number.isNaN(date.getTime())?'Keine Angabe':new Intl.DateTimeFormat('de-DE',{
+    day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'
+  }).format(date)
+}
+function describeWorker(h:WorkerHealth):{label:string;detail:string}{
+  if(!h.scheduler.configured)return {label:'Cron nicht gefunden',detail:'Der erwartete Detailimport-Job ist nicht eingetragen.'}
+  if(!h.scheduler.active)return {label:'Cron pausiert',detail:'Der Detailimport-Job ist nicht aktiv.'}
+  const at=h.scheduler.lastDispatchAt?Date.parse(h.scheduler.lastDispatchAt):NaN
+  if(!Number.isFinite(at))return {label:'Cron aktiv · Lauf nicht nachgewiesen',detail:'Für den geplanten Job liegt noch kein Laufprotokoll vor.'}
+  if(Date.now()-at>25*60*1000)return {label:'Cron aktiv · letzter Lauf älter als 25 Min.',detail:'Zeitplan ist aktiv, aber der letzte protokollierte Aufruf ist nicht aktuell.'}
+  if(h.scheduler.lastDispatchStatus==='failed')return {label:'Letzter Cron-Aufruf fehlgeschlagen',detail:'Im Cron-Protokoll wurde ein Fehler gemeldet.'}
+  if(h.scheduler.lastDispatchStatus==='running')return {label:'Cron-Aufruf läuft',detail:'Der laufende Auftrag ist noch nicht abgeschlossen.'}
+  return {label:'Cron aktiv · Aufruf protokolliert',detail:'Das bestätigt nur den geplanten Aufruf, nicht die erfolgreiche Garmin-Abfrage.'}
+}
 type Audit = {
   analyzedAt:string;scan:{runningRead:number;capped:boolean;metadataCandidates:number;
     withHrDetails:number;detailEvaluated:number;detailLimit:number;
     comparable:number;limited:number;excluded:number};
   coverage:{missing:number;queued:number;processing:number;retry:number;paused:number;
     unavailable:number;withoutSufficientHr:number;ready:number};
+  workerHealth:WorkerHealth|null;
   comparable:Run[];limited:Run[];excluded:Run[];conclusion:string
 }
 function num(v:number|null,unit:string){return v===null?'–':`${v.toLocaleString('de-DE',{maximumFractionDigits:1})} ${unit}`}
@@ -56,7 +81,7 @@ export function AerobicEvidencePanel({active}:{active:boolean}){
   },[active,session?.access_token,refresh])
   if(!active)return null
   return <section className="ae-wrap" aria-label="Aerobic Evidence Audit">
-    <header className="ae-head"><div><span className="micro-label">GARMIN_AI / AEROBIC EVIDENCE · v0.6.3</span>
+    <header className="ae-head"><div><span className="micro-label">GARMIN_AI / AEROBIC EVIDENCE · v0.6.5</span>
       <h2>Wie aussagekräftig sind deine Läufe?</h2>
       <p>Wir suchen gleichmäßige Abschnitte mit verwertbaren HF- und Tempodaten. Noch keine Berechnung der aeroben Schwelle.</p>
     </div>{session&&<button className="secondary" type="button" disabled={loading} onClick={()=>setRefresh(r=>r+1)}>{loading?'Prüfe …':'Erneut prüfen'}</button>}</header>
@@ -77,7 +102,24 @@ export function AerobicEvidencePanel({active}:{active:boolean}){
         <div className="ae-coverage-title"><strong>HF-Datenabdeckung</strong><span>{data.scan.metadataCandidates>0?Math.round(data.coverage.ready/data.scan.metadataCandidates*100):0}% der geeigneten Läufe mit HF-Messreihe</span></div>
         <div className="ae-coverage-track"><div style={{width:`${data.scan.metadataCandidates>0?Math.min(100,100*data.coverage.ready/data.scan.metadataCandidates):0}%`}}/></div>
         <p><b>{data.coverage.missing}</b> noch nicht eingereiht · <b>{data.coverage.queued+data.coverage.processing+data.coverage.retry}</b> warten / in Bearbeitung · <b>{data.coverage.withoutSufficientHr}</b> importiert ohne ausreichende HF · <b>{data.coverage.paused+data.coverage.unavailable}</b> pausiert / nicht verfügbar</p>
-        <small>Gezählt werden nur Läufe mit passender Dauer, Distanz und Laufart. Der konfigurierte Detail-Worker verarbeitet höchstens zwei Aktivitäten je Aufruf (vorgesehener 5-Minuten-Takt). Ob der Cron aktuell aktiv ist, wird hier nicht geprüft. Keine Nachladung beim Öffnen dieser Seite.</small>
+        <small>Gezählt werden nur Läufe mit passender Dauer, Distanz und Laufart. Der Detail-Worker verarbeitet höchstens zwei Aktivitäten pro Aufruf (konfigurierter 5-Minuten-Takt). Diese Seite liest nur gespeicherte Daten; sie startet keinen Import.</small>
+      </div>
+      <div className="ae-worker" aria-label="Garmin-Detailimport Status">
+        <div className="ae-worker-head"><strong>Garmin-Detailimport</strong><span>Nur Statusabfrage · keine Änderung am Worker</span></div>
+        {data.workerHealth?(()=>{
+          const health=data.workerHealth
+          const diagnostic=describeWorker(health)
+          return <>
+            <div className="ae-worker-stat"><strong>{diagnostic.label}</strong><span>{diagnostic.detail}</span></div>
+            <div className="ae-worker-grid">
+              <div><span>Letzter Cron-Aufruf</span><b>{formatTime(health.scheduler.lastDispatchAt)}</b></div>
+              <div><span>Letzter gespeicherter Detailimport</span><b>{formatTime(health.progress.lastStoredAt)}</b></div>
+              <div><span>Neue Details · 60 Minuten</span><b>{health.progress.storedLastHour}</b></div>
+              <div><span>Neue Details · 24 Stunden</span><b>{health.progress.storedLast24h}</b></div>
+            </div>
+            <small>Der Fortschritt zählt alle Sportarten. {health.progress.queued+health.progress.retry+health.progress.processing} offene Detailaufträge, {health.progress.notEnqueued} noch ohne Detailzeile, {health.progress.paused+health.progress.unavailable} pausiert / nicht verfügbar (alle Aktivitäten). Ein erfolgreicher Cron-Aufruf belegt keine erfolgreiche Garmin-Antwort.</small>
+          </>
+        })():<div className="ae-worker-unknown">Cron-Diagnose noch nicht verfügbar. Die Laufdaten-Auswertung darüber funktioniert unabhängig davon.</div>}
       </div>
       <div className="ae-findings">
         {data.comparable.length>0?<>

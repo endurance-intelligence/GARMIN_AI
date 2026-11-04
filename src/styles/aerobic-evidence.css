@@ -36,3 +36,14 @@
 .ae-coverage-track>div{height:100%;background:#a5e575;border-radius:20px}
 .ae-coverage p{font-size:11px;line-height:1.65;color:#c1cde1;margin:8px 0 4px}
 .ae-coverage small{font-size:10px;color:#8fa2bd;line-height:1.65;display:block}
+
+/* v0.6.5 - import health: compact operational status, no invented traffic light */
+.ae-worker{border:1px solid #2b3b56;border-radius:12px;background:#101a2c;padding:14px 15px;margin:11px 0 10px}
+.ae-worker-head,.ae-worker-stat{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.ae-worker-head strong{font-size:12px}.ae-worker-head span{font-size:10px;color:#8da0bc}
+.ae-worker-stat{padding:10px 0;border-bottom:1px solid #293853}
+.ae-worker-stat strong{font-size:12px}.ae-worker-stat span{color:#a7b6ce;font-size:11px;max-width:440px}
+.ae-worker-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 8px}
+.ae-worker-grid>div{display:flex;flex-direction:column;gap:5px}.ae-worker-grid span{font-size:10px;color:#8294b3}.ae-worker-grid b{font-size:14px}
+.ae-worker>small,.ae-worker-unknown{display:block;line-height:1.7;font-size:10px;color:#92a5bf}
+@media(max-width:740px){.ae-worker-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

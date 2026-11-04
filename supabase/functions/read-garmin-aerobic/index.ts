@@ -117,6 +117,23 @@ Deno.serve(async req=>{
         ...metrics,
       }
     })
+    // Status-only health check. This SECURITY DEFINER RPC is callable only with
+    // the server-side service key. Its result has no secrets, SQL commands,
+    // Garmin user identifiers, or raw activity data.
+    // A failed diagnostic MUST NOT break the existing aerobic analysis.
+    let workerHealth:unknown=null
+    let workerHealthAvailable=false
+    try {
+      const {data:health,error:healthError}=await admin.rpc('garmin_detail_worker_health')
+      if(!healthError&&health&&typeof health==='object'&&!Array.isArray(health)){
+        workerHealth=health
+        workerHealthAvailable=true
+      }else if(healthError){
+        console.warn('GARMIN_AI worker health unavailable:',healthError.code)
+      }
+    }catch{
+      console.warn('GARMIN_AI worker health unavailable')
+    }
     const comparable=scored.filter(x=>x.classification==='comparable')
     const limited=scored.filter(x=>x.classification==='limited')
     const excluded=scored.filter(x=>x.classification==='excluded')
@@ -128,6 +145,7 @@ Deno.serve(async req=>{
         detailEvaluated:scored.length, detailLimit:DETAIL_LIMIT,
         comparable:comparable.length,limited:limited.length,excluded:excluded.length},
       coverage,
+      workerHealth:workerHealthAvailable?workerHealth:null,
       comparable:comparable.slice(0,8),limited:limited.slice(0,5),excluded:excluded.slice(0,5),
       conclusion:'Kein LT1/VT1-Bereich berechnet. Messreihen zeigen nur beobachtete HF- und Tempoänderungen.',
     },200,headers)
