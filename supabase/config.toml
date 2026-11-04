@@ -24,3 +24,7 @@ verify_jwt = false
 
 [functions.sync-garmin-hr-profile]
 verify_jwt = false
+
+# Owner JWT verified inside the private Edge Function.
+[functions.read-garmin-aerobic]
+verify_jwt = false
