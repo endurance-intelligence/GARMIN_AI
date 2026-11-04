@@ -3,6 +3,68 @@
  * Supabase Auth is verified INSIDE the function; never turn this into an anonymous data API.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { normalizeGear, normalizeSchedule, validCalendarRange } from '../_shared/garmin-connect-context.mjs'
+
+// Read-only Garmin Connect context. Tokens remain server-side and are cached only in memory.
+// No scheduled jobs, persistent token storage, or Garmin writes are introduced.
+const garminApi = 'https://personal.connectapi.garmin.com'
+let cachedBearer: { token: string; expires: number } | null = null
+let inflightBearer: Promise<string> | null = null
+class GarminContextError extends Error {
+  constructor(readonly status: number) { super('garmin-context-http-' + status) }
+}
+async function garminRequest(path: string, token: string): Promise<unknown> {
+  const response = await fetch(garminApi + path, {
+    method: 'GET', headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!response.ok) {
+    if (response.status === 401) cachedBearer = null
+    throw new GarminContextError(response.status)
+  }
+  if (Number(response.headers.get('content-length') || 0) > 300000) throw new Error('garmin-context-too-large')
+  const body = await response.text()
+  if (!body || body.length > 300000) throw new Error('garmin-context-response-invalid')
+  return JSON.parse(body) as unknown
+}
+async function bearerToken(): Promise<string> {
+  if (cachedBearer && cachedBearer.expires > Date.now()) return cachedBearer.token
+  if (inflightBearer) return inflightBearer
+  inflightBearer = (async () => {
+    const apiKey = Deno.env.get('GARMIN_API_KEY') || ''
+    if (!/^[A-Za-z0-9_+/.=-]{20,2048}$/.test(apiKey)) throw new Error('garmin-context-unconfigured')
+    const response = await fetch(garminApi + '/personalapitoken-service/personal-api/personal-api-key/token', {
+      method: 'POST', headers: { Authorization: `ApiKey ${apiKey}` },
+      signal: AbortSignal.timeout(15000),
+    })
+    if (!response.ok) throw new GarminContextError(response.status)
+    const token = (await response.text()).trim().replace(/^"|"$/g, '')
+    if (!/^[A-Za-z0-9_+/.=-]{20,2048}$/.test(token)) throw new Error('garmin-context-token-invalid')
+    cachedBearer = { token, expires: Date.now() + 20 * 60 * 60 * 1000 }
+    return token
+  })()
+  try { return await inflightBearer }
+  finally { inflightBearer = null }
+}
+function contextFailure(error: unknown): string {
+  if (error instanceof GarminContextError) {
+    if (error.status === 401 || error.status === 403) return 'access-denied'
+    if (error.status === 429) return 'rate-limited'
+    if (error.status === 404 || error.status === 405) return 'unavailable'
+    return 'upstream-error'
+  }
+  if (error instanceof Error && error.message === 'garmin-context-unconfigured') return 'unconfigured'
+  if (error instanceof Error && error.message === 'garmin-context-unexpected-shape') return 'unsupported-shape'
+  return 'read-error'
+}
+async function safeContextRead<T>(load: () => Promise<T>): Promise<{status: string; data: T | null}> {
+  try { return { status: 'ok', data: await load() } }
+  catch (error) { return { status: contextFailure(error), data: null } }
+}
+function dayOffset(offset: number): string {
+  return new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10)
+}
+
 
 const projectUrl = Deno.env.get('SUPABASE_URL') || ''
 const ownerEmail = (Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL') || '').trim().toLowerCase()
@@ -88,6 +150,39 @@ Deno.serve(async (req: Request) => {
     const url = new URL(req.url)
     const id = url.searchParams.get('id')
     if (id !== null && !/^\d{5,20}$/.test(id)) return json({ error: 'Invalid activity ID' }, 400, headers)
+
+    // Opt-in context API: ?context=1[&id=123][&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD]
+    // Authenticate owner BEFORE making any Garmin calls. Legacy activity routes are unchanged.
+    if (url.searchParams.get('context') === '1') {
+      const startDate = url.searchParams.get('startDate') ?? dayOffset(-7)
+      const endDate = url.searchParams.get('endDate') ?? dayOffset(28)
+      if (!validCalendarRange(startDate, endDate)) {
+        return json({ error: 'Invalid calendar range (max 45 days)' }, 400, headers)
+      }
+      if (id !== null) {
+        const { data: exists, error: existsError } = await admin.from('garmin_activities')
+          .select('activity_id').eq('activity_id', id).maybeSingle()
+        if (existsError) throw new Error(`context-activity ${existsError.code}`)
+        if (!exists) return json({ error: 'Activity not found' }, 404, headers)
+      }
+      // Distinguish empty lists (status=ok, items=[]) from unavailable/unknown responses.
+      const tokenResult = await safeContextRead(bearerToken)
+      if (tokenResult.status !== 'ok' || !tokenResult.data) {
+        return json({ source: 'Garmin Connect (unofficial)', readOnly: true,
+          status: tokenResult.status, gearCatalog: null, schedule: null, activityGear: null }, 200, headers)
+      }
+      const token = tokenResult.data
+      const [gearCatalog, schedule, activityGear] = await Promise.all([
+        safeContextRead(async () => normalizeGear(await garminRequest('/gear-service/gear/v2/list?start=0&limit=100', token))),
+        safeContextRead(async () => normalizeSchedule(await garminRequest(
+          '/workout-service/schedule/workoutScheduleByPeriod?startDate=' + startDate + '&endDate=' + endDate, token))),
+        id === null ? Promise.resolve(null) : safeContextRead(async () => normalizeGear(
+          await garminRequest('/gear-service/activity/v2/' + id, token))),
+      ])
+      return json({ source: 'Garmin Connect (unofficial)', readOnly: true,
+        gearCatalog, schedule: { ...schedule, startDate, endDate },
+        activityGear: id === null ? null : { activityId: id, ...activityGear } }, 200, headers)
+    }
 
     if (id === null) {
       const { data, error } = await admin.from('garmin_activities')
