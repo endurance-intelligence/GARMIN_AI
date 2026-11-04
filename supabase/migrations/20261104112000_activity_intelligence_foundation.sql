@@ -147,3 +147,62 @@ BEGIN
 END $fn$;
 REVOKE ALL ON FUNCTION public.garmin_fit_fail(text,uuid,text,boolean) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.garmin_fit_fail(text,uuid,text,boolean) TO service_role;
+
+-- Keep the EXISTING details scheduler responsible for FIT enrichment as well.
+-- Without this, the five-minute cron returns early after the legacy details
+-- queue is empty even while FIT jobs are queued or ready for retry.
+CREATE OR REPLACE FUNCTION garmin_private.dispatch_garmin_details()
+RETURNS bigint
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $body$
+DECLARE
+  v_token text;
+  v_request_id bigint;
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.garmin_activities a
+    WHERE NOT EXISTS (
+      SELECT 1 FROM public.garmin_activity_details d
+      WHERE d.activity_id = a.activity_id
+    )
+  ) AND NOT EXISTS (
+    SELECT 1 FROM public.garmin_activity_details d
+    WHERE (d.status IN ('queued','retry')
+             AND (d.retry_after IS NULL OR d.retry_after <= now()))
+       OR (d.status = 'processing' AND d.lease_until < now())
+  ) AND NOT EXISTS (
+    SELECT 1 FROM public.garmin_activity_details d
+    WHERE d.status IN ('complete','partial')
+      AND (
+        (d.fit_status IN ('queued','retry')
+           AND (d.fit_retry_after IS NULL OR d.fit_retry_after <= now()))
+        OR (d.fit_status = 'processing' AND d.fit_lease_until < now())
+      )
+  ) THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT decrypted_secret INTO v_token
+  FROM vault.decrypted_secrets
+  WHERE name = 'garmin_ai_cron_token';
+
+  IF v_token IS NULL OR length(v_token) <> 64 THEN
+    RAISE EXCEPTION 'GARMIN_AI scheduler token unavailable';
+  END IF;
+
+  SELECT net.http_post(
+    url := 'https://eurgupsebxypjqvyizci.supabase.co/functions/v1/backfill-garmin-details',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-garmin-sync-secret', v_token
+    ),
+    body := '{}'::jsonb,
+    timeout_milliseconds := 90000
+  ) INTO v_request_id;
+
+  RETURN v_request_id;
+END
+$body$;
+REVOKE ALL ON FUNCTION garmin_private.dispatch_garmin_details() FROM PUBLIC, anon, authenticated;
