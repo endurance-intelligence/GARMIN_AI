@@ -15,6 +15,8 @@ export type RunMetrics = {
   speedDifferencePercent: number|null
   speedVariabilityPercent: number|null
   timing: 'elapsed'|'timestamp'|'unverified'
+  timelineGapCount: number
+  hrArtifactCount: number
 }
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
 const mean = (values: number[]): number => values.reduce((a,b)=>a+b,0)/values.length
@@ -50,8 +52,41 @@ function timeAxis(points: Sample[], durationSeconds: number): { fractions: numbe
 }
 function empty(reason:string,total:number,hr:number,speed:number,timing:RunMetrics['timing']='unverified'):RunMetrics{
   return { classification:'excluded',reason,validHr:hr,validSpeed:speed,total,earlyHr:null,lateHr:null,
-    hrDifference:null,speedDifferencePercent:null,speedVariabilityPercent:null,timing }
+    hrDifference:null,speedDifferencePercent:null,speedVariabilityPercent:null,timing,
+    timelineGapCount:0,hrArtifactCount:0 }
 }
+/** Basic signal integrity screening, not a physiological inference.
+ * Garmin may downsample activity charts to 1800 points. Use the observed
+ * time spacing and the recorded duration; do not assume 1 Hz samples.
+ */
+function signalAudit(points: Sample[], axisKind:RunMetrics['timing'], durationSeconds:number):{ gaps:number; hrArtifacts:number }{
+  if(axisKind==='unverified')return {gaps:0,hrArtifacts:0}
+  const field=axisKind
+  const indexed=points.map(p=>p[field])
+  const observed=indexed.filter(finite)
+  if(observed.length<2)return {gaps:0,hrArtifacts:0}
+  const span=observed[observed.length-1]-observed[0]
+  const scale=span>durationSeconds*5?1000:1
+  const largeGapSeconds=Math.max(35,8*durationSeconds/Math.max(points.length,1))
+  let gaps=0,hrArtifacts=0
+  let previousTime:number|null=null
+  let previousHr:number|null=null
+  for(const point of points){
+    const rawTime=point[field]
+    if(rawTime===null)continue
+    const seconds=rawTime/scale
+    if(previousTime!==null){
+      const gap=seconds-previousTime
+      if(gap>largeGapSeconds)gaps++
+      // Implausibly abrupt HR jumps may represent sensor artifacts.
+      if(gap>0&&gap<=12&&point.hr!==null&&previousHr!==null&&Math.abs(point.hr-previousHr)>=32)hrArtifacts++
+    }
+    previousTime=seconds
+    previousHr=point.hr
+  }
+  return {gaps,hrArtifacts}
+}
+
 export function screenRun(input:unknown,durationSeconds:number):RunMetrics {
   if(!Array.isArray(input) || !finite(durationSeconds) || durationSeconds<1800 || durationSeconds>12000)
     return empty('Dauer außerhalb des Untersuchungsfensters (30–200 min)',Array.isArray(input)?input.length:0,0,0)
@@ -64,6 +99,7 @@ export function screenRun(input:unknown,durationSeconds:number):RunMetrics {
   const slowFraction=points.filter(p=>p.speed!==null && p.speed<1.2).length/total
   if(slowFraction>.07)return empty('Zu viele Stopps oder Gehabschnitte',total,validHr,validSpeed)
   const axis=timeAxis(points,durationSeconds)
+  const signals=signalAudit(points,axis.kind,durationSeconds)
   const sections=[points.map((p,i)=>({...p,f:axis.fractions[i]})).filter(p=>p.f>=.20&&p.f<.40),
     points.map((p,i)=>({...p,f:axis.fractions[i]})).filter(p=>p.f>=.60&&p.f<.80)]
   const sectionStats=sections.map(section=>{
@@ -86,9 +122,14 @@ export function screenRun(input:unknown,durationSeconds:number):RunMetrics {
   const variability=100*Math.sqrt(mean(binSpeeds.map(x=>(x-avg)**2)))/avg
   const base={validHr,validSpeed,total,earlyHr:round(first.hr),lateHr:round(late.hr),
     hrDifference:round(late.hr-first.hr),speedDifferencePercent:round(difference),
-    speedVariabilityPercent:round(variability),timing:axis.kind}
+    speedVariabilityPercent:round(variability),timing:axis.kind,
+    timelineGapCount:signals.gaps,hrArtifactCount:signals.hrArtifacts}
   if(Math.abs(difference)>8 || variability>8)
     return {...base,classification:'excluded',reason:'Tempo in den Vergleichsabschnitten zu ungleichmäßig'}
+  if(signals.gaps>=5 || signals.hrArtifacts>=6)
+    return {...base,classification:'excluded',reason:'Messreihe hat größere zeitliche Lücken oder auffällige HF-Sprünge'}
+  if(signals.gaps>=2 || signals.hrArtifacts>=2)
+    return {...base,classification:'limited',reason:'Signalqualität eingeschränkt: Zeitlücken oder abrupt wechselnde HF'}
   if(axis.kind==='unverified')
     return {...base,classification:'limited',reason:'Vergleich möglich, aber Zeitachse der Messreihe nicht verifiziert'}
   return {...base,classification:'comparable',reason:'Gleichmäßige Geschwindigkeit und ausreichend HF-Daten für einen deskriptiven Vergleich'}

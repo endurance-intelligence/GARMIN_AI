@@ -27,3 +27,12 @@
 .ae-bottom{border-top:1px solid #334058;margin-top:18px;padding-top:16px}
 .ae-bottom strong{color:#b3e78d;font-size:12px}
 @media(max-width:740px){.ae-wrap{padding:16px}.ae-head{flex-direction:column;gap:10px}.ae-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.ae-run-numbers{grid-template-columns:1fr}.ae-head h2{font-size:21px}}
+
+/* v0.6.4 compact, evidence-first coverage summary */
+.ae-coverage{border:1px solid #2d3c56;border-radius:12px;background:#101b2d;padding:13px 15px;margin:12px 0 8px}
+.ae-coverage-title{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap;font-size:12px}
+.ae-coverage-title span{font-size:11px;color:#a6b4cd}
+.ae-coverage-track{margin:10px 0;height:5px;border-radius:20px;background:#2c3a54;overflow:hidden}
+.ae-coverage-track>div{height:100%;background:#a5e575;border-radius:20px}
+.ae-coverage p{font-size:11px;line-height:1.65;color:#c1cde1;margin:8px 0 4px}
+.ae-coverage small{font-size:10px;color:#8fa2bd;line-height:1.65;display:block}

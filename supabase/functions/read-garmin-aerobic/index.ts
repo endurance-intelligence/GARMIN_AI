@@ -9,7 +9,7 @@ const projectUrl = Deno.env.get('SUPABASE_URL') || ''
 const ownerEmail = (Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL') || '').trim().toLowerCase()
 const RUNNING = ['running','track_running','treadmill_running','ultra_run']
 const PAGE_LIMIT = 800
-const DETAIL_LIMIT = 28
+const DETAIL_LIMIT = 40
 
 type Activity = { activity_id:string;activity_name:string|null;start_time_local:string|null;
   sport_type:string|null;distance_m:number|null;duration_s:number|null;average_heart_rate:number|null }
@@ -79,6 +79,22 @@ Deno.serve(async req=>{
       statuses.push(...(data??[]) as DetailStatus[])
     }
     const statusMap=new Map(statuses.map(d=>[String(d.activity_id),d]))
+    // Count disjoint states for the screened running candidates only.
+    // "missing" means no detail row yet; it is NOT a failed Garmin request.
+    const coverage={missing:0,queued:0,processing:0,retry:0,paused:0,
+      unavailable:0,withoutSufficientHr:0,ready:0}
+    for(const a of initial){
+      const d=statusMap.get(String(a.activity_id))
+      if(!d){coverage.missing++;continue}
+      if(d.status==='queued'||d.status==='processing'||d.status==='retry'||
+         d.status==='paused'||d.status==='unavailable'){
+        coverage[d.status]++
+      }else if((d.status==='complete'||d.status==='partial')&&(d.hr_sample_count??0)>=150){
+        coverage.ready++
+      }else{
+        coverage.withoutSufficientHr++
+      }
+    }
     const withSeries=initial.filter(a=>{
       const d=statusMap.get(String(a.activity_id))
       return !!d && (d.status==='complete'||d.status==='partial') && (d.hr_sample_count??0)>=150
@@ -111,6 +127,7 @@ Deno.serve(async req=>{
         metadataCandidates:initial.length, withHrDetails:withSeries.length,
         detailEvaluated:scored.length, detailLimit:DETAIL_LIMIT,
         comparable:comparable.length,limited:limited.length,excluded:excluded.length},
+      coverage,
       comparable:comparable.slice(0,8),limited:limited.slice(0,5),excluded:excluded.slice(0,5),
       conclusion:'Kein LT1/VT1-Bereich berechnet. Messreihen zeigen nur beobachtete HF- und Tempoänderungen.',
     },200,headers)
