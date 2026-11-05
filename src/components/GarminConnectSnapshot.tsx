@@ -156,7 +156,11 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
   const allGear = snapshot?.gear ?? []
   const statusOf = (g:Gear) => g.status === 'active' || g.status === 'retired' ? g.status : 'unknown'
   const isShoe = (g:Gear) => /shoes?|schuh/i.test(g.type ?? '')
+  // Display the most-used active running shoes first. Garmin is still the
+  // authoritative source of assignments and distance, not the UI sort order.
   const activeShoes = allGear.filter(g=>statusOf(g)==='active' && isShoe(g))
+    .sort((a,b)=> (usage.find(u=>u.gearId===b.id)?.knownDistanceKm??0) -
+                  (usage.find(u=>u.gearId===a.id)?.knownDistanceKm??0))
   const activeOther = allGear.filter(g=>statusOf(g)==='active' && !isShoe(g))
   const retired = allGear.filter(g=>statusOf(g)==='retired')
   const unknown = allGear.filter(g=>statusOf(g)==='unknown')
@@ -175,8 +179,13 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
         </div>}
         <div className={withPhotos?'gcs-visual-info':'gcs-row-info'}>
           <strong>{g.name}</strong>
-          <small>{[g.brand,g.type].filter(Boolean).join(' · ')||'Garmin Connect'}</small>
-          {u && <small className={withPhotos?'gcs-distance':''}>{u.knownDistanceKm.toLocaleString('de-DE',{maximumFractionDigits:2})} bekannte km · {u.linkedActivities} Aktivitäten{u.missingActivities>0?` · ${u.missingActivities} ohne Distanzdaten`:''}</small>}
+          {!withPhotos && <small>{[g.brand,g.type].filter(Boolean).join(' · ')||'Garmin Connect'}</small>}
+          {u && (withPhotos ?
+            <div className="gcs-shoe-stats">
+              <span className="gcs-shoe-distance">{u.knownDistanceKm.toLocaleString('de-DE',{maximumFractionDigits:2})}<span> km</span></span>
+              <small>{u.linkedActivities} Aktivitäten · bekannte Distanz{u.missingActivities>0?` · ${u.missingActivities} ohne Distanz`:''}</small>
+            </div> :
+            <small>{u.knownDistanceKm.toLocaleString('de-DE',{maximumFractionDigits:2})} bekannte km · {u.linkedActivities} Aktivitäten{u.missingActivities>0?` · ${u.missingActivities} ohne Distanzdaten`:''}</small>)}
           {withPhotos && session && <div className="gcs-photo-controls">
             <label className="gcs-photo-upload">
               {imageBusy===g.id?'Verarbeite …':shoeImages[g.id]?'Bild ändern':'Foto hinzufügen'}
