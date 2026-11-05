@@ -19,7 +19,7 @@ const shoe = (g:Row) => typeof g.type==='string' && /shoes?|schuh/i.test(g.type)
 const activeShoe = (g:Row) => shoe(g) && g.status==='active'
 const displayName = (g:Row) => typeof g.name==='string' ? g.name : 'Laufschuh'
 const pairId = (g:Row) => uuid(g.uuid ?? g.gearUUID ?? g.gearUuid ?? g.gearId)
-const normalizeRaw = (raw:unknown, catalog:Map<string,Row>):string|null => {
+export const normalizeRaw = (raw:unknown, catalog:Map<string,Row>):string|null => {
   if(!Array.isArray(raw)) throw Error('Garmin-Ausrüstung konnte nicht zuverlässig gelesen werden.')
   const identified=new Set<string>()
   for(const entry of raw) {
@@ -34,6 +34,36 @@ const normalizeRaw = (raw:unknown, catalog:Map<string,Row>):string|null => {
   }
   if(identified.size>1) throw Error('Garmin hat mehrere Laufschuhe für diese Aktivität. Bitte zuerst in Garmin Connect prüfen.')
   return [...identified][0] ?? null
+}
+/**
+ * Two Garmin calls are NOT an atomic transaction. Always verify live Garmin
+ * after a write; if one step fails, restore the old assignment where possible.
+ */
+export async function replaceGarminActivityShoe(
+  garmin:Pick<Garmin,'addGearToActivity'|'removeGearFromActivity'|'getActivityGear'>,
+  id:string,current:string|null,next:string|null,catalog:Map<string,Row>
+) {
+  let newlyAdded=false,oldRemoved=false
+  try {
+    if(next) {
+      await garmin.addGearToActivity(next,id)
+      newlyAdded=true
+    }
+    if(current) {
+      await garmin.removeGearFromActivity(current,id)
+      oldRemoved=true
+    }
+    const verified=normalizeRaw(await garmin.getActivityGear(id),catalog)
+    if(verified!==next) throw Error('Garmin verification mismatch')
+  } catch {
+    if(oldRemoved && current) {
+      try { await garmin.addGearToActivity(current,id) } catch { /* uncertain */ }
+    }
+    if(newlyAdded && next) {
+      try { await garmin.removeGearFromActivity(next,id) } catch { /* uncertain */ }
+    }
+    throw Error('Garmin-Änderung nicht sicher bestätigt. Bitte die Zuordnung erneut laden und in Garmin prüfen.')
+  }
 }
 function result(res:import('node:http').ServerResponse,code:number,body:unknown) {
   res.statusCode=code
@@ -142,29 +172,10 @@ export function garminActivityShoeLocal():Plugin {
         if(current!==expected)
           return result(res,409,{error:'Garmin hat inzwischen eine andere Schuhzuordnung. Bitte aktualisieren.'})
         if(current===next)return result(res,200,{saved:true,unchanged:true,currentGearId:current})
-        // Explicit user approval was collected by the client before this POST.
-        // Add first, then unlink old shoe; on failure attempt to roll back newly added gear.
-        let newlyAdded=false,oldRemoved=false
+        // Explicit browser confirmation preceded this write.
         try {
-          if(next) {
-            await garmin.addGearToActivity(next,id)
-            newlyAdded=true
-          }
-          if(current) {
-            await garmin.removeGearFromActivity(current,id)
-            oldRemoved=true
-          }
-          const verified=normalizeRaw(await garmin.getActivityGear(id),catalog)
-          if(verified!==next) throw Error('Garmin-Kontrollabfrage stimmt nicht mit der Änderung überein.')
+          await replaceGarminActivityShoe(garmin,id,current,next,catalog)
         } catch {
-          // Best-effort rollback. The user must still re-read Garmin after any
-          // failed two-step write, because Garmin operations are not atomic.
-          if(oldRemoved && current) {
-            try { await garmin.addGearToActivity(current,id) } catch { /* uncertain */ }
-          }
-          if(newlyAdded && next) {
-            try { await garmin.removeGearFromActivity(next,id) } catch { /* uncertain */ }
-          }
           return result(res,502,{error:'Garmin-Änderung nicht sicher bestätigt. Bitte die Zuordnung erneut laden und in Garmin prüfen.'})
         }
         const syncResponse=await fetch(base+'/functions/v1/garmin-connect-snapshot',{
