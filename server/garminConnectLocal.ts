@@ -17,7 +17,7 @@ const id = (value: unknown): string | null => {
   return typeof t === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(t) ? t : null
 }
 
-export function sanitizedReport(raw: unknown) {
+export function sanitizedReport(raw: unknown, historyRaw: unknown = null) {
   const data = record(raw)
   if (data.readOnly !== true || data.source !== 'Garmin Connect (unofficial)') throw new Error('invalid-report')
   const gearData = record(data.gear), scheduleData = record(data.schedule), linkData = record(data.activityGear)
@@ -45,7 +45,38 @@ export function sanitizedReport(raw: unknown) {
   })
   const checkedAt = str(data.checkedAt,40)
   if(!checkedAt || !Number.isFinite(Date.parse(checkedAt))) throw new Error('invalid-time')
-  return {source:'Garmin Connect (unofficial)',readOnly:true,checkedAt,gear,schedule,activityGear}
+  let completeHistory = false
+  if (historyRaw !== null) {
+    const history = record(historyRaw)
+    const historyGearIds = array(history.gearIds)
+    const links = array(history.activityGearLinks)
+    const normalize = (value: unknown) => typeof value === 'string' ? value.replace(/-/g,'').toLowerCase() : ''
+    const allIds = gear.map(g=>normalize(g.id)).sort()
+    if (history.source !== 'Garmin Connect (unofficial)' ||
+        history.readOnly !== true || history.scope !== 'complete' ||
+        history.baseReportCheckedAt !== checkedAt ||
+        history.gearChecked !== gear.length ||
+        historyGearIds.length !== gear.length ||
+        JSON.stringify(historyGearIds.map(normalize).sort()) !== JSON.stringify(allIds) ||
+        links.length > 3000) throw new Error('incomplete-history')
+    const currentIds = new Set(allIds)
+    const seen = new Set<string>()
+    const cleanLinks = links.map(item=>{
+      const row = record(item), gearId = id(row.gearId), activityId = id(row.activityId)
+      if (!gearId || !activityId || !/^\d{5,20}$/.test(activityId) ||
+          !currentIds.has(normalize(gearId))) throw new Error('invalid-history-link')
+      const key = activityId+':'+normalize(gearId)
+      if (seen.has(key)) throw new Error('duplicate-history-link')
+      seen.add(key)
+      return {activityId,gearId}
+    })
+    for (const old of activityGear) {
+      if (!seen.has(old.activityId+':'+normalize(old.gearId))) throw new Error('missing-verified-link')
+    }
+    activityGear.splice(0,activityGear.length,...cleanLinks)
+    completeHistory = true
+  }
+  return {source:'Garmin Connect (unofficial)',readOnly:true,checkedAt,gear,schedule,activityGear,completeHistory}
 }
 
 export function garminConnectLocal(): Plugin {
@@ -72,7 +103,13 @@ export function garminConnectLocal(): Plugin {
         const raw=await readFile(path,'utf8')
         if(raw.length>150000) throw new Error('large-report')
         res.statusCode=200
-        res.end(JSON.stringify(sanitizedReport(JSON.parse(raw) as unknown)))
+        let historyRaw: unknown = null
+        try {
+          historyRaw = JSON.parse(await readFile(join(root,'GARMIN_AI','garmin-connect-gear-history.json'),'utf8')) as unknown
+        } catch (error) {
+          if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error
+        }
+        res.end(JSON.stringify(sanitizedReport(JSON.parse(raw) as unknown,historyRaw)))
       } catch {
         res.statusCode=404;res.end('{"error":"No valid local Garmin Connect report. Re-run the local verification."}')
       }
