@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { garminPublishableKey, garminSupabase, garminSupabaseReady, garminSupabaseUrl } from '../lib/garminSupabase'
 import { analyzeSession } from '../lib/sessionAnalysis'
 import { SessionGoalReview } from './SessionGoalReview'
+import { SessionGearEditor } from './SessionGearEditor'
 import type { SessionSample } from '../lib/sessionAnalysis'
 import '../styles/session-live.css'
 
@@ -118,6 +119,7 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
           <div><span>Ø HF · GARMIN</span><strong>{details.activity.avgHr==null?'–':formatNumber(details.activity.avgHr)} <small>bpm</small></strong></div>
           <div><span>HF-MESSPUNKTE</span><strong>{analysis.validHr} <small>/ {details.details.samples.length}</small></strong></div>
         </div>
+        <SessionGearEditor key={details.activity.id} activityId={details.activity.id} session={session}/>
         <div className="lsa-panels">
           <article className="lsa-chart">
             <div className="lsa-section-title"><strong>Herzfrequenz im Verlauf</strong><small>Messpunkte · keine geschätzten Werte</small></div>
