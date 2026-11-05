@@ -27,7 +27,7 @@ export function gearRows(raw) {
       brand: text(g.brand ?? g.make),
       model: text(g.customMakeModel ?? g.model),
       type: text(g.gearTypeName ?? (typeof g.gearType === 'string' ? g.gearType : obj(g.gearType).typeKey)),
-      status: normalizeGearStatus(g.gearStatusName ?? obj(g.gearStatus).statusName ?? obj(g.gearStatus).name ?? g.status),
+      status: normalizeGearStatus(g.gearStatusName ?? (typeof g.gearStatus === 'string' ? g.gearStatus : obj(g.gearStatus).statusName ?? obj(g.gearStatus).name) ?? g.status),
     };
   }).filter((g) => g.id || g.name);
 }
