@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { gearRows, scheduledRows, activityGearRows, ensureNonemptyKnownShape, safeStatus } from '../scripts/garmin-connect-model.mjs';
+import { gearRows, normalizeGearStatus, scheduledRows, activityGearRows, ensureNonemptyKnownShape, safeStatus } from '../scripts/garmin-connect-model.mjs';
 
 test('gear retains only approved display fields and drops profile PII', () => {
   assert.deepEqual(gearRows([{ uuid:'shoe123',displayName:'Altra FWD Via 2',brand:'Altra', userProfilePk:123, privateNotes:'secret' }]),
-    [{ id:'shoe123', name:'Altra FWD Via 2', brand:'Altra', model:null, type:null }]);
+    [{ id:'shoe123', name:'Altra FWD Via 2', brand:'Altra', model:null, type:null, status:'unknown' }]);
 });
 test('scheduled workout maps a known Garmin GraphQL summary', () => {
   assert.deepEqual(scheduledRows([{ scheduleDate:'2026-11-06',scheduledWorkoutId:51,workoutName:'Easy',workoutType:'running' }]),
@@ -21,4 +21,21 @@ test('unknown populated payload is not mistaken for no gear', () => {
 });
 test('error report never discloses Garmin error body', () => {
   assert.equal(safeStatus({ status:429, message:'token=secret' }), 'rate-limited');
+});
+
+test('Garmin gear status and category are captured from actual Garmin field names', () => {
+  const raw = [
+    {uuid:'shoe123',customMakeModel:'Altra - Paradigm 7',gearStatusName:'retired',gearTypeName:'Shoes'},
+    {uuid:'shoe456',customMakeModel:'Altra FWD VIA',gearStatusName:'ACTIVE',gearTypeName:'Shoes'},
+  ];
+  const [retired,active]=gearRows(raw);
+  assert.equal(retired.status,'retired');
+  assert.equal(retired.type,'Shoes');
+  assert.equal(active.status,'active');
+  assert.equal(active.type,'Shoes');
+});
+test('unknown upstream states never become active by assumption', () => {
+  assert.equal(normalizeGearStatus('unrecognized'),'unknown');
+  assert.equal(normalizeGearStatus(null),'unknown');
+  assert.equal(normalizeGearStatus(' Retired '),'retired');
 });
