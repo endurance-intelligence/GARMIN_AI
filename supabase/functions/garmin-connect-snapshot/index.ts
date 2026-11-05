@@ -122,8 +122,55 @@ Deno.serve(async req=>{
     if(Number(req.headers.get('content-length')||0)>150000) return reply({error:'Payload too large'},413,h)
     const raw=await req.text()
     if(raw.length>150000) return reply({error:'Payload too large'},413,h)
+    let input: unknown
+    try { input=JSON.parse(raw) as unknown }
+    catch { return reply({error:'Invalid JSON'},422,h) }
+    // Status-only refresh preserves the entire 411-link activity history and
+    // the calendar, even when local verification changed its timestamp.
+    if (plain(input) && input.mode==='gear-status') {
+      const checked=string(input.checkedAt,40)
+      if(input.source!=='Garmin Connect (unofficial)' || input.readOnly!==true ||
+         !checked || !Number.isFinite(Date.parse(checked)) ||
+         Math.abs(Date.now()-Date.parse(checked))>7*86400000 ||
+         !Array.isArray(input.gear) || input.gear.length<1 || input.gear.length>250)
+        return reply({error:'Invalid gear status report'},422,h)
+      const sanitized=input.gear.map(item=>{
+        if(!plain(item)) return null
+        const gearId=id(item.id)
+        if(!gearId) return null
+        return {id:gearId,status:item.status==='active'||item.status==='retired'?item.status:'unknown',
+          type:string(item.type)}
+      })
+      if(sanitized.some(x=>!x) || !sanitized.some(x=>x?.status!=='unknown'))
+        return reply({error:'No verified gear status'},422,h)
+      const {data:previous,error:previousError}=await db.from('garmin_connect_snapshot')
+        .select('gear,synced_at').eq('snapshot_key','primary').maybeSingle()
+      if(previousError) throw Error('status-read')
+      if(!previous || !Array.isArray(previous.gear) || previous.gear.length!==sanitized.length)
+        return reply({error:'Gear catalog changed; refresh full snapshot'},409,h)
+      const normalize=(value:string)=>value.replace(/-/g,'').toLowerCase()
+      const incoming=new Map(sanitized.map(x=>[normalize(x!.id),x!]))
+      if(incoming.size!==sanitized.length || previous.gear.some((g:Record<string,unknown>)=>
+          typeof g.id!=='string'||!incoming.has(normalize(g.id))))
+        return reply({error:'Gear IDs changed; refresh full snapshot'},409,h)
+      const next=previous.gear.map((g:Record<string,unknown>)=>{
+        const update=incoming.get(normalize(String(g.id)))!
+        return {...g,status:update.status,type:update.type}
+      })
+      // Optimistic check prevents overwriting a concurrent full snapshot upload.
+      const {data:saved,error:saveError}=await db.from('garmin_connect_snapshot')
+        .update({gear:next,synced_at:new Date().toISOString()})
+        .eq('snapshot_key','primary').eq('synced_at',previous.synced_at)
+        .select('snapshot_key').maybeSingle()
+      if(saveError) throw Error('status-write')
+      if(!saved) return reply({error:'Snapshot changed; retry status update'},409,h)
+      return reply({saved:true,mode:'gear-status',gear:next.length,
+        active:sanitized.filter(x=>x?.status==='active').length,
+        retired:sanitized.filter(x=>x?.status==='retired').length,
+        unknown:sanitized.filter(x=>x?.status==='unknown').length},200,h)
+    }
     let parsed: ReturnType<typeof parseSnapshot>
-    try {parsed=parseSnapshot(JSON.parse(raw)) }
+    try {parsed=parseSnapshot(input) }
     catch {return reply({error:'Invalid normalized snapshot'},422,h)}
     const {data:previous,error:previousError}=await db.from('garmin_connect_snapshot')
       .select('activity_gear_scope').eq('snapshot_key','primary').maybeSingle()
