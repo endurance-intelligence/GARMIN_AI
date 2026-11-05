@@ -122,7 +122,8 @@ export function sanitizedGearLinkReport(raw:unknown, latest:unknown) {
     throw new Error('stale-history')
   const normalized=(val:unknown)=>{
     const gear=id(val)
-    return gear && /^[0-9a-f-]{32,36}$/i.test(gear) ? gear.replace(/-/g,'').toLowerCase() : null
+    const bare=gear?.replace(/-/g,'').toLowerCase() || ''
+    return /^[0-9a-f]{32}$/.test(bare) ? bare : null
   }
   const gearIds=array(gearGroup.items).map(v=>normalized(record(v).id))
   if(gearIds.length<1 || gearIds.length>100 || gearIds.some(x=>!x) ||
