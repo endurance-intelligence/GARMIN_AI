@@ -42,7 +42,7 @@ function parseSnapshot(payload:unknown) {
       Math.abs(Date.now()-Date.parse(checkedAt))>14*86400000) throw Error('timestamp')
   if (!Array.isArray(payload.gear) || payload.gear.length>250 ||
       !Array.isArray(payload.schedule) || payload.schedule.length>500 ||
-      !Array.isArray(payload.activityGear) || payload.activityGear.length>250) throw Error('limits')
+      !Array.isArray(payload.activityGear) || payload.activityGear.length>3000) throw Error('limits')
   const gear = payload.gear.map(x=>{
     if(!plain(x)) throw Error('gear')
     const gearId=id(x.id)
@@ -67,7 +67,7 @@ function parseSnapshot(payload:unknown) {
   })
   if(new Set(gear.map(x=>x.id)).size!==gear.length) throw Error('duplicate-gear')
   if(activityGear.some(x=>!gear.some(g=>g.id===x.gearId))) throw Error('orphan-link')
-  return {gear,schedule,activity_gear:activityGear,checked_at:checkedAt,activity_gear_scope:'single-activity'}
+  return {gear,schedule,activity_gear:activityGear,checked_at:checkedAt,activity_gear_scope: payload.completeHistory===true ? 'complete' : 'single-activity'}
 }
 Deno.serve(async req=>{
   const origin=req.headers.get('origin')
@@ -90,7 +90,33 @@ Deno.serve(async req=>{
         'gear,schedule,activity_gear,activity_gear_scope,checked_at,synced_at'
       ).eq('snapshot_key','primary').maybeSingle()
       if(readError) throw Error('db-read')
-      return reply({snapshot:data},200,h)
+      if (!data || data.activity_gear_scope!=='complete') return reply({snapshot:data,usage:[]},200,h)
+      // Distance is calculated ONLY from existing canonical Garmin activity rows;
+      // never trust totals contained in the client-supplied report.
+      const links=Array.isArray(data.activity_gear)?data.activity_gear:[]
+      const ids=[...new Set(links.map((l:Record<string,unknown>)=>String(l.activityId||'')).filter(Boolean))]
+      const activities=new Map<string,{distance_m:number|null;sport_type:string|null}>()
+      for (let i=0;i<ids.length;i+=100) {
+        const {data:found,error:queryError}=await db.from('garmin_activities')
+          .select('activity_id,distance_m,sport_type').in('activity_id',ids.slice(i,i+100))
+        if(queryError) throw Error('activity-lookup')
+        for (const row of found||[]) activities.set(String(row.activity_id),{
+          distance_m:typeof row.distance_m==='number' && Number.isFinite(row.distance_m) &&
+            row.distance_m>=0?row.distance_m:null,sport_type:row.sport_type
+        })
+      }
+      const usage=(Array.isArray(data.gear)?data.gear:[]).map((g:Record<string,unknown>)=>{
+        const group=links.filter((l:Record<string,unknown>)=>l.gearId===g.id)
+        let meters=0,missing=0
+        for(const item of group) {
+          const activity=activities.get(String(item.activityId))
+          if(!activity || activity.distance_m===null) missing++
+          else meters+=activity.distance_m
+        }
+        return {gearId:g.id,linkedActivities:group.length,missingActivities:missing,
+          knownDistanceKm:Math.round(meters/10)/100}
+      })
+      return reply({snapshot:data,usage},200,h)
     }
     if(Number(req.headers.get('content-length')||0)>150000) return reply({error:'Payload too large'},413,h)
     const raw=await req.text()
@@ -98,6 +124,11 @@ Deno.serve(async req=>{
     let parsed: ReturnType<typeof parseSnapshot>
     try {parsed=parseSnapshot(JSON.parse(raw)) }
     catch {return reply({error:'Invalid normalized snapshot'},422,h)}
+    const {data:previous,error:previousError}=await db.from('garmin_connect_snapshot')
+      .select('activity_gear_scope').eq('snapshot_key','primary').maybeSingle()
+    if(previousError) throw Error('db-previous')
+    if(previous?.activity_gear_scope==='complete' && parsed.activity_gear_scope!=='complete')
+      return reply({error:'Refusing to replace complete history with partial data'},409,h)
     const {error:writeError}=await db.from('garmin_connect_snapshot').upsert(
       {snapshot_key:'primary',...parsed,synced_at:new Date().toISOString()},
       {onConflict:'snapshot_key'}
