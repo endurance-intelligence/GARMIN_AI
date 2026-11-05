@@ -88,7 +88,7 @@ Deno.serve(async req=>{
     const db=createClient(url,envKey('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
     if(req.method==='GET') {
       const {data,error:readError}=await db.from('garmin_connect_snapshot').select(
-        'gear,schedule,activity_gear,activity_gear_scope,checked_at,synced_at'
+        'gear,schedule,activity_gear,activity_gear_scope,checked_at,synced_at,gear_links_checked_at'
       ).eq('snapshot_key','primary').maybeSingle()
       if(readError) throw Error('db-read')
       if (!data || data.activity_gear_scope!=='complete') return reply({snapshot:data,usage:[]},200,h)
@@ -171,6 +171,72 @@ Deno.serve(async req=>{
         active:sanitized.filter(x=>x?.status==='active').length,
         retired:sanitized.filter(x=>x?.status==='retired').length,
         unknown:sanitized.filter(x=>x?.status==='unknown').length},200,h)
+    }
+    if (plain(input) && input.mode==='gear-links') {
+      const check=string(input.checkedAt,40)
+      if(input.source!=='Garmin Connect (unofficial)' || input.readOnly!==true ||
+         !check || !Number.isFinite(Date.parse(check)) ||
+         Math.abs(Date.now()-Date.parse(check))>7*86400000 ||
+         !Array.isArray(input.gearIds) || !Array.isArray(input.activityGear) ||
+         input.gearIds.length<1 || input.gearIds.length>100 ||
+         input.activityGear.length>3000 ||
+         input.gearChecked!==input.gearIds.length)
+        return reply({error:'Invalid complete gear scan'},422,h)
+      const canonical=(value:unknown) => {
+        const key=typeof value==='string'?value.replace(/-/g,'').toLowerCase():''
+        return /^[a-f0-9]{32}$/.test(key)?key:null
+      }
+      const scannedIds=input.gearIds.map(canonical)
+      if(scannedIds.some(x=>!x)||new Set(scannedIds).size!==scannedIds.length)
+        return reply({error:'Invalid gear scan identities'},422,h)
+
+      const {data:previous,error:previousError}=await db.from('garmin_connect_snapshot')
+        .select('gear,activity_gear,activity_gear_scope,gear_links_checked_at,synced_at')
+        .eq('snapshot_key','primary').maybeSingle()
+      if(previousError) throw Error('links-read')
+      if(!previous || previous.activity_gear_scope!=='complete' || !Array.isArray(previous.gear))
+        return reply({error:'Complete baseline required'},409,h)
+      const currentIds=new Map<string,string>()
+      for(const entry of previous.gear) {
+        const existing=plain(entry)?canonical(entry.id):null
+        if(!existing || currentIds.has(existing)) return reply({error:'Invalid current gear'},409,h)
+        currentIds.set(existing,String(entry.id))
+      }
+      if(currentIds.size!==scannedIds.length ||
+         scannedIds.some(x=>!x || !currentIds.has(x)))
+        return reply({error:'Gear catalog changed. Re-verify Garmin gear first.'},409,h)
+      const last=previous.gear_links_checked_at?Date.parse(previous.gear_links_checked_at):0
+      if(Number.isFinite(last) && Date.parse(check)<=last)
+        return reply({error:'Gear scan is older than stored links'},409,h)
+
+      const newLinks:Array<{activityId:string;gearId:string}>=[]
+      const seen=new Set<string>()
+      for(const item of input.activityGear) {
+        if(!plain(item)) return reply({error:'Invalid gear link'},422,h)
+        const activityId=id(item.activityId,20),normalized=canonical(item.gearId)
+        if(!activityId || !/^\d{5,20}$/.test(activityId) ||
+           !normalized || !currentIds.has(normalized))
+          return reply({error:'Unknown activity or gear ID'},422,h)
+        const key=activityId+':'+normalized
+        if(seen.has(key)) return reply({error:'Duplicate gear link'},422,h)
+        seen.add(key)
+        newLinks.push({activityId,gearId:currentIds.get(normalized)!})
+      }
+      const old=Array.isArray(previous.activity_gear)?previous.activity_gear:[]
+      const oldKeys=new Set(old.filter(plain).map((l:Record<string,unknown>)=>
+        String(l.activityId)+':'+canonical(l.gearId)))
+      const added=[...seen].filter(key=>!oldKeys.has(key)).length
+      const removed=[...oldKeys].filter(key=>!seen.has(key)).length
+
+      const {data:saved,error:writeError}=await db.from('garmin_connect_snapshot')
+        .update({activity_gear:newLinks,activity_gear_scope:'complete',
+          gear_links_checked_at:check,synced_at:new Date().toISOString()})
+        .eq('snapshot_key','primary').eq('synced_at',previous.synced_at)
+        .select('snapshot_key').maybeSingle()
+      if(writeError) throw Error('links-write')
+      if(!saved) return reply({error:'Snapshot changed. Retry the import.'},409,h)
+      return reply({saved:true,mode:'gear-links',previous:old.length,current:newLinks.length,
+        added,removed,checkedAt:check},200,h)
     }
     let parsed: ReturnType<typeof parseSnapshot>
     try {parsed=parseSnapshot(input) }
