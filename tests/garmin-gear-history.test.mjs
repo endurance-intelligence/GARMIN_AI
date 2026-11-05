@@ -45,3 +45,12 @@ test('no Garmin credentials or extra API fields survive sanitizer',()=>{
  const serialized=JSON.stringify(sanitizedReport(raw,history()))
  assert.doesNotMatch(serialized,/SECRET|oauthToken|location/)
 })
+
+test('a previously checked activity can legitimately change gear or lose its old association',()=>{
+ const verified=base()
+ const scanned=history()
+ scanned.activityGearLinks=[{activityId:'24725092837',gearId}]
+ const updated=sanitizedReport(verified,scanned)
+ assert.equal(updated.completeHistory,true)
+ assert.deepEqual(updated.activityGear,[{activityId:'24725092837',gearId}])
+})
