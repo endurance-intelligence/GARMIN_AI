@@ -9,6 +9,7 @@ type Link = { activityId:string; gearId:string }
 type Snapshot = {gear:Gear[];schedule:Workout[];activity_gear:Link[];activity_gear_scope:string;checked_at:string;synced_at:string}
 type LocalSnapshot = {source:string;readOnly:true;checkedAt:string;gear:Gear[];schedule:Workout[];activityGear:Link[];completeHistory?:boolean}
 type GearUsage = {gearId:string;linkedActivities:number;missingActivities:number;knownDistanceKm:number}
+type StatusReport = {mode:'gear-status';source:string;readOnly:true;checkedAt:string;gear:{id:string;type:string|null;status:'active'|'retired'|'unknown'}[]}
 
 async function contextRequest<T>(session:Session, method:'GET'|'POST',payload?:unknown):Promise<T> {
   const response=await fetch(`${garminSupabaseUrl}/functions/v1/garmin-connect-snapshot`,{
@@ -58,6 +59,35 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
     return ()=>{mounted=false}
   },[session?.access_token])
 
+  async function synchronizeGearStatus() {
+    if (!session || busy || !snapshot) return
+    setBusy(true);setError('');setNotice('')
+    try {
+      const response=await fetch('/api/garmin-context-local/gear-status',{cache:'no-store'})
+      if(!response.ok) throw Error('Aktueller lokaler Garmin-Statusbericht fehlt. Prüfe zuvor die Garmin-Verifikation.')
+      const report=await response.json() as StatusReport
+      if(report.mode!=='gear-status' || report.readOnly!==true || !Array.isArray(report.gear))
+        throw Error('Statusbericht unvollständig.')
+      const retired=report.gear.filter(g=>g.status==='retired').length
+      const active=report.gear.filter(g=>g.status==='active').length
+      const unknown=report.gear.filter(g=>g.status==='unknown').length
+      if(!window.confirm(
+        `Garmin-Status vom ${formatDate(report.checkedAt)} übernehmen?\n`+
+        `${active} aktiv · ${retired} aussortiert · ${unknown} unbekannt.\n`+
+        `${snapshot.activity_gear.length} historische Zuordnungen bleiben unverändert. Keine Garmin-Schreibzugriffe.`
+      )) return
+      await contextRequest(session,'POST',report)
+      const latest=await contextRequest<{snapshot:Snapshot|null;usage:GearUsage[]}>(session,'GET')
+      setSnapshot(latest.snapshot)
+      setUsage(latest.usage||[])
+      setNotice('Garmin-Ausrüstungsstatus aktualisiert. Historische Zuordnungen unverändert.')
+    } catch(e) {
+      setError(e instanceof Error?e.message:'Statusaktualisierung fehlgeschlagen.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function synchronize() {
     if(!session || busy)return
     setBusy(true);setError('');setNotice('')
@@ -105,8 +135,10 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
         <p>{snapshot ? `Stand: ${formatDate(snapshot.checked_at)} · Speicherung: ${formatDate(snapshot.synced_at)}` :
         'Noch kein Garmin-Connect-Snapshot gespeichert.'}</p>
       </div>
-      {mode==='gear' && <button type="button" className="secondary" onClick={()=>void synchronize()} disabled={busy||!session}>
-        {busy?'Übernehme …':'Lokalen Garmin-Bericht übernehmen'}
+      {mode==='gear' && <button type="button" className="secondary"
+        onClick={()=>void (snapshot?.activity_gear_scope==='complete' ? synchronizeGearStatus() : synchronize())}
+        disabled={busy||!session}>
+        {busy?'Übernehme …':snapshot?.activity_gear_scope==='complete'?'Garmin-Status aktualisieren':'Lokalen Garmin-Bericht übernehmen'}
       </button>}
     </div>
     {!garminSupabase && <p className="gcs-note">Supabase ist nicht konfiguriert.</p>}
