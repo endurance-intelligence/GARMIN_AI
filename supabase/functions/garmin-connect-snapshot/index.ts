@@ -242,10 +242,14 @@ Deno.serve(async req=>{
     try {parsed=parseSnapshot(input) }
     catch {return reply({error:'Invalid normalized snapshot'},422,h)}
     const {data:previous,error:previousError}=await db.from('garmin_connect_snapshot')
-      .select('activity_gear_scope').eq('snapshot_key','primary').maybeSingle()
+      .select('activity_gear_scope,gear_links_checked_at').eq('snapshot_key','primary').maybeSingle()
     if(previousError) throw Error('db-previous')
     if(previous?.activity_gear_scope==='complete' && parsed.activity_gear_scope!=='complete')
       return reply({error:'Refusing to replace complete history with partial data'},409,h)
+    if(previous?.activity_gear_scope==='complete' &&
+       previous.gear_links_checked_at &&
+       Date.parse(parsed.checked_at)<=Date.parse(previous.gear_links_checked_at))
+      return reply({error:'Refusing to overwrite newer Garmin assignments with older snapshot'},409,h)
     const {error:writeError}=await db.from('garmin_connect_snapshot').upsert(
       {snapshot_key:'primary',...parsed,synced_at:new Date().toISOString()},
       {onConflict:'snapshot_key'}
