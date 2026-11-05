@@ -118,6 +118,12 @@ async function main() {
   ]);
   if (gear.status === 'ok' && gear.items?.length) {
     console.log('Gear names:', gear.items.map((g) => g.name || g.id).join(' | '));
+    const statuses = ['active','retired','unknown'].map(status=>({
+      status,
+      items:gear.items.filter(g=>g.status===status).length,
+    }));
+    console.table(statuses);
+    console.log('Shoe categories:',gear.items.filter(g=>/shoes?/i.test(g.type||'')).length);
   }
   console.log('Sanitized local report:', reportFile);
   console.log('Garmin tokens stay exclusively at:', tokenDir);
