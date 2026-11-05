@@ -43,7 +43,8 @@ test('moving a run from one shoe to another removes and adds associations',()=>{
 })
 test('a full page is treated as potentially truncated, not as final truth',()=>{
  const state=startGearScan(gear)
- assert.throws(()=>saveGearScanResult(state,a,[{activityId:24725092836}].concat([])),()=>false)
+ const fullPage=Array.from({length:1000},(_,i)=>({activityId:10000000000+i}))
+ assert.throws(()=>saveGearScanResult(state,a,fullPage),/truncated/)
 })
 test('sync local bridge requires all known gear and strips private fields',()=>{
  const report={
