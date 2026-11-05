@@ -6,6 +6,5 @@ export function GearPage({active}: {active:boolean; onGo:(page: import('../navig
       <p>Garmin Connect bleibt die Quelle für Ausrüstung und Zuordnungen. Hier siehst du den zuletzt freigegebenen Datenstand.</p>
     </div></div>
     <GarminConnectSnapshot mode="gear"/>
-    <p className="gcs-warning">Keine erfundenen Schuhkilometer: Die historische Zuordnung wird erst angezeigt, wenn sie vollständig eingelesen und verifiziert ist.</p>
   </section>
 }
