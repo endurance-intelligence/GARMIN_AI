@@ -48,7 +48,8 @@ function parseSnapshot(payload:unknown) {
     const gearId=id(x.id)
     if(!gearId) throw Error('gear-id')
     return { id:gearId,name:string(x.name)||string(x.model)||'Equipment',
-      brand:string(x.brand),model:string(x.model),type:string(x.type) }
+      brand:string(x.brand),model:string(x.model),type:string(x.type),
+      status:x.status==='active'||x.status==='retired' ? x.status : 'unknown' }
   })
   const schedule = payload.schedule.map(x=>{
     if(!plain(x)) throw Error('schedule')
