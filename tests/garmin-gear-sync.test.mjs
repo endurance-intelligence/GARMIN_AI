@@ -41,6 +41,10 @@ test('an old checkpoint is never mixed with newly changed Garmin activity assign
 test('moving a run from one shoe to another removes and adds associations',()=>{
  assert.deepEqual(compareLinkSets(old,current),{added:1,removed:1})
 })
+test('removing an old shoe association reduces history without inventing a replacement',()=>{
+ const onlyOne=[{activityId:'24725092837',gearId:a}]
+ assert.deepEqual(compareLinkSets(old,onlyOne),{added:0,removed:1})
+})
 test('a full page is treated as potentially truncated, not as final truth',()=>{
  const state=startGearScan(gear)
  const fullPage=Array.from({length:1000},(_,i)=>({activityId:10000000000+i}))
