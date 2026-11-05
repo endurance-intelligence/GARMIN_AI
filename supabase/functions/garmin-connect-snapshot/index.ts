@@ -149,7 +149,10 @@ Deno.serve(async req=>{
       if(!previous || !Array.isArray(previous.gear) || previous.gear.length!==sanitized.length)
         return reply({error:'Gear catalog changed; refresh full snapshot'},409,h)
       const normalize=(value:string)=>value.replace(/-/g,'').toLowerCase()
-      const incoming=new Map(sanitized.map(x=>[normalize(x!.id),x!]))
+      const incoming=new Map<string,{id:string;status:string;type:string|null}>()
+      for (const item of sanitized) {
+        if (item) incoming.set(normalize(item.id),item)
+      }
       if(incoming.size!==sanitized.length || previous.gear.some((g:Record<string,unknown>)=>
           typeof g.id!=='string'||!incoming.has(normalize(g.id))))
         return reply({error:'Gear IDs changed; refresh full snapshot'},409,h)
