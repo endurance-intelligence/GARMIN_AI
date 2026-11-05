@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { garminSupabase, garminSupabaseUrl, garminPublishableKey } from '../lib/garminSupabase'
+import { Icon } from './Icon'
+import {fetchShoeImages, uploadShoeImage, removeShoeImage} from '../lib/gearImages'
 import '../styles/garmin-connect-snapshot.css'
 
 type Gear = { id:string; name:string; brand:string|null; model:string|null; type:string|null; status?:'active'|'retired'|'unknown' }
@@ -38,6 +40,9 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [notice,setNotice]=useState('')
+  const [shoeImages,setShoeImages]=useState<Record<string,string>>({})
+  const [imageBusy,setImageBusy]=useState<string|null>(null)
+  const [imageNotice,setImageNotice]=useState('')
 
   useEffect(()=>{
     if(!garminSupabase) return
@@ -58,6 +63,45 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
     }).catch(()=>{if(mounted)setError('Gespeicherte Garmin-Connect-Daten nicht abrufbar.')})
     return ()=>{mounted=false}
   },[session?.access_token])
+
+  useEffect(()=>{
+    if(mode!=='gear' || !session) return
+    let mounted=true
+    void fetchShoeImages(session).then(images=>{
+      if(mounted){setShoeImages(images);setImageNotice('')}
+    }).catch(()=>{
+      if(mounted)setImageNotice('Schuhbilder momentan nicht erreichbar.')
+    })
+    return ()=>{mounted=false}
+  },[mode,session?.access_token])
+
+  async function uploadPhoto(gear:Gear,file:File) {
+    if(!session || imageBusy) return
+    setImageBusy(gear.id);setImageNotice('')
+    try {
+      await uploadShoeImage(session,gear.id,file)
+      setShoeImages(await fetchShoeImages(session))
+      setImageNotice('Foto für '+gear.name+' gespeichert.')
+    } catch(err) {
+      setImageNotice(err instanceof Error?err.message:'Foto konnte nicht gespeichert werden.')
+    } finally {
+      setImageBusy(null)
+    }
+  }
+
+  async function removePhoto(gear:Gear) {
+    if(!session || imageBusy || !window.confirm('Foto für '+gear.name+' entfernen?')) return
+    setImageBusy(gear.id);setImageNotice('')
+    try {
+      await removeShoeImage(session,gear.id)
+      setShoeImages(await fetchShoeImages(session))
+      setImageNotice('Foto entfernt. Die Garmin-Ausrüstungsdaten bleiben erhalten.')
+    } catch(err) {
+      setImageNotice(err instanceof Error?err.message:'Foto konnte nicht entfernt werden.')
+    } finally {
+      setImageBusy(null)
+    }
+  }
 
   async function synchronizeGearStatus() {
     if (!session || busy || !snapshot) return
@@ -117,13 +161,37 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
   const retired = allGear.filter(g=>statusOf(g)==='retired')
   const unknown = allGear.filter(g=>statusOf(g)==='unknown')
 
-  function gearCards(items:Gear[]) {
-    return <div className="gcs-list">{items.map(g=>{
+  function gearCards(items:Gear[], withPhotos=false) {
+    return <div className={withPhotos?'gcs-list gcs-visual-list':'gcs-list'}>{items.map(g=>{
       const u = snapshot?.activity_gear_scope==='complete' ? usage.find(item=>item.gearId===g.id) : undefined
-      return <div className="gcs-row" key={g.id}>
-        <strong>{g.name}</strong>
-        <small>{[g.brand,g.type].filter(Boolean).join(' · ')||'Garmin Connect'}</small>
-        {u && <small>{u.knownDistanceKm.toLocaleString('de-DE',{maximumFractionDigits:2})} bekannte km · {u.linkedActivities} Aktivitäten{u.missingActivities>0?` · ${u.missingActivities} ohne Distanzdaten`:''}</small>}
+      return <div className={withPhotos?'gcs-row gcs-visual-card':'gcs-row'} key={g.id}>
+        {withPhotos && <div className="gcs-photo">
+          {shoeImages[g.id] ?
+            <img src={shoeImages[g.id]} alt={`Foto von ${g.name}`} loading="lazy"/> :
+            <div className="gcs-photo-empty" aria-label="Noch kein Foto">
+              <Icon name="footprints"/><span>DEIN SCHUH</span>
+            </div>}
+          <span className="gcs-photo-status">AKTIV</span>
+        </div>}
+        <div className={withPhotos?'gcs-visual-info':'gcs-row-info'}>
+          <strong>{g.name}</strong>
+          <small>{[g.brand,g.type].filter(Boolean).join(' · ')||'Garmin Connect'}</small>
+          {u && <small className={withPhotos?'gcs-distance':''}>{u.knownDistanceKm.toLocaleString('de-DE',{maximumFractionDigits:2})} bekannte km · {u.linkedActivities} Aktivitäten{u.missingActivities>0?` · ${u.missingActivities} ohne Distanzdaten`:''}</small>}
+          {withPhotos && session && <div className="gcs-photo-controls">
+            <label className="gcs-photo-upload">
+              {imageBusy===g.id?'Verarbeite …':shoeImages[g.id]?'Bild ändern':'Foto hinzufügen'}
+              <input type="file" accept="image/jpeg,image/png,image/webp"
+                disabled={imageBusy!==null}
+                onChange={event=>{
+                  const file=event.currentTarget.files?.[0]
+                  event.currentTarget.value=''
+                  if(file)void uploadPhoto(g,file)
+                }}/>
+            </label>
+            {shoeImages[g.id] && <button type="button" className="gcs-photo-remove"
+              disabled={imageBusy!==null} onClick={()=>void removePhoto(g)}>Entfernen</button>}
+          </div>}
+        </div>
       </div>
     })}</div>
   }
@@ -148,9 +216,11 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
     {notice && <p className="gcs-note" role="status">{notice}</p>}
     {snapshot && mode==='gear' && <>
       <p className="gcs-note">{snapshot.gear.length} Ausrüstungsgegenstände · {snapshot.activity_gear.length} bestätigte Aktivitätszuordnungen.</p>
+      <p className="gcs-photo-intro">Für aktive Laufschuhe kannst du eigene Bilder hinterlegen. Fotos bleiben privat und werden deinem Garmin-Schuh dauerhaft zugeordnet.</p>
+      {imageNotice && <p className="gcs-note" role="status">{imageNotice}</p>}
       {activeShoes.length>0 && <div className="gcs-group">
         <h4>Aktive Laufschuhe <span>{activeShoes.length}</span></h4>
-        {gearCards(activeShoes)}
+        {gearCards(activeShoes,true)}
       </div>}
       {activeOther.length>0 && <div className="gcs-group">
         <h4>Weitere aktive Ausrüstung <span>{activeOther.length}</span></h4>
