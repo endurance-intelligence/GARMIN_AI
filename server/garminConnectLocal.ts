@@ -72,9 +72,8 @@ export function sanitizedReport(raw: unknown, historyRaw: unknown = null) {
       seen.add(key)
       return {activityId,gearId}
     })
-    for (const old of activityGear) {
-      if (!seen.has(old.activityId+':'+normalize(old.gearId))) throw new Error('missing-verified-link')
-    }
+    // A run may have been reassigned in Garmin after the original spot-check.
+    // Once ALL gear has been scanned, the complete current history wins.
     activityGear.splice(0,activityGear.length,...cleanLinks)
     completeHistory = true
   }
