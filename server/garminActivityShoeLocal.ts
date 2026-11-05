@@ -27,7 +27,10 @@ const normalizeRaw = (raw:unknown, catalog:Map<string,Row>):string|null => {
     const id=pairId(r)
     const current=id ? catalog.get(id) : null
     const type=typeof r.gearTypeName==='string' ? r.gearTypeName : r.gearType
-    if(id && (current && shoe(current) || typeof type==='string' && /shoes?|schuh/i.test(type))) identified.add(id)
+    const looksLikeShoe=Boolean(current && shoe(current)) ||
+      (typeof type==='string' && /shoes?|schuh/i.test(type))
+    if(looksLikeShoe && !id) throw Error('Garmin-Schuh ohne eindeutige ID. Bitte in Garmin Connect prüfen.')
+    if(id && looksLikeShoe) identified.add(id)
   }
   if(identified.size>1) throw Error('Garmin hat mehrere Laufschuhe für diese Aktivität. Bitte zuerst in Garmin Connect prüfen.')
   return [...identified][0] ?? null
