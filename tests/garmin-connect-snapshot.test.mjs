@@ -6,7 +6,7 @@ function report() {
   return {
     source:'Garmin Connect (unofficial)',readOnly:true,
     checkedAt:'2026-11-05T09:00:00.000Z',activityId:'24725092836',
-    gear:{status:'ok',items:[{id:'gear123',name:'Black',model:'Altra FWD VIA',brand:'Altra',type:'shoes',token:'secret'}]},
+    gear:{status:'ok',items:[{id:'gear123',name:'Black',model:'Altra FWD VIA',brand:'Altra',type:'Shoes',status:'retired',token:'secret'}]},
     schedule:{status:'ok',items:[{date:'2026-11-06',id:'sched1',workoutId:'123',name:'Easy',sport:'running',restDay:false,privateNotes:'sensitive'}]},
     activityGear:{status:'ok',items:[{id:'gear123',name:'Black'}]},
     oauthToken:'never-serialize',
@@ -37,3 +37,16 @@ test('no source credentials can enter via arbitrary fields',()=>{
   const result=sanitizedReport(value)
   assert.equal(result.gear[0].accessToken,undefined)
 })
+
+test('retired gear is included in private snapshot and not deleted',()=>{
+  const value=sanitizedReport(report());
+  assert.equal(value.gear.length,1);
+  assert.equal(value.gear[0].status,'retired');
+  assert.equal(value.gear[0].type,'Shoes');
+  assert.equal(value.activityGear.length,1);
+});
+test('legacy snapshot with unknown gear status remains classified as unknown',()=>{
+  const value=report();
+  delete value.gear.items[0].status;
+  assert.equal(sanitizedReport(value).gear[0].status,'unknown');
+});
