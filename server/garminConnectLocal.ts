@@ -183,7 +183,10 @@ export function garminConnectLocal(): Plugin {
           const row=record(p)
           done=Object.keys(record(row.completed)).length
           total=array(row.gearIds).length
+          sync.done=done
+          sync.total=total
         } catch { /* no running checkpoint */ }
+        if(sync.state==='complete' && total>0) done=total
         res.statusCode=200
         res.end(JSON.stringify({...sync,done,total}))
         return
@@ -195,6 +198,11 @@ export function garminConnectLocal(): Plugin {
           return
         }
         sync={state:'running',done:0,total:0}
+        try {
+          const dir=process.env.LOCALAPPDATA || join(homedir(),'.local','share')
+          const report=JSON.parse(await readFile(join(dir,'GARMIN_AI','garmin-connect-check.json'),'utf8')) as unknown
+          sync.total=array(record(record(report).gear).items).length
+        } catch { /* worker validates missing report and reports an error */ }
         syncing=true
         const child=spawn(process.execPath,
           [join(server.config.root,'scripts','garmin-connect-gear-sync.mjs')],
