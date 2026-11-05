@@ -29,7 +29,8 @@ export function sanitizedReport(raw: unknown, historyRaw: unknown = null) {
     if(!gearId) throw new Error('invalid-gear-id')
     const model=str(row.model), name=str(row.name), brand=str(row.brand)
     return {id:gearId,name:(model || name || brand || 'Equipment') +
-      (name && name !== model ? ' · '+name : ''),model,brand,type:str(row.type)}
+      (name && name !== model ? ' · '+name : ''),model,brand,type:str(row.type),
+      status:row.status === 'active' || row.status === 'retired' ? row.status : 'unknown'}
   })
   const schedule=scheduleRaw.map(value=>{
     const row=record(value),date=str(row.date,10)
