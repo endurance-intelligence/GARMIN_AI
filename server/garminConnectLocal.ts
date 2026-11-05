@@ -80,6 +80,33 @@ export function sanitizedReport(raw: unknown, historyRaw: unknown = null) {
   return {source:'Garmin Connect (unofficial)',readOnly:true,checkedAt,gear,schedule,activityGear,completeHistory}
 }
 
+/** Refresh only Garmin status/type; do not re-fetch or repackage historical links. */
+export function sanitizedGearStatusReport(raw: unknown) {
+  const data = record(raw)
+  if (data.source !== 'Garmin Connect (unofficial)' || data.readOnly !== true) throw new Error('invalid-source')
+  const group = record(data.gear)
+  if (group.status !== 'ok' || !Array.isArray(group.items) ||
+      group.items.length < 1 || group.items.length > 250) throw new Error('invalid-gear-report')
+  const checkedAt = str(data.checkedAt,40)
+  if (!checkedAt || !Number.isFinite(Date.parse(checkedAt))) throw new Error('invalid-checked-at')
+  const seen = new Set<string>()
+  const gear = group.items.map(item=>{
+    const row=record(item)
+    const gearId=id(row.id)
+    if (!gearId) throw new Error('invalid-gear-id')
+    const normalized=gearId.replace(/-/g,'').toLowerCase()
+    if(seen.has(normalized)) throw new Error('duplicate-gear-id')
+    seen.add(normalized)
+    return {
+      id:gearId,
+      status:row.status==='active'||row.status==='retired' ? row.status : 'unknown',
+      type:str(row.type),
+    }
+  })
+  if(!gear.some(g=>g.status!=='unknown')) throw new Error('no-recognized-gear-status')
+  return {mode:'gear-status',source:'Garmin Connect (unofficial)',readOnly:true,checkedAt,gear}
+}
+
 export function garminConnectLocal(): Plugin {
   return {name:'garmin-connect-local-report-only',apply:'serve',configureServer(server){
     server.middlewares.use('/api/garmin-context-local', async (req,res)=>{
@@ -95,7 +122,7 @@ export function garminConnectLocal(): Plugin {
         res.statusCode=403;res.end('{"error":"Local-only"}');return
       }
       if(req.method!=='GET') {res.statusCode=405;res.end('{"error":"Read-only"}');return}
-      if(req.url?.split('?')[0] !== '/snapshot') {
+      if(!['/snapshot','/gear-status'].includes(req.url?.split('?')[0]||'')) {
         res.statusCode=404;res.end('{"error":"Not found"}');return
       }
       try {
@@ -103,6 +130,11 @@ export function garminConnectLocal(): Plugin {
         const path=join(root,'GARMIN_AI','garmin-connect-check.json')
         const raw=await readFile(path,'utf8')
         if(raw.length>150000) throw new Error('large-report')
+        if(req.url?.split('?')[0] === '/gear-status') {
+          res.statusCode=200
+          res.end(JSON.stringify(sanitizedGearStatusReport(JSON.parse(raw) as unknown)))
+          return
+        }
         res.statusCode=200
         let historyRaw: unknown = null
         try {
