@@ -72,7 +72,7 @@ export function SessionGearEditor({activityId,session}:{activityId:string;sessio
       }
     }catch(e){
       setError(e instanceof Error?e.message:'Änderung fehlgeschlagen. Bitte Garmin prüfen.')
-      setRefresh(n=>n+1)
+      // Keep the failure visible; the user can explicitly re-read Garmin.
     }finally{setBusy(false)}
   }
   if(!session)return null
