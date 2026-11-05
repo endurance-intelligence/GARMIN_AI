@@ -1,8 +1,11 @@
 import {GarminConnectSnapshot} from '../components/GarminConnectSnapshot'
-import {Icon} from '../components/Icon'
-import type {Page} from '../navigation'
-export function GearPage({active}: {active:boolean; onGo:(page:Page)=>void}) {
-  return (
-<section className={active ? "page active" : "page"}><div className="page-intro"><div><div className="eyebrow">Make every kilometer count</div><h1>Dein Equipment.<br />Keine Tabellenpflege<span style={{ color: "var(--a)" }}>.</span></h1><p>Schuhe und Material sinnvoll zuordnen. Weniger Eingaben, bessere Übersicht.</p></div></div><GarminConnectSnapshot mode="gear"/><div className="subhero"><div><div className="small-eyebrow">GEAR / DEMO</div><h2>Run the data, not the spreadsheet.</h2><p>Aktivitätszuordnung in GARMIN_AI, solange Garmin Gear über die Personal API nicht verfügbar ist.</p></div><Icon name="footprints" className="big" /></div><div className="sub-grid"><article><small>SHOE ROTATION</small><h3>Deine Laufschuhe</h3><div className="gear-list"><div className="gear-row"><div className="gear-dot"><Icon name="footprints" /></div><div><b>Altra FWD Via 2</b><small>Straße · Daily Trainer</small></div><span>428 km</span></div><div className="gear-row"><div className="gear-dot"><Icon name="footprints" /></div><div><b>Altra Experience Wild 3</b><small>Trail · Geländeläufe</small></div><span>186 km</span></div></div><p style={{ fontSize: "10px" }}>Kilometerstände sind reine Beispieldaten.</p></article><article><small>KISS BY DESIGN</small><h3>Automatisch, wenn möglich.</h3><p>Die App übernimmt die Aktivitätsdaten. Du wählst einen Schuh nur dann nachträglich aus, wenn die Zuordnung fehlt oder falsch ist.</p><div className="empty-line">Keine eigenständige Übungsbibliothek. Stabi- und Kraft-Workouts kommen aus Garmin.</div></article></div></section>
-  )
+export function GearPage({active}: {active:boolean; onGo:(page: import('../navigation').Page)=>void}) {
+  return <section className={active?'page active':'page'}>
+    <div className="page-intro"><div><div className="eyebrow">EQUIPMENT / GARMIN CONNECT</div>
+      <h1>Dein Equipment.<br/>Echte Daten.</h1>
+      <p>Garmin Connect bleibt die Quelle für Ausrüstung und Zuordnungen. Hier siehst du den zuletzt freigegebenen Datenstand.</p>
+    </div></div>
+    <GarminConnectSnapshot mode="gear"/>
+    <p className="gcs-warning">Keine erfundenen Schuhkilometer: Die historische Zuordnung wird erst angezeigt, wenn sie vollständig eingelesen und verifiziert ist.</p>
+  </section>
 }
