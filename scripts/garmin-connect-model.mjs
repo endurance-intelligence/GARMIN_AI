@@ -8,6 +8,15 @@ const records = (v, label) => {
   return v;
 };
 
+/**
+ * Retired gear stays in the history; unknown Garmin states are not treated as active.
+ */
+export function normalizeGearStatus(value) {
+  if (typeof value !== 'string') return 'unknown';
+  const status = value.trim().toLowerCase();
+  return status === 'active' || status === 'retired' ? status : 'unknown';
+}
+
 export function gearRows(raw) {
   const data = records(raw, 'gear');
   return data.map((v) => {
@@ -17,7 +26,8 @@ export function gearRows(raw) {
       name: text(g.displayName ?? g.name),
       brand: text(g.brand ?? g.make),
       model: text(g.customMakeModel ?? g.model),
-      type: text(typeof g.gearType === 'string' ? g.gearType : obj(g.gearType).typeKey),
+      type: text(g.gearTypeName ?? (typeof g.gearType === 'string' ? g.gearType : obj(g.gearType).typeKey)),
+      status: normalizeGearStatus(g.gearStatusName ?? obj(g.gearStatus).statusName ?? obj(g.gearStatus).name ?? g.status),
     };
   }).filter((g) => g.id || g.name);
 }
