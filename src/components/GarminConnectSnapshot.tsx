@@ -8,10 +8,12 @@ import '../styles/garmin-connect-snapshot.css'
 type Gear = { id:string; name:string; brand:string|null; model:string|null; type:string|null; status?:'active'|'retired'|'unknown' }
 type Workout = { date:string; id:string|null; workoutId:string|null; name:string|null; sport:string|null; restDay:boolean }
 type Link = { activityId:string; gearId:string }
-type Snapshot = {gear:Gear[];schedule:Workout[];activity_gear:Link[];activity_gear_scope:string;checked_at:string;synced_at:string}
+type Snapshot = {gear:Gear[];schedule:Workout[];activity_gear:Link[];activity_gear_scope:string;checked_at:string;synced_at:string;gear_links_checked_at?:string|null}
 type LocalSnapshot = {source:string;readOnly:true;checkedAt:string;gear:Gear[];schedule:Workout[];activityGear:Link[];completeHistory?:boolean}
 type GearUsage = {gearId:string;linkedActivities:number;missingActivities:number;knownDistanceKm:number}
 type StatusReport = {mode:'gear-status';source:string;readOnly:true;checkedAt:string;gear:{id:string;type:string|null;status:'active'|'retired'|'unknown'}[]}
+type GearLinkReport = {mode:'gear-links';source:string;readOnly:true;checkedAt:string;gearIds:string[];gearChecked:number;activityGear:Link[]}
+type SyncStatus = {state:'idle'|'running'|'complete'|'error';done:number;total:number;error?:string}
 
 async function contextRequest<T>(session:Session, method:'GET'|'POST',payload?:unknown):Promise<T> {
   const response=await fetch(`${garminSupabaseUrl}/functions/v1/garmin-connect-snapshot`,{
@@ -43,6 +45,8 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
   const [shoeImages,setShoeImages]=useState<Record<string,string>>({})
   const [imageBusy,setImageBusy]=useState<string|null>(null)
   const [imageNotice,setImageNotice]=useState('')
+  const [syncBusy,setSyncBusy]=useState(false)
+  const [syncProgress,setSyncProgress]=useState('')
 
   useEffect(()=>{
     if(!garminSupabase) return
@@ -100,6 +104,63 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
       setImageNotice(err instanceof Error?err.message:'Foto konnte nicht entfernt werden.')
     } finally {
       setImageBusy(null)
+    }
+  }
+
+  async function syncGearLinks() {
+    if(!session || syncBusy || busy || !snapshot) return
+    setSyncBusy(true);setSyncProgress('Garmin-Abgleich wird gestartet …')
+    setError('');setNotice('')
+    try {
+      const started=await fetch('/api/garmin-context-local/gear-sync-start',{
+        method:'POST',cache:'no-store'
+      })
+      if(!started.ok) throw Error('Lokaler Garmin-Abgleich konnte nicht gestartet werden.')
+      let complete=false
+      // A timeout keeps already scanned gear locally; retrying resumes at the
+      // first outstanding item instead of requesting the whole history again.
+      for(let attempt=0;attempt<240;attempt++){
+        await new Promise(resolve=>window.setTimeout(resolve,1500))
+        const result=await fetch('/api/garmin-context-local/gear-sync-status',{cache:'no-store'})
+        if(!result.ok) throw Error('Garmin-Abgleichstatus nicht erreichbar.')
+        const state=await result.json() as SyncStatus
+        setSyncProgress(`Garmin-Ausrüstung: ${state.done} von ${state.total||snapshot.gear.length} geprüft`)
+        if(state.state==='error') throw Error(state.error||'Garmin-Abgleich unterbrochen. Erneuter Klick setzt fort.')
+        if(state.state==='complete'){complete=true;break}
+      }
+      if(!complete) throw Error('Der Garmin-Abgleich ist noch nicht abgeschlossen. Erneuter Klick setzt fort.')
+      const local=await fetch('/api/garmin-context-local/gear-links',{cache:'no-store'})
+      if(!local.ok) throw Error('Vollständiger lokaler Garmin-Abgleich konnte nicht gelesen werden.')
+      const report=await local.json() as GearLinkReport
+      if(report.mode!=='gear-links' || report.readOnly!==true ||
+         !Array.isArray(report.gearIds) || !Array.isArray(report.activityGear))
+        throw Error('Ungültiger Garmin-Zuordnungsbericht.')
+      const key=(link:Link)=>link.activityId+':'+link.gearId.replace(/-/g,'').toLowerCase()
+      const previous=new Set(snapshot.activity_gear.map(key))
+      const current=new Set(report.activityGear.map(key))
+      const added=[...current].filter(k=>!previous.has(k)).length
+      const removed=[...previous].filter(k=>!current.has(k)).length
+      if(!window.confirm(
+        `Garmin-Zuordnungen vom ${formatDate(report.checkedAt)} übernehmen?\n`+
+        `Bisher: ${previous.size} · Jetzt: ${current.size}\n`+
+        `Neu: +${added} · Entfernt/umgehängt: -${removed}\n\n`+
+        'Alle bestehenden Schuhbilder, Ausrüstungsstatus und Kalenderdaten bleiben erhalten. Es wird nichts an Garmin geändert.'
+      )) {
+        setSyncProgress('Abgleich lokal geprüft – noch nicht übernommen.')
+        return
+      }
+      const result=await contextRequest<{saved:boolean;added:number;removed:number}>(session,'POST',report)
+      if(!result.saved) throw Error('Garmin-Zuordnungen wurden nicht gespeichert.')
+      const latest=await contextRequest<{snapshot:Snapshot|null;usage:GearUsage[]}>(session,'GET')
+      setSnapshot(latest.snapshot)
+      setUsage(latest.usage||[])
+      setNotice(`Garmin-Zuordnungen aktualisiert: +${result.added} / -${result.removed}. Kilometer neu berechnet.`)
+      setSyncProgress('Abgleich abgeschlossen.')
+    } catch(e) {
+      setError(e instanceof Error?e.message:'Garmin-Abgleich fehlgeschlagen.')
+      setSyncProgress('Abgleich unvollständig – gespeicherte Daten unverändert.')
+    } finally {
+      setSyncBusy(false)
     }
   }
 
@@ -212,11 +273,17 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
         <p>{snapshot ? `Stand: ${formatDate(snapshot.checked_at)} · Speicherung: ${formatDate(snapshot.synced_at)}` :
         'Noch kein Garmin-Connect-Snapshot gespeichert.'}</p>
       </div>
-      {mode==='gear' && <button type="button" className="secondary"
-        onClick={()=>void (snapshot?.activity_gear_scope==='complete' ? synchronizeGearStatus() : synchronize())}
-        disabled={busy||!session}>
-        {busy?'Übernehme …':snapshot?.activity_gear_scope==='complete'?'Garmin-Status aktualisieren':'Lokalen Garmin-Bericht übernehmen'}
-      </button>}
+      {mode==='gear' && <div className="gcs-toolbar">
+        {snapshot?.activity_gear_scope==='complete' && <button type="button" className="gcs-sync-button"
+          onClick={()=>void syncGearLinks()} disabled={!session||busy||syncBusy}>
+          {syncBusy?'Abgleich läuft …':'Schuhzuordnungen synchronisieren'}
+        </button>}
+        <button type="button" className="secondary"
+          onClick={()=>void (snapshot?.activity_gear_scope==='complete' ? synchronizeGearStatus() : synchronize())}
+          disabled={busy||syncBusy||!session}>
+          {busy?'Übernehme …':snapshot?.activity_gear_scope==='complete'?'Garmin-Status aktualisieren':'Lokalen Garmin-Bericht übernehmen'}
+        </button>
+      </div>}
     </div>
     {!garminSupabase && <p className="gcs-note">Supabase ist nicht konfiguriert.</p>}
     {loading && <p className="gcs-note">Anmeldung wird geprüft …</p>}
@@ -224,7 +291,8 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
     {error && <p className="gcs-error" role="alert">{error}</p>}
     {notice && <p className="gcs-note" role="status">{notice}</p>}
     {snapshot && mode==='gear' && <>
-      <p className="gcs-note">{snapshot.gear.length} Ausrüstungsgegenstände · {snapshot.activity_gear.length} bestätigte Aktivitätszuordnungen.</p>
+      <p className="gcs-note">{snapshot.gear.length} Ausrüstungsgegenstände · {snapshot.activity_gear.length} bestätigte Aktivitätszuordnungen.{snapshot.gear_links_checked_at?` Schuhzuordnungen geprüft: ${formatDate(snapshot.gear_links_checked_at)}.`:''}</p>
+      {syncProgress && <p className="gcs-sync-progress" role="status" aria-live="polite">{syncProgress}</p>
       <p className="gcs-photo-intro">Für aktive Laufschuhe kannst du eigene Bilder hinterlegen. Fotos bleiben privat und werden deinem Garmin-Schuh dauerhaft zugeordnet.</p>
       {imageNotice && <p className="gcs-note" role="status">{imageNotice}</p>}
       {activeShoes.length>0 && <div className="gcs-group">
