@@ -292,7 +292,7 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
     {notice && <p className="gcs-note" role="status">{notice}</p>}
     {snapshot && mode==='gear' && <>
       <p className="gcs-note">{snapshot.gear.length} Ausrüstungsgegenstände · {snapshot.activity_gear.length} bestätigte Aktivitätszuordnungen.{snapshot.gear_links_checked_at?` Schuhzuordnungen geprüft: ${formatDate(snapshot.gear_links_checked_at)}.`:''}</p>
-      {syncProgress && <p className="gcs-sync-progress" role="status" aria-live="polite">{syncProgress}</p>
+      {syncProgress && <p className="gcs-sync-progress" role="status" aria-live="polite">{syncProgress}</p>}
       <p className="gcs-photo-intro">Für aktive Laufschuhe kannst du eigene Bilder hinterlegen. Fotos bleiben privat und werden deinem Garmin-Schuh dauerhaft zugeordnet.</p>
       {imageNotice && <p className="gcs-note" role="status">{imageNotice}</p>}
       {activeShoes.length>0 && <div className="gcs-group">
