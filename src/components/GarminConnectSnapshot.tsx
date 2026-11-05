@@ -217,11 +217,9 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
   const allGear = snapshot?.gear ?? []
   const statusOf = (g:Gear) => g.status === 'active' || g.status === 'retired' ? g.status : 'unknown'
   const isShoe = (g:Gear) => /shoes?|schuh/i.test(g.type ?? '')
-  // Display the most-used active running shoes first. Garmin is still the
-  // authoritative source of assignments and distance, not the UI sort order.
-  const activeShoes = allGear.filter(g=>statusOf(g)==='active' && isShoe(g))
-    .sort((a,b)=> (usage.find(u=>u.gearId===b.id)?.knownDistanceKm??0) -
-                  (usage.find(u=>u.gearId===a.id)?.knownDistanceKm??0))
+  // Alphabetical display (requested); mileage and Garmin usage are unchanged.
+  const byName = (a:Gear,b:Gear)=>a.name.localeCompare(b.name,'de',{sensitivity:'base'})
+  const activeShoes = allGear.filter(g=>statusOf(g)==='active' && isShoe(g)).sort(byName)
   const activeOther = allGear.filter(g=>statusOf(g)==='active' && !isShoe(g))
   const retired = allGear.filter(g=>statusOf(g)==='retired')
   const unknown = allGear.filter(g=>statusOf(g)==='unknown')
