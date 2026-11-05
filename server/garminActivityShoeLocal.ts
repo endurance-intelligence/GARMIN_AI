@@ -141,18 +141,26 @@ export function garminActivityShoeLocal():Plugin {
         if(current===next)return result(res,200,{saved:true,unchanged:true,currentGearId:current})
         // Explicit user approval was collected by the client before this POST.
         // Add first, then unlink old shoe; on failure attempt to roll back newly added gear.
-        let newlyAdded=false
+        let newlyAdded=false,oldRemoved=false
         try {
           if(next) {
             await garmin.addGearToActivity(next,id)
             newlyAdded=true
           }
-          if(current) await garmin.removeGearFromActivity(current,id)
+          if(current) {
+            await garmin.removeGearFromActivity(current,id)
+            oldRemoved=true
+          }
           const verified=normalizeRaw(await garmin.getActivityGear(id),catalog)
           if(verified!==next) throw Error('Garmin-Kontrollabfrage stimmt nicht mit der Änderung überein.')
-        } catch(error) {
+        } catch {
+          // Best-effort rollback. The user must still re-read Garmin after any
+          // failed two-step write, because Garmin operations are not atomic.
+          if(oldRemoved && current) {
+            try { await garmin.addGearToActivity(current,id) } catch { /* uncertain */ }
+          }
           if(newlyAdded && next) {
-            try { await garmin.removeGearFromActivity(next,id) } catch { /* uncertain state; always re-read */ }
+            try { await garmin.removeGearFromActivity(next,id) } catch { /* uncertain */ }
           }
           return result(res,502,{error:'Garmin-Änderung nicht sicher bestätigt. Bitte die Zuordnung erneut laden und in Garmin prüfen.'})
         }
