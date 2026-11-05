@@ -7,7 +7,8 @@ type Gear = { id:string; name:string; brand:string|null; model:string|null; type
 type Workout = { date:string; id:string|null; workoutId:string|null; name:string|null; sport:string|null; restDay:boolean }
 type Link = { activityId:string; gearId:string }
 type Snapshot = {gear:Gear[];schedule:Workout[];activity_gear:Link[];activity_gear_scope:string;checked_at:string;synced_at:string}
-type LocalSnapshot = {source:string;readOnly:true;checkedAt:string;gear:Gear[];schedule:Workout[];activityGear:Link[]}
+type LocalSnapshot = {source:string;readOnly:true;checkedAt:string;gear:Gear[];schedule:Workout[];activityGear:Link[];completeHistory?:boolean}
+type GearUsage = {gearId:string;linkedActivities:number;missingActivities:number;knownDistanceKm:number}
 
 async function contextRequest<T>(session:Session, method:'GET'|'POST',payload?:unknown):Promise<T> {
   const response=await fetch(`${garminSupabaseUrl}/functions/v1/garmin-connect-snapshot`,{
@@ -31,6 +32,7 @@ function formatDate(raw:string|null|undefined) {
 export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
   const [session,setSession]=useState<Session|null>(null)
   const [snapshot,setSnapshot]=useState<Snapshot|null>(null)
+  const [usage,setUsage]=useState<GearUsage[]>([])
   const [loading,setLoading]=useState(true)
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
@@ -50,8 +52,8 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
   useEffect(()=>{
     if(!session){return}
     let mounted=true
-    void contextRequest<{snapshot:Snapshot|null}>(session,'GET').then(result=>{
-      if(mounted){setSnapshot(result.snapshot);setError('')}
+    void contextRequest<{snapshot:Snapshot|null;usage:GearUsage[]}>(session,'GET').then(result=>{
+      if(mounted){setSnapshot(result.snapshot);setUsage(result.usage||[]);setError('')}
     }).catch(()=>{if(mounted)setError('Gespeicherte Garmin-Connect-Daten nicht abrufbar.')})
     return ()=>{mounted=false}
   },[session?.access_token])
@@ -65,10 +67,11 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
       const report=await response.json() as LocalSnapshot
       if(report.readOnly!==true || !Array.isArray(report.gear) || !Array.isArray(report.schedule) || !Array.isArray(report.activityGear))
         throw Error('Bericht ist unvollständig.')
-      if(!window.confirm(`Garmin-Connect-Bericht vom ${formatDate(report.checkedAt)} übernehmen?\n${report.gear.length} Ausrüstungsgegenstände, ${report.schedule.length} Kalendereinträge und ${report.activityGear.length} Zuordnungen.\nNur eine Aktivitätszuordnung ist geprüft. Keine Garmin-Schreibzugriffe.`)) return
+      if(!window.confirm(`Garmin-Connect-Bericht vom ${formatDate(report.checkedAt)} übernehmen?\n${report.gear.length} Ausrüstungsgegenstände, ${report.schedule.length} Kalendereinträge und ${report.activityGear.length} Zuordnungen.\n${report.completeHistory ? 'Vollständiger Ausrüstungsabgleich wurde lokal verifiziert.' : 'Nur eine Aktivitätszuordnung ist geprüft.'} Keine Garmin-Schreibzugriffe.`)) return
       await contextRequest(session,'POST',report)
-      const latest=await contextRequest<{snapshot:Snapshot|null}>(session,'GET')
+      const latest=await contextRequest<{snapshot:Snapshot|null;usage:GearUsage[]}>(session,'GET')
       setSnapshot(latest.snapshot)
+      setUsage(latest.usage||[])
       setNotice('Garmin-Connect-Daten erfolgreich in GARMIN_AI gespeichert.')
     } catch(e) {
       setError(e instanceof Error?e.message:'Synchronisierung fehlgeschlagen')
@@ -95,8 +98,11 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
       <p className="gcs-note">{snapshot.gear.length} Ausrüstungsgegenstände · {snapshot.activity_gear.length} bestätigte Aktivitätszuordnungen.</p>
       <div className="gcs-list">{snapshot.gear.map(g=><div className="gcs-row" key={g.id}>
         <strong>{g.name}</strong><small>{[g.brand,g.type].filter(Boolean).join(' · ')||'Garmin Connect'}</small>
+        {snapshot.activity_gear_scope==='complete' && usage.some(u=>u.gearId===g.id) && (()=>{const u=usage.find(u=>u.gearId===g.id)!;return <small>{u.knownDistanceKm.toLocaleString('de-DE',{maximumFractionDigits:2})} bekannte km · {u.linkedActivities} Aktivitäten{u.missingActivities>0?` · ${u.missingActivities} ohne Distanzdaten`:''}</small>})()}
       </div>)}</div>
-      <p className="gcs-warning">Historische Ausrüstungszuordnungen sind noch unvollständig: nur die Testaktivität wurde abgefragt. Deshalb werden keine Gesamt-Schuhkilometer behauptet.</p>
+      <p className="gcs-warning">{snapshot.activity_gear_scope==='complete'
+        ? 'Ausrüstungshistorie vollständig von Garmin abgerufen. Distanzen stammen aus den bereits importierten Aktivitäten; fehlende Aktivitätsdaten sind ausdrücklich markiert.'
+        : 'Historische Ausrüstungszuordnungen sind noch unvollständig: nur die Testaktivität wurde abgefragt. Deshalb werden keine Gesamt-Schuhkilometer behauptet.'}</p>
     </>}
     {snapshot && mode==='calendar' && <>
       <p className="gcs-note">{snapshot.schedule.length} Einträge aus dem zuletzt geprüften Zeitraum. Garmin bleibt führend für die Planung.</p>
