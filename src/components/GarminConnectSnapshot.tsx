@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { garminSupabase, garminSupabaseUrl, garminPublishableKey } from '../lib/garminSupabase'
 import '../styles/garmin-connect-snapshot.css'
 
-type Gear = { id:string; name:string; brand:string|null; model:string|null; type:string|null }
+type Gear = { id:string; name:string; brand:string|null; model:string|null; type:string|null; status?:'active'|'retired'|'unknown' }
 type Workout = { date:string; id:string|null; workoutId:string|null; name:string|null; sport:string|null; restDay:boolean }
 type Link = { activityId:string; gearId:string }
 type Snapshot = {gear:Gear[];schedule:Workout[];activity_gear:Link[];activity_gear_scope:string;checked_at:string;synced_at:string}
@@ -78,6 +78,26 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
     } finally{setBusy(false)}
   }
 
+
+  const allGear = snapshot?.gear ?? []
+  const statusOf = (g:Gear) => g.status === 'active' || g.status === 'retired' ? g.status : 'unknown'
+  const isShoe = (g:Gear) => /shoes?|schuh/i.test(g.type ?? '')
+  const activeShoes = allGear.filter(g=>statusOf(g)==='active' && isShoe(g))
+  const activeOther = allGear.filter(g=>statusOf(g)==='active' && !isShoe(g))
+  const retired = allGear.filter(g=>statusOf(g)==='retired')
+  const unknown = allGear.filter(g=>statusOf(g)==='unknown')
+
+  function gearCards(items:Gear[]) {
+    return <div className="gcs-list">{items.map(g=>{
+      const u = snapshot?.activity_gear_scope==='complete' ? usage.find(item=>item.gearId===g.id) : undefined
+      return <div className="gcs-row" key={g.id}>
+        <strong>{g.name}</strong>
+        <small>{[g.brand,g.type].filter(Boolean).join(' · ')||'Garmin Connect'}</small>
+        {u && <small>{u.knownDistanceKm.toLocaleString('de-DE',{maximumFractionDigits:2})} bekannte km · {u.linkedActivities} Aktivitäten{u.missingActivities>0?` · ${u.missingActivities} ohne Distanzdaten`:''}</small>}
+      </div>
+    })}</div>
+  }
+
   return <section className="gcs-card" aria-label={mode==='gear'?'Garmin-Ausrüstung':'Garmin-Trainingskalender'}>
     <div className="gcs-title">
       <div><span className="small-eyebrow">GARMIN CONNECT · LIVE SNAPSHOT</span>
@@ -96,10 +116,24 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
     {notice && <p className="gcs-note" role="status">{notice}</p>}
     {snapshot && mode==='gear' && <>
       <p className="gcs-note">{snapshot.gear.length} Ausrüstungsgegenstände · {snapshot.activity_gear.length} bestätigte Aktivitätszuordnungen.</p>
-      <div className="gcs-list">{snapshot.gear.map(g=><div className="gcs-row" key={g.id}>
-        <strong>{g.name}</strong><small>{[g.brand,g.type].filter(Boolean).join(' · ')||'Garmin Connect'}</small>
-        {snapshot.activity_gear_scope==='complete' && usage.some(u=>u.gearId===g.id) && (()=>{const u=usage.find(u=>u.gearId===g.id)!;return <small>{u.knownDistanceKm.toLocaleString('de-DE',{maximumFractionDigits:2})} bekannte km · {u.linkedActivities} Aktivitäten{u.missingActivities>0?` · ${u.missingActivities} ohne Distanzdaten`:''}</small>})()}
-      </div>)}</div>
+      {activeShoes.length>0 && <div className="gcs-group">
+        <h4>Aktive Laufschuhe <span>{activeShoes.length}</span></h4>
+        {gearCards(activeShoes)}
+      </div>}
+      {activeOther.length>0 && <div className="gcs-group">
+        <h4>Weitere aktive Ausrüstung <span>{activeOther.length}</span></h4>
+        {gearCards(activeOther)}
+      </div>}
+      {retired.length>0 && <details className="gcs-archive">
+        <summary>Aussortiert / Archiv <span>{retired.length}</span></summary>
+        <p className="gcs-note">Bleibt für historische Aktivitäten erhalten, erscheint aber nicht bei den aktiven Schuhen.</p>
+        {gearCards(retired)}
+      </details>}
+      {unknown.length>0 && <details className="gcs-archive">
+        <summary>Status nicht erkannt <span>{unknown.length}</span></summary>
+        <p className="gcs-note">Diese Einträge werden nicht automatisch als aktiv eingestuft. Bitte den Garmin-Bericht mit v0.7.3.4 aktualisieren.</p>
+        {gearCards(unknown)}
+      </details>}
       <p className="gcs-warning">{snapshot.activity_gear_scope==='complete'
         ? 'Ausrüstungshistorie vollständig von Garmin abgerufen. Distanzen stammen aus den bereits importierten Aktivitäten; fehlende Aktivitätsdaten sind ausdrücklich markiert.'
         : 'Historische Ausrüstungszuordnungen sind noch unvollständig: nur die Testaktivität wurde abgefragt. Deshalb werden keine Gesamt-Schuhkilometer behauptet.'}</p>
