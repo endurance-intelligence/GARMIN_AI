@@ -194,7 +194,23 @@ export function garminActivityShoeLocal():Plugin {
         })
         return result(res,200,{saved:true,garminUpdated:true,currentGearId:next})
       } catch(error) {
-        return result(res,502,{error:error instanceof Error?error.message:'Garmin Connect nicht erreichbar.'})
+        // Never expose raw Garmin/library exceptions (may contain URL/token details).
+        const safe=new Set([
+          'Keine Berechtigung für Garmin-Änderungen.',
+          'Garmin-Ausrüstung derzeit nicht verfügbar.',
+          'Vollständige Garmin-Ausrüstung noch nicht gespeichert.',
+          'Garmin-Ausrüstung enthält ungültige IDs.',
+          'Lauf ist nicht im privaten Garmin-Aktivitätsbestand verfügbar.',
+          'Schuhe können hier nur für bestätigte Laufaktivitäten geändert werden.',
+          'Garmin Connect ist lokal nicht angemeldet.',
+          'Garmin-Ausrüstung konnte nicht zuverlässig gelesen werden.',
+          'Garmin hat mehrere Laufschuhe für diese Aktivität. Bitte zuerst in Garmin Connect prüfen.',
+          'Garmin-Schuh ohne eindeutige ID. Bitte in Garmin Connect prüfen.',
+          'Ungültige JSON-Anfrage.','Anfrage zu groß.','JSON benötigt.'
+        ])
+        const message=error instanceof Error && safe.has(error.message) ? error.message :
+          'Garmin Connect nicht erreichbar. Bitte die Zuordnung später erneut laden.'
+        return result(res,502,{error:message})
       } finally {
         if(locked) writing=false
       }
