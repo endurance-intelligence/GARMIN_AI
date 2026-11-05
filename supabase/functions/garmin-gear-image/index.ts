@@ -4,6 +4,7 @@
  * No Garmin credentials, automatic image search, public bucket, or gear-history writes.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { normalizedGearImageId, isActiveRunningShoe, looksLikeWebP } from '../_shared/garmin-gear-image.mjs'
 
 const bucket = 'garmin-gear-images'
 const projectUrl = Deno.env.get('SUPABASE_URL') || ''
@@ -37,21 +38,6 @@ function cors(origin: string|null): Record<string,string> {
 function json(data:unknown,status:number,headers:Record<string,string>) {
   return new Response(JSON.stringify(data),{status,headers})
 }
-function normalId(value:unknown):string|null {
-  if(typeof value !== 'string') return null
-  const bare = value.replace(/-/g,'').toLowerCase()
-  return /^[0-9a-f]{32}$/.test(bare) ? bare : null
-}
-function activeShoe(gear:unknown) {
-  if (!gear || typeof gear!=='object' || Array.isArray(gear)) return false
-  const g=gear as Record<string,unknown>
-  return g.status==='active' && typeof g.type==='string' && /shoes?|schuh/i.test(g.type)
-}
-function webp(bytes:Uint8Array) {
-  return bytes.length>=12 &&
-    String.fromCharCode(...bytes.slice(0,4))==='RIFF' &&
-    String.fromCharCode(...bytes.slice(8,12))==='WEBP'
-}
 Deno.serve(async(req:Request)=>{
   const headers=cors(req.headers.get('origin'))
   if(req.headers.has('origin') && !headers['Access-Control-Allow-Origin'])
@@ -81,9 +67,9 @@ Deno.serve(async(req:Request)=>{
     const gear = Array.isArray(row?.gear) ? row.gear : []
     const eligible = new Map<string,Record<string,unknown>>()
     for (const candidate of gear) {
-      if (!activeShoe(candidate)) continue
+      if (!isActiveRunningShoe(candidate)) continue
       const record=candidate as Record<string,unknown>
-      const id=normalId(record.id)
+      const id=normalizedGearImageId(record.id)
       if(id) eligible.set(id,record)
     }
     const storage=admin.storage.from(bucket)
@@ -103,7 +89,7 @@ Deno.serve(async(req:Request)=>{
       return json({images},200,headers)
     }
 
-    const imageId=normalId(new URL(req.url).searchParams.get('gearId'))
+    const imageId=normalizedGearImageId(new URL(req.url).searchParams.get('gearId'))
     if(!imageId || !eligible.has(imageId))
       return json({error:'Only active running shoes can receive images'},422,headers)
     const path='gear/'+imageId+'.webp'
@@ -121,7 +107,7 @@ Deno.serve(async(req:Request)=>{
     const declared=Number(req.headers.get('content-length')||0)
     if(declared>maxBytes) return json({error:'Image too large'},413,headers)
     const bytes=new Uint8Array(await req.arrayBuffer())
-    if(bytes.length<16 || bytes.length>maxBytes || !webp(bytes))
+    if(bytes.length<16 || bytes.length>maxBytes || !looksLikeWebP(bytes))
       return json({error:'Invalid or oversized image'},422,headers)
     const {error:uploadError}=await storage.upload(path,bytes,{
       contentType:'image/webp',upsert:true,cacheControl:'60'
