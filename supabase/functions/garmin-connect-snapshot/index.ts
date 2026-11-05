@@ -172,6 +172,61 @@ Deno.serve(async req=>{
         retired:sanitized.filter(x=>x?.status==='retired').length,
         unknown:sanitized.filter(x=>x?.status==='unknown').length},200,h)
     }
+    if (plain(input) && input.mode==='activity-shoe') {
+      const activityId=id(input.activityId,20)
+      const canonical=(value:unknown) => {
+        const key=typeof value==='string'?value.replace(/-/g,'').toLowerCase():''
+        return /^[a-f0-9]{32}$/.test(key) ? key : null
+      }
+      const newId=input.newGearId===null ? null : canonical(input.newGearId)
+      if(!activityId || !/^\d{5,20}$/.test(activityId) ||
+          (input.newGearId!==null&&!newId))
+        return reply({error:'Invalid activity or gear ID'},422,h)
+      // This endpoint is for confirmed running activities, not bikes or other gear.
+      const {data:activity,error:activityError}=await db.from('garmin_activities')
+        .select('activity_id,sport_type').eq('activity_id',activityId).maybeSingle()
+      if(activityError) throw Error('activity-read')
+      if(!activity || !['running','track_running','treadmill_running','ultra_run'].includes(activity.sport_type))
+        return reply({error:'Running activity not found'},422,h)
+      const {data:previous,error:previousError}=await db.from('garmin_connect_snapshot')
+        .select('gear,activity_gear,activity_gear_scope,synced_at')
+        .eq('snapshot_key','primary').maybeSingle()
+      if(previousError) throw Error('shoe-snapshot-read')
+      if(!previous || previous.activity_gear_scope!=='complete' ||
+          !Array.isArray(previous.gear) || !Array.isArray(previous.activity_gear))
+        return reply({error:'Complete Garmin gear baseline required'},409,h)
+      const gear=new Map<string,Record<string,unknown>>()
+      for(const raw of previous.gear){
+        if(!plain(raw)) return reply({error:'Invalid gear catalog'},409,h)
+        const gid=canonical(raw.id)
+        if(!gid || gear.has(gid)) return reply({error:'Duplicate gear ID'},409,h)
+        gear.set(gid,raw)
+      }
+      const isShoe=(raw:Record<string,unknown>)=>typeof raw.type==='string' &&
+        /shoes?|schuh/i.test(raw.type)
+      if(newId && (!gear.has(newId) || !isShoe(gear.get(newId)!) ||
+                   gear.get(newId)!.status!=='active'))
+        return reply({error:'Only active shoes can be assigned'},422,h)
+      const old=previous.activity_gear
+      const kept:Array<{activityId:string;gearId:string}>=[]
+      for(const value of old){
+        if(!plain(value)) return reply({error:'Invalid stored gear mapping'},409,h)
+        const gid=canonical(value.gearId)
+        const oldActivity=id(value.activityId,20)
+        if(!gid || !oldActivity || !gear.has(gid)) return reply({error:'Unknown existing gear'},409,h)
+        if(oldActivity===activityId && isShoe(gear.get(gid)!)) continue
+        kept.push({activityId:oldActivity,gearId:String(value.gearId)})
+      }
+      if(newId) kept.push({activityId,gearId:String(
+        previous.gear.find((g:Record<string,unknown>)=>canonical(g.id)===newId).id)})
+      const {data:saved,error:writeError}=await db.from('garmin_connect_snapshot')
+        .update({activity_gear:kept,synced_at:new Date().toISOString()})
+        .eq('snapshot_key','primary').eq('synced_at',previous.synced_at)
+        .select('snapshot_key').maybeSingle()
+      if(writeError) throw Error('activity-shoe-write')
+      if(!saved) return reply({error:'Garmin gear snapshot changed, sync again'},409,h)
+      return reply({saved:true,mode:'activity-shoe',activityId,newGearId:newId},200,h)
+    }
     if (plain(input) && input.mode==='gear-links') {
       const check=string(input.checkedAt,40)
       if(input.source!=='Garmin Connect (unofficial)' || input.readOnly!==true ||
