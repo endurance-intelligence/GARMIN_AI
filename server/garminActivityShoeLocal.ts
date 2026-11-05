@@ -178,13 +178,17 @@ export function garminActivityShoeLocal():Plugin {
         } catch {
           return result(res,502,{error:'Garmin-Änderung nicht sicher bestätigt. Bitte die Zuordnung erneut laden und in Garmin prüfen.'})
         }
-        const syncResponse=await fetch(base+'/functions/v1/garmin-connect-snapshot',{
-          method:'POST',
-          headers:{authorization:'Bearer '+bearer[1],apikey:key,'content-type':'application/json'},
-          body:JSON.stringify({mode:'activity-shoe',activityId:id,newGearId:next}),
-          signal:AbortSignal.timeout(15000)
-        })
-        if(!syncResponse.ok) return result(res,207,{
+        let snapshotUpdated=false
+        try {
+          const syncResponse=await fetch(base+'/functions/v1/garmin-connect-snapshot',{
+            method:'POST',
+            headers:{authorization:'Bearer '+bearer[1],apikey:key,'content-type':'application/json'},
+            body:JSON.stringify({mode:'activity-shoe',activityId:id,newGearId:next}),
+            signal:AbortSignal.timeout(15000)
+          })
+          snapshotUpdated=syncResponse.ok
+        } catch { /* Garmin is already saved; report partial success instead. */ }
+        if(!snapshotUpdated) return result(res,207,{
           saved:false,garminUpdated:true,currentGearId:next,
           error:'In Garmin geändert, aber GARMIN_AI konnte die lokale Statistik nicht aktualisieren. Bitte Schuhzuordnungen synchronisieren.'
         })
