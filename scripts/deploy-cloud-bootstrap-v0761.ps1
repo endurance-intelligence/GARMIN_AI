@@ -57,7 +57,7 @@
             Write-Host 'Vorherige Vault-Migration steht noch aus.' -ForegroundColor Yellow
         }
         elseif ($pending.Count -eq 0 -and
-                $dryText -match 'No migrations to push|Finished supabase db push|already up to date') {
+                $dryText -match '(?i)Remote database is up to date\.|No migrations to push|Finished supabase db push|already up to date') {
             Write-Host 'Keine offene Migration.' -ForegroundColor Green
         }
         else {
