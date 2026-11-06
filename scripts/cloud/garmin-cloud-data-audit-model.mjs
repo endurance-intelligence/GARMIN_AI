@@ -8,7 +8,7 @@ import {normalizeGearActivities,normalizeUuid} from '../garmin-gear-history-mode
 const canonical=x=>typeof x==='string'&&/^[a-f0-9]{32}$/i.test(x.replace(/-/g,''))?
   normalizeUuid(x):null
 
-export function buildCloudPreview({rawGear,rawCalendar,activityLists,baseline}) {
+export function buildCloudPreview({rawGear,rawCalendar,activityLists,baseline,windowStart=null,windowEnd=null}) {
   const gear=ensureNonemptyKnownShape(rawGear,gearRows(rawGear),'gear')
   if(gear.length<1||gear.length>100)throw Error('Garmin gear catalog incomplete or too large')
   const ids=gear.map(g=>canonical(g.id))
@@ -38,10 +38,13 @@ export function buildCloudPreview({rawGear,rawCalendar,activityLists,baseline}) 
   // a disappearance requires manual investigation before any replacement.
   const removedGear=[...pastIds].filter(x=>!ids.includes(x))
   if(removedGear.length)throw Error('Garmin catalog is missing previously known gear')
-  const previousSchedule=Array.isArray(baseline?.schedule)?baseline.schedule:[]
+  // Compare only the same date range. The prior snapshot may cover
+  // a different window; otherwise we'd invent deleted workouts.
+  const within=(w)=>(!windowStart||w.date>=windowStart)&&(!windowEnd||w.date<=windowEnd)
+  const previousSchedule=(Array.isArray(baseline?.schedule)?baseline.schedule:[]).filter(within)
   const key=w=>JSON.stringify([w.date,w.id??null,w.workoutId??null,w.name??null,w.sport??null,w.restDay===true])
   const scheduleBefore=new Set(previousSchedule.map(key))
-  const scheduleAfter=new Set(calendar.map(key))
+  const scheduleAfter=new Set(calendar.filter(within).map(key))
   return {
     checkedAt:new Date().toISOString(),complete:true,
     totals:{gear:gear.length,links:links.length,scheduled:calendar.length},
