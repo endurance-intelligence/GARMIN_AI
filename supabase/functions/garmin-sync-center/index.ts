@@ -60,7 +60,7 @@ Deno.serve(async req=>{
     if(req.method==='GET'){
       // Source outcome comes from actual Edge Function logs, never inferred
       // solely from the presence of yesterday's Garmin records.
-      const [activityRuns,healthRuns,health,gear,weight,fitCounts,cron,cloudSession] =
+      const [activityRuns,healthRuns,health,gear,weight,fitCounts,cron,cloudSession,cloudCheck] =
         await Promise.all([
           db.from('garmin_sync_runs')
             .select('source,result,finished_at')
@@ -85,7 +85,8 @@ Deno.serve(async req=>{
               return {status,count:result.count,error:result.error}
             })),
           db.rpc('garmin_sync_scheduler_status'),
-          db.rpc('garmin_connect_session_state')
+          db.rpc('garmin_connect_session_state'),
+          db.rpc('garmin_connect_cloud_check_state')
         ])
       if(activityRuns.error||healthRuns.error||health.error||gear.error||weight.error ||
          fitCounts.some(r=>r.error))
@@ -143,8 +144,11 @@ Deno.serve(async req=>{
         },
         scheduler,
         cloudConnect:cloudSession.error||!cloudSession.data?
-          {connected:false,status:'unknown'}:
-          {connected:cloudSession.data.connected===true,status:'configured'},
+          {connected:false,status:'unknown',lastResult:'unknown'}:
+          {connected:cloudSession.data.connected===true,status:'configured',
+            lastResult:cloudCheck.error||!cloudCheck.data?'unknown':cloudCheck.data.lastResult,
+            lastCheckedAt:cloudCheck.error?null:cloudCheck.data?.lastCheckedAt??null,
+            lastSuccessAt:cloudCheck.error?null:cloudCheck.data?.lastSuccessAt??null},
         weightEntries:weight.data??[],weightTransferAvailable:false
       },200,headers)
     }
