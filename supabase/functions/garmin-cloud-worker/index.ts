@@ -8,11 +8,10 @@
 import {createClient} from 'npm:@supabase/supabase-js@2'
 import {createRemoteJWKSet,jwtVerify} from 'npm:jose@5.9.6'
 import {isGarminCloudSession} from '../_shared/garmin-connect-tokens.mjs'
+import {trustedGarminWorkerClaims} from '../_shared/garmin-worker-claims.mjs'
 
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const audience='garmin-ai-cloud-audit:eurgupsebxypjqvyizci'
-const repo='endurance-intelligence/GARMIN_AI'
-const workflow=repo+'/.github/workflows/garmin-cloud-audit.yml@refs/heads/main'
 const jwks=createRemoteJWKSet(new URL('https://token.actions.githubusercontent.com/.well-known/jwks'))
 const headers={
   'Content-Type':'application/json; charset=utf-8',
@@ -45,10 +44,7 @@ Deno.serve(async req=>{
       clockTolerance:5
     })
     // Repository IDs are stable even if display names change.
-    if(payload.repository!==repo||String(payload.repository_id)!=='1443154844'||
-       payload.ref!=='refs/heads/main'||payload.ref_type!=='branch'||
-       payload.workflow_ref!==workflow||payload.runner_environment!=='github-hosted'||
-       !['schedule','workflow_dispatch'].includes(String(payload.event_name)))
+    if(!trustedGarminWorkerClaims(payload))
       return respond(403,{error:'Untrusted GitHub workflow identity'})
     const db=createClient(project,secretKey(),{
       auth:{autoRefreshToken:false,persistSession:false}
