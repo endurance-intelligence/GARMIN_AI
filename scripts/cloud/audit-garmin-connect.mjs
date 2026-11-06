@@ -90,7 +90,7 @@ async function main(){
       activityLists.push(await garmin.getGearActivities(ids[i],1000))
       if(i+1<ids.length)await wait(700)
     }
-    const preview=buildCloudPreview({rawGear,rawCalendar,activityLists,baseline})
+    const preview=buildCloudPreview({rawGear,rawCalendar,activityLists,baseline,windowStart:start,windowEnd:end})
     completed=true
     console.log('GARMIN CLOUD DATA AUDIT: VERIFIED')
     console.log('Gear scanned:',preview.totals.gear)
