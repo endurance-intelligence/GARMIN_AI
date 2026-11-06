@@ -60,7 +60,7 @@ Deno.serve(async req=>{
     if(req.method==='GET'){
       // Source outcome comes from actual Edge Function logs, never inferred
       // solely from the presence of yesterday's Garmin records.
-      const [activityRuns,healthRuns,health,gear,weight,fitCounts,cron] =
+      const [activityRuns,healthRuns,health,gear,weight,fitCounts,cron,cloudSession] =
         await Promise.all([
           db.from('garmin_sync_runs')
             .select('source,result,finished_at')
@@ -84,7 +84,8 @@ Deno.serve(async req=>{
                 .select('activity_id',{count:'exact',head:true}).eq('fit_status',status)
               return {status,count:result.count,error:result.error}
             })),
-          db.rpc('garmin_sync_scheduler_status')
+          db.rpc('garmin_sync_scheduler_status'),
+          db.rpc('garmin_connect_session_state')
         ])
       if(activityRuns.error||healthRuns.error||health.error||gear.error||weight.error ||
          fitCounts.some(r=>r.error))
@@ -140,7 +141,11 @@ Deno.serve(async req=>{
           calendar:{...calendarState,checkedAt:gear.data?.checked_at??null},
           fit:{...fitSummary,counts:fit}
         },
-        scheduler,weightEntries:weight.data??[],weightTransferAvailable:false
+        scheduler,
+        cloudConnect:cloudSession.error||!cloudSession.data?
+          {connected:false,status:'unknown'}:
+          {connected:cloudSession.data.connected===true,status:'configured'},
+        weightEntries:weight.data??[],weightTransferAvailable:false
       },200,headers)
     }
     if(Number(req.headers.get('content-length')||0)>512)
