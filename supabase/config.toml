@@ -38,3 +38,8 @@ verify_jwt = false
 # logged-in owner via Supabase Auth and stores tokens only in Vault.
 [functions.garmin-connect-bootstrap]
 verify_jwt = false
+
+# v0.7.6.2 owner-authenticated (auth.getUser) read-only Cloud Garmin
+# connectivity check. Calls Garmin once; no OAuth refresh or Garmin writes.
+[functions.garmin-connect-cloud-check]
+verify_jwt = false
