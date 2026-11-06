@@ -222,8 +222,10 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
         <p>Garmin Connect Cloud: {data.cloudConnect?.status!=='configured'?
           'Cloud-Speicherstatus unklar – Supabase-Migration prüfen':
           data.cloudConnect.connected?
-            'Sitzung im Supabase Vault gespeichert (Live-Verbindung noch nicht geprüft)':
-            'Noch keine Cloud-Sitzung eingerichtet'}</p>
+            data.cloudConnect.lastResult==='verified'
+              ? 'Sitzung im Supabase Vault gespeichert – Cloud-Zugriff zuletzt bestätigt'
+              : 'Sitzung im Supabase Vault gespeichert – Cloud-Zugriff noch nicht bestätigt'
+            : 'Noch keine Cloud-Sitzung eingerichtet'}</p>
         {data.cloudConnect?.connected&&<div className="sync-cloud-bootstrap">
           <div className="sync-cloud-readout">
             <p>Letzter Cloud-Live-Test: {data.cloudConnect.lastCheckedAt?
