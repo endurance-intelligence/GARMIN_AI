@@ -4,6 +4,7 @@
  * never presented as sent without an independent Garmin Connect verification.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { validWeightEntry } from '../_shared/weight-entry.mjs'
 
 const endpoint = Deno.env.get('SUPABASE_URL') || ''
 const owner = (Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
@@ -33,11 +34,6 @@ function cors(origin:string|null) {
 }
 const reply=(data:unknown,status:number,headers:Record<string,string>)=>
   new Response(JSON.stringify(data),{status,headers})
-const validDate=(v:unknown):v is string=>{
-  if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v))return false
-  const date=new Date(v+'T00:00:00.000Z')
-  return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===v
-}
 
 Deno.serve(async req=>{
   const origin=req.headers.get('origin')
@@ -106,13 +102,8 @@ Deno.serve(async req=>{
     catch {return reply({error:'Invalid JSON'},422,headers)}
     if(!data || typeof data!=='object'||Array.isArray(data))
       return reply({error:'Invalid entry'},422,headers)
-    const entry=data as Record<string,unknown>
-    if(!validDate(entry.date)||typeof entry.kg!=='number'||!Number.isFinite(entry.kg)||
-       entry.kg<30||entry.kg>300||Math.abs(entry.kg*100-Math.round(entry.kg*100))>0.00001)
-      return reply({error:'Invalid date or weight'},422,headers)
-    const now=Date.now(),requested=Date.parse(entry.date+'T00:00:00Z')
-    if(requested<now-31*86400000||requested>now+86400000)
-      return reply({error:'Date outside allowed range'},422,headers)
+    const entry=validWeightEntry(data)
+    if(!entry)return reply({error:'Invalid date or weight'},422,headers)
     const {data:existing,error:readError}=await db.from('garmin_weight_outbox')
       .select('weight_kg,state').eq('weigh_date',entry.date).maybeSingle()
     if(readError)throw Error('weight-read')
