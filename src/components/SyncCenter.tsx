@@ -55,6 +55,7 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
   const [notice,setNotice]=useState('')
   const [error,setError]=useState('')
   const [refresh,setRefresh]=useState(0)
+  const [connecting,setConnecting]=useState(false)
 
   useEffect(()=>{
     if(!active||!garminSupabase)return
@@ -97,6 +98,40 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
     }catch(err){
       setError(err instanceof Error?err.message:'Gewicht konnte nicht gespeichert werden.')
     }finally{setBusy(false)}
+  }
+
+  async function connectCloudFromLocal() {
+    if(!session||connecting||!data||data.cloudConnect?.status!=='configured' ||
+      data.cloudConnect.connected)return
+    const accepted=window.confirm(
+      'Garmin Connect Cloud einmalig verbinden?\\n\\n'+
+      'Die bestehende lokale Garmin-Connect-OAuth-Sitzung wird über eine geschützte Verbindung '+
+      'verschlüsselt in Supabase Vault gespeichert.\\n\\n'+
+      'Der Cloud-Live-Test und die automatische Synchronisierung sind damit noch NICHT aktiviert. '+
+      'Es wird nichts in Garmin geändert.'
+    )
+    if(!accepted)return
+    setConnecting(true);setError('');setNotice('')
+    try {
+      const response=await fetch('/api/garmin-connect-bootstrap',{
+        method:'POST',
+        headers:{
+          authorization:'Bearer '+session.access_token,
+          'x-garmin-cloud-consent':'ja'
+        },
+        cache:'no-store'
+      })
+      const answer=await response.json() as {saved?:boolean;message?:string;error?:string}
+      if(!response.ok||answer.saved!==true)
+        throw Error(answer.error||'Vault-Übertragung konnte nicht bestätigt werden.')
+      setNotice(answer.message||'Sitzung in Supabase Vault gespeichert, Cloud-Test ausstehend.')
+      const latest=await api<SyncPayload>(session,'GET')
+      setData(latest)
+    } catch(e) {
+      setError(e instanceof Error?e.message:'Cloud-Übertragung konnte nicht bestätigt werden.')
+    } finally {
+      setConnecting(false)
+    }
   }
 
   if(!active)return null
@@ -147,9 +182,20 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
           <span className={`sync-state sync-state-${data.sources.fit.state||'unknown'}`}>{stateText(data.sources.fit.state)}</span>
         </div>
         <p>{data.sources.fit.pending??'–'} offene FIT-Aktivitäten · {data.sources.fit.counts?.retry??'–'} Wiederholungen · {data.sources.fit.counts?.complete??'–'} vollständig</p>
-        <p>Garmin Connect Cloud: {data.cloudConnect?.connected?
-          'Sitzung im Supabase Vault hinterlegt (Verbindung noch nicht live verifiziert)':
-          'Noch keine Cloud-Sitzung eingerichtet'}</p>
+        <p>Garmin Connect Cloud: {data.cloudConnect?.status!=='configured'?
+          'Cloud-Speicherstatus unklar – Supabase-Migration prüfen':
+          data.cloudConnect.connected?
+            'Sitzung im Supabase Vault gespeichert (Live-Verbindung noch nicht geprüft)':
+            'Noch keine Cloud-Sitzung eingerichtet'}</p>
+        {data.cloudConnect?.status==='configured'&&!data.cloudConnect.connected&&
+          <div className="sync-cloud-bootstrap">
+            <p>Deine bestehende lokale Garmin-Connect-Sitzung kann einmalig in den verschlüsselten
+              Supabase Vault übernommen werden. Es werden keine Garmin-Daten geändert.</p>
+            <button type="button" onClick={()=>void connectCloudFromLocal()}
+              disabled={connecting}>
+              {connecting?'Verbinde sicher …':'Garmin Connect Cloud verbinden'}
+            </button>
+          </div>}
         <p>Scheduler: {data.scheduler?.available?
           `${data.scheduler.jobs.length} Garmin-Jobs erkannt (${data.scheduler.jobs.filter(j=>j.active).length} aktiv)`:
           'Cron-Status nicht verfügbar'}</p>
