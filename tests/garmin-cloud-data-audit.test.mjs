@@ -54,3 +54,14 @@ test('calendar diff captures new/removed workouts without Garmin writes',()=>{
  assert.equal(result.differences.calendarAdded,1)
  assert.equal(result.differences.calendarRemoved,1)
 })
+
+test('calendar changes outside selected read window are not falsely flagged as deletions',()=>{
+ const modified={...baseline,schedule:[
+  ...baseline.schedule,{date:'2026-10-01',id:'past',name:'Past workout'}
+ ]}
+ const result=buildCloudPreview({
+   rawGear:gear,rawCalendar:calendar,activityLists:lists,baseline:modified,
+   windowStart:'2026-11-01',windowEnd:'2026-11-30'
+ })
+ assert.equal(result.differences.calendarRemoved,0)
+})
