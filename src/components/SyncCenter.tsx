@@ -104,9 +104,9 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
     if(!session||connecting||!data||data.cloudConnect?.status!=='configured' ||
       data.cloudConnect.connected)return
     const accepted=window.confirm(
-      'Garmin Connect Cloud einmalig verbinden?\\n\\n'+
+      'Garmin Connect Cloud einmalig verbinden?\n\n'+
       'Die bestehende lokale Garmin-Connect-OAuth-Sitzung wird über eine geschützte Verbindung '+
-      'verschlüsselt in Supabase Vault gespeichert.\\n\\n'+
+      'verschlüsselt in Supabase Vault gespeichert.\n\n'+
       'Der Cloud-Live-Test und die automatische Synchronisierung sind damit noch NICHT aktiviert. '+
       'Es wird nichts in Garmin geändert.'
     )
