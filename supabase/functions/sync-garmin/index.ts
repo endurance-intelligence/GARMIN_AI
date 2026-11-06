@@ -157,7 +157,6 @@ Deno.serve(async (req: Request) => {
     }
     // Successful sync log. A failure here should be visible, not silently ignored.
     const { error: logError } = await admin.from('garmin_sync_runs').insert({
-      source: 'garmin-activities',
       activity_count: rows.length,
       result: 'success',
       finished_at: new Date().toISOString(),
@@ -172,7 +171,7 @@ Deno.serve(async (req: Request) => {
     // make the mobile app claim that a subsequent failed job was healthy.
     try {
       await admin.from('garmin_sync_runs').insert({
-        source: 'garmin-activities', result: 'error', activity_count: 0,
+        result: 'error', activity_count: 0,
         message: 'activity-sync-failed', finished_at: new Date().toISOString(),
       })
     } catch { /* failure visibility best effort; never log Garmin credentials */ }
