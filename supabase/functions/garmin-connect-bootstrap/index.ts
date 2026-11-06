@@ -23,16 +23,19 @@ function envKey(kind:'publishable'|'secret'):string {
   } catch { /* legacy fallback */ }
   return Deno.env.get(legacy)||''
 }
-function headers(origin:string|null) {
-  const local=!!origin && /^http:\/\/(localhost|127\.0\.0\.1):5173$/.test(origin)
-  return {
-    ...(local?{'Access-Control-Allow-Origin':origin,'Vary':'Origin'}:{}),
+function headers(origin:string|null):Record<string,string> {
+  const h:Record<string,string>={
     'Access-Control-Allow-Headers':'authorization,apikey,content-type',
     'Access-Control-Allow-Methods':'POST,OPTIONS',
     'Content-Type':'application/json; charset=utf-8',
     'Cache-Control':'private, no-store',
     'X-Content-Type-Options':'nosniff',
   }
+  if(origin && /^http:\/\/(localhost|127\.0\.0\.1):5173$/.test(origin)) {
+    h['Access-Control-Allow-Origin']=origin
+    h['Vary']='Origin'
+  }
+  return h
 }
 const reply=(status:number,body:unknown,h:Record<string,string>)=>
   new Response(JSON.stringify(body),{status,headers:h})
