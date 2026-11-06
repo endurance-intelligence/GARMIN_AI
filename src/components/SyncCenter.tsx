@@ -3,11 +3,16 @@ import type {Session} from '@supabase/supabase-js'
 import {garminSupabase,garminSupabaseReady,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import '../styles/sync-center.css'
 
-type Source={checkedAt?:string|null;result?:string;latestDate?:string|null;scope?:string}
+type Source={
+  checkedAt?:string|null;lastSuccessAt?:string|null;result?:string;latestDate?:string|null;
+  scope?:string;state?:string;reason?:string;ageMinutes?:number|null;
+  pending?:number|null;counts?:Record<string,number>
+}
 type Weight={weigh_date:string;weight_kg:number;state:string;updated_at:string;confirmed_at:string|null}
+type CronJob={name:string;active:boolean;lastStartedAt:string|null;lastFinishedAt:string|null;lastDispatchStatus:string|null}
 type SyncPayload={sources:{
   activities:Source;health:Source;equipment:Source;calendar:Source;fit:Source
-};weightEntries:Weight[];weightTransferAvailable:boolean}
+};scheduler?:{available:boolean;jobs:CronJob[]};weightEntries:Weight[];weightTransferAvailable:boolean}
 function berlinDay(){
   const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
   const item=(type:string)=>parts.find(p=>p.type===type)?.value||''
@@ -33,6 +38,14 @@ async function api<T>(session:Session,method:'GET'|'POST',body?:unknown):Promise
   return payload
 }
 
+function stateText(value?:string) {
+  const states:Record<string,string>={
+    ok:'Aktuell',stale:'Veraltet',failed:'Fehlgeschlagen',unknown:'Nicht verifiziert',
+    manual:'Manueller Abgleich',partial:'Teilweise erfolgreich',
+    attention:'Prüfen',processing:'In Bearbeitung',idle:'Keine offenen Aufgaben'
+  }
+  return states[value||'']||'Status unbekannt'
+}
 export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}){
   const [session,setSession]=useState<Session|null>(null)
   const [data,setData]=useState<SyncPayload|null>(null)
@@ -89,13 +102,14 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
   if(!active)return null
   const today=data?.weightEntries.find(v=>v.weigh_date===date)
   const rows=[
-    {name:'Aktivitäten',timestamp:data?.sources.activities.checkedAt,
-      detail:data?.sources.activities.result==='success'?'Letzter Import erfolgreich':'Status prüfen'},
-    {name:'Gesundheitsdaten',timestamp:data?.sources.health.checkedAt,
-      detail:data?.sources.health.latestDate?('Letzter Messtag: '+data.sources.health.latestDate):'Noch keine Messungen'},
-    {name:'Ausrüstung',timestamp:data?.sources.equipment.checkedAt,
-      detail:data?.sources.equipment.scope==='complete'?'Vollständige Zuordnungen':'Unvollständige Zuordnungen'},
-    {name:'Trainingskalender',timestamp:data?.sources.calendar.checkedAt,detail:'Letzter bestätigter Snapshot'}
+    {name:'Aktivitäten',source:data?.sources.activities,
+      detail:'Letzter bestätigter Import: '+dateText(data?.sources.activities.lastSuccessAt)},
+    {name:'Gesundheitsdaten',source:data?.sources.health,
+      detail:'Letzter Messtag: '+(data?.sources.health.latestDate||'unbekannt')},
+    {name:'Ausrüstung',source:data?.sources.equipment,
+      detail:'Letzte vollständige Zuordnung: '+dateText(data?.sources.equipment.checkedAt)},
+    {name:'Trainingskalender',source:data?.sources.calendar,
+      detail:'Letzter lokaler Snapshot: '+dateText(data?.sources.calendar.checkedAt)}
   ]
   return <section className="sync-center" aria-label={mode==='weight'?'Tägliches Gewicht':'Synchronisierungsstatus'}>
     {mode==='weight'?<>
@@ -122,9 +136,23 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
       </div>
       {session&&data?<div className="sync-source-list">{rows.map(row=>
         <div className="sync-source" key={row.name}>
-          <strong>{row.name}</strong><span>{dateText(row.timestamp)}</span><small>{row.detail}</small>
+          <div className="sync-source-head"><strong>{row.name}</strong>
+            <span className={`sync-state sync-state-${row.source?.state||'unknown'}`}>{stateText(row.source?.state)}</span>
+          </div>
+          <span>Letzter Versuch: {dateText(row.source?.checkedAt)}</span>
+          <small>{row.detail}</small>
         </div>)}</div>:<p className="sync-hint">{session?'Lese Status …':'Bitte zuerst unter Einstellungen anmelden.'}</p>}
-      <p className="sync-weight-note">Schuhzuordnungen und Garmin Connect-Kalender benötigen derzeit noch den separaten manuellen Abgleich. Neue Aktivitäten und Gesundheitsdaten haben bereits serverseitige Jobs.</p>
+      {session&&data&&<div className="sync-technical">
+        <div className="sync-source-head"><strong>FIT-Verarbeitung</strong>
+          <span className={`sync-state sync-state-${data.sources.fit.state||'unknown'}`}>{stateText(data.sources.fit.state)}</span>
+        </div>
+        <p>{data.sources.fit.pending??'–'} offene FIT-Aktivitäten · {data.sources.fit.counts?.retry??'–'} Wiederholungen · {data.sources.fit.counts?.complete??'–'} vollständig</p>
+        <p>Scheduler: {data.scheduler?.available?
+          `${data.scheduler.jobs.length} Garmin-Jobs erkannt (${data.scheduler.jobs.filter(j=>j.active).length} aktiv)`:
+          'Cron-Status nicht verfügbar'}</p>
+        <small>Der Scheduler-Nachweis allein beweist keine erfolgreiche Garmin-Datenübertragung.</small>
+      </div>}
+      <p className="sync-weight-note">Ausrüstung und Trainingskalender sind noch nicht automatisch mit Garmin Connect verbunden. Ein grüner Eintrag wird nur aus bestätigten Importen abgeleitet; die Zeitstempel und der FIT-Rückstau bleiben sichtbar.</p>
     </>}
     {notice&&<p className="sync-notice" role="status">{notice}</p>}
     {error&&<p className="sync-error" role="alert">{error}</p>}
