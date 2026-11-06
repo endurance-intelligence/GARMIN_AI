@@ -43,3 +43,9 @@ verify_jwt = false
 # connectivity check. Calls Garmin once; no OAuth refresh or Garmin writes.
 [functions.garmin-connect-cloud-check]
 verify_jwt = false
+
+# Only the signed GitHub Actions OIDC identity for the exact trusted workflow
+# on refs/heads/main may access this endpoint. No Supabase JWT at gateway;
+# cryptographic OIDC verification and exact claims happen in the function.
+[functions.garmin-cloud-worker]
+verify_jwt = false
