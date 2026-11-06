@@ -19,6 +19,9 @@ Reliable Garmin data, not more features. Mobile is the target interface. Supabas
 Garmin's official **Personal API is read-only for this app**. The current unofficial Garmin Connect session resides in the Windows-only LOCALAPPDATA token store. Do not send that token or a Garmin password in source code, browser localStorage, public GitHub, or chat.
 
 For truly automatic **gear/calendar sync** and **morning weight upload** while Windows is off, a future dedicated service must:
+
+**Use Supabase Vault for encrypted Garmin Connect OAuth session storage, accessed only through restricted service-role-only SQL functions. The existing Garmin Personal API key belongs in Supabase Edge Secrets (it is already stored there); the existing cron secret belongs in Vault (already present). The `garminconnect-js@0.11.0` client is explicitly NODE-ONLY and cannot run inside Supabase Edge/Deno. Therefore the smallest compatible cloud runtime is a private scheduled Node.js worker; Supabase remains the sole authoritative database, secret vault, authenticated API, and scheduler. Supabase Edge functions authenticate the mobile client and return sanitized sync status, while the Node worker independently reads/writes Garmin. No Garmin tokens are returned to the phone.**
+
 - Provide explicit user authorization and a private cloud token store with restricted read/write privileges and rotation; no unreviewed export of local tokens.
 - Run bounded Garmin Connect reads, keep a full-catalog checkpoint, and replace activity gear mappings atomically only after all gear is verified. Respect 429/timeouts and Garmin API changes.
 - Refresh the calendar separately, preserving existing gear history when calendar requests fail.
