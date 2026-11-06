@@ -12,7 +12,9 @@ type Weight={weigh_date:string;weight_kg:number;state:string;updated_at:string;c
 type CronJob={name:string;active:boolean;lastStartedAt:string|null;lastFinishedAt:string|null;lastDispatchStatus:string|null}
 type SyncPayload={sources:{
   activities:Source;health:Source;equipment:Source;calendar:Source;fit:Source
-};scheduler?:{available:boolean;jobs:CronJob[]};cloudConnect?:{connected:boolean;status:string};weightEntries:Weight[];weightTransferAvailable:boolean}
+};scheduler?:{available:boolean;jobs:CronJob[]};cloudConnect?:{
+  connected:boolean;status:string;lastResult?:string;lastCheckedAt?:string|null;lastSuccessAt?:string|null
+};weightEntries:Weight[];weightTransferAvailable:boolean}
 function berlinDay(){
   const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
   const item=(type:string)=>parts.find(p=>p.type===type)?.value||''
@@ -56,6 +58,7 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
   const [error,setError]=useState('')
   const [refresh,setRefresh]=useState(0)
   const [connecting,setConnecting]=useState(false)
+  const [cloudChecking,setCloudChecking]=useState(false)
 
   useEffect(()=>{
     if(!active||!garminSupabase)return
@@ -134,6 +137,40 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
     }
   }
 
+  async function checkCloudLive() {
+    if(!session||!data?.cloudConnect?.connected||cloudChecking)return
+    setCloudChecking(true);setError('');setNotice('')
+    try{
+      const response=await fetch(garminSupabaseUrl+'/functions/v1/garmin-connect-cloud-check',{
+        method:'POST',cache:'no-store',
+        headers:{
+          authorization:'Bearer '+session.access_token,
+          apikey:garminPublishableKey
+        }
+      })
+      const result=await response.json() as {
+        verified?:boolean;status?:string;error?:string
+      }
+      if(!response.ok)
+        throw Error(result.error||'Cloud-Verbindungstest nicht verfügbar.')
+      const labels:Record<string,string>={
+        verified:'Garmin Connect direkt von Supabase erreicht – lesender Cloud-Test erfolgreich.',
+        expired:'Gespeicherte Sitzung ist abgelaufen. Sie muss serverseitig erneuert werden.',
+        auth_failed:'Garmin hat die Sitzung abgelehnt. Bitte noch keine automatische Synchronisierung starten.',
+        rate_limited:'Garmin begrenzt Anfragen. Kein sofortiger erneuter Versuch.',
+        unavailable:'Garmin nicht erreichbar. Der Cloud-Test war nicht erfolgreich.',
+        invalid_response:'Garmin hat keine erwartete Profilantwort geliefert.'
+      }
+      setNotice(labels[result.status||'']||'Cloud-Testergebnis ist unklar.')
+      const latest=await api<SyncPayload>(session,'GET')
+      setData(latest)
+    }catch(e){
+      setError(e instanceof Error?e.message:'Cloud-Test nicht verfügbar.')
+    }finally{
+      setCloudChecking(false)
+    }
+  }
+
   if(!active)return null
   const today=data?.weightEntries.find(v=>v.weigh_date===date)
   const rows=[
@@ -187,6 +224,23 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
           data.cloudConnect.connected?
             'Sitzung im Supabase Vault gespeichert (Live-Verbindung noch nicht geprüft)':
             'Noch keine Cloud-Sitzung eingerichtet'}</p>
+        {data.cloudConnect?.connected&&<div className="sync-cloud-bootstrap">
+          <div className="sync-cloud-readout">
+            <p>Letzter Cloud-Live-Test: {data.cloudConnect.lastCheckedAt?
+              dateText(data.cloudConnect.lastCheckedAt):'noch nicht ausgeführt'}</p>
+            <p>Ergebnis: {({
+              verified:'Garmin erreichbar',expired:'Sitzung abgelaufen',
+              auth_failed:'Garmin-Anmeldung abgelehnt',rate_limited:'Anfragen begrenzt',
+              unavailable:'Nicht erreichbar',invalid_response:'Antwort ungültig',
+              never:'Noch nicht geprüft',unknown:'Status unbekannt'
+            } as Record<string,string>)[data.cloudConnect.lastResult||'unknown']||'Unbekannt'}</p>
+            <small>Reiner Lesezugriff. Es werden weder Garmin-Daten noch Token geändert.</small>
+          </div>
+          <button type="button" onClick={()=>void checkCloudLive()}
+            disabled={cloudChecking}>
+            {cloudChecking?'Prüfe Verbindung …':'Cloud-Verbindung testen'}
+          </button>
+        </div>}
         {data.cloudConnect?.status==='configured'&&!data.cloudConnect.connected&&
           <div className="sync-cloud-bootstrap">
             <p>Deine bestehende lokale Garmin-Connect-Sitzung kann einmalig in den verschlüsselten
