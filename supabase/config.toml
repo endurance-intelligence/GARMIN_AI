@@ -33,3 +33,8 @@ verify_jwt = false
 # owner e-mail checked on every request. Required for publishable-key projects.
 [functions.garmin-sync-center]
 verify_jwt = false
+
+# One-time owner-only Garmin OAuth bootstrap. Function itself verifies the
+# logged-in owner via Supabase Auth and stores tokens only in Vault.
+[functions.garmin-connect-bootstrap]
+verify_jwt = false
