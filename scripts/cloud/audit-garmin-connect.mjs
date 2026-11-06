@@ -1,12 +1,11 @@
 /**
  * GARMIN_AI v0.7.7: read-only, complete cloud gear & training-calendar audit.
- * Runs in trusted Node.js hosting with private Supabase credentials. The
- * project does not yet have a provisioned/scheduled cloud runner.
+ * Runs on a GitHub-hosted runner with short-lived GitHub OIDC identity.
+ * Supabase service-role credentials remain exclusively inside Supabase.
  *
  * Reads only. Existing 411 gear assignments, calendar and weight outbox
  * remain intact. Stores refreshed OAuth tokens in Vault if Garmin rotated them.
  */
-import {createClient} from '@supabase/supabase-js'
 import {GarminClient,Garmin,MemoryTokenStore} from 'garminconnect-js'
 import {isGarminCloudSession,tokenChanged} from './garmin-cloud-session.mjs'
 import {buildCloudPreview} from './garmin-cloud-data-audit-model.mjs'
@@ -19,17 +18,45 @@ const required=name=>{
   return value
 }
 
-async function main(){
-  const endpoint=required('SUPABASE_URL').replace(/\/$/,'')
-  if(endpoint!==`https://${ref}.supabase.co`)throw Error('Wrong Supabase project')
-  const supabase=createClient(endpoint,required('SUPABASE_SERVICE_ROLE_KEY'),{
-    auth:{persistSession:false,autoRefreshToken:false}
+const AUDIENCE='garmin-ai-cloud-audit:eurgupsebxypjqvyizci'
+const project='https://eurgupsebxypjqvyizci.supabase.co'
+const workerUrl=project+'/functions/v1/garmin-cloud-worker'
+
+async function githubIdentityToken() {
+  const url=required('ACTIONS_ID_TOKEN_REQUEST_URL')
+  const requestToken=required('ACTIONS_ID_TOKEN_REQUEST_TOKEN')
+  const target=new URL(url)
+  if(target.protocol!=='https:')throw Error('Invalid GitHub OIDC URL')
+  target.searchParams.set('audience',AUDIENCE)
+  const res=await fetch(target,{
+    headers:{authorization:'Bearer '+requestToken},
+    signal:AbortSignal.timeout(15000),cache:'no-store',redirect:'error'
   })
-  const {data:credential,error:readError}=await supabase.rpc('garmin_connect_session_get')
-  if(readError||!credential?.connected||
-      !Number.isSafeInteger(credential.version)||credential.version<=0||
-      !isGarminCloudSession(credential.tokens))
-    throw Error('Cloud session unavailable or invalid')
+  if(!res.ok)throw Error('GitHub OIDC token request failed')
+  const body=await res.json()
+  if(typeof body?.value!=='string'||body.value.split('.').length!==3)
+    throw Error('GitHub OIDC token missing')
+  return body.value
+}
+async function workerCall(jwt,method,body) {
+  const res=await fetch(workerUrl,{
+    method,redirect:'error',cache:'no-store',signal:AbortSignal.timeout(25000),
+    headers:{
+      authorization:'Bearer '+jwt,
+      ...(body?{'content-type':'application/json'}:{})
+    },
+    ...(body?{body:JSON.stringify(body)}:{})
+  })
+  if(!res.ok)throw Error('Private Supabase worker authorization or storage failed')
+  return res.json()
+}
+async function main(){
+  // No long-lived Supabase service-role key is ever placed in GitHub.
+  const jwt=await githubIdentityToken()
+  const credential=await workerCall(jwt,'GET')
+  if(!credential||!Number.isSafeInteger(credential.version)||
+     credential.version<=0||!isGarminCloudSession(credential.tokens))
+    throw Error('Cloud Garmin session unavailable')
 
   const store=new MemoryTokenStore()
   await store.save(credential.tokens)
@@ -38,10 +65,8 @@ async function main(){
   const garmin=new Garmin(client)
   let completed=false
   try{
-    const {data:baseline,error:baselineError}=await supabase.from('garmin_connect_snapshot')
-      .select('gear,schedule,activity_gear,activity_gear_scope,synced_at')
-      .eq('snapshot_key','primary').maybeSingle()
-    if(baselineError||!baseline||baseline.activity_gear_scope!=='complete')
+    const baseline=credential.baseline
+    if(!baseline||baseline.activity_gear_scope!=='complete')
       throw Error('Verified Garmin baseline missing')
 
     const profile=await garmin.getUserProfile()
@@ -79,11 +104,10 @@ async function main(){
     // even if a later data request failed, to keep the next check functional.
     const after=client.getTokens()
     if(after&&isGarminCloudSession(after)&&tokenChanged(credential.tokens,after)){
-      const {data:saved,error:saveError}=await supabase.rpc('garmin_connect_session_store',{
-        p_tokens:after,p_expected_version:credential.version
+      const saved=await workerCall(jwt,'POST',{
+        tokens:after,expectedVersion:credential.version
       })
-      if(saveError||!saved?.saved)
-        throw Error('Garmin token refresh not persisted safely')
+      if(!saved?.saved)throw Error('Garmin token refresh not persisted safely')
     }
     if(!completed)console.error('GARMIN CLOUD DATA AUDIT: incomplete; no data overwritten.')
   }
