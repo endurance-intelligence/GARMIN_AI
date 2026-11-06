@@ -92,8 +92,8 @@ Deno.serve(async req=>{
       // Use the existing activity job's source default. Do not force
       // a new source string that might violate a historical CHECK constraint.
       const activityHistory=(activityRuns.data||[]).filter(r=>{
-        const source=r.source==null?'':String(r.source)
-        return !source || /^(garmin|garmin-activities|garmin-personal|garmin-personal-api|activities)$/i.test(source)
+        const source=r.source==null?'':String(r.source).trim().toLowerCase()
+        return source!== 'garmin-health'
       })
       const first=activityHistory[0]
       const healthFirst=healthRuns.data?.[0]
