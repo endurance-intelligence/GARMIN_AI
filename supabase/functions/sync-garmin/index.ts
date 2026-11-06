@@ -7,7 +7,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 
 type RecordLike = Record<string, unknown>
 const GARMIN = 'https://personal.connectapi.garmin.com'
-const LIMIT = 10
+// Bounded rolling reconciliation: also refresh recent edited activities.
+const LIMIT = 40
 
 function asObject(value: unknown): RecordLike {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -83,7 +84,7 @@ async function readActivities(key: string) {
     }
   }).filter((row): row is NonNullable<typeof row> => row !== null)
 
-  // Only read one activity detail for now. More activity details and health metrics
+  // Only read one activity detail per invocation. More activity details and health metrics
   // will be added as separate bounded synchronization jobs.
   if (rows.length) {
     try {
