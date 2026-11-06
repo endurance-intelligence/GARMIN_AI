@@ -63,9 +63,8 @@ Deno.serve(async req=>{
       const [activityRuns,healthRuns,health,gear,weight,fitCounts,cron] =
         await Promise.all([
           db.from('garmin_sync_runs')
-            .select('result,finished_at')
-            .eq('source','garmin-activities')
-            .order('finished_at',{ascending:false}).limit(10),
+            .select('source,result,finished_at')
+            .order('finished_at',{ascending:false}).limit(300),
           db.from('garmin_sync_runs')
             .select('result,message,finished_at')
             .eq('source','garmin-health')
@@ -90,7 +89,13 @@ Deno.serve(async req=>{
       if(activityRuns.error||healthRuns.error||health.error||gear.error||weight.error ||
          fitCounts.some(r=>r.error))
         return reply({error:'Sync sources temporarily unavailable'},503,headers)
-      const first=activityRuns.data?.[0]
+      // Use the existing activity job's source default. Do not force
+      // a new source string that might violate a historical CHECK constraint.
+      const activityHistory=(activityRuns.data||[]).filter(r=>{
+        const source=r.source==null?'':String(r.source)
+        return !source || /^(garmin|garmin-activities|garmin-personal|garmin-personal-api|activities)$/i.test(source)
+      })
+      const first=activityHistory[0]
       const healthFirst=healthRuns.data?.[0]
       const latestHealth=health.data?.[0]
       const lastSuccess=(runs:{result:string;finished_at:string}[]|null|undefined)=>
@@ -104,7 +109,7 @@ Deno.serve(async req=>{
       const fitSummary=classifyFit(fit)
       const activities=classifySync({
         lastAttemptAt:first?.finished_at??null,
-        lastSuccessAt:lastSuccess(activityRuns.data),
+        lastSuccessAt:lastSuccess(activityHistory),
         lastResult:first?.result??null,thresholdHours:3
       })
       const healthState=classifySync({
@@ -124,7 +129,7 @@ Deno.serve(async req=>{
       return reply({
         sources:{
           activities:{...activities,checkedAt:first?.finished_at??null,
-            lastSuccessAt:lastSuccess(activityRuns.data),result:first?.result??'unknown'},
+            lastSuccessAt:lastSuccess(activityHistory),result:first?.result??'unknown'},
           health:{...healthState,
             state:healthState.state==='ok'&&partialHealth?'partial':healthState.state,
             checkedAt:healthFirst?.finished_at??null,
