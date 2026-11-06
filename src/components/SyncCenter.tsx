@@ -151,6 +151,13 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
           `${data.scheduler.jobs.length} Garmin-Jobs erkannt (${data.scheduler.jobs.filter(j=>j.active).length} aktiv)`:
           'Cron-Status nicht verfügbar'}</p>
         <small>Der Scheduler-Nachweis allein beweist keine erfolgreiche Garmin-Datenübertragung.</small>
+        {!!data.scheduler?.jobs.length&&<details className="sync-cron-details">
+          <summary>Geplante Garmin-Jobs anzeigen</summary>
+          {data.scheduler.jobs.slice(0,12).map(job=><div className="sync-cron-job" key={job.name}>
+            <strong>{job.name}</strong>
+            <small>{job.active?'Zeitplan aktiv':'Zeitplan deaktiviert'} · Dispatch: {job.lastDispatchStatus||'unbekannt'} · {dateText(job.lastFinishedAt)}</small>
+          </div>)}
+        </details>}
       </div>}
       <p className="sync-weight-note">Ausrüstung und Trainingskalender sind noch nicht automatisch mit Garmin Connect verbunden. Ein grüner Eintrag wird nur aus bestätigten Importen abgeleitet; die Zeitstempel und der FIT-Rückstau bleiben sichtbar.</p>
     </>}
