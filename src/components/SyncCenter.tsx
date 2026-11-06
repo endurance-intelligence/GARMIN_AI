@@ -12,7 +12,7 @@ type Weight={weigh_date:string;weight_kg:number;state:string;updated_at:string;c
 type CronJob={name:string;active:boolean;lastStartedAt:string|null;lastFinishedAt:string|null;lastDispatchStatus:string|null}
 type SyncPayload={sources:{
   activities:Source;health:Source;equipment:Source;calendar:Source;fit:Source
-};scheduler?:{available:boolean;jobs:CronJob[]};weightEntries:Weight[];weightTransferAvailable:boolean}
+};scheduler?:{available:boolean;jobs:CronJob[]};cloudConnect?:{connected:boolean;status:string};weightEntries:Weight[];weightTransferAvailable:boolean}
 function berlinDay(){
   const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
   const item=(type:string)=>parts.find(p=>p.type===type)?.value||''
@@ -147,6 +147,9 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
           <span className={`sync-state sync-state-${data.sources.fit.state||'unknown'}`}>{stateText(data.sources.fit.state)}</span>
         </div>
         <p>{data.sources.fit.pending??'–'} offene FIT-Aktivitäten · {data.sources.fit.counts?.retry??'–'} Wiederholungen · {data.sources.fit.counts?.complete??'–'} vollständig</p>
+        <p>Garmin Connect Cloud: {data.cloudConnect?.connected?
+          'Sitzung im Supabase Vault hinterlegt (Verbindung noch nicht live verifiziert)':
+          'Noch keine Cloud-Sitzung eingerichtet'}</p>
         <p>Scheduler: {data.scheduler?.available?
           `${data.scheduler.jobs.length} Garmin-Jobs erkannt (${data.scheduler.jobs.filter(j=>j.active).length} aktiv)`:
           'Cron-Status nicht verfügbar'}</p>
