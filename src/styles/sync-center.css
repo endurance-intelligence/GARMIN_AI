@@ -28,3 +28,15 @@
   .sync-source-list{grid-template-columns:1fr;gap:8px}
 }
 @media(max-width:360px){.sync-weigh-form{grid-template-columns:1fr}}
+
+/* v0.7.5 operational states: never substitute a synthetic score for real data */
+.sync-source-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.sync-state{font-size:11px;color:#a8b5d0;font-weight:750;white-space:normal}
+.sync-state-ok{color:#c7ec9d}.sync-state-failed,.sync-state-attention{color:#ffc4ae}
+.sync-state-stale,.sync-state-partial{color:#f5d48b}
+.sync-state-manual,.sync-state-unknown{color:#9fb1d5}
+.sync-technical{padding:14px;margin-top:12px;border:1px solid rgba(158,177,216,.17);
+  background:#11192b;border-radius:12px;display:flex;flex-direction:column;gap:9px}
+.sync-technical strong{font-size:13px}
+.sync-technical p{font-size:12px;color:#cfdbec;margin:0;line-height:1.5}
+.sync-technical small{font-size:11px;color:#91a2ba;line-height:1.5}
