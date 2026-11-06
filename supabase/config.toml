@@ -28,3 +28,8 @@ verify_jwt = false
 # Owner JWT verified inside the private Edge Function.
 [functions.read-garmin-aerobic]
 verify_jwt = false
+
+# v0.7.5: JWT validated by the private sync-center function with auth.getUser,
+# owner e-mail checked on every request. Required for publishable-key projects.
+[functions.garmin-sync-center]
+verify_jwt = false
