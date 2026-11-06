@@ -1,0 +1,30 @@
+/* Mobile-first GARMIN_AI sync controls. Forms have large touch targets. */
+.sync-center{margin:20px 0 28px;padding:22px;border:1px solid rgba(161,177,217,.22);
+  border-radius:20px;background:linear-gradient(135deg,#1a2238,#101725 80%);color:#f2f5ff}
+.sync-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.sync-top h3{font-size:clamp(19px,2vw,26px);letter-spacing:-.035em;margin:7px 0}
+.sync-top p{font-size:12px;color:#aab8d0;line-height:1.6;margin:0;max-width:640px}
+.sync-weigh-form{display:grid;grid-template-columns:minmax(145px,1fr) minmax(160px,1fr) auto;
+  gap:12px;align-items:end;margin-top:20px}
+.sync-weigh-form label{font-size:12px;font-weight:750;color:#cdd9ee;min-width:0}
+.sync-weigh-form input{display:block;margin-top:9px;width:100%;min-height:49px;
+  background:#0b1324;border:1px solid #405074;border-radius:12px;color:#fff;
+  padding:12px;font-size:16px;outline-offset:2px}
+.sync-weigh-form button{min-height:49px;white-space:nowrap;padding:12px 17px;
+  font-size:13px;font-weight:780;color:#10171d;background:#c8ef86;border:0;border-radius:12px}
+.sync-weigh-form button:disabled{opacity:.5;cursor:wait}
+.sync-source-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:20px}
+.sync-source{padding:14px;border:1px solid rgba(158,177,216,.17);background:#11192b;border-radius:12px;
+  display:flex;flex-direction:column;gap:7px;min-width:0}
+.sync-source strong{font-size:13px}.sync-source span{color:#e4ecfc;font-size:12px}
+.sync-source small{font-size:11px;line-height:1.5;color:#91a2ba}
+.sync-hint,.sync-weight-note,.sync-notice,.sync-error{font-size:12px;line-height:1.65;margin:15px 0 0}
+.sync-hint{color:#b9c8e5}.sync-weight-note{color:#8c9eb8}.sync-notice{color:#c8f3a1}
+.sync-error{color:#ffbdab}
+@media(max-width:720px){
+  .sync-center{padding:18px 15px;margin:15px 0 22px;border-radius:16px}
+  .sync-weigh-form{grid-template-columns:1fr 1fr;gap:10px}
+  .sync-weigh-form button{grid-column:1/-1;width:100%}
+  .sync-source-list{grid-template-columns:1fr;gap:8px}
+}
+@media(max-width:360px){.sync-weigh-form{grid-template-columns:1fr}}
