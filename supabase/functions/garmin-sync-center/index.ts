@@ -5,6 +5,7 @@
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { validWeightEntry } from '../_shared/weight-entry.mjs'
+import {classifySync,classifyFit} from '../_shared/sync-health.mjs'
 
 const endpoint = Deno.env.get('SUPABASE_URL') || ''
 const owner = (Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
@@ -57,40 +58,84 @@ Deno.serve(async req=>{
       auth:{autoRefreshToken:false,persistSession:false}
     })
     if(req.method==='GET'){
-      const [activityRuns,health,gear,weight,activities]=await Promise.all([
-        db.from('garmin_sync_runs')
-          .select('result,activity_count,finished_at')
-          .order('finished_at',{ascending:false}).limit(1),
-        db.from('garmin_daily_metrics')
-          .select('metric_date,synced_at')
-          .order('metric_date',{ascending:false}).limit(1),
-        db.from('garmin_connect_snapshot')
-          .select('checked_at,synced_at,gear_links_checked_at,activity_gear_scope')
-          .eq('snapshot_key','primary').maybeSingle(),
-        db.from('garmin_weight_outbox')
-          .select('weigh_date,weight_kg,state,updated_at,confirmed_at')
-          .order('weigh_date',{ascending:false}).limit(7),
-        db.from('garmin_activities')
-          .select('activity_id,synced_at')
-          .order('synced_at',{ascending:false}).limit(1)
-      ])
-      if(activityRuns.error||health.error||gear.error||weight.error||activities.error)
+      // Source outcome comes from actual Edge Function logs, never inferred
+      // solely from the presence of yesterday's Garmin records.
+      const [activityRuns,healthRuns,health,gear,weight,fitCounts,cron] =
+        await Promise.all([
+          db.from('garmin_sync_runs')
+            .select('result,finished_at')
+            .eq('source','garmin-activities')
+            .order('finished_at',{ascending:false}).limit(10),
+          db.from('garmin_sync_runs')
+            .select('result,message,finished_at')
+            .eq('source','garmin-health')
+            .order('finished_at',{ascending:false}).limit(10),
+          db.from('garmin_daily_metrics')
+            .select('metric_date,synced_at')
+            .order('metric_date',{ascending:false}).limit(1),
+          db.from('garmin_connect_snapshot')
+            .select('checked_at,synced_at,gear_links_checked_at,activity_gear_scope')
+            .eq('snapshot_key','primary').maybeSingle(),
+          db.from('garmin_weight_outbox')
+            .select('weigh_date,weight_kg,state,updated_at,confirmed_at')
+            .order('weigh_date',{ascending:false}).limit(7),
+          Promise.all(['queued','retry','processing','paused','unavailable','complete']
+            .map(async status=>{
+              const result=await db.from('garmin_activity_details')
+                .select('activity_id',{count:'exact',head:true}).eq('fit_status',status)
+              return {status,count:result.count,error:result.error}
+            })),
+          db.rpc('garmin_sync_scheduler_status')
+        ])
+      if(activityRuns.error||healthRuns.error||health.error||gear.error||weight.error ||
+         fitCounts.some(r=>r.error))
         return reply({error:'Sync sources temporarily unavailable'},503,headers)
-      const run=activityRuns.data?.[0]
-      const lastHealth=health.data?.[0]
-      const latestActivity=activities.data?.[0]
+      const first=activityRuns.data?.[0]
+      const healthFirst=healthRuns.data?.[0]
+      const latestHealth=health.data?.[0]
+      const lastSuccess=(runs:{result:string;finished_at:string}[]|null|undefined)=>
+        runs?.find(r=>r.result==='success')?.finished_at??null
+      const toCount=(status:string)=>fitCounts.find(r=>r.status===status)?.count??0
+      const fit={
+        queued:toCount('queued'),retry:toCount('retry'),
+        processing:toCount('processing'),paused:toCount('paused'),
+        unavailable:toCount('unavailable'),complete:toCount('complete')
+      }
+      const fitSummary=classifyFit(fit)
+      const activities=classifySync({
+        lastAttemptAt:first?.finished_at??null,
+        lastSuccessAt:lastSuccess(activityRuns.data),
+        lastResult:first?.result??null,thresholdHours:3
+      })
+      const healthState=classifySync({
+        lastAttemptAt:healthFirst?.finished_at??null,
+        lastSuccessAt:lastSuccess(healthRuns.data),
+        lastResult:healthFirst?.result??null,thresholdHours:30
+      })
+      const gearState=classifySync({manual:true})
+      const calendarState=classifySync({manual:true})
+      // A successful pg_cron dispatch only proves scheduling, never that an
+      // HTTP request reached Garmin or that the data landed in the database.
+      const scheduler=cron.error||!cron.data ?
+        {available:false,jobs:[]} : cron.data
+      const sourceHealth=healthFirst?.message||''
+      const sourcesMatch=/sources=(\d+)\/(\d+)/.exec(sourceHealth)
+      const partialHealth=!!sourcesMatch && Number(sourcesMatch[1])<Number(sourcesMatch[2])
       return reply({
         sources:{
-          activities:{checkedAt:run?.finished_at??null,result:run?.result??'unknown',
-            lastImportedAt:latestActivity?.synced_at??null},
-          health:{latestDate:lastHealth?.metric_date??null,checkedAt:lastHealth?.synced_at??null},
-          equipment:{checkedAt:gear.data?.gear_links_checked_at??null,
+          activities:{...activities,checkedAt:first?.finished_at??null,
+            lastSuccessAt:lastSuccess(activityRuns.data),result:first?.result??'unknown'},
+          health:{...healthState,
+            state:healthState.state==='ok'&&partialHealth?'partial':healthState.state,
+            checkedAt:healthFirst?.finished_at??null,
+            lastSuccessAt:lastSuccess(healthRuns.data),
+            latestDate:latestHealth?.metric_date??null},
+          equipment:{...gearState,checkedAt:gear.data?.gear_links_checked_at??null,
             scope:gear.data?.activity_gear_scope??'unknown'},
-          calendar:{checkedAt:gear.data?.checked_at??null},
-          fit:{status:'existing-queue'}
+          calendar:{...calendarState,checkedAt:gear.data?.checked_at??null},
+          fit:{...fitSummary,counts:fit}
         },
-        weightEntries:weight.data??[],
-        weightTransferAvailable:false
+        scheduler,weightEntries:weight.data??[],weightTransferAvailable:false
       },200,headers)
     }
     if(Number(req.headers.get('content-length')||0)>512)
