@@ -96,7 +96,7 @@ Deno.serve(async req=>{
       const plain=(v:unknown):v is Record<string,unknown>=>
         !!v&&typeof v==='object'&&!Array.isArray(v)
       const day=(v:unknown):v is string=>
-        typeof v==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(v)&&
+        typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&
         !Number.isNaN(Date.parse(v+'T12:00:00Z'))&&
         new Date(v+'T12:00:00Z').toISOString().slice(0,10)===v
       const canon=(v:unknown)=>
@@ -106,7 +106,7 @@ Deno.serve(async req=>{
       if(!day(start)||!day(end)||end<start||
          Date.parse(end+'T00:00:00Z')-Date.parse(start+'T00:00:00Z')>90*86400000||
          typeof value.expectedSyncedAt!=='string'||
-         !/^\\d{4}-\\d{2}-\\d{2}T/.test(value.expectedSyncedAt)||
+         !/^\d{4}-\d{2}-\d{2}T/.test(value.expectedSyncedAt)||
          !Array.isArray(value.gear)||value.gear.length<1||value.gear.length>100||
          !Array.isArray(value.schedule)||value.schedule.length>500||
          !Array.isArray(value.activityGear)||value.activityGear.length>3000)
@@ -130,7 +130,7 @@ Deno.serve(async req=>{
       const linkKeys=new Set<string>()
       for(const x of links){
         if(!plain(x)||typeof x.activityId!=='string'||
-           !/^\\d{5,20}$/.test(x.activityId)||!ids.has(canon(x.gearId)||''))
+           !/^\d{5,20}$/.test(x.activityId)||!ids.has(canon(x.gearId)||''))
           return respond(422,{error:'Invalid activity association'})
         const key=x.activityId+':'+canon(x.gearId)
         if(linkKeys.has(key))return respond(422,{error:'Repeated activity association'})
