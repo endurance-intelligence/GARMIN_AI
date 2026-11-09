@@ -82,6 +82,11 @@ async function main(){
   let failed=false
   try {
     const outcome=await deliverOneWeight({db,garmin,writesEnabled:true})
+    if(outcome.code==='rate_limited'){
+      // Protect later workers after Garmin 429; never retry this run.
+      const guard=await call(jwt,{action:'rate-limit'})
+      if(guard?.recorded!==true)throw Error('Private rate limit guard unavailable')
+    }
     // These fixed strings are the only worker output; never log masses,
     // dates, body responses, SQL details or Garmin SDK exceptions.
     const statuses=new Set(['idle','blocked','preview','confirmed','needs_review'])
