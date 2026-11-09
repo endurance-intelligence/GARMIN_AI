@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: f373ed21ece0077351c507063832e816cb5e76d5
+          ref: 92fd283032713d7bc1a99b3a69c10238634df01d
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
@@ -30,7 +30,7 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: No-Garmin weight delivery and OIDC guard tests
-        run: node --test tests/garmin-weight-reconciliation.test.mjs tests/garmin-weight-delivery.test.mjs tests/garmin-weight-cloud-identity.test.mjs
+        run: node --test tests/garmin-weight-reconciliation.test.mjs tests/garmin-weight-delivery.test.mjs tests/garmin-weight-cloud-identity.test.mjs tests/garmin-cloud-429-guard.test.mjs
       - name: Preserve existing app build
         run: npm run build
 
@@ -48,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: f373ed21ece0077351c507063832e816cb5e76d5
+          ref: 92fd283032713d7bc1a99b3a69c10238634df01d
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
@@ -56,6 +56,6 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Validate private worker safety
-        run: node --test tests/garmin-weight-reconciliation.test.mjs tests/garmin-weight-delivery.test.mjs tests/garmin-weight-cloud-identity.test.mjs
+        run: node --test tests/garmin-weight-reconciliation.test.mjs tests/garmin-weight-delivery.test.mjs tests/garmin-weight-cloud-identity.test.mjs tests/garmin-cloud-429-guard.test.mjs
       - name: Run one protected weight check (default dry-run)
         run: node scripts/cloud/run-garmin-weight-delivery.mjs
