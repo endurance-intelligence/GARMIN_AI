@@ -4,6 +4,7 @@ import type {ReactNode} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {Icon} from './Icon'
 import {interpretRecovery,formatSleep,differenceLabel} from '../lib/recoveryComparison'
+import {RecoverySparkline} from './RecoverySparkline'
 import '../styles/coach-glance.css'
 
 type CalendarWorkout={date:string;name:string|null;restDay:boolean;sport:string|null}
@@ -79,8 +80,6 @@ export function CoachGlance({active,onCalendar,children}:{
  const health=view?.health
  const comparison=health?interpretRecovery(view?.healthHistory||[],health.metric_date):null
  const [sleep,hrv,rhr]=comparison?.metrics||[]
- const recent=[...(view?.healthHistory||[])].filter(row=>row.metric_date<=date)
-   .sort((a,b)=>b.metric_date.localeCompare(a.metric_date)).slice(0,7)
  return <div className="co-at-a-glance">
   <section className="co-today" aria-label="Training heute">
    <div className="co-section-head">
@@ -93,67 +92,61 @@ export function CoachGlance({active,onCalendar,children}:{
    </div>
    {children}
   </section>
-  <section className="co-recovery-glance" aria-label="Dein Garmin-Morgencheck">
+  <section className="co-recovery-glance" aria-label="Garmin Erholung mit grafischen Trends">
     <div className="co-recovery-heading">
       <div>
-        <span className="co-eyebrow">GARMIN · MORGENCHECK</span>
+        <span className="co-eyebrow">DEIN MORGENCHECK</span>
         <h2>Schlaf & Erholung</h2>
       </div>
-      <span className="co-data-day">{health?'Stand '+shortDay(health.metric_date):'Keine Daten'}</span>
+      <span className="co-data-day">{health?'Stand '+shortDay(health.metric_date):'Noch keine Daten'}</span>
     </div>
-    <p className="co-recovery-headline">
-      {comparison?.headline||'Für eine Einordnung fehlen noch Garmin-Daten.'}
-    </p>
-    <div className="co-readings" role="list" aria-label="Messwerte und Veränderung gegenüber dem jüngsten Median">
-      <div role="listitem" className="co-reading">
-        <span>Schlaf</span>
-        <strong>{formatSleep(sleep?.latest??null)}</strong>
-        <small>{sleep?.difference!==null&&sleep?.difference!==undefined?
-          differenceLabel(sleep):'Vergleich ausstehend'}</small>
-      </div>
-      <div role="listitem" className="co-reading">
-        <span>HRV</span>
-        <strong>{valText(hrv?.latest,'ms')}</strong>
-        <small>{hrv?.difference!==null&&hrv?.difference!==undefined?
-          differenceLabel(hrv):'Vergleich ausstehend'}</small>
-      </div>
-      <div role="listitem" className="co-reading">
-        <span>Ruhepuls</span>
-        <strong>{valText(rhr?.latest,'bpm')}</strong>
-        <small>{rhr?.difference!==null&&rhr?.difference!==undefined?
-          differenceLabel(rhr):'Vergleich ausstehend'}</small>
+    <div className="co-recovery-insight">
+      <span className="co-recovery-insight-icon"><Icon name="activity"/></span>
+      <div>
+        <strong>Dein Verlauf auf einen Blick</strong>
+        <p>{comparison?.headline||'Sobald Garmin Messwerte liefert, erscheinen hier deine Veränderungen.'}</p>
       </div>
     </div>
-    <div className="co-interpretation-foot">
-      Vergleich: Median der vorherigen 14 Kalendertage, soweit mindestens 7 Werte vorliegen.
-      <span> Keine Trainingsfreigabe.</span>
+    <div className="co-trend-grid" role="list" aria-label="Schlaf, HRV und Ruhepuls mit Verlauf der letzten sieben Tage">
+      {([
+        {key:'sleep_seconds',name:'Schlaf',value:formatSleep(sleep?.latest??null),row:sleep,icon:'moon',tone:'sleep'},
+        {key:'hrv_ms',name:'HRV',value:valText(hrv?.latest,'ms'),row:hrv,icon:'activity',tone:'hrv'},
+        {key:'resting_heart_rate',name:'Ruhepuls',value:valText(rhr?.latest,'bpm'),row:rhr,icon:'heart-pulse',tone:'pulse'}
+      ] as const).map(entry=><div role="listitem" className={'co-trend-tile co-trend-'+entry.tone}
+        key={entry.key}>
+        <div className="co-trend-top">
+          <div className="co-trend-label"><Icon name={entry.icon}/>{entry.name}</div>
+          {entry.row?.difference!==null&&entry.row?.difference!==undefined&&
+           <span className="co-trend-diff">{differenceLabel(entry.row)}</span>}
+        </div>
+        <strong className="co-trend-value">{entry.value}</strong>
+        {health?
+          <RecoverySparkline history={view?.healthHistory||[]}
+            metric={entry.key} day={health.metric_date}
+            median={entry.row?.median??null} label={entry.name}/>:
+          <div className="co-trend-empty">Noch keine Messwerte</div>}
+      </div>)}
     </div>
-    {(!view?.healthOk||!health)&&<p className="co-data-note">Keine aktuellen Garmin-Gesundheitsdaten verfügbar.</p>}
+    <div className="co-recovery-context">
+      <span><span className="co-mini-marker"/> Linie: 7 Tage · gestrichelt: jüngster Median</span>
+      <span>Werte allein sind keine Trainingsfreigabe.</span>
+    </div>
+    {(!view?.healthOk||!health)&&<p className="co-data-note">Garmin-Gesundheitsdaten sind momentan nicht verfügbar.</p>}
     {error&&<p className="co-data-note" role="alert">Einige Datenquellen sind gerade nicht erreichbar.</p>}
     <details className="co-recovery-details">
-      <summary>Messwerte verstehen & Verlauf ansehen</summary>
+      <summary>Was bedeuten diese Werte?</summary>
       <div className="co-recovery-explanation">
-        <p><strong>Das sagen die Zahlen:</strong> Schlaf zeigt die Dauer, nicht die Qualität.
-        HRV und Ruhepuls sind individuell und schwanken. Die Unterschiede oben
-        beschreiben den jüngsten Verlauf, aber weder Belastbarkeit noch Krankheit.</p>
-        <p>Der Vergleichszeitraum ist keine langfristig gesunde Baseline. Erkältung,
-        Training und fehlende Messungen können ihn beeinflussen.</p>
-        {comparison&&<p>Referenz: {shortDay(comparison.referenceStart)}–{shortDay(comparison.referenceEnd)}
-         · Vergleichswerte: Schlaf {sleep?.sampleCount||0},
-         HRV {hrv?.sampleCount||0}, Ruhepuls {rhr?.sampleCount||0} Tage.</p>}
+        <p><strong>Schlaf:</strong> Dauer, nicht Schlafqualität. <strong>HRV:</strong> individuelle Schwankung
+        des Herzrhythmus. <strong>Ruhepuls:</strong> ebenfalls im persönlichen Verlauf betrachten.</p>
+        <p>Die gestrichelte Linie zeigt den Median der 14 Tage vor der neuesten Messung –
+        nur bei mindestens sieben gültigen Werten. Das ist keine langfristige gesunde Baseline.
+        Krankheit, Trainingsbelastung und Befinden müssen für eine Empfehlung zusätzlich einfließen.</p>
+        {comparison&&<p className="co-recovery-reference">
+          Referenz {shortDay(comparison.referenceStart)}–{shortDay(comparison.referenceEnd)}
+          · gültige Werte: Schlaf {sleep?.sampleCount||0}, HRV {hrv?.sampleCount||0},
+          Ruhepuls {rhr?.sampleCount||0}.
+        </p>}
       </div>
-      {recent.length>0&&<div className="co-recovery-history">
-        <h3>Letzte Messungen</h3>
-        <table>
-          <thead><tr><th>Datum</th><th>Schlaf</th><th>HRV</th><th>Ruhepuls</th></tr></thead>
-          <tbody>{recent.map(row=><tr key={row.metric_date}>
-            <td>{row.metric_date.slice(8,10)+'.'+row.metric_date.slice(5,7)+'.'}</td>
-            <td>{formatSleep(row.sleep_seconds)}</td>
-            <td>{valText(row.hrv_ms,'ms')}</td>
-            <td>{valText(row.resting_heart_rate,'bpm')}</td>
-          </tr>)}</tbody>
-        </table>
-      </div>}
     </details>
   </section>
  </div>
