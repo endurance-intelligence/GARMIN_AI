@@ -20,7 +20,7 @@ function envKey(kind: 'publishable'|'secret') {
   return Deno.env.get(legacy) || ''
 }
 function headers(origin: string|null) {
-  const allowed = !!origin && /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin)
+  const allowed = origin==='https://endurance-intelligence.github.io' || (!!origin && /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin))
   return { ...(allowed ? { 'Access-Control-Allow-Origin': origin, 'Vary': 'Origin' } : {}),
     'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info',
     'Access-Control-Allow-Methods':'GET,POST,OPTIONS','Cache-Control':'private, no-store',
