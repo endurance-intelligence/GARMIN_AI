@@ -57,7 +57,7 @@ Deno.serve(async req=>{
       const [session,baseline]=await Promise.all([
         db.rpc('garmin_connect_session_get'),
         db.from('garmin_connect_snapshot')
-          .select('gear,schedule,activity_gear,activity_gear_scope')
+          .select('gear,schedule,activity_gear,activity_gear_scope,synced_at')
           .eq('snapshot_key','primary').maybeSingle()
       ])
       if(session.error||baseline.error||!session.data?.connected||
@@ -72,10 +72,10 @@ Deno.serve(async req=>{
     }
     if(!(req.headers.get('content-type')||'').toLowerCase().startsWith('application/json'))
       return respond(415,{error:'JSON required'})
-    if(Number(req.headers.get('content-length')||0)>23000)
+    if(Number(req.headers.get('content-length')||0)>170000)
       return respond(413,{error:'Payload too large'})
     const body=await req.text()
-    if(body.length>23000)return respond(413,{error:'Payload too large'})
+    if(body.length>170000)return respond(413,{error:'Payload too large'})
     let input:unknown
     try{input=JSON.parse(body)}catch{return respond(422,{error:'Malformed JSON'})}
     if(!input||typeof input!=='object'||Array.isArray(input))
@@ -88,6 +88,96 @@ Deno.serve(async req=>{
       if(guardError||recorded?.recorded!==true)
         return respond(503,{error:'Garmin OAuth cooldown could not be saved'})
       return respond(200,{recorded:true})
+    }
+
+    if(value.action==='save-reviewed-snapshot'){
+      // Garmin-side READS only. This updates our private cached snapshot;
+      // it never schedules, uploads, edits or deletes anything in Garmin.
+      const plain=(v:unknown):v is Record<string,unknown>=>
+        !!v&&typeof v==='object'&&!Array.isArray(v)
+      const day=(v:unknown):v is string=>
+        typeof v==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(v)&&
+        !Number.isNaN(Date.parse(v+'T12:00:00Z'))&&
+        new Date(v+'T12:00:00Z').toISOString().slice(0,10)===v
+      const canon=(v:unknown)=>
+        typeof v==='string'&&/^[a-f0-9-]{32,36}$/i.test(v)&&
+        /^[a-f0-9]{32}$/.test(v.replace(/-/g,''))?v.replace(/-/g,'').toLowerCase():null
+      const start=value.windowStart,end=value.windowEnd
+      if(!day(start)||!day(end)||end<start||
+         Date.parse(end+'T00:00:00Z')-Date.parse(start+'T00:00:00Z')>90*86400000||
+         typeof value.expectedSyncedAt!=='string'||
+         !/^\\d{4}-\\d{2}-\\d{2}T/.test(value.expectedSyncedAt)||
+         !Array.isArray(value.gear)||value.gear.length<1||value.gear.length>100||
+         !Array.isArray(value.schedule)||value.schedule.length>500||
+         !Array.isArray(value.activityGear)||value.activityGear.length>3000)
+        return respond(422,{error:'Invalid cloud snapshot envelope'})
+      const gear=value.gear as unknown[]
+      const schedule=value.schedule as unknown[]
+      const links=value.activityGear as unknown[]
+      const ids=new Set<string>()
+      for(const g of gear){
+        if(!plain(g))return respond(422,{error:'Invalid gear row'})
+        const id=canon(g.id)
+        if(!id||ids.has(id)||!['active','retired','unknown'].includes(String(g.status))||
+           (g.name!==null&&(typeof g.name!=='string'||g.name.length>180))||
+           (g.brand!==null&&(typeof g.brand!=='string'||g.brand.length>180))||
+           (g.model!==null&&(typeof g.model!=='string'||g.model.length>180)))
+          return respond(422,{error:'Invalid or repeated gear'})
+        ids.add(id)
+      }
+      if(gear.every(g=>(g as Record<string,unknown>).status==='unknown'))
+        return respond(422,{error:'No verified gear status'})
+      const linkKeys=new Set<string>()
+      for(const x of links){
+        if(!plain(x)||typeof x.activityId!=='string'||
+           !/^\\d{5,20}$/.test(x.activityId)||!ids.has(canon(x.gearId)||''))
+          return respond(422,{error:'Invalid activity association'})
+        const key=x.activityId+':'+canon(x.gearId)
+        if(linkKeys.has(key))return respond(422,{error:'Repeated activity association'})
+        linkKeys.add(key)
+      }
+      const dates=new Set<string>()
+      for(const w of schedule){
+        if(!plain(w)||!day(w.date)||w.date<start||w.date>end||
+          !['string','object'].includes(typeof w.name)|| 
+          (w.name!==null&&(typeof w.name!=='string'||w.name.length>180))||
+          (w.id!==null&&(typeof w.id!=='string'||w.id.length>80))||
+          (w.workoutId!==null&&(typeof w.workoutId!=='string'||w.workoutId.length>80))||
+          (w.sport!==null&&(typeof w.sport!=='string'||w.sport.length>180))||
+          typeof w.restDay!=='boolean')
+          return respond(422,{error:'Invalid scheduled item'})
+        const key=JSON.stringify([w.date,w.id,w.workoutId,w.name])
+        if(dates.has(key))return respond(422,{error:'Repeated scheduled item'})
+        dates.add(key)
+      }
+      const {data:previous,error:readError}=await db.from('garmin_connect_snapshot')
+        .select('gear,schedule,activity_gear,activity_gear_scope,synced_at')
+        .eq('snapshot_key','primary').maybeSingle()
+      if(readError||!previous||previous.activity_gear_scope!=='complete'||
+         previous.synced_at!==value.expectedSyncedAt)
+        return respond(409,{error:'Verified baseline changed; no snapshot updated'})
+      const previousGear=(Array.isArray(previous.gear)?previous.gear:[]) as Record<string,unknown>[]
+      if(previousGear.some(g=>!ids.has(canon(g.id)||'')))
+        return respond(409,{error:'Garmin gear disappeared; manual review required'})
+      const previousLinks=Array.isArray(previous.activity_gear)?previous.activity_gear:[]
+      if(previousLinks.length>20&&links.length<previousLinks.length*0.7)
+        return respond(409,{error:'Large association loss; manual review required'})
+      // Preserve historical calendar entries outside the audited date window.
+      const oldSchedule=Array.isArray(previous.schedule)?previous.schedule:[]
+      const retained=oldSchedule.filter((x:Record<string,unknown>)=>
+        typeof x.date==='string'&&(x.date<start||x.date>end))
+      const mergedSchedule=[...retained,...schedule]
+      if(mergedSchedule.length>500)return respond(422,{error:'Calendar range exceeds limit'})
+      const now=new Date().toISOString()
+      const {data:saved,error:saveError}=await db.from('garmin_connect_snapshot')
+        .update({gear,schedule:mergedSchedule,activity_gear:links,
+          activity_gear_scope:'complete',checked_at:now,
+          gear_links_checked_at:now,synced_at:now})
+        .eq('snapshot_key','primary').eq('synced_at',previous.synced_at)
+        .select('snapshot_key').maybeSingle()
+      if(saveError||!saved)return respond(409,{error:'Snapshot changed; no partial update'})
+      return respond(200,{saved:true,gear:gear.length,
+        associations:links.length,scheduled:schedule.length})
     }
     if(!Number.isSafeInteger(value.expectedVersion)||Number(value.expectedVersion)<1||
        !isGarminCloudSession(value.tokens))
