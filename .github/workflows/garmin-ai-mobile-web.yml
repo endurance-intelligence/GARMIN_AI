@@ -33,7 +33,7 @@ jobs:
       - name: Checkout reviewed mobile build
         uses: actions/checkout@v7
         with:
-          ref: 8b79476913592d764deedeba1a0b483ff86165e6
+          ref: bfe285e3d5402942bf4fa74dafcc5fd8ef604727
           persist-credentials: false
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -43,7 +43,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Verify mobile access, calendar layout and weight-picker tests
-        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-recovery-context.test.mjs
+        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-recovery-context.test.mjs tests/mobile-recovery-sparklines.test.mjs
       - name: Build iPhone/iPad release
         run: npm run build
       - name: Verify GitHub Pages paths
@@ -71,7 +71,7 @@ jobs:
       - name: Check out exact reviewed mobile release
         uses: actions/checkout@v7
         with:
-          ref: 8b79476913592d764deedeba1a0b483ff86165e6
+          ref: bfe285e3d5402942bf4fa74dafcc5fd8ef604727
           persist-credentials: false
 
       - name: Set up Node.js
@@ -96,7 +96,7 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Verify mobile access controls
-        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-recovery-context.test.mjs
+        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-recovery-context.test.mjs tests/mobile-recovery-sparklines.test.mjs
 
       - name: Build GitHub Pages app
         run: npm run build
