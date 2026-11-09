@@ -7,5 +7,6 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: process.env.GITHUB_PAGES === 'true' ? '/GARMIN_AI/' : '/',
   plugins: [react(), garminLocalApi(), garminConnectLocal(), garminActivityShoeLocal(), garminConnectBootstrapLocal()],
 })
