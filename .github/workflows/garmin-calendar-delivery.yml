@@ -1,0 +1,61 @@
+# One-workout GARMIN_AI delivery; production writer remains HARDLOCKED.
+name: GARMIN_AI Calendar Delivery (Manual, Disabled)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/garmin-calendar-delivery.yml'
+      - 'README_GARMIN_CALENDAR_DELIVERY_v0.9.5.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: garmin-ai-calendar-delivery
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: c95d772780d882ecf523ea65646c58162eb280d5
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify Garmin calendar reconciliation and write locks (offline)
+        run: node --test tests/garmin-calendar-delivery.test.mjs tests/garmin-training-plan.test.mjs tests/garmin-cloud-429-guard.test.mjs
+      - run: npm run build
+
+  manual-check:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GARMIN_CALENDAR_WRITES_ENABLED: ${{ vars.GARMIN_CALENDAR_WRITES_ENABLED }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: c95d772780d882ecf523ea65646c58162eb280d5
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Validate calendar worker safety offline
+        run: node --test tests/garmin-calendar-delivery.test.mjs
+      - name: Check private signed calendar worker (dry-run only)
+        run: node scripts/cloud/run-garmin-calendar-delivery.mjs
