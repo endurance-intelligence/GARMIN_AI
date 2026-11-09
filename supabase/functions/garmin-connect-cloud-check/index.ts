@@ -28,6 +28,7 @@ function cors(origin:string|null):Record<string,string> {
   const allowlist=(Deno.env.get('GARMIN_APP_ORIGINS')||'').split(',').map(x=>x.trim()).filter(Boolean)
   const allowed=!!origin && (
     /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin) ||
+    origin==='https://endurance-intelligence.github.io' ||
     allowlist.includes(origin)
   )
   const h:Record<string,string>={
