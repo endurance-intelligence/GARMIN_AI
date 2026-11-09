@@ -1,0 +1,12 @@
+/* Online owner gate. Public static assets contain no Garmin records. */
+.online-gate-layout{min-height:100dvh;display:grid;place-items:center;padding:max(24px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom));background:#080b13}
+.online-gate{width:min(580px,100%);padding:clamp(22px,5vw,40px);border:1px solid #2c3650;border-radius:24px;background:linear-gradient(135deg,#192238,#111725);box-shadow:0 24px 100px rgba(0,0,0,.22)}
+.online-gate-eyebrow{color:#c8f37f;letter-spacing:.17em;font-size:10px;font-weight:800}
+.online-gate h1{font-size:clamp(32px,6vw,54px);line-height:1.07;margin:15px 0 20px;letter-spacing:-.05em}
+.online-gate p{color:#bdcae0;font-size:14px;line-height:1.6;margin:0 0 20px}
+.online-gate button{min-height:48px}
+.online-gate .ri-account{margin:12px 0 0;width:100%;max-width:100%;min-width:0}
+.online-gate .ri-account-row{display:flex;gap:10px;flex-wrap:wrap}
+.online-gate .ri-account-row input{flex:1 1 200px;min-height:48px;min-width:0;font-size:16px}
+.online-gate .ri-account-row button{flex:1 1 150px}
+@media(max-width:600px){.online-gate{padding:24px 17px;border-radius:19px}.online-gate .ri-account-row button{width:100%}}
