@@ -68,6 +68,7 @@ export function WeightWheelPicker({value,onChange,disabled=false}:{
   const [whole,setWhole]=useState('75')
   const [fraction,setFraction]=useState('0')
   const trigger=useRef<HTMLButtonElement|null>(null)
+  const dismiss=useRef<HTMLButtonElement|null>(null)
   const formatted=formatWeight(value)
 
   function show() {
@@ -91,12 +92,14 @@ export function WeightWheelPicker({value,onChange,disabled=false}:{
     if(!open)return
     const previous=document.body.style.overflow
     document.body.style.overflow='hidden'
+    const focusId=requestAnimationFrame(()=>dismiss.current?.focus())
     const onKey=(event:KeyboardEvent)=>{
       if(event.key==='Escape'){event.preventDefault();setOpen(false);requestAnimationFrame(()=>trigger.current?.focus())}
     }
     window.addEventListener('keydown',onKey)
     return ()=>{
       document.body.style.overflow=previous
+      cancelAnimationFrame(focusId)
       window.removeEventListener('keydown',onKey)
     }
   },[open])
@@ -117,7 +120,7 @@ export function WeightWheelPicker({value,onChange,disabled=false}:{
             <h3>Wie viel wiegst du?</h3>
             <p>Nach oben oder unten wischen</p>
           </div>
-          <button type="button" className="weight-sheet-close" onClick={close}
+          <button type="button" className="weight-sheet-close" ref={dismiss} onClick={close}
             aria-label="Auswahl schließen">×</button>
         </header>
         <div className="weight-sheet-preview" aria-live="off">
