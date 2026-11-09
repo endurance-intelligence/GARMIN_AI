@@ -3,7 +3,7 @@
  * Exact seven calendar days with gaps preserved; never interpolate missing data.
  * A dashed comparison line represents the *prior* 14-day median if available.
  */
-import {calendarDayOffset} from './recoveryComparison'
+import {calendarDayOffset} from './recoveryComparison.ts'
 import type {RecoveryDay,RecoveryMetric} from './recoveryComparison'
 
 export type RecoveryTrendPoint={
