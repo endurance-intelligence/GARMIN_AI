@@ -185,31 +185,33 @@ Deno.serve(async req=>{
       // No raw Garmin payload, account information or OAuth secrets stored.
       const plain=(x:unknown):x is Record<string,unknown>=>
         !!x&&typeof x==='object'&&!Array.isArray(x)
+      if(!plain(value.profile))return respond(422,{error:'Invalid reviewed Garmin HR profile'})
       const p=value.profile
+      const zones=Array.isArray(p.zones)?p.zones:null
+      const sources=plain(p.sources)?p.sources:null
       const validBpm=(n:unknown,min:number,max:number)=>
         typeof n==='number'&&Number.isInteger(n)&&n>=min&&n<=max
       const optional=(n:unknown,min:number,max:number)=>
         n===null||validBpm(n,min,max)
-      if(!plain(p)||p.sport!=='running'||!Array.isArray(p.zones)||
-         p.zones.length!==5||
-         p.zones.some((z:unknown)=>!validBpm(z,70,230))||
-         p.zones.some((z:unknown,i:number)=>i>0&&z<=p.zones[i-1])||
-         p.zones[4]<125||
+      if(p.sport!=='running'||!zones||zones.length!==5||
+         zones.some((z:unknown)=>!validBpm(z,70,230))||
+         zones.some((z:number,i:number)=>i>0&&z<=zones[i-1])||
+         zones[4]<125||
          !(p.method===null||(typeof p.method==='string'&&p.method.length<80))||
          !optional(p.zone1Min,30,200)||!optional(p.maxHr,100,230)||
          !optional(p.restingHr,25,120)||!optional(p.lthr,80,220)||
-         (typeof p.zone1Min==='number'&&p.zone1Min>=p.zones[0])||
-         (typeof p.maxHr==='number'&&p.maxHr<p.zones[4])||
-         !plain(p.sources)||
-         !['Garmin Laufprofil (RUNNING)','Garmin Standardprofil (DEFAULT)'].includes(String(p.sources.zones))||
+         (typeof p.zone1Min==='number'&&p.zone1Min>=zones[0])||
+         (typeof p.maxHr==='number'&&p.maxHr<zones[4])||
+         !sources||
+         !['Garmin Laufprofil (RUNNING)','Garmin Standardprofil (DEFAULT)'].includes(String(sources.zones))||
          ['maxHr','restingHr','lthr'].some(k=>
-           p.sources[k]!==null&&p.sources[k]!=='Garmin Personal API'))
+           sources[k]!==null&&sources[k]!=='Garmin Personal API'))
         return respond(422,{error:'Invalid reviewed Garmin HR profile'})
       const profile={
         sport:'running',method:p.method,zones:p.zones,zone1Min:p.zone1Min,
         maxHr:p.maxHr,restingHr:p.restingHr,lthr:p.lthr,
-        sources:{zones:p.sources.zones,maxHr:p.sources.maxHr,
-          restingHr:p.sources.restingHr,lthr:p.sources.lthr}
+        sources:{zones:sources.zones,maxHr:sources.maxHr,
+          restingHr:sources.restingHr,lthr:sources.lthr}
       }
       const digest=await crypto.subtle.digest('SHA-256',
         new TextEncoder().encode(JSON.stringify(profile)))
@@ -224,7 +226,7 @@ Deno.serve(async req=>{
         .upsert({id:true,last_attempt_at:now,last_success_at:now,last_error:null},
           {onConflict:'id'})
       if(stateError)return respond(503,{error:'Garmin HR profile status unavailable'})
-      return respond(200,{saved:true,profileChanged:true})
+      return respond(200,{saved:true})
     }
     if(!Number.isSafeInteger(value.expectedVersion)||Number(value.expectedVersion)<1||
        !isGarminCloudSession(value.tokens))
