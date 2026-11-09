@@ -10,6 +10,7 @@ import {GarminClient,Garmin,MemoryTokenStore} from 'garminconnect-js'
 import {isGarminCloudSession,tokenChanged} from './garmin-cloud-session.mjs'
 import {buildCloudPreview} from './garmin-cloud-data-audit-model.mjs'
 import {safeAuditDiagnostic,safeGarminFailureKind} from './safe-audit-diagnostic.mjs'
+import {parseGarminHrProfile} from '../../supabase/functions/sync-garmin-hr-profile/profileParser.ts'
 
 let diagnosticPhase='github-oidc'
 let diagnosticHttpStatus=null
@@ -147,6 +148,33 @@ async function main(){
     })
     if(snapshotSaved?.saved!==true)throw Error('Garmin snapshot not saved')
     completed=true
+    // Reuse our already-authenticated Garmin OAuth session for HR profile.
+    // The separate legacy Personal API token exchange currently reports 520.
+    // HR is independent: a failed zone read never rolls back verified gear
+    // and calendar data or triggers repeated profile writes.
+    try{
+      mark('garmin-hr-zones')
+      const rawZones=await garmin.getHeartRateZones()
+      const parsed=parseGarminHrProfile(rawZones,{})
+      if(parsed){
+        mark('save-reviewed-hr-profile')
+        const saved=await workerCall(jwt,'POST',{
+          action:'save-reviewed-hr-profile',profile:parsed
+        })
+        if(saved?.saved!==true)throw Error('HR profile persistence unavailable')
+        console.log('GARMIN CLOUD HR PROFILE: verified; normalized zones saved.')
+      }else{
+        console.log('GARMIN CLOUD HR PROFILE: no recognized running profile; existing profile preserved.')
+      }
+    }catch(error){
+      const type=safeGarminFailureKind(error)
+      if(type.kind==='rate-limited'||type.status===429){
+        try{await workerCall(jwt,'POST',{action:'rate-limit'})}
+        catch{console.error('GARMIN CLOUD HR PROFILE: cooldown persistence unavailable.')}
+      }
+      // Strictly fixed diagnostics; no Garmin response or account information.
+      console.error('GARMIN CLOUD HR PROFILE: verification deferred; existing profile preserved.')
+    }
     console.log('GARMIN CLOUD DATA AUDIT: VERIFIED')
     console.log('Gear scanned:',preview.totals.gear)
     console.log('Known associations:',preview.totals.links)
