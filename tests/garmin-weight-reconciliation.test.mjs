@@ -12,7 +12,7 @@ const reading=(date='2026-11-09',grams=77500)=>({
   samplePk:123,calendarDate:date,weight:grams
 })
 const sql=readFileSync(
-  new URL('../supabase/migrations/20261109140000_garmin_weight_delivery_safety.sql',import.meta.url),
+  new URL('../supabase/migrations/20261109131857_garmin_weight_delivery_safety_v090.sql',import.meta.url),
   'utf8'
 )
 
