@@ -5,7 +5,7 @@ import {safeAuditDiagnostic} from '../scripts/cloud/safe-audit-diagnostic.mjs'
 test('safe GitHub OIDC failure status displays only phase and numeric status',()=>{
   assert.equal(
     safeAuditDiagnostic('supabase-vault-read',403),
-    'GARMIN CLOUD DATA AUDIT: stopped at supabase-vault-read (HTTP 403). No Garmin or application data were changed.'
+    'GARMIN CLOUD DATA AUDIT: stopped at supabase-vault-read (HTTP 403). Gear, calendar and weight records were not changed.'
   )
 })
 test('unknown exception text or secrets never enter diagnostics',()=>{
