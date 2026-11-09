@@ -14,7 +14,7 @@ export function validWeightOutboxEntry(input) {
   if(typeof date!=='string'||!DATE.test(date))return null
   const day=new Date(date+'T12:00:00.000Z')
   if(!Number.isFinite(day.getTime())||day.toISOString().slice(0,10)!==date)return null
-  if(!Number.isFinite(kg)||kg<30||kg>300||Math.round(kg*10)!==kg*10)return null
+  if(!Number.isFinite(kg)||kg<30||kg>300||Math.abs(Math.round(kg*10)-kg*10)>1e-7)return null
   // Single-user outbox exposes only one measurement per date.
   return Object.freeze({date,kg})
 }
