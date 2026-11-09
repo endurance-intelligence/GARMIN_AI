@@ -1,0 +1,37 @@
+name: GARMIN_AI Weight Delivery Safety (No Garmin Access)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/garmin-weight-safety.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/garmin-weight-safety.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout reviewed weight foundation
+        uses: actions/checkout@v7
+        with:
+          ref: ae7e0a19e59d7519d3dbc8f2f542e116aeacbb20
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run weight transfer safety tests (no network)
+        run: node --test tests/garmin-weight-reconciliation.test.mjs tests/garmin-weight-delivery.test.mjs
+      - name: Ensure production UI remains buildable
+        run: npm run build
