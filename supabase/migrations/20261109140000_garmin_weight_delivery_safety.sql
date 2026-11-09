@@ -101,7 +101,7 @@ begin
      p_reason not in (
        'verified_read_back','already_present',
        'auth_rejected','rate_limited','network_uncertain',
-       'garmin_response_invalid','write_not_visible',
+       'garmin_response_invalid','write_not_visible','invalid_garmin_day',
        'different_remote_weight','multiple_remote_entries',
        'write_error','manual_review'
      )
