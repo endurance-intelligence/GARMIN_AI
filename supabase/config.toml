@@ -54,3 +54,10 @@ verify_jwt = false
 # The function returns no Garmin records; never turn it into anonymous access.
 [functions.garmin-app-access]
 verify_jwt = false
+
+# v0.9.1: dedicated owner-approved weight delivery bridge.
+# Supabase JWT gateway bypassed ONLY because the Edge Function verifies
+# a signed GitHub OIDC token + exact trusted workflow and audience.
+# Secret feature flag GARMIN_WEIGHT_WRITES_ENABLED defaults to disabled.
+[functions.garmin-weight-worker]
+verify_jwt = false
