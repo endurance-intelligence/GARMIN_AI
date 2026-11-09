@@ -138,6 +138,23 @@ async function main(){
     console.log('Changes (+/-) links:',preview.differences.linksAdded,'/',preview.differences.linksRemoved)
     console.log('Changes (+/-) calendar:',preview.differences.calendarAdded,'/',preview.differences.calendarRemoved)
     console.log('Garmin read-only; no equipment, calendar or weight data modified.')
+  } catch (error) {
+    // A genuine Garmin 429 triggers a persistent service-only circuit breaker.
+    // This also covers Gear/Calendar 429s, not just OAuth refresh or profile.
+    if(diagnosticPhase.startsWith('garmin-')) {
+      const result=safeGarminFailureKind(error)
+      diagnosticKind=result.kind; diagnosticHttpStatus=result.status
+      if(result.kind==='rate-limited'||result.status===429) {
+        try {
+          const saved=await workerCall(jwt,'POST',{action:'rate-limit'})
+          if(saved?.recorded!==true)throw Error('Guard not confirmed')
+        }catch {
+          // Fixed output only; upstream errors could include OAuth secrets.
+          console.error('GARMIN CLOUD DATA AUDIT: cooldown persistence unavailable; no automatic retry.')
+        }
+      }
+    }
+    throw error
   } finally {
     // Garmin can rotate OAuth2 during ANY read. Persist the new session
     // even if a later data request failed, to keep the next check functional.
