@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {
  bestTrainingSlot,findPlaces,getWeather,hourAt,localParts,localToday,
  raceSegments,validPlace,weatherLabel
@@ -48,6 +48,7 @@ export function WeatherPanel({active,mode='training',date,fixedTime}:{
  const [error,setError]=useState('')
  const [searchError,setSearchError]=useState('')
  const [reload,setReload]=useState(0)
+ const lastReload=useRef(0)
  const [raceDate,setRaceDate]=useState('')
  const [raceTime,setRaceTime]=useState('')
  const [raceDuration,setRaceDuration]=useState(15)
@@ -66,7 +67,9 @@ export function WeatherPanel({active,mode='training',date,fixedTime}:{
   if(!active||!place)return
   let mounted=true
   setLoading(true);setError('')
-  void getWeather(place,reload>0).then(next=>{
+  const force=reload!==lastReload.current
+  lastReload.current=reload
+  void getWeather(place,force).then(next=>{
    if(mounted)setReport(next)
   }).catch(()=>{
    if(mounted){setReport(null);setError('Wettervorhersage derzeit nicht erreichbar.')}
