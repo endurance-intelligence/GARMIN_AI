@@ -238,10 +238,10 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
             } as Record<string,string>)[data.cloudConnect.lastResult||'unknown']||'Unbekannt'}</p>
             <small>Reiner Lesezugriff. Es werden weder Garmin-Daten noch Token geändert.</small>
           </div>
-          <button type="button" onClick={()=>void checkCloudLive()}
+          {import.meta.env.DEV && <button type="button" onClick={()=>void checkCloudLive()}
             disabled={cloudChecking}>
             {cloudChecking?'Prüfe Verbindung …':'Cloud-Verbindung testen'}
-          </button>
+          </button>}
         </div>}
         {import.meta.env.DEV && data.cloudConnect?.status==='configured'&&!data.cloudConnect.connected&&
           <div className="sync-cloud-bootstrap">
