@@ -56,7 +56,7 @@ test('layout-only release preserves owner gate, weight writes and all private se
   assert.match(app,/import '.\/styles\/mobile-first.css'/)
   assert.match(app,/import '.\/styles\/mobile-ux-v084.css'/)
   assert.match(app,/<OnlineAccessGate>/)
-  assert.match(app,/aria-current=\{page===item.id\?'page':undefined\}/)
+  assert.match(app,/aria-current=\{navActive\(page,item.id\)\?'page':undefined\}/)
   const css=read('src/styles/mobile-ux-v084.css')
   assert.doesNotMatch(css,/service_role|oauth_token|Authorization\s*:/i)
   const sync=read('src/components/SyncCenter.tsx')
