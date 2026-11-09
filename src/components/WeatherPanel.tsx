@@ -27,9 +27,6 @@ function hr(n:number){return String(n).padStart(2,'0')+':00'}
 function condition(w:WeatherHour){
  return weatherLabel(w.code)
 }
-function localClock(w:WeatherHour){
- return w.date.split('-').reverse().join('.')+' · '+hr(w.hour)
-}
 function hourDay(w:WeatherHour){
  return new Intl.DateTimeFormat('de-DE',{timeZone:'UTC',weekday:'short'}).format(
   new Date(w.date+'T12:00:00Z'))
