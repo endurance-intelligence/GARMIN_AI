@@ -1,0 +1,77 @@
+name: GARMIN_AI Mobile Web (GitHub Pages)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: garmin-ai-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    env:
+      GITHUB_PAGES: 'true'
+      VITE_GARMIN_SUPABASE_URL: https://eurgupsebxypjqvyizci.supabase.co
+      # Public/publishable client key only. Never use a service-role/secret key.
+      VITE_GARMIN_SUPABASE_PUBLISHABLE_KEY: ${{ vars.GARMIN_SUPABASE_PUBLISHABLE_KEY }}
+
+    steps:
+      - name: Check out exact reviewed mobile release
+        uses: actions/checkout@v4
+        with:
+          ref: 1812ce16e4422261548a91c04ab1e8bc36b6a537
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Check public Supabase key is configured safely
+        shell: bash
+        run: |
+          if [ -z "$VITE_GARMIN_SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "Missing GitHub Actions repository VARIABLE: GARMIN_SUPABASE_PUBLISHABLE_KEY"
+            exit 1
+          fi
+          if [[ "$VITE_GARMIN_SUPABASE_PUBLISHABLE_KEY" == sb_secret_* ]]; then
+            echo "Refusing to embed a private Supabase key into a public site"
+            exit 1
+          fi
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Verify mobile access controls
+        run: node --test tests/mobile-web-policy.test.mjs
+
+      - name: Build GitHub Pages app
+        run: npm run build
+
+      - name: Confirm GitHub Pages base
+        run: grep -q '/GARMIN_AI/assets/' dist/index.html
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
