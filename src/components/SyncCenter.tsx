@@ -57,7 +57,7 @@ function stateText(value?:string) {
   }
   return states[value||'']||'Status unbekannt'
 }
-export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}){
+export function SyncCenter({active,mode,onSaved}:{active:boolean;mode:'weight'|'status';onSaved?:(kg:number)=>void}){
   const [session,setSession]=useState<Session|null>(null)
   const [data,setData]=useState<SyncPayload|null>(null)
   const [date,setDate]=useState(berlinDay)
@@ -117,6 +117,7 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
       setNotice('Gewicht gespeichert. Übertragung zu Garmin Connect steht noch aus.')
       setWeight(kg.toFixed(1))
       setRefresh(n=>n+1)
+      onSaved?.(kg)
     }catch(err){
       setError(err instanceof Error?err.message:'Gewicht konnte nicht gespeichert werden.')
     }finally{setBusy(false)}
