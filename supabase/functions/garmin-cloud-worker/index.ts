@@ -50,6 +50,10 @@ Deno.serve(async req=>{
       auth:{autoRefreshToken:false,persistSession:false}
     })
     if(req.method==='GET'){
+      // Hard-stop after Garmin HTTP 429: deny tokens before any private API call.
+      const {data:guard,error:guardError}=await db.rpc('garmin_cloud_auth_guard_state')
+      if(guardError||!guard)return respond(503,{error:'Garmin OAuth guard unavailable'})
+      if(guard.allowed!==true)return respond(429,{error:'Garmin OAuth cooldown active'})
       const [session,baseline]=await Promise.all([
         db.rpc('garmin_connect_session_get'),
         db.from('garmin_connect_snapshot')
@@ -77,6 +81,14 @@ Deno.serve(async req=>{
     if(!input||typeof input!=='object'||Array.isArray(input))
       return respond(422,{error:'Invalid request'})
     const value=input as Record<string,unknown>
+    // Only an exact signed cloud-audit workflow may report a Garmin 429.
+    // No remote Garmin call, profile or token required for this action.
+    if(value.action==='rate-limit'){
+      const {data:recorded,error:guardError}=await db.rpc('garmin_cloud_auth_guard_rate_limit')
+      if(guardError||recorded?.recorded!==true)
+        return respond(503,{error:'Garmin OAuth cooldown could not be saved'})
+      return respond(200,{recorded:true})
+    }
     if(!Number.isSafeInteger(value.expectedVersion)||Number(value.expectedVersion)<1||
        !isGarminCloudSession(value.tokens))
       return respond(422,{error:'Invalid token-rotation payload'})
