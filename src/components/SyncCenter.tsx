@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react'
 import type {Session} from '@supabase/supabase-js'
 import {garminSupabase,garminSupabaseReady,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
+import {WeightWheelPicker} from './WeightWheelPicker'
 import '../styles/sync-center.css'
 
 type Source={
@@ -75,7 +76,17 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
     if(!active||!session)return
     let mounted=true
     void api<SyncPayload>(session,'GET').then(payload=>{
-      if(mounted){setData(payload);setError('')}
+      if(mounted){
+        setData(payload);setError('')
+        // Prefill from the latest recorded measurement at or before the date,
+        // without replacing a value already selected by the athlete.
+        const recent=payload.weightEntries
+          .filter(entry=>entry.weigh_date<=date)
+          .sort((a,b)=>b.weigh_date.localeCompare(a.weigh_date))[0]
+        const lastKg=recent?.weight_kg
+        if(typeof lastKg==='number'&&lastKg>=30&&lastKg<=300)
+          setWeight(current=>current||lastKg.toFixed(1))
+      }
     }).catch(err=>{
       if(mounted)setError(err instanceof Error?err.message:'Sync-Status nicht verfügbar.')
     })
@@ -96,7 +107,7 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
         session,'POST',{date,kg})
       if(!answer.saved||answer.garminUpdated)throw Error('Unerwartete Antwort des Gewichtsdienstes.')
       setNotice('Gewicht gespeichert. Übertragung zu Garmin Connect steht noch aus.')
-      setWeight('')
+      setWeight(kg.toFixed(1))
       setRefresh(n=>n+1)
     }catch(err){
       setError(err instanceof Error?err.message:'Gewicht konnte nicht gespeichert werden.')
@@ -191,10 +202,20 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
       {garminSupabaseReady&&!session&&<p className="sync-hint">Bitte unter Einstellungen anmelden.</p>}
       {!garminSupabaseReady&&<p className="sync-hint">Supabase-Zugang fehlt.</p>}
       {session&&<div className="sync-weigh-form">
-        <label>Datum<input type="date" value={date} onChange={e=>setDate(e.target.value)}
-          max={berlinDay()} disabled={busy}/></label>
-        <label>Gewicht in kg<input type="number" inputMode="decimal" step="0.1" min="30" max="300"
-          placeholder="z. B. 77,5" value={weight} onChange={e=>setWeight(e.target.value)} disabled={busy}/></label>
+        <label className="sync-date-field">Datum
+          <input type="date" value={date}
+            onChange={event=>{
+              const selectedDate=event.target.value
+              setDate(selectedDate)
+              const existing=data?.weightEntries.find(entry=>entry.weigh_date===selectedDate)
+              if(existing)setWeight(Number(existing.weight_kg).toFixed(1))
+            }}
+            max={berlinDay()} disabled={busy}/>
+        </label>
+        <div className="sync-weight-field">
+          <span className="sync-weight-label">Gewicht auswählen</span>
+          <WeightWheelPicker value={weight} onChange={setWeight} disabled={busy}/>
+        </div>
         <button type="button" onClick={()=>void save()} disabled={busy||!weight}>
           {busy?'Speichere …':'Gewicht speichern'}
         </button>
