@@ -10,6 +10,7 @@ import {SettingsPage} from './pages/SettingsPage'
 import type {Page} from './navigation'
 import './styles/horizon.css'
 import './styles/mobile-first.css'
+import './styles/mobile-ux-v084.css'
 
 const navigation: {id:Page; name:string; icon:string; mobile:string}[] = [
   {id:'home',name:'Coach',icon:'layout-dashboard',mobile:'Coach'},
@@ -28,7 +29,7 @@ function App() {
       <div className="brand"><div className="brand-logo"><Icon name="activity"/></div><div className="brand-copy"><strong>GARMIN<span>_AI</span></strong><small>EAT YOUR MILES</small></div></div>
       <div className="nav-label">WORKSPACE</div>
       <nav className="nav" aria-label="Navigation">
-        {navigation.map(item=><button type="button" key={item.id} className={page===item.id?'active':''} onClick={()=>go(item.id)}><Icon name={item.icon}/><span>{item.name}</span></button>)}
+        {navigation.map(item=><button type="button" key={item.id} className={page===item.id?'active':''} aria-current={page===item.id?'page':undefined} onClick={()=>go(item.id)}><Icon name={item.icon}/><span>{item.name}</span></button>)}
       </nav>
       <div className="sidebar-fill"/>
       <div className="sidebar-bottom"><span className="micro">● DESIGN LAB / 0.3 REACT</span><p>Garmin-Daten via Supabase.<br/>Coach derzeit teilweise Demo.<br/>Planänderungen nur nach Freigabe.</p></div>
@@ -46,7 +47,7 @@ function App() {
     </div></main>
   </div>
   <nav className="footmobile" aria-label="Mobile Navigation">
-    {navigation.map(item=><button type="button" key={item.id} className={page===item.id?'active':''} onClick={()=>go(item.id)}><Icon name={item.icon}/>{item.mobile}</button>)}
+    {navigation.map(item=><button type="button" key={item.id} className={page===item.id?'active':''} aria-current={page===item.id?'page':undefined} onClick={()=>go(item.id)}><Icon name={item.icon}/>{item.mobile}</button>)}
   </nav>
   </OnlineAccessGate>
 }
