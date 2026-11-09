@@ -62,7 +62,7 @@ test('compact Coach health context is real, neutral and explicitly not a readine
  const model=read('src/lib/recoveryComparison.ts')
  assert.match(glance,/interpretRecovery\(view\?\.healthHistory\|\|\[\],health.metric_date\)/)
  assert.match(glance,/Die gestrichelte Linie zeigt den Median der 14 Tage/)
- assert.match(glance,/Keine Trainingsfreigabe/)
+ assert.match(glance,/keine Trainingsfreigabe/)
  assert.match(glance,/Was bedeuten diese Werte\?/)
  assert.match(glance,/Schlaf & Erholung/)
  assert.match(css,/\.co-trend-grid\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/)
