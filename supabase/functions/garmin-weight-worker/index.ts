@@ -85,6 +85,10 @@ Deno.serve(async req=>{
     if(next.data?.available!==true)return reply(200,{
       mode:'enabled',writerEnabled:true,pendingAvailable:false
     })
+    // Share the same OAuth cooldown as the read-only cloud audit.
+    const {data:guard,error:guardError}=await db.rpc('garmin_cloud_auth_guard_state')
+    if(guardError||!guard)return reply(503,{error:'Garmin OAuth guard unavailable'})
+    if(guard.allowed!==true)return reply(429,{error:'Garmin OAuth cooldown active'})
     const session=await db.rpc('garmin_connect_session_get')
     if(session.error||!session.data?.connected||
        !Number.isSafeInteger(session.data.version)||session.data.version<1||
@@ -113,6 +117,10 @@ Deno.serve(async req=>{
   const input=parsed as Record<string,unknown>
   let fn:string,args:Record<string,unknown>
   switch(input.action){
+    case 'rate-limit':
+      fn='garmin_cloud_auth_guard_rate_limit'
+      args={}
+      break
     case 'claim':
       if(!isDate(input.date)||!isKg(input.kg)||!isRevision(input.revision))
         return reply(422,{error:'Invalid claim'})
