@@ -10,7 +10,7 @@
 }
 .weight-wheel-field{display:flex;flex-direction:column;gap:8px;min-width:0;width:100%}
 .weight-wheel-field>span{color:#cdd9ee;font-size:12px;font-weight:750}
-.weight-wheel-field select{
+.sync-center .weight-wheel-field select{
   width:100%;
   min-width:0;
   max-width:100%;
@@ -33,5 +33,5 @@
 .weight-wheel-help{display:block;margin-top:9px;font-size:11px;line-height:1.5;color:#9aacca}
 @media(max-width:420px){
   .weight-wheel-pickers{gap:5px;grid-template-columns:minmax(0,1.2fr) auto minmax(0,.8fr) auto}
-  .weight-wheel-field select{font-size:21px}
+  .sync-center .weight-wheel-field select{font-size:21px}
 }
