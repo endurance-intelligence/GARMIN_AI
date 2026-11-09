@@ -8,11 +8,11 @@ test('Coach uses a small header and glance, no default oversized cards',()=>{
  assert.match(c,/Dein Tag im Blick/)
  assert.match(c,/<CoachGlance active=\{active\}/)
  assert.match(c,/<WeatherPanel active=\{active\} mode="training" compact\/>/)
- assert.match(c,/<details className="co-extra"/)
+ assert.match(read('src/components/CoachGlance.tsx'),/<details className="co-recovery-details">/)
  assert.match(c,/<details className="co-extra co-demo"/)
  assert.match(c,/\{demoOpen&&<div className="co-extra-content">/)
- assert.match(c,/\{detailsOpen&&<div className="co-extra-content">/)
- assert.ok(c.indexOf('<CoachGlance')<c.indexOf('<LiveRecovery'))
+ assert.doesNotMatch(c,/<LiveRecovery active=/)
+ assert.ok(c.indexOf('<CoachGlance')<c.indexOf('className="stage v3-stage"'))
  assert.ok(c.indexOf('<CoachGlance')<c.indexOf('className="stage v3-stage"'))
 })
 
@@ -54,7 +54,7 @@ test('overview is backed by existing authenticated Garmin services',()=>{
 
 test('glance CSS stays responsive and sheet has iOS safe-area bottom padding',()=>{
  const css=read('src/styles/coach-glance.css')
- assert.match(css,/\.co-metrics\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/)
+ assert.match(css,/\.co-readings\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/)
  assert.match(css,/@media\(max-width:760px\)/)
  assert.match(css,/safe-area-inset-bottom/)
  assert.match(css,/\.weight-inline-control/)
