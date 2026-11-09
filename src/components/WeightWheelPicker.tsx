@@ -3,25 +3,16 @@
  * Two native <select> controls invoke the platform picker on iPhone.
  * No custom pointer gestures, extra dependencies or backend writes.
  */
+import {weightFromParts,weightToParts} from '../lib/weightPickerMath'
 import './WeightWheelPicker.css'
 
 const kilograms=Array.from({length:271},(_,index)=>30+index)
 const tenths=Array.from({length:10},(_,index)=>index)
 
-export function weightFromParts(whole:string,decimal:string):string {
-  if(!/^\d{2,3}$/.test(whole)||!/^\d$/.test(decimal))return ''
-  const kg=Number(whole),fraction=Number(decimal)
-  if(!Number.isSafeInteger(kg)||kg<30||kg>300||(kg===300&&fraction!==0))return ''
-  return kg+'.'+fraction
-}
-
 export function WeightWheelPicker({value,onChange,disabled=false}:{
   value:string;onChange:(next:string)=>void;disabled?:boolean
 }) {
-  const current=Number(value.replace(',','.'))
-  const valid=value.trim()!==''&&Number.isFinite(current)&&current>=30&&current<=300
-  const whole=valid?String(Math.floor(current)):''
-  const decimal=valid?String(Math.min(9,Math.round((current-Math.floor(current))*10))):'0'
+  const {whole,decimal}=weightToParts(value)
 
   return <div className="weight-wheel" role="group" aria-label="Gewicht in Kilogramm auswählen">
     <div className="weight-wheel-pickers">
