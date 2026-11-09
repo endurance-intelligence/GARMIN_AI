@@ -77,3 +77,23 @@ export function differenceLabel(row:RecoveryComparison):string{
  const suffix=row.metric==='sleep_seconds'?' Min.':row.metric==='hrv_ms'?' ms':' bpm'
  return (delta>0?'+':'')+String(delta)+suffix
 }
+
+/** Human-readable trend summary. Descriptive only: no readiness classification. */
+export function recoveryNarrative(report:ReturnType<typeof interpretRecovery>):string{
+ if(!report)return 'Deine letzten Garmin-Messungen werden eingeordnet, sobald sie vorliegen.'
+ const [sleep,hrv,pulse]=report.metrics
+ const parts:string[]=[]
+ if(sleep.difference!==null){
+  const minutes=Math.round(Math.abs(sleep.difference)/60)
+  parts.push(minutes===0?'Schlafdauer nahe dem jüngsten Median':
+    minutes+' Min. '+(sleep.difference>0?'mehr':'weniger')+' Schlaf als zuletzt')
+ }
+ if(hrv.difference!==null)parts.push(
+  Math.round(hrv.difference)===0?'HRV nahe dem jüngsten Median':
+  'HRV '+(hrv.difference>0?'über':'unter')+' dem jüngsten Median')
+ if(pulse.difference!==null)parts.push(
+  Math.round(pulse.difference)===0?'Ruhepuls nahe dem jüngsten Median':
+  'Ruhepuls '+(pulse.difference>0?'über':'unter')+' dem jüngsten Median')
+ return parts.length?parts.join(' · ')+'.':
+  'Für einen Vergleich fehlen noch genügend gültige Messungen.'
+}
