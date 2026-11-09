@@ -61,12 +61,12 @@ function WheelColumn({label,values,value,onChange}:{
   </div>
 }
 
-export function WeightWheelPicker({value,onChange,disabled=false}:{
-  value:string;onChange:(value:string)=>void;disabled?:boolean
+export function WeightWheelPicker({value,onChange,disabled=false,inline=false}:{
+  value:string;onChange:(value:string)=>void;disabled?:boolean;inline?:boolean
 }) {
   const [open,setOpen]=useState(false)
-  const [whole,setWhole]=useState('75')
-  const [fraction,setFraction]=useState('0')
+  const [whole,setWhole]=useState(()=>weightToParts(value).whole||'75')
+  const [fraction,setFraction]=useState(()=>weightToParts(value).decimal)
   const trigger=useRef<HTMLButtonElement|null>(null)
   const dismiss=useRef<HTMLButtonElement|null>(null)
   const formatted=formatWeight(value)
@@ -103,6 +103,26 @@ export function WeightWheelPicker({value,onChange,disabled=false}:{
       window.removeEventListener('keydown',onKey)
     }
   },[open])
+
+  if(inline)return <div className="weight-inline-control" aria-label="Gewicht durch Wischen auswählen">
+    <div className="weight-sheet-preview" aria-live="off">{whole}<span>,{whole==='300'?'0':fraction}</span><small> kg</small></div>
+    <div className="weight-sheet-columns">
+      <WheelColumn label="Kilogramm" values={wholeValues} value={whole} onChange={next=>{
+        setWhole(next)
+        if(next==='300')setFraction('0')
+        const output=weightFromParts(next,next==='300'?'0':fraction)
+        if(output)onChange(output)
+      }}/>
+      <span className="weight-sheet-separator" aria-hidden="true">,</span>
+      <WheelColumn label="Zehntel" values={whole==='300'?['0']:fractionValues}
+        value={whole==='300'?'0':fraction} onChange={next=>{
+          setFraction(next)
+          const output=weightFromParts(whole,whole==='300'?'0':next)
+          if(output)onChange(output)
+        }}/>
+    </div>
+    <small className="weight-inline-hint">Zahlen wischen · anschließend einmal speichern</small>
+  </div>
 
   return <div className="weight-control">
     <button type="button" className="weight-control-trigger" ref={trigger}
