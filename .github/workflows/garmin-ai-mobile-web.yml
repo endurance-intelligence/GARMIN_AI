@@ -2,6 +2,12 @@ name: GARMIN_AI Mobile Web (GitHub Pages)
 
 on:
   workflow_dispatch:
+  # A reviewed release PR updates this pinned source SHA. Merge to main
+  # launches the normal tests + build + Pages publish automatically.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/garmin-ai-mobile-web.yml'
 
 permissions:
   contents: read
@@ -31,7 +37,7 @@ jobs:
       - name: Check out exact reviewed mobile release
         uses: actions/checkout@v7
         with:
-          ref: 5b94169b8416128b4968b2205d0008ab00768c70
+          ref: f9faf74566128e0d6636f635464bec901fd8b856
           persist-credentials: false
 
       - name: Set up Node.js
@@ -56,7 +62,7 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Verify mobile access controls
-        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs
+        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs
 
       - name: Build GitHub Pages app
         run: npm run build
