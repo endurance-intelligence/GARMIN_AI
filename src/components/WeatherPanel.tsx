@@ -113,7 +113,7 @@ export function WeatherPanel({active,mode='training',date,fixedTime}:{
  const fixedWeather=report&&mode==='training'&&fixedHour!==null?
   hourAt(report,day,fixedHour):null
  const now=report?localParts(Math.floor(Date.now()/1000),report.timezone):null
- const live=report?.hours.find(h=>h.date===now?.date&&h.hour===now.hour)
+ const live=report?.hours.find(h=>h.date===now?.date&&h.hour===now?.hour)
  const start=mode==='race'&&raceTime&&/^\d{2}:\d{2}$/.test(raceTime)?Number(raceTime.slice(0,2)):null
  const race=report&&raceDate&&start!==null?
   raceSegments(report,raceDate,start,raceDuration):null
@@ -212,7 +212,7 @@ export function WeatherPanel({active,mode='training',date,fixedTime}:{
   </>}
   {mode==='race'&&<>
    <div className="wx-race-fields">
-    <label>Renndatum<input type="date" value={raceDate} onChange={e=>setRaceDate(e.target.value)}/></label>
+    <label>Renndatum<input type="date" value={raceDate} min={report?localToday(report.timezone):undefined} onChange={e=>setRaceDate(e.target.value)}/></label>
     <label>Startzeit vor Ort<input type="time" value={raceTime}
      onChange={e=>setRaceTime(e.target.value)}/></label>
     <label>Renndauer (Plan)<select value={raceDuration}
@@ -237,6 +237,7 @@ export function WeatherPanel({active,mode='training',date,fixedTime}:{
       <small>Gefühlt {fmt(w.feelsLike,'°')} · Regen {fmt(w.rainProbability,'%')} · Böen {fmt(w.gust,' km/h')}</small>
      </div>)}
     </div>
+    <p className="wx-note">Stündliche Auflösung: Startzeiten mit Minuten werden der jeweiligen Stunde zugeordnet.</p>
     <p className="wx-note">Die Rennwetteranzeige ist eine Prognose, keine Zusage. Später verknüpfen wir sie mit GPX, Windrichtung und Fueling-Phasen.</p>
    </div>}
   </>}
