@@ -32,8 +32,8 @@ function hourDay(w:WeatherHour){
   new Date(w.date+'T12:00:00Z'))
 }
 
-export function WeatherPanel({active,mode='training',date,fixedTime}:{
- active:boolean;mode?:Mode;date?:string;fixedTime?:string|null
+export function WeatherPanel({active,mode='training',date,fixedTime,compact=false}:{
+ active:boolean;mode?:Mode;date?:string;fixedTime?:string|null;compact?:boolean
 }){
  const key=mode==='race'?raceKey:trainKey
  const [place,setPlace]=useState<WeatherPlace|null>(()=>stored(key))
@@ -52,6 +52,7 @@ export function WeatherPanel({active,mode='training',date,fixedTime}:{
  const [duration,setDuration]=useState(60)
  const [searchOpen,setSearchOpen]=useState(false)
  const [geoBusy,setGeoBusy]=useState(false)
+ const [compactExpanded,setCompactExpanded]=useState(false)
 
  useEffect(()=>{
   if(!active)return
@@ -120,6 +121,73 @@ export function WeatherPanel({active,mode='training',date,fixedTime}:{
  const upperDate=report?.hours.at(-1)?.date
  const forecastDateMissing=day&&report&&((report.hours[0]?.date||'9999')>day||(upperDate||'')<day)
  const showUnavailable=mode==='race'&&raceDate&&forecastDateMissing
+
+
+ if(compact&&mode==='training'){
+  const glyph=live?
+   (live.code>=95?'⛈️':live.code>=71?'🌨️':live.code>=51?'🌧️':
+    live.code>=45?'🌫️':live.code>=3?'☁️':live.code>=1?'🌤️':live.isDay?'☀️':'🌙'):'🌤️'
+  const summary=fixedWeather?
+   ('Wetter um '+hr(fixedHour!)+' · '+fmt(fixedWeather.temperature,'°')+' · '+condition(fixedWeather)):
+   slot?('Bester Wetterslot '+hr(slot.startHour)+'–'+hr(slot.startHour+Math.ceil(slot.durationMinutes/60))):
+   place?'Kein Wetterfenster verfügbar':'Trainingsort auswählen'
+  const detail=fixedWeather?
+   'Regen '+fmt(fixedWeather.rainProbability,'%')+' · Wind '+fmt(fixedWeather.wind,' km/h'):
+   slot?(slot.reason+' · '+fmt(slot.hours[0].temperature,'°')+' · Regen '+fmt(Math.max(...slot.hours.map(h=>h.rainProbability)),'%')):
+   place?'Wettervorhersage noch nicht verfügbar':'Ort suchen oder freiwillig Standort teilen'
+  return <section className="wx-brief" aria-label="Trainingswetter auf einen Blick">
+   <div className="wx-brief-line">
+    <span className="wx-brief-glyph" role="img" aria-label={live?condition(live):'Wetter'}>{glyph}</span>
+    <div className="wx-brief-info">
+     <span>{place?place.name:'Wetter'} {live?('· '+fmt(live.temperature,'°')):''}</span>
+     <strong>{loading&&!report?'Wetter wird geladen …':summary}</strong>
+     <small>{detail}</small>
+    </div>
+    <button type="button" className="wx-brief-more" aria-expanded={compactExpanded}
+     aria-label="Wetterdetails und Standort"
+     onClick={()=>{setCompactExpanded(v=>!v);if(!place)setSearchOpen(true)}}>
+     {compactExpanded?'Weniger':'Details'}
+    </button>
+   </div>
+   {error&&<p className="wx-error" role="alert">{error}</p>}
+   {compactExpanded&&<div className="wx-brief-details">
+    <div className="wx-brief-tools">
+     <span>{place?label(place):'Noch kein Ort gewählt'}</span>
+     <button type="button" onClick={()=>setSearchOpen(v=>!v)}>{place?'Ort ändern':'Ort wählen'}</button>
+    </div>
+    {searchOpen&&<div className="wx-place-search">
+     <form onSubmit={event=>{event.preventDefault();void search()}}>
+      <label htmlFor={'wx-brief-search-'+mode}>Stadt oder Ort</label>
+      <div className="wx-search-row"><input
+       id={'wx-brief-search-'+mode} value={query}
+       onChange={e=>setQuery(e.target.value)} minLength={2} maxLength={90}
+       placeholder="Ort suchen" autoComplete="off"/>
+       <button type="submit" disabled={searching||query.trim().length<2}>
+        {searching?'Suche …':'Suchen'}
+       </button>
+      </div>
+     </form>
+     <button type="button" className="wx-geolocate" onClick={currentLocation}
+      disabled={geoBusy}>{geoBusy?'Standort wird geprüft …':'Meinen Standort verwenden (optional)'}</button>
+     {searchError&&<p className="wx-error" role="alert">{searchError}</p>}
+     {choices.length>0&&<div className="wx-results" role="group" aria-label="Ort auswählen">
+      {choices.map((p,i)=><button type="button" key={p.name+p.latitude+p.longitude+i}
+       onClick={()=>choose(p)}>{label(p)}</button>)}
+     </div>}
+    </div>}
+    {place&&<div className="wx-brief-settings">
+     <span>Wetterbasierter Vergleich · nicht dein Terminkalender</span>
+     {fixedHour===null&&<label>Dauer <select value={duration}
+      onChange={e=>setDuration(Number(e.target.value))}>
+      {[30,60,90,120,180].map(d=><option key={d} value={d}>{d} Min.</option>)}
+     </select></label>}
+     <button type="button" disabled={loading} onClick={()=>setReload(n=>n+1)}>Aktualisieren</button>
+    </div>}
+    {live&&<p className="wx-brief-data">Gefühlt {fmt(live.feelsLike,'°')} · Wind {fmt(live.wind,' km/h')} · Böen {fmt(live.gust,' km/h')}</p>}
+    <p className="wx-brief-source">Quelle: <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a>. Wetter ist keine Trainingsfreigabe.</p>
+   </div>}
+  </section>
+ }
 
  return <article className={'wx-panel wx-'+mode} aria-label={mode==='race'?'Wetter für das Rennen':'Trainingswetter'}>
   <div className="wx-head">
