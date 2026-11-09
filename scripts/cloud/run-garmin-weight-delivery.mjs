@@ -34,6 +34,7 @@ async function call(jwt,body){
     signal:AbortSignal.timeout(20000),
     headers:{
       authorization:'Bearer '+jwt,
+      'x-garmin-weight-active':process.env.GARMIN_WEIGHT_WRITES_ENABLED==='true'?'true':'false',
       ...(body?{'content-type':'application/json'}:{})
     },
     ...(body?{body:JSON.stringify(body)}:{})
