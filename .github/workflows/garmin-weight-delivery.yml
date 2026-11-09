@@ -1,0 +1,61 @@
+name: GARMIN_AI Weight Delivery (Manual, Disabled)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/garmin-weight-delivery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: garmin-ai-weight-delivery
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 0436775e588fbb148515df8ee41e7e38bb673935
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: No-Garmin weight delivery and OIDC guard tests
+        run: node --test tests/garmin-weight-reconciliation.test.mjs tests/garmin-weight-delivery.test.mjs tests/garmin-weight-cloud-identity.test.mjs
+      - name: Preserve existing app build
+        run: npm run build
+
+  manual-check:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      # FALSE by default. Requires an explicit GH repository variable and an
+      # INDEPENDENT true secret inside Supabase before any Garmin read/write.
+      GARMIN_WEIGHT_WRITES_ENABLED: ${{ vars.GARMIN_WEIGHT_WRITES_ENABLED }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 0436775e588fbb148515df8ee41e7e38bb673935
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Validate private worker safety
+        run: node --test tests/garmin-weight-reconciliation.test.mjs tests/garmin-weight-delivery.test.mjs tests/garmin-weight-cloud-identity.test.mjs
+      - name: Run one protected weight check (default dry-run)
+        run: node scripts/cloud/run-garmin-weight-delivery.mjs
