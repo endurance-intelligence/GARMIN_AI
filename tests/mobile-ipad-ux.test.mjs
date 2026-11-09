@@ -14,10 +14,10 @@ test('iPad compact 761–1024px uses bottom touch nav, not cramped desktop sideb
 
 test('real Garmin recovery appears before simulated coach recommendation',()=>{
   const coach=read('src/pages/CoachPage.tsx')
-  const iRecovery=coach.indexOf('<LiveRecovery active={active}')
+  const iRecovery=coach.indexOf('<CoachGlance active={active}')
   const iDemo=coach.indexOf('className="stage v3-stage"')
   assert.ok(iRecovery>=0&&iRecovery<iDemo)
-  assert.match(coach,/Echte Messwerte · zuletzt synchronisiert/)
+  assert.match(read('src/components/CoachGlance.tsx'),/MORGENCHECK/)
   assert.match(coach,/DEMO · keine Änderung am Trainingsplan/)
   const css=read('src/styles/mobile-ux-v084.css')
   assert.match(css,/\.introduction-v3 \.seg\s*\{[^}]*display:inline-flex/s)
