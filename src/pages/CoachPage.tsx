@@ -75,7 +75,7 @@ export function CoachPage({active,onGo}: {active:boolean; onGo:(page:Page)=>void
      <button type="button" className="co-dialog-close" ref={closeRef}
       aria-label="Gewichtsfenster schließen" onClick={()=>setWeightOpen(false)}>×</button>
     </div>
-    <SyncCenter active={active&&weightOpen} mode="weight" onSaved={kg=>{
+    <SyncCenter active={active&&weightOpen} mode="weight" inlineWheel onSaved={kg=>{
       setSavedWeight(kg);setWeightOpen(false)
     }}/>
    </div>
