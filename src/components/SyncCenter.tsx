@@ -57,7 +57,7 @@ function stateText(value?:string) {
   }
   return states[value||'']||'Status unbekannt'
 }
-export function SyncCenter({active,mode,onSaved}:{active:boolean;mode:'weight'|'status';onSaved?:(kg:number)=>void}){
+export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boolean;mode:'weight'|'status';onSaved?:(kg:number)=>void;inlineWheel?:boolean}){
   const [session,setSession]=useState<Session|null>(null)
   const [data,setData]=useState<SyncPayload|null>(null)
   const [date,setDate]=useState(berlinDay)
@@ -231,7 +231,10 @@ export function SyncCenter({active,mode,onSaved}:{active:boolean;mode:'weight'|'
       {!garminSupabaseReady&&<p className="sync-hint">Supabase-Zugang fehlt.</p>}
       {session&&<div className="sync-weigh-form">
         <div className="sync-weight-field">
-          <WeightWheelPicker value={weight} onChange={setWeight} disabled={busy}/>
+          {inlineWheel&&!data?<p className="sync-hint">Lade letztes Gewicht …</p>:
+           <WeightWheelPicker key={inlineWheel?date:undefined}
+            value={weight} onChange={setWeight} disabled={busy} inline={inlineWheel}/>}
+
         </div>
         <button type="button" className="sync-weight-save" onClick={()=>void save()}
           disabled={busy||!weight}>
