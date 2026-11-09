@@ -243,7 +243,7 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
             {cloudChecking?'Prüfe Verbindung …':'Cloud-Verbindung testen'}
           </button>
         </div>}
-        {data.cloudConnect?.status==='configured'&&!data.cloudConnect.connected&&
+        {import.meta.env.DEV && data.cloudConnect?.status==='configured'&&!data.cloudConnect.connected&&
           <div className="sync-cloud-bootstrap">
             <p>Deine bestehende lokale Garmin-Connect-Sitzung kann einmalig in den verschlüsselten
               Supabase Vault übernommen werden. Es werden keine Garmin-Daten geändert.</p>
