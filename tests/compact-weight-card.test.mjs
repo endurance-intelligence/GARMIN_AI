@@ -19,7 +19,7 @@ test('date is inside the compact quick-entry header, not in a long form row',()=
 test('compact entry uses one dark picker + one save action, preserves wheel dialog',()=>{
   const jsx=read('src/components/SyncCenter.tsx')
   const css=read('src/styles/sync-center.css')
-  assert.match(jsx,/<WeightWheelPicker value=\{weight\} onChange=\{setWeight\}/)
+  assert.match(jsx,/<WeightWheelPicker key=\{inlineWheel\?date:undefined\}[\s\S]*?value=\{weight\} onChange=\{setWeight\}/)
   assert.match(jsx,/onClick=\{\(\)=>void save\(\)\}/)
   assert.match(css,/\.sync-center\.sync-center-weight\s*\{[^}]*max-width:520px/s)
   assert.match(css,/\.sync-center-weight \.sync-weigh-form\s*\{[^}]*grid-template-columns:minmax\(0,1fr\) 148px/s)
