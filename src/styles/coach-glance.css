@@ -17,10 +17,34 @@
 .co-link{min-height:42px;display:flex;align-items:center;gap:6px;background:none;border:0;color:#b9b2ff;font-weight:770;font-size:12px;white-space:nowrap}
 .co-link .ic{width:15px;height:15px}
 .co-data-day{font-size:11px;color:#8fa2c1;white-space:nowrap}
-.co-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
-.co-metrics>div{display:flex;flex-direction:column;gap:7px;background:#171f32;border:1px solid rgba(174,184,228,.09);padding:14px 12px;border-radius:12px;min-width:0}
-.co-metrics span{color:#9aa9c1;font-size:11px}
-.co-metrics strong{font-size:clamp(16px,2.4vw,23px);letter-spacing:-.04em;font-variant-numeric:tabular-nums;line-height:1.2;overflow-wrap:anywhere}
+.co-recovery-glance{padding:17px 19px}
+.co-recovery-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.co-recovery-heading h2{font-size:18px;letter-spacing:-.025em;margin:6px 0 0}
+.co-recovery-headline{font-size:12px;line-height:1.5;color:#d2dbec;margin:12px 0 9px;max-width:880px}
+.co-readings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:12px 0 0;padding:10px 0 6px;min-width:0}
+.co-reading{display:flex;flex-direction:column;gap:5px;padding:0 16px;min-width:0;border-left:1px solid rgba(174,188,231,.16)}
+.co-reading:first-child{border-left:0;padding-left:0}
+.co-reading>span{font-size:11px;color:#9eafc8}
+.co-reading strong{font-size:clamp(18px,2.5vw,24px);font-weight:770;letter-spacing:-.04em;line-height:1.15;font-variant-numeric:tabular-nums}
+.co-reading small{font-size:11px;line-height:1.3;color:#b3c0da}
+.co-interpretation-foot{font-size:10px;line-height:1.55;color:#8294b1;margin-top:12px}
+.co-interpretation-foot span{white-space:nowrap}
+.co-recovery-details{border-top:1px solid rgba(160,182,224,.1);margin-top:12px;padding-top:2px;min-width:0}
+.co-recovery-details>summary{cursor:pointer;list-style:none;min-height:44px;padding:12px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:#c7befc;font-weight:750}
+.co-recovery-details>summary::-webkit-details-marker{display:none}
+.co-recovery-details>summary::after{content:'⌄';font-size:21px;color:#ada4f6;line-height:1}
+.co-recovery-details[open]>summary::after{content:'⌃'}
+.co-recovery-explanation{max-width:850px;background:rgba(144,146,217,.045);border-radius:11px;padding:12px 14px}
+.co-recovery-explanation p{font-size:11px;color:#aebcd6;line-height:1.6;margin:0 0 9px}
+.co-recovery-explanation p:last-child{margin-bottom:0}
+.co-recovery-explanation strong{color:#e3e8f9}
+.co-recovery-history{margin:16px 0 4px;max-width:780px;min-width:0}
+.co-recovery-history h3{font-size:13px;letter-spacing:-.01em;margin:0 0 7px}
+.co-recovery-history table{width:100%;border-collapse:collapse;table-layout:fixed;font-variant-numeric:tabular-nums}
+.co-recovery-history th,.co-recovery-history td{font-size:11px;padding:10px 5px;text-align:right;border-bottom:1px solid rgba(177,191,238,.08);overflow-wrap:anywhere}
+.co-recovery-history th:first-child,.co-recovery-history td:first-child{text-align:left}
+.co-recovery-history th{color:#95a6c1;font-weight:650}
+.co-recovery-history td{color:#d9e2f5}
 .co-data-note{font-size:11px;line-height:1.55;margin:10px 0 0;color:#bfaacb}
 .co-extra{margin:13px 0 0;background:#101625;border:1px solid rgba(174,190,229,.1);border-radius:14px;overflow:hidden}
 .co-extra>summary{list-style:none;cursor:pointer;min-height:52px;display:flex;justify-content:space-between;align-items:center;padding:14px 17px;color:#ccd7ef;font-size:13px;font-weight:760}
@@ -50,17 +74,23 @@
  .co-weight-action .co-plus{width:30px;height:30px;font-size:23px}
  .co-today,.co-recovery-glance{padding:15px 13px;border-radius:16px}
  .co-section-head h2{font-size:17px}
- .co-metrics{gap:6px;margin-top:12px}
- .co-metrics>div{padding:11px 8px}
- .co-metrics span{font-size:10px}
- .co-metrics strong{font-size:clamp(14px,4vw,18px)}
+ .co-recovery-glance{padding:14px 13px}
+ .co-recovery-heading h2{font-size:16px}
+ .co-recovery-headline{font-size:11px;line-height:1.5;margin:10px 0 7px}
+ .co-readings{margin-top:8px;padding-block:10px 4px}
+ .co-reading{padding-inline:9px;gap:5px}
+ .co-reading>span{font-size:10px}
+ .co-reading strong{font-size:clamp(15px,4vw,20px)}
+ .co-reading small{font-size:10px}
+ .co-recovery-history th,.co-recovery-history td{font-size:10px;padding:9px 3px}
  .co-extra{margin-top:10px}
  .co-dialog{border-radius:22px 22px 13px 13px;max-height:calc(90dvh - env(safe-area-inset-bottom));padding:14px 14px 17px}
 }
 @media(max-width:355px){
  .co-section-head{flex-wrap:wrap}
- .co-metrics strong{font-size:13px}
- .co-metrics>div{padding:10px 6px}
+ .co-reading{padding-inline:6px}
+ .co-reading strong{font-size:14px}
+ .co-reading small{font-size:9px}
 }
 
 /* Wheel is part of the same quick sheet; no second modal or extra confirm tap. */
