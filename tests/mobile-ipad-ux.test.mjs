@@ -42,7 +42,7 @@ test('equipment cards, charts and recovery data are touch-sized on iPhone',()=>{
 test('settings shortcuts reach real non-destructive sections',()=>{
   const settings=read('src/pages/SettingsPage.tsx')
   for(const id of ['settings-sync','settings-account','settings-zones']){
-    assert.match(settings,new RegExp('getElementById\\(\\\''+id+'\\\'\\)'))
+    assert.ok(settings.includes("getElementById('"+id+"')"))
     assert.ok(settings.includes('id="'+id+'"'))
   }
   assert.match(settings,/className="settings-shortcuts"/)
