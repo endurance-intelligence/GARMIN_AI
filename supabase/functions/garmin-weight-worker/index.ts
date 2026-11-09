@@ -67,13 +67,15 @@ Deno.serve(async req=>{
     return reply(401,{error:'OIDC signature/identity invalid'})
   }
 
+  const liveRequested=req.headers.get('x-garmin-weight-active')==='true'
+  const authorizedForWrites=enabled()&&liveRequested
   const db=createClient(project,serviceKey(),{
     auth:{autoRefreshToken:false,persistSession:false}
   })
   if(req.method==='GET'){
     const next=await db.rpc('garmin_weight_next_pending')
     if(next.error)return reply(503,{error:'Weight queue migration not ready'})
-    if(!enabled())return reply(200,{
+    if(!authorizedForWrites)return reply(200,{
       mode:'dry-run',writerEnabled:false,
       pendingAvailable:next.data?.available===true
     })
@@ -94,7 +96,7 @@ Deno.serve(async req=>{
   }
   // No posted operation can change weight or tokens without explicit
   // Supabase feature flag. 'dry-run' never returns any OAuth token.
-  if(!enabled())return reply(403,{error:'Garmin weight writes disabled'})
+  if(!authorizedForWrites)return reply(403,{error:'Garmin weight writes disabled'})
   if(!(req.headers.get('content-type')||'').toLowerCase().startsWith('application/json'))
     return reply(415,{error:'JSON required'})
   if(Number(req.headers.get('content-length')||0)>23000)
