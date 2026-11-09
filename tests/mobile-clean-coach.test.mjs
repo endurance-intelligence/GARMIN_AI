@@ -54,7 +54,7 @@ test('overview is backed by existing authenticated Garmin services',()=>{
 
 test('glance CSS stays responsive and sheet has iOS safe-area bottom padding',()=>{
  const css=read('src/styles/coach-glance.css')
- assert.match(css,/\.co-readings\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/)
+ assert.match(css,/\.co-trend-grid\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/)
  assert.match(css,/@media\(max-width:760px\)/)
  assert.match(css,/safe-area-inset-bottom/)
  assert.match(css,/\.weight-inline-control/)
