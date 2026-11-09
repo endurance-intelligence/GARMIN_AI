@@ -45,7 +45,7 @@ export function assessGarminWeightDay(entry,dayview) {
   // Multiple readings on one date may be intentional (scale, family, repeats).
   // Never silently choose one or create a duplicate.
   if(entries.length!==1)return {status:'needs_review',code:'multiple_remote_entries'}
-  if(Math.abs(entries[0].kg-normalized.kg)<=0.005)
+  if(Math.abs(entries[0].kg*1000-normalized.kg*1000)<=0.01)
     return {status:'already_present',code:'matching_remote_weight'}
   return {status:'needs_review',code:'different_remote_weight'}
 }
