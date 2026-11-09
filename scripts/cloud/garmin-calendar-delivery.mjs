@@ -4,8 +4,10 @@
 import {validatePending,assessCalendarDay,verifyScheduledWorkout}
  from './garmin-calendar-reconciliation.mjs'
 const result=(state,code)=>Object.freeze({state,code})
-const codeOf=e=>e?.name==='GarminRateLimitError'?'rate_limited':
-  e?.name==='GarminAuthError'?'auth_rejected':
+const codeOf=e=>e?.name==='GarminRateLimitError'||
+  (e?.name==='GarminHttpError'&&e?.status===429)?'rate_limited':
+  e?.name==='GarminAuthError'||
+  (e?.name==='GarminHttpError'&&[401,403].includes(e?.status))?'auth_rejected':
   e?.name==='GarminConnectionError'?'network_uncertain':'write_unavailable'
 
 export async function deliverOneCalendarWorkout({db,garmin,writesEnabled=false,wait=()=>Promise.resolve()}){
