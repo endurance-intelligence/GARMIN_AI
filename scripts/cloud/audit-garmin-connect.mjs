@@ -9,11 +9,12 @@
 import {GarminClient,Garmin,MemoryTokenStore} from 'garminconnect-js'
 import {isGarminCloudSession,tokenChanged} from './garmin-cloud-session.mjs'
 import {buildCloudPreview} from './garmin-cloud-data-audit-model.mjs'
-import {safeAuditDiagnostic} from './safe-audit-diagnostic.mjs'
+import {safeAuditDiagnostic,safeGarminFailureKind} from './safe-audit-diagnostic.mjs'
 
 let diagnosticPhase='github-oidc'
 let diagnosticHttpStatus=null
-const mark=phase=>{diagnosticPhase=phase;diagnosticHttpStatus=null}
+let diagnosticKind='unknown'
+const mark=phase=>{diagnosticPhase=phase;diagnosticHttpStatus=null;diagnosticKind='unknown'}
 const ref='eurgupsebxypjqvyizci'
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms))
 const required=name=>{
@@ -77,12 +78,37 @@ async function main(){
     if(!baseline||baseline.activity_gear_scope!=='complete')
       throw Error('Verified Garmin baseline missing')
 
-    mark('garmin-profile')
-    const profile=await garmin.getUserProfile()
-    if(!Number.isSafeInteger(profile?.profileId))
-      throw Error('Garmin user profile not recognized')
+    // The Vault OAuth2 access token may be several days old by the time
+    // GitHub Actions starts. Separate its refresh from the Garmin profile
+    // read, and report only a fixed failure phase/type.
+    mark('garmin-oauth-refresh')
+    try {
+      await client.refreshTokens()
+    } catch (error) {
+      const result=safeGarminFailureKind(error)
+      diagnosticKind=result.kind; diagnosticHttpStatus=result.status
+      throw error
+    }
+    mark('garmin-profile-request')
+    let profile
+    try {
+      profile=await garmin.getUserProfile()
+    } catch(error) {
+      const result=safeGarminFailureKind(error)
+      diagnosticKind=result.kind; diagnosticHttpStatus=result.status
+      throw error
+    }
+    // The SDK documents a numeric profileId; accept an unambiguous
+    // decimal integer string too, never invent an ID from account names.
+    mark('garmin-profile-shape')
+    const profileNumber=typeof profile?.profileId==='number'?
+      profile.profileId:
+      typeof profile?.profileId==='string' && /^[1-9][0-9]{0,15}$/.test(profile.profileId)?
+        Number(profile.profileId):NaN
+    if(!Number.isSafeInteger(profileNumber)||profileNumber<=0)
+      throw Error('Garmin user profile id not present')
     mark('garmin-gear')
-    const rawGear=await garmin.getGear(profile.profileId)
+    const rawGear=await garmin.getGear(profileNumber)
     if(!Array.isArray(rawGear)||rawGear.length<1||rawGear.length>100)
       throw Error('Garmin gear catalog shape unavailable')
 
@@ -128,6 +154,6 @@ async function main(){
 }
 main().catch(()=>{
   // Do not print raw SDK exceptions, account data or OAuth access tokens.
-  console.error(safeAuditDiagnostic(diagnosticPhase,diagnosticHttpStatus))
+  console.error(safeAuditDiagnostic(diagnosticPhase,diagnosticHttpStatus,diagnosticKind))
   process.exitCode=1
 })
