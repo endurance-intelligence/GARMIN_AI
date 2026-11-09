@@ -52,3 +52,36 @@
 .sync-cloud-bootstrap button:hover{background:#335139}
 .sync-cloud-bootstrap button:disabled{opacity:.6;cursor:wait}
 @media(max-width:720px){.sync-cloud-bootstrap button{width:100%;min-height:50px}}
+
+/* v0.8.2: date is a real full-width iOS field; never let its intrinsic
+   WebKit minimum push the weight card beyond the viewport. */
+.sync-weigh-form {min-width:0}
+.sync-weigh-form > * {min-width:0;max-width:100%}
+.sync-weigh-form .sync-date-field{
+  display:block;min-width:0;width:100%;max-width:100%;overflow:visible
+}
+.sync-date-field input[type="date"]{
+  display:block;box-sizing:border-box;min-width:0;max-width:100%;width:100%;
+  -webkit-min-logical-width:0;
+}
+.sync-weight-field {min-width:0;max-width:100%}
+.sync-weight-label {
+  display:block;color:#cdd9ee;font-size:12px;font-weight:750;
+  margin-bottom:9px
+}
+@media (max-width:760px) {
+  .sync-center{min-width:0;width:100%;max-width:100%}
+  .sync-weigh-form{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:14px;
+    width:100%;
+    max-width:100%;
+  }
+  .sync-weigh-form > button {
+    grid-column:1/-1;
+    width:100%;
+    min-width:0;
+    min-height:52px
+  }
+}
