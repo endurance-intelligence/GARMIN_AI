@@ -62,3 +62,18 @@
  .co-metrics strong{font-size:13px}
  .co-metrics>div{padding:10px 6px}
 }
+
+/* Wheel is part of the same quick sheet; no second modal or extra confirm tap. */
+.co-dialog .weight-inline-control{background:transparent;border:0;min-width:0;max-width:100%;width:100%;padding:0}
+.co-dialog .weight-inline-control .weight-sheet-preview{text-align:center;font-size:35px;font-weight:850;padding:0 0 12px;line-height:1.1;letter-spacing:-.045em}
+.co-dialog .weight-inline-control .weight-sheet-columns{display:grid;grid-template-columns:minmax(0,1.2fr) 12px minmax(0,.8fr);gap:8px;width:100%;align-items:start;margin:0 auto}
+.co-dialog .weight-inline-control .weight-sheet-column{min-width:0}
+.co-dialog .weight-inline-control .weight-sheet-track{height:192px}
+.co-dialog .weight-inline-control .weight-sheet-separator{height:192px;display:flex;align-items:center;justify-content:center}
+.co-dialog .weight-inline-control .weight-sheet-scroller{height:192px}
+.co-dialog .weight-inline-control .weight-sheet-column-title{font-size:11px}
+.co-dialog .weight-inline-hint{display:block;text-align:center;color:#9da9c4;font-size:11px;margin:10px 0}
+@media(max-height:650px){
+ .co-dialog{max-height:92dvh}
+ .co-dialog .weight-inline-control .weight-sheet-track,.co-dialog .weight-inline-control .weight-sheet-scroller,.co-dialog .weight-inline-control .weight-sheet-separator{height:144px}
+}
