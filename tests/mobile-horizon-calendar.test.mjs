@@ -58,7 +58,7 @@ test('calendar release does not change core weight entry or authentication',()=>
  const app=read('src/App.tsx')
  assert.match(app,/<OnlineAccessGate>/)
  const coach=read('src/pages/CoachPage.tsx')
- assert.match(coach,/<SyncCenter active=\{active\} mode="weight"\/>/)
+ assert.match(coach,/<SyncCenter active=\{active&&weightOpen\} mode="weight" inlineWheel onSaved=/)
  const sync=read('src/components/SyncCenter.tsx')
  assert.match(sync,/session,'POST',\{date,kg\}/)
 })
