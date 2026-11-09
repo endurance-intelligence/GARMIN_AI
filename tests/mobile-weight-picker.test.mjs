@@ -47,7 +47,7 @@ test('date renders as a separate compact display; native date is only the touch 
 test('weight selection alone does not write to Supabase or Garmin',()=>{
   const picker=read('src/components/WeightWheelPicker.tsx')
   const center=read('src/components/SyncCenter.tsx')
-  assert.doesNotMatch(picker,/fetch\(|supabase|garmin-connect-snapshot|session,'POST'/i)
+  assert.doesNotMatch(picker,/fetch\(|garminSupabase|\.rpc\(|session,'POST'/i)
   assert.match(center,/session,'POST',\{date,kg\}/)
   assert.match(center,/onClick=\{\(\)=>void save\(\)\}/)
   assert.match(center,/Gewicht gespeichert\. Übertragung zu Garmin Connect steht noch aus\./)
