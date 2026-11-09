@@ -13,7 +13,7 @@ test('weight input is one button, not two cramped selects on the form',()=>{
   assert.match(picker,/createPortal\(/)
   assert.match(picker,/role="dialog" aria-modal="true"/)
   assert.doesNotMatch(picker,/<select[\s>]/)
-  assert.match(center,/<WeightWheelPicker value=\{weight\} onChange=\{setWeight\}/)
+  assert.match(center,/<WeightWheelPicker key=\{inlineWheel\?date:undefined\}[\s\S]*?value=\{weight\} onChange=\{setWeight\}/)
 })
 
 test('two vertical swipe wheels scroll snap, select actual 0.1kg and require confirm',()=>{
