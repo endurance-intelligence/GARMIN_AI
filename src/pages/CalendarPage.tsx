@@ -2,6 +2,7 @@ import {useEffect,useMemo,useState} from 'react'
 import type {Session} from '@supabase/supabase-js'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {Icon} from '../components/Icon'
+import {WeatherPanel} from '../components/WeatherPanel'
 import '../styles/horizon-calendar.css'
 
 type GarminWorkout={
@@ -140,6 +141,7 @@ export function CalendarPage({active}:{active:boolean}){
     <Icon name="refresh-cw"/>{busy?'Prüfe …':'Aktualisieren'}
    </button>
   </div>
+  <WeatherPanel active={active} mode="training" date={selected}/>
   <div className="hc-weekpanel">
    <div className="hc-toolbar">
     <div><small>DEIN TRAININGSKALENDER</small><h2>Wochenansicht</h2></div>
