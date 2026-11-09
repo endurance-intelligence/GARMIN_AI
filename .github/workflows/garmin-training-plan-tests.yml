@@ -1,0 +1,35 @@
+# Offline-only safety verification: never requests Garmin OAuth or touches user data.
+name: GARMIN_AI Training Plan Safety
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/garmin-training-plan-tests.yml'
+      - 'README_GARMIN_CALENDAR_PLANNING_v0.9.4.md'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/garmin-training-plan-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: f32d010bbe443c7d4bde9bde365f2ca36348301b
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify owner-only Garmin calendar planning and safety guards
+        run: node --test tests/garmin-training-plan.test.mjs tests/garmin-cloud-429-guard.test.mjs tests/garmin-cloud-snapshot-auto-sync.test.mjs
+      - run: npm run build
