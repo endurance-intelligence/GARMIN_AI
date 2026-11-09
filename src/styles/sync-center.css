@@ -85,3 +85,71 @@
     min-height:52px
   }
 }
+
+/* v0.8.3: independent weight form for mobile-first iPhone/iPad.
+   The native date picker is an invisible full-card hit target. Its often
+   oversized WebKit date text never participates in layout. */
+.sync-center-weight{
+  width:min(100%,620px);max-width:620px;min-width:0;
+  margin-inline:auto;
+  padding:clamp(18px,4vw,28px);
+}
+.sync-center-weight .sync-weigh-form{
+  display:grid;grid-template-columns:minmax(0,1fr);
+  width:100%;max-width:100%;min-width:0;
+  gap:17px;margin-top:22px;align-items:stretch
+}
+.sync-center-weight .sync-weigh-form > *{min-width:0;max-width:100%;width:100%}
+.sync-center-weight .sync-date-field{
+  position:relative;display:block;min-width:0;width:100%;
+  max-width:100%;overflow:hidden;
+  cursor:pointer
+}
+.sync-center-weight .sync-weight-label{display:block;font-size:12px;font-weight:750;color:#cdd9ee;margin-bottom:8px}
+.sync-center-weight .sync-date-display{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  width:100%;min-width:0;max-width:100%;min-height:60px;
+  padding:14px 16px;border-radius:15px;
+  color:#eaf2fe;background:#111c31;border:1px solid rgba(151,179,220,.3)
+}
+.sync-center-weight .sync-date-display strong{
+  display:block;min-width:0;max-width:100%;
+  overflow-wrap:anywhere;font-weight:760;font-size:15px;line-height:1.35;
+  font-variant-numeric:tabular-nums
+}
+.sync-center-weight .sync-date-action{
+  flex:0 0 auto;font-size:12px;font-weight:750;color:#b7b5ff;
+  padding:8px 10px;background:rgba(165,159,255,.09);border-radius:9px
+}
+/* Clickable native date control has no visible intrinsic width. */
+.sync-center-weight .sync-date-field input[type="date"]{
+  position:absolute;inset:0;z-index:2;display:block;
+  width:100%;height:100%;min-width:0;max-width:100%;
+  margin:0;padding:0;border:0;opacity:0;cursor:pointer;
+  box-sizing:border-box;
+  -webkit-appearance:none;appearance:none
+}
+.sync-center-weight .sync-date-field:focus-within .sync-date-display{
+  outline:2px solid #8fc6ff;outline-offset:3px
+}
+.sync-center-weight .sync-weigh-form > button{
+  grid-column:1/-1;
+  width:100%;max-width:100%;min-width:0;min-height:55px;
+  font-size:15px;line-height:1.2;border-radius:14px;
+  margin-top:3px
+}
+.sync-center-weight .sync-top h3{font-size:clamp(23px,4.5vw,30px)}
+.sync-center-weight .sync-top p{font-size:13px;line-height:1.6}
+.sync-center-weight .sync-hint,.sync-center-weight .sync-weight-note{
+  overflow-wrap:anywhere;line-height:1.65
+}
+@media(max-width:760px){
+  .sync-center-weight{width:100%;padding:20px 16px;margin-inline:0}
+  .sync-center-weight .sync-weigh-form{grid-template-columns:minmax(0,1fr);gap:15px}
+}
+@media(max-width:375px){
+  .sync-center-weight{padding:17px 12px}
+  .sync-center-weight .sync-date-display{padding:11px 12px}
+  .sync-center-weight .sync-date-display strong{font-size:13px}
+  .sync-center-weight .sync-date-action{padding:7px}
+}
