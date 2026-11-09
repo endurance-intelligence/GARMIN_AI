@@ -5,7 +5,7 @@
 const phases=new Set([
  'github-oidc','supabase-vault-read','load-garmin-session','load-baseline',
  'garmin-oauth-refresh','garmin-profile-request','garmin-profile-shape','garmin-gear','garmin-calendar','garmin-gear-history',
- 'compare-catalog','save-reviewed-snapshot','save-rotated-session'
+ 'compare-catalog','save-reviewed-snapshot','garmin-hr-zones','save-reviewed-hr-profile','save-rotated-session'
 ])
 /** Strict exception class mapping; NEVER log message, cause, URL, headers or body. */
 export function safeGarminFailureKind(error) {
