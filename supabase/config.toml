@@ -49,3 +49,8 @@ verify_jwt = false
 # cryptographic OIDC verification and exact claims happen in the function.
 [functions.garmin-cloud-worker]
 verify_jwt = false
+
+# Public GitHub Pages UI, but requests are owner JWT verified server-side.
+# The function returns no Garmin records; never turn it into anonymous access.
+[functions.garmin-app-access]
+verify_jwt = false
