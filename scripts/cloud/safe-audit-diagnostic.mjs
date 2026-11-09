@@ -12,5 +12,5 @@ export function safeAuditDiagnostic(stage,httpStatus=null) {
  const status=Number.isInteger(httpStatus)&&httpStatus>=400&&httpStatus<=599?
    ' (HTTP '+httpStatus+')':''
  return 'GARMIN CLOUD DATA AUDIT: stopped at '+phase+status+
-   '. No Garmin or application data were changed.'
+   '. Gear, calendar and weight records were not changed.'
 }
