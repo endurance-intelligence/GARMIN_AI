@@ -90,7 +90,7 @@ test('weather is opt-in and weather-only, never a fake Garmin sync',()=>{
  const source=read('src/lib/weatherIntelligence.ts')
  assert.match(component,/navigator.geolocation.getCurrentPosition\(/)
  assert.match(component,/onClick=\{currentLocation\}/)
- assert.match(component,/getWeather\(place,reload>0\)/)
+ assert.match(component,/getWeather\(place,force\)/)
  assert.match(component,/localStorage.setItem\(key/)
  assert.match(component,/Wetterbasierter Vergleich, keine Trainingsfreigabe/)
  assert.match(source,/const HALF_HOUR=30\*60\*1000/)
