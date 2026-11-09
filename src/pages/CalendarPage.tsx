@@ -141,7 +141,7 @@ export function CalendarPage({active}:{active:boolean}){
     <Icon name="refresh-cw"/>{busy?'Prüfe …':'Aktualisieren'}
    </button>
   </div>
-  <WeatherPanel active={active} mode="training" date={selected}/>
+  <WeatherPanel active={active} mode="training" date={selected} compact/>
   <div className="hc-weekpanel">
    <div className="hc-toolbar">
     <div><small>DEIN TRAININGSKALENDER</small><h2>Wochenansicht</h2></div>
