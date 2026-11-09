@@ -1,0 +1,104 @@
+/* GARMIN_AI Horizon v0.9.7 — mobile-first real calendar.
+   Scoped styles; no modification of Garmin/data/auth internals. */
+.hc-intro{margin:18px 0 22px;min-width:0}
+.hc-eyebrow{display:flex;align-items:center;gap:9px;color:#a8a5f7;letter-spacing:.18em;font-size:10px;font-weight:850}
+.hc-pulse{height:8px;width:8px;background:#c7ec88;border-radius:50%;box-shadow:0 0 0 5px rgba(199,236,136,.07)}
+.hc-intro h1{margin:16px 0 10px;font-weight:840;letter-spacing:-.065em;line-height:1.06;font-size:clamp(34px,5vw,61px);color:#f2f5ff}
+.hc-intro h1 span{background:linear-gradient(105deg,#ad9cff,#74c9fa);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hc-intro p{margin:0;max-width:610px;color:#96a4bf;font-size:14px;line-height:1.65}
+.hc-overview{display:flex;align-items:stretch;justify-content:space-between;gap:14px;margin-bottom:17px}
+.hc-overview>div{min-width:0;display:flex;flex-direction:column;gap:5px}
+.hc-overview small,.hc-toolbar small{font-size:9px;letter-spacing:.17em;font-weight:840;color:#98a5bf}
+.hc-overview strong{font-size:22px;letter-spacing:-.035em;text-transform:capitalize}
+.hc-overview span{font-size:12px;color:#9aa9c4}
+.hc-refresh{display:inline-flex;align-items:center;justify-content:center;gap:8px;align-self:center;min-height:46px;flex:0 0 auto;padding:10px 15px;border-radius:13px;border:1px solid rgba(171,186,232,.16);background:#181d32;color:#e8ecff;font-size:12px;font-weight:750}
+.hc-refresh:disabled{opacity:.55;cursor:default}
+.hc-refresh .ic{width:16px;height:16px}
+.hc-weekpanel{background:linear-gradient(160deg,rgba(24,31,52,.95),rgba(13,18,31,.98));border:1px solid rgba(177,183,253,.15);border-radius:24px;padding:24px;margin-bottom:16px;box-shadow:0 16px 55px rgba(0,0,0,.14);min-width:0}
+.hc-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+.hc-toolbar h2{margin:6px 0 0;font-size:23px;letter-spacing:-.035em}
+.hc-weekactions{display:flex;align-items:center;gap:5px;border:1px solid rgba(175,195,233,.12);border-radius:13px;padding:4px;background:rgba(255,255,255,.025)}
+.hc-weekactions button{color:#e7ebff;background:transparent;border:0;border-radius:9px;min-width:36px;min-height:38px;padding:7px 9px;font-size:18px;font-weight:750}
+.hc-weekactions button:nth-child(2){font-size:12px;min-width:52px}
+.hc-weekactions button:hover{background:rgba(173,164,255,.12)}
+.hc-weekactions button:disabled{opacity:.35;cursor:default}
+.hc-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-bottom:26px}
+.hc-day{min-width:0;min-height:86px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(178,195,230,.10);background:rgba(255,255,255,.025);color:#c7d1e8;border-radius:15px;padding:10px 3px;transition:background .14s,border-color .14s}
+.hc-day span{font-size:10px;text-transform:uppercase;color:#96a3bd;font-weight:800;letter-spacing:.05em}
+.hc-day strong{font-size:21px;font-weight:790;font-variant-numeric:tabular-nums;line-height:1}
+.hc-day i{height:5px;width:5px;border-radius:50%;background:transparent}
+.hc-day i.has-entry{background:#8ba6ff}
+.hc-day.today:not(.selected){border-color:rgba(204,242,128,.4)}
+.hc-day.selected{background:linear-gradient(135deg,#7772c9,#5c76b1);border-color:#9c9dea;color:#fff;box-shadow:0 6px 22px rgba(114,110,205,.25)}
+.hc-day.selected span{color:#f1edff}
+.hc-day.selected i.has-entry{background:#d5f691}
+.hc-day-content{border-top:1px solid rgba(170,185,224,.11);padding-top:21px}
+.hc-day-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}
+.hc-day-heading>div{min-width:0}
+.hc-day-heading span:first-child{font-size:9px;color:#91a0bf;font-weight:850;letter-spacing:.15em}
+.hc-day-heading h3{font-size:20px;line-height:1.25;font-weight:820;margin:6px 0 0;text-transform:capitalize;letter-spacing:-.03em}
+.hc-day-count{font-size:11px;font-weight:780;color:#b6bfea;border:1px solid rgba(178,175,255,.16);border-radius:999px;padding:7px 10px;white-space:nowrap}
+.hc-entries{display:flex;flex-direction:column;gap:10px}
+.hc-entry{display:flex;gap:13px;align-items:center;padding:15px 16px;background:rgba(130,153,204,.06);border:1px solid rgba(187,198,255,.11);border-radius:16px;min-width:0}
+.hc-entry-symbol{width:45px;height:45px;flex:0 0 45px;border-radius:13px;background:rgba(133,120,245,.16);color:#c1b6ff;display:flex;align-items:center;justify-content:center}
+.hc-entry-garmin .hc-entry-symbol{background:rgba(117,207,190,.11);color:#89ddcc}
+.hc-entry-symbol .ic{width:21px;height:21px}
+.hc-entry-copy{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
+.hc-entry-copy strong{font-size:15px;font-weight:790;overflow-wrap:anywhere}
+.hc-entry-copy small{font-size:11px;color:#9cabc5}
+.hc-entry-state{align-self:flex-start;font-size:10px;font-weight:800;letter-spacing:.015em}
+.hc-entry-state.verified{color:#9cdbb5}
+.hc-entry-state.draft{color:#c5b5ff}
+.hc-entry-state.waiting{color:#f0d397}
+.hc-entry-state.warning{color:#ffb399}
+.hc-entry-state.muted{color:#98a3b8}
+.hc-empty{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;padding:31px 14px;color:#b7c4df}
+.hc-empty-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:16px;background:rgba(136,120,231,.09);color:#ac9bf8;margin-bottom:6px}
+.hc-empty strong{font-size:15px;color:#e6eafb}
+.hc-empty span{font-size:12px;line-height:1.5;max-width:290px}
+.hc-source-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin-bottom:13px}
+.hc-source-grid article{min-width:0;display:flex;gap:12px;align-items:flex-start;padding:19px 17px;background:#101727;border:1px solid rgba(174,190,222,.1);border-radius:18px}
+.hc-source-icon{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border-radius:11px;background:#20253a;color:#b6a5ff}
+.hc-source-icon .ic{height:18px;width:18px}
+.hc-source-grid article>div:last-child{min-width:0;display:flex;flex-direction:column;gap:6px}
+.hc-source-grid strong{font-size:13px;color:#eff1ff}
+.hc-source-grid small,.hc-source-grid span{font-size:11px;line-height:1.55;color:#a0aec8}
+.hc-source-grid .hc-source-warning{color:#f0c58a}
+.hc-source-grid .hc-source-ok{color:#98dfbc}
+.hc-error{padding:14px 16px;border:1px solid rgba(241,128,113,.25);border-radius:12px;color:#ffc3b3;background:rgba(221,95,75,.07);font-size:12px}
+.hc-notice{color:#c7eeb3;font-size:12px}
+.hc-footnote{font-size:11px;line-height:1.65;color:#8392ae;padding:4px 0 20px;max-width:720px}
+@media(max-width:760px){
+ .hc-intro{margin:19px 0 22px}
+ .hc-intro h1{font-size:clamp(34px,9.2vw,44px);margin:14px 0 11px}
+ .hc-intro p{font-size:12.5px;line-height:1.6}
+ .hc-overview{gap:8px}
+ .hc-overview strong{font-size:18px}
+ .hc-refresh{min-height:44px;padding:8px 11px;font-size:11px}
+ .hc-weekpanel{padding:17px 12px;border-radius:19px}
+ .hc-toolbar{margin-bottom:16px}
+ .hc-toolbar h2{font-size:18px}
+ .hc-weekactions button{min-width:31px;min-height:38px}
+ .hc-weekactions button:nth-child(2){min-width:44px;font-size:11px}
+ .hc-days{gap:4px;margin-bottom:18px}
+ .hc-day{min-height:77px;border-radius:12px;padding:7px 2px}
+ .hc-day span{font-size:9px}
+ .hc-day strong{font-size:19px}
+ .hc-day-heading h3{font-size:16px}
+ .hc-day-count{font-size:10px;padding:6px 8px}
+ .hc-entry{padding:13px 11px}
+ .hc-entry-symbol{width:38px;height:38px;flex-basis:38px}
+ .hc-entry-copy strong{font-size:13px}
+ .hc-source-grid{grid-template-columns:minmax(0,1fr);gap:10px}
+ .hc-source-grid article{padding:14px 13px}
+}
+@media(max-width:365px){
+ .hc-weekpanel{padding:13px 8px}
+ .hc-days{gap:3px}
+ .hc-day{min-height:72px;border-radius:10px}
+ .hc-day span{font-size:8px}
+ .hc-day strong{font-size:17px}
+ .hc-day-heading{flex-wrap:wrap}
+ .hc-refresh{padding-inline:9px}
+}
+@media(prefers-reduced-motion:reduce){.hc-day{transition:none}}
