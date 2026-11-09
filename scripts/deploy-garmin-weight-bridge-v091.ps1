@@ -38,7 +38,7 @@
         if ($dryCode -ne 0) { throw 'Supabase DB Dry Run fehlgeschlagen.' }
         $pending=@([regex]::Matches($dryText, '\b\d{14}_[A-Za-z0-9_]+\.sql\b') |
             ForEach-Object {$_.Value} | Select-Object -Unique)
-        $expected='20261109140000_garmin_weight_delivery_safety.sql'
+        $expected='20261109131857_garmin_weight_delivery_safety_v090.sql'
         $unexpected=@($pending | Where-Object { $_ -ne $expected })
         if ($unexpected.Count -gt 0) { throw "Unerwartete Migrationen: $($unexpected -join ', ')" }
         if ($pending.Count -eq 0 -and
