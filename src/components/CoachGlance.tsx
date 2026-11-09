@@ -116,7 +116,7 @@ export function CoachGlance({active,onCalendar,children}:{
         key={entry.key}>
         <div className="co-trend-top">
           <div className="co-trend-label"><Icon name={entry.icon}/>{entry.name}</div>
-          {entry.row?.difference!==null&&entry.row?.difference!==undefined&&
+          {entry.row&&entry.row.difference!==null&&
            <span className="co-trend-diff">{differenceLabel(entry.row)}</span>}
         </div>
         <strong className="co-trend-value">{entry.value}</strong>
