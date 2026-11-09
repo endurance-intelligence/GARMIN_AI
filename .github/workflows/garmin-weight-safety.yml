@@ -22,7 +22,7 @@ jobs:
       - name: Checkout reviewed weight foundation
         uses: actions/checkout@v7
         with:
-          ref: d5f1a6f45993f8c1daa61403320346068c3f00d7
+          ref: ae7e0a19e59d7519d3dbc8f2f542e116aeacbb20
           persist-credentials: false
       - name: Set up Node.js
         uses: actions/setup-node@v7
