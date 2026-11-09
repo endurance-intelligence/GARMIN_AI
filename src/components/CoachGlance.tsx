@@ -3,7 +3,7 @@ import {useEffect,useState} from 'react'
 import type {ReactNode} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {Icon} from './Icon'
-import {interpretRecovery,formatSleep,differenceLabel} from '../lib/recoveryComparison'
+import {interpretRecovery,formatSleep,differenceLabel,recoveryNarrative} from '../lib/recoveryComparison'
 import {RecoverySparkline} from './RecoverySparkline'
 import '../styles/coach-glance.css'
 
@@ -104,7 +104,7 @@ export function CoachGlance({active,onCalendar,children}:{
       <span className="co-recovery-insight-icon"><Icon name="activity"/></span>
       <div>
         <strong>Dein Verlauf auf einen Blick</strong>
-        <p>{comparison?.headline||'Sobald Garmin Messwerte liefert, erscheinen hier deine Veränderungen.'}</p>
+        <p>{recoveryNarrative(comparison)}</p>
       </div>
     </div>
     <div className="co-trend-grid" role="list" aria-label="Schlaf, HRV und Ruhepuls mit Verlauf der letzten sieben Tage">
