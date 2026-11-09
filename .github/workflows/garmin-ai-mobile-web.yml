@@ -37,7 +37,7 @@ jobs:
       - name: Check out exact reviewed mobile release
         uses: actions/checkout@v7
         with:
-          ref: f9faf74566128e0d6636f635464bec901fd8b856
+          ref: b4515a26f6948fc15c3f7d0b7f60a0e4d2c9aa4a
           persist-credentials: false
 
       - name: Set up Node.js
