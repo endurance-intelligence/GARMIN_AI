@@ -32,7 +32,10 @@ function serviceKey(){
   }catch {/*legacy fallback*/}
   return Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||''
 }
-const enabled=()=>Deno.env.get('GARMIN_WEIGHT_WRITES_ENABLED')==='true'
+// Initial production release is forcibly read-only even if a flag was accidentally set.
+// Activation requires a separately reviewed Edge Function release.
+const LIVE_WRITES_RELEASED=false
+const enabled=()=>LIVE_WRITES_RELEASED && Deno.env.get('GARMIN_WEIGHT_WRITES_ENABLED')==='true'
 const isDate=(date:unknown):date is string=>
   typeof date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(date)&&
   Number.isFinite(Date.parse(date+'T12:00:00Z'))&&
