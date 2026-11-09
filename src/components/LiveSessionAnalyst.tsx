@@ -119,7 +119,7 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
           <div><span>Ø HF · GARMIN</span><strong>{details.activity.avgHr==null?'–':formatNumber(details.activity.avgHr)} <small>bpm</small></strong></div>
           <div><span>HF-MESSPUNKTE</span><strong>{analysis.validHr} <small>/ {details.details.samples.length}</small></strong></div>
         </div>
-        <SessionGearEditor key={details.activity.id} activityId={details.activity.id} session={session}/>
+        {import.meta.env.DEV ? <SessionGearEditor key={details.activity.id} activityId={details.activity.id} session={session}/> : <p className="lsa-demo-divider">Laufschuhe werden hier aktuell nur gelesen. Direktes Ändern folgt nach der sicheren Cloud-Schreibanbindung.</p>}
         <div className="lsa-panels">
           <article className="lsa-chart">
             <div className="lsa-section-title"><strong>Herzfrequenz im Verlauf</strong><small>Messpunkte · keine geschätzten Werte</small></div>
