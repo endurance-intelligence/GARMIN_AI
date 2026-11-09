@@ -3,13 +3,14 @@ import {useEffect,useState} from 'react'
 import type {ReactNode} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {Icon} from './Icon'
+import {interpretRecovery,formatSleep,differenceLabel} from '../lib/recoveryComparison'
 import '../styles/coach-glance.css'
 
 type CalendarWorkout={date:string;name:string|null;restDay:boolean;sport:string|null}
 type CoachPlan={training_date:string;title:string;state:string;session_type:string}
-type HealthDay={metric_date:string;hrv_ms:number|null;resting_heart_rate:number|null;sleep_seconds:number|null}
+type HealthDay={metric_date:string;hrv_ms:number|null;resting_heart_rate:number|null;sleep_seconds:number|null;stress_avg?:number|null;body_battery_max?:number|null}
 type Overview={
-  workout:CalendarWorkout|null;plan:CoachPlan|null;health:HealthDay|null;
+  workout:CalendarWorkout|null;plan:CoachPlan|null;health:HealthDay|null;healthHistory:HealthDay[];
   calendarOk:boolean;healthOk:boolean
 }
 function today(){
@@ -17,13 +18,12 @@ function today(){
  const val=(kind:string)=>parts.find(part=>part.type===kind)?.value||''
  return val('year')+'-'+val('month')+'-'+val('day')
 }
-function sleepText(value:number|null){
- if(value===null||!Number.isFinite(value))return '–'
- const minutes=Math.round(value/60)
- return Math.floor(minutes/60)+' h '+String(minutes%60).padStart(2,'0')+' m'
-}
-function valText(v:number|null,unit:string){
+function valText(v:number|null|undefined,unit:string){
  return typeof v==='number'&&Number.isFinite(v)?Math.round(v)+' '+unit:'–'
+}
+function shortDay(iso:string){
+ const [y,m,d]=iso.split('-')
+ return d+'.'+m+'.'+y
 }
 export function CoachGlance({active,onCalendar,children}:{
  active:boolean;onCalendar:()=>void;children:ReactNode
@@ -65,6 +65,7 @@ export function CoachGlance({active,onCalendar,children}:{
    const latestHealth=Array.isArray(healthRows)?
     [...healthRows].filter(h=>h.metric_date<=date).sort((a,b)=>b.metric_date.localeCompare(a.metric_date))[0]||null:null
    setView({workout:todayWorkout,plan:todayPlan,health:latestHealth,
+    healthHistory:Array.isArray(healthRows)?healthRows:[],
     calendarOk:!!snapshot||!!plans,healthOk:!!health})
    setError(results.every(x=>x.status==='rejected'))
   }).catch(()=>{if(mounted)setError(true)})
@@ -76,6 +77,10 @@ export function CoachGlance({active,onCalendar,children}:{
   'Noch keine Einheit im Kalender'
  const category=view?.workout?'Garmin Connect':view?.plan?'GARMIN_AI-Entwurf':'Keine feste Startzeit'
  const health=view?.health
+ const comparison=health?interpretRecovery(view?.healthHistory||[],health.metric_date):null
+ const [sleep,hrv,rhr]=comparison?.metrics||[]
+ const recent=[...(view?.healthHistory||[])].filter(row=>row.metric_date<=date)
+   .sort((a,b)=>b.metric_date.localeCompare(a.metric_date)).slice(0,7)
  return <div className="co-at-a-glance">
   <section className="co-today" aria-label="Training heute">
    <div className="co-section-head">
@@ -88,18 +93,68 @@ export function CoachGlance({active,onCalendar,children}:{
    </div>
    {children}
   </section>
-  <section className="co-recovery-glance" aria-label="Garmin-Erholung auf einen Blick">
-   <div className="co-section-head">
-    <div><span className="co-eyebrow">ERHOLUNG · GARMIN HEALTH</span><h2>Deine Signale</h2></div>
-    {health&&<span className="co-data-day">{health.metric_date.split('-').reverse().join('.')}</span>}
-   </div>
-   <div className="co-metrics">
-    <div><span>Schlaf</span><strong>{sleepText(health?.sleep_seconds??null)}</strong></div>
-    <div><span>HRV</span><strong>{valText(health?.hrv_ms??null,'ms')}</strong></div>
-    <div><span>Ruhepuls</span><strong>{valText(health?.resting_heart_rate??null,'bpm')}</strong></div>
-   </div>
-   {(!view?.healthOk||!health)&&<p className="co-data-note">Keine aktuellen Garmin-Gesundheitsdaten verfügbar.</p>}
-   {error&&<p className="co-data-note" role="alert">Einige Datenquellen sind gerade nicht erreichbar.</p>}
+  <section className="co-recovery-glance" aria-label="Dein Garmin-Morgencheck">
+    <div className="co-recovery-heading">
+      <div>
+        <span className="co-eyebrow">GARMIN · MORGENCHECK</span>
+        <h2>Schlaf & Erholung</h2>
+      </div>
+      <span className="co-data-day">{health?'Stand '+shortDay(health.metric_date):'Keine Daten'}</span>
+    </div>
+    <p className="co-recovery-headline">
+      {comparison?.headline||'Für eine Einordnung fehlen noch Garmin-Daten.'}
+    </p>
+    <div className="co-readings" role="list" aria-label="Messwerte und Veränderung gegenüber dem jüngsten Median">
+      <div role="listitem" className="co-reading">
+        <span>Schlaf</span>
+        <strong>{formatSleep(sleep?.latest??null)}</strong>
+        <small>{sleep?.difference!==null&&sleep?.difference!==undefined?
+          differenceLabel(sleep):'Vergleich ausstehend'}</small>
+      </div>
+      <div role="listitem" className="co-reading">
+        <span>HRV</span>
+        <strong>{valText(hrv?.latest,'ms')}</strong>
+        <small>{hrv?.difference!==null&&hrv?.difference!==undefined?
+          differenceLabel(hrv):'Vergleich ausstehend'}</small>
+      </div>
+      <div role="listitem" className="co-reading">
+        <span>Ruhepuls</span>
+        <strong>{valText(rhr?.latest,'bpm')}</strong>
+        <small>{rhr?.difference!==null&&rhr?.difference!==undefined?
+          differenceLabel(rhr):'Vergleich ausstehend'}</small>
+      </div>
+    </div>
+    <div className="co-interpretation-foot">
+      Vergleich: Median der vorherigen 14 Kalendertage, soweit mindestens 7 Werte vorliegen.
+      <span> Keine Trainingsfreigabe.</span>
+    </div>
+    {(!view?.healthOk||!health)&&<p className="co-data-note">Keine aktuellen Garmin-Gesundheitsdaten verfügbar.</p>}
+    {error&&<p className="co-data-note" role="alert">Einige Datenquellen sind gerade nicht erreichbar.</p>}
+    <details className="co-recovery-details">
+      <summary>Messwerte verstehen & Verlauf ansehen</summary>
+      <div className="co-recovery-explanation">
+        <p><strong>Das sagen die Zahlen:</strong> Schlaf zeigt die Dauer, nicht die Qualität.
+        HRV und Ruhepuls sind individuell und schwanken. Die Unterschiede oben
+        beschreiben den jüngsten Verlauf, aber weder Belastbarkeit noch Krankheit.</p>
+        <p>Der Vergleichszeitraum ist keine langfristig gesunde Baseline. Erkältung,
+        Training und fehlende Messungen können ihn beeinflussen.</p>
+        {comparison&&<p>Referenz: {shortDay(comparison.referenceStart)}–{shortDay(comparison.referenceEnd)}
+         · Vergleichswerte: Schlaf {sleep?.sampleCount||0},
+         HRV {hrv?.sampleCount||0}, Ruhepuls {rhr?.sampleCount||0} Tage.</p>}
+      </div>
+      {recent.length>0&&<div className="co-recovery-history">
+        <h3>Letzte Messungen</h3>
+        <table>
+          <thead><tr><th>Datum</th><th>Schlaf</th><th>HRV</th><th>Ruhepuls</th></tr></thead>
+          <tbody>{recent.map(row=><tr key={row.metric_date}>
+            <td>{row.metric_date.slice(8,10)+'.'+row.metric_date.slice(5,7)+'.'}</td>
+            <td>{formatSleep(row.sleep_seconds)}</td>
+            <td>{valText(row.hrv_ms,'ms')}</td>
+            <td>{valText(row.resting_heart_rate,'bpm')}</td>
+          </tr>)}</tbody>
+        </table>
+      </div>}
+    </details>
   </section>
  </div>
 }
