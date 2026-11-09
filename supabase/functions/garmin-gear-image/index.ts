@@ -25,7 +25,7 @@ function envKey(kind: 'publishable'|'secret') {
 }
 
 function cors(origin: string|null): Record<string,string> {
-  const valid = !!origin && /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin)
+  const valid = origin==='https://endurance-intelligence.github.io' || (!!origin && /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin))
   return {
     ...(valid ? {'Access-Control-Allow-Origin':origin,'Vary':'Origin'} : {}),
     'Access-Control-Allow-Methods':'GET,POST,DELETE,OPTIONS',
