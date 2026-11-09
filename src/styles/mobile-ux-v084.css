@@ -1,0 +1,161 @@
+/*
+ * GARMIN_AI v0.8.4 – mobile/tablet refinements.
+ * Imported after Horizon, component styles, and mobile-first.css.
+ * UI-only: no changes to authentication, RLS, Garmin, weight storage or sync.
+ */
+
+/* Shared: do not let flex/grid content force a page wider than the viewport. */
+.main-in, .page, .sync-center, .gcs-card, .gcs-visual-card,
+.lsa-wrap, .ri-panel, .ri-account {min-width:0}
+.gcs-card, .lsa-wrap, .sync-center {overflow-wrap:anywhere}
+.gcs-title > *, .lsa-head > *, .ri-group-head > *,
+.sync-top > *, .activity-head > * {min-width:0}
+.gcs-card button, .sync-center button, .ri-panel button,
+.ri-account button {touch-action:manipulation}
+.gcs-photo img {max-width:100%}
+
+/*
+ * iPad portrait / compact landscape (761–1024px): keep desktop widgets
+ * responsive, but eliminate the narrow icon-only desktop sidebar.
+ */
+@media (min-width:761px) and (max-width:1024px) {
+  .app {display:block;min-height:100dvh}
+  .sidebar {display:none}
+  .main {
+    width:100%;max-width:100%;
+    padding:0 clamp(18px,4vw,38px) calc(116px + env(safe-area-inset-bottom));
+  }
+  .main-in {width:100%;max-width:920px;margin-inline:auto}
+  .topbar {min-height:76px}
+  .crumbs,.top-actions>.date,.top-actions>.round-icon {display:none}
+  .top-actions {display:flex;width:100%;justify-content:space-between;gap:14px}
+  .mobile-brand {display:flex!important;align-items:center;gap:10px;font-size:16px;font-weight:800}
+  .mobile-brand .brand-logo {width:34px;height:34px}
+  .top-actions .pill {min-width:0;max-width:52%;white-space:normal;text-align:right}
+
+  /* Full-width areas first; balanced supporting cards on iPad. */
+  .page-intro,.introduction-v3 {padding-top:28px}
+  .v3-stage,.stage,.v3-decision-layout,.session-detail-layout,
+  .session-bottom-grid {grid-template-columns:minmax(0,1fr)}
+  .v3-stage > *,.stage > *,.v3-decision-layout > *,
+  .session-detail-layout > * {min-width:0}
+  .v3-metric-grid,.metric-grid,.session-stat-grid,.lsa-stat-grid,
+  .ri-metric-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gcs-visual-list {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gcs-list {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lsa-panels,.ri-sleep-layout {grid-template-columns:minmax(0,1fr)}
+  .sync-source-list {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ri-account,.ri-panel,.gcs-card {max-width:100%}
+  .coach-inner h2,.v3-coach-hero .coach-inner h2 {font-size:clamp(36px,5.4vw,53px)}
+
+  /* Five real tablet touch targets: same nav as the iPhone. */
+  .footmobile {
+    display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+    position:fixed;z-index:30;left:0;right:0;bottom:0;
+    width:100%;height:auto;min-height:calc(75px + env(safe-area-inset-bottom));
+    align-items:center;justify-content:stretch;gap:5px;
+    padding:8px max(18px,env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom));
+    background:rgba(12,16,26,.96);border-top:1px solid rgba(199,210,244,.13);
+    backdrop-filter:blur(20px);
+  }
+  .footmobile button {
+    min-width:0;width:100%;min-height:53px;
+    padding:9px 6px;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:5px;border:0;border-radius:13px;
+    background:transparent;color:#8997b2;font-size:12px;font-weight:730;
+  }
+  .footmobile button.active {background:rgba(144,133,245,.12);color:#e0daff}
+  .footmobile button .ic {height:22px;width:22px}
+}
+
+@media (max-width:760px) {
+  /* The real health data is now placed before the coach-demo area. */
+  .coach-real-section,.coach-demo-section {margin-top:22px}
+  .introduction-v3 .seg {
+    display:inline-flex;align-items:center;gap:4px;
+    margin-top:15px;max-width:100%;
+  }
+  .introduction-v3 .seg button {min-height:44px;padding:10px 18px;font-size:12px}
+
+  .gcs-card {padding:17px 15px;border-radius:18px;margin-block:15px}
+  .gcs-title {gap:7px;align-items:start}
+  .gcs-title h3 {font-size:20px;line-height:1.2}
+  .gcs-list {grid-template-columns:minmax(0,1fr)}
+  .gcs-visual-list {grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+  .gcs-row {min-width:0;padding:14px 13px}
+  .gcs-row small,.gcs-note,.gcs-photo-intro {font-size:12px;line-height:1.6}
+  .gcs-archive {padding:13px}
+  .gcs-archive summary {min-height:45px;display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+  .gcs-visual-card .gcs-photo {height:clamp(140px,30vw,180px)}
+  .gcs-visual-info {padding:13px}
+  .gcs-visual-info strong {font-size:13px}
+  .gcs-photo-upload,.gcs-photo-remove {min-height:44px;padding:11px 12px}
+  .gcs-shoe-distance {font-size:clamp(18px,5.1vw,22px)}
+  .gcs-visual-card:hover {transform:none}
+
+  .lsa-wrap {padding:19px 15px;border-radius:18px;margin-bottom:20px}
+  .lsa-head {gap:12px}
+  .lsa-head h2 {font-size:clamp(22px,6vw,27px)}
+  .lsa-picker select {min-width:0;font-size:16px;min-height:49px}
+  .lsa-stat-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lsa-stat-grid > div {min-width:0;padding:14px}
+  .lsa-stat-grid strong {white-space:normal;overflow-wrap:anywhere}
+  .lsa-panels {grid-template-columns:minmax(0,1fr)}
+  .lsa-chart,.lsa-findings {min-width:0;padding:15px}
+  .lsa-section-title,.lsa-head {flex-wrap:wrap}
+
+  .ri-account,.recovery-live.ri-panel {
+    min-width:0;padding:20px 16px;border-radius:18px;
+  }
+  .ri-metric-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ri-metric {min-width:0;min-height:165px;padding:14px}
+  .ri-metric-value {font-size:clamp(25px,7.5vw,36px);white-space:normal;overflow-wrap:anywhere}
+  .ri-prominent .ri-metric-value {font-size:clamp(29px,9vw,43px)}
+  .ri-account-status,.ri-account-head,.ri-group-head {min-width:0}
+  .ri-account-status strong {overflow-wrap:anywhere}
+  .ri-account-row input {width:100%;min-width:0;font-size:16px}
+  .ri-account-row button {min-height:48px}
+  .ri-group-aside {max-width:100%;white-space:normal}
+
+  .sync-center:not(.sync-center-weight) {padding:18px 15px}
+  .sync-source-list {grid-template-columns:minmax(0,1fr)}
+  .sync-source {min-width:0;padding:15px}
+  .sync-source-head span {overflow-wrap:anywhere}
+  .sync-technical {min-width:0;padding:13px}
+  .sync-technical details summary {min-height:44px;display:flex;align-items:center;cursor:pointer}
+
+  .settings-shortcuts {display:flex;gap:8px;flex-wrap:wrap;margin-top:0;margin-bottom:15px}
+  .settings-shortcuts button {
+    min-height:45px;padding:10px 14px;font-size:12px;
+    border:1px solid rgba(168,177,227,.25);border-radius:13px;
+    background:#192237;color:#dae3f6;font-weight:750;
+  }
+  .settings-shortcuts button:focus-visible {outline:2px solid #8fc6ff;outline-offset:2px}
+  .settings-section-title {font-size:17px;line-height:1.25;margin:21px 0 10px;color:#e4eaff}
+  .sub-grid article {min-width:0;padding:19px 17px}
+  .sub-grid article p,.empty-line {overflow-wrap:anywhere}
+  .sub-grid .toggle {display:flex;gap:10px;align-items:flex-start;line-height:1.6}
+}
+
+@media (max-width:390px) {
+  /* No unreadable shoe mosaics on small iPhones. */
+  .gcs-visual-list {grid-template-columns:minmax(0,1fr)}
+  .gcs-visual-card .gcs-photo {height:190px}
+  .ri-metric-grid {grid-template-columns:minmax(0,1fr)}
+  .lsa-stat-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .settings-shortcuts button {flex:1 1 40%}
+}
+
+/* iPad: comfortable settings and shoe grids with true touch targets. */
+@media (min-width:761px) and (max-width:1024px) {
+  .settings-shortcuts {display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 20px}
+  .settings-shortcuts button {
+    min-height:48px;padding:11px 19px;
+    color:#e6eaff;background:#1b2741;border:1px solid #38445f;
+    border-radius:13px;font-size:13px;font-weight:750;
+  }
+  .settings-section-title {font-size:20px;margin:25px 0 12px}
+  .gcs-archive summary,.sync-technical details summary {min-height:48px;cursor:pointer}
+  .gcs-photo-upload,.gcs-photo-remove {min-height:44px}
+  .lsa-picker select,.ri-account-row input {font-size:16px;min-height:48px}
+}
