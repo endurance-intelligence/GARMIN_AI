@@ -52,6 +52,7 @@ async function workerCall(jwt,method,body) {
     },
     ...(body?{body:JSON.stringify(body)}:{})
   })
+  if(res.status===429&&method==='GET')return {mode:'cooldown'}
   if(!res.ok){diagnosticHttpStatus=res.status;throw Error('Private Supabase worker authorization or storage failed')}
   return res.json()
 }
@@ -61,6 +62,10 @@ async function main(){
   const jwt=await githubIdentityToken()
   mark('supabase-vault-read')
   const credential=await workerCall(jwt,'GET')
+  if(credential?.mode==='cooldown'){
+    console.log('GARMIN CLOUD DATA SYNC: skipped; private OAuth cooldown active. No Garmin API request.')
+    return
+  }
   if(!credential||!Number.isSafeInteger(credential.version)||
      credential.version<=0||!isGarminCloudSession(credential.tokens))
     throw Error('Cloud Garmin session unavailable')
@@ -130,6 +135,17 @@ async function main(){
     }
     mark('compare-catalog')
     const preview=buildCloudPreview({rawGear,rawCalendar,activityLists,baseline,windowStart:start,windowEnd:end})
+    // Store a single, validated full Garmin snapshot with optimistic concurrency.
+    // This ONLY changes our Supabase cache, never anything in Garmin Connect.
+    mark('save-reviewed-snapshot')
+    const snapshotSaved=await workerCall(jwt,'POST',{
+      action:'save-reviewed-snapshot',
+      expectedSyncedAt:baseline.synced_at,windowStart:start,windowEnd:end,
+      gear:preview.snapshot.gear,
+      schedule:preview.snapshot.schedule,
+      activityGear:preview.snapshot.activityGear
+    })
+    if(snapshotSaved?.saved!==true)throw Error('Garmin snapshot not saved')
     completed=true
     console.log('GARMIN CLOUD DATA AUDIT: VERIFIED')
     console.log('Gear scanned:',preview.totals.gear)
