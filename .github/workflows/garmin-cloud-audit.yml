@@ -5,6 +5,10 @@ name: GARMIN_AI Cloud Read-Only Audit
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/garmin-cloud-audit.yml'
 
 permissions:
   contents: read
@@ -15,6 +19,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact reviewed source
+        uses: actions/checkout@v7
+        with:
+          ref: 92fd283032713d7bc1a99b3a69c10238634df01d
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Test OAuth 429 guard and audit safety
+        run: node --test tests/garmin-cloud-429-guard.test.mjs tests/garmin-cloud-data-audit.test.mjs tests/garmin-worker-claims.test.mjs tests/garmin-cloud-session.test.mjs tests/garmin-cloud-audit-diagnostic.test.mjs
+      - run: npm run build
+
   audit:
     name: Verify Garmin Connect Cloud gear and calendar
     if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
@@ -25,7 +50,7 @@ jobs:
       - name: Check out exact reviewed cloud audit version
         uses: actions/checkout@v4
         with:
-          ref: d15e901c1c5ad1896496784915d4ef286d32cf4d
+          ref: 92fd283032713d7bc1a99b3a69c10238634df01d
           persist-credentials: false
 
       - name: Configure Node.js
