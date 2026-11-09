@@ -1,0 +1,93 @@
+/* Horizon weather intelligence: compact touch-first shared Coach / Calendar / Race cards */
+.wx-panel{margin:20px 0 22px;border:1px solid rgba(167,177,250,.17);border-radius:21px;padding:23px;background:linear-gradient(142deg,#172139,#101726 69%,#0c1320);color:#eef2ff;min-width:0;overflow-wrap:anywhere;box-shadow:0 16px 36px rgba(0,0,0,.11)}
+.wx-panel *{box-sizing:border-box}
+.wx-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:19px;min-width:0}
+.wx-head>div{min-width:0}
+.wx-kicker{font-size:9px;letter-spacing:.15em;font-weight:850;color:#ada8ff}
+.wx-head h3{font-size:23px;letter-spacing:-.04em;margin:9px 0 8px}
+.wx-head p{font-size:12px;line-height:1.6;color:#a6b3cf;margin:0;max-width:540px}
+.wx-badge{font-size:9px;color:#b6c4e3;border:1px solid rgba(169,184,234,.18);border-radius:30px;padding:8px 11px;white-space:nowrap;font-weight:780;letter-spacing:.08em}
+.wx-location{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 16px;border-radius:15px;border:1px solid rgba(175,188,243,.12);background:rgba(255,255,255,.03)}
+.wx-place{min-width:0;display:flex;flex-direction:column;gap:5px}
+.wx-place>span{font-size:9px;letter-spacing:.15em;color:#9ca9c5;font-weight:800}
+.wx-place strong{font-size:16px;font-weight:800;letter-spacing:-.015em}
+.wx-place small{font-size:11px;color:#8e9fbd;line-height:1.4}
+.wx-action,.wx-search-row button,.wx-refresh button{flex:0 0 auto;background:#343a60;border:1px solid rgba(174,164,250,.3);border-radius:11px;color:#f2f1ff;min-height:43px;padding:9px 13px;font-size:12px;font-weight:800}
+.wx-action:hover,.wx-search-row button:hover,.wx-refresh button:hover{background:#464374}
+.wx-action:disabled,.wx-search-row button:disabled,.wx-refresh button:disabled{opacity:.45;cursor:default}
+.wx-place-search{margin-top:12px;padding:16px;border-radius:14px;background:rgba(10,15,29,.65);border:1px solid rgba(176,182,231,.12)}
+.wx-place-search form label{font-size:12px;color:#c8d4f2;font-weight:780;display:block;margin-bottom:8px}
+.wx-search-row{display:flex;gap:8px}
+.wx-search-row input,.wx-race-fields input,.wx-race-fields select,.wx-slot-toolbar select{border:1px solid rgba(172,181,228,.28);border-radius:11px;min-width:0;min-height:45px;color:#fff;background:#1c253c;padding:10px 12px;font-size:16px;width:100%;font-family:inherit;color-scheme:dark}
+.wx-search-row input{flex:1}
+.wx-search-row button{min-width:90px}
+.wx-geolocate{background:transparent;border:none;color:#b2b2ff;padding:12px 0 4px;min-height:44px;font-size:12px;font-weight:740;text-align:left}
+.wx-results{margin-top:9px;display:flex;flex-direction:column;border:1px solid rgba(160,177,234,.14);border-radius:12px;overflow:hidden}
+.wx-results button{padding:12px 13px;min-height:44px;text-align:left;font-size:12px;color:#dfe7ff;background:#182238;border:0;border-bottom:1px solid rgba(172,183,240,.1)}
+.wx-results button:last-child{border-bottom:0}
+.wx-results button:hover{background:#293456}
+.wx-error{color:#ffb9a6;font-size:12px;line-height:1.6;margin:12px 0}
+.wx-refresh{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:13px}
+.wx-refresh span{font-size:11px;color:#94a5c2}
+.wx-refresh button{min-height:38px;font-size:11px;padding:8px 12px}
+.wx-now{display:flex;align-items:center;justify-content:space-between;gap:18px;border-top:1px solid rgba(178,196,255,.11);padding-top:17px;margin-top:18px}
+.wx-now>div:first-child{display:flex;flex-direction:column;gap:6px}
+.wx-now small{font-size:10px;color:#b5c2da;font-weight:760;letter-spacing:.08em}
+.wx-now>div:first-child>strong{font-size:53px;line-height:1;letter-spacing:-.06em}
+.wx-now>div:first-child>span{font-size:11px;color:#a7b8d4}
+.wx-now-side{display:flex;flex-direction:column;gap:8px;min-width:125px}
+.wx-now-side span{display:flex;justify-content:space-between;gap:12px;color:#9baac5;font-size:11px}
+.wx-now-side strong{color:#f3f5fe;font-weight:790}
+.wx-slot-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:22px 0 11px}
+.wx-slot-toolbar>strong{font-size:14px;font-weight:790}
+.wx-slot-toolbar label{display:flex;gap:9px;align-items:center;font-size:10px;color:#a7b7d1}
+.wx-slot-toolbar select{min-height:37px;font-size:12px;padding:7px 8px;width:auto}
+.wx-slot{padding:17px 18px;border-radius:16px;background:rgba(142,136,245,.09);border:1px solid rgba(159,153,253,.18);display:flex;flex-direction:column;gap:8px}
+.wx-slot>span{font-size:9px;letter-spacing:.12em;color:#c4b8ff;font-weight:850}
+.wx-slot>strong{font-size:28px;letter-spacing:-.04em}
+.wx-slot p{font-size:12px;color:#c6d0e5;margin:0;line-height:1.5}
+.wx-level-ungünstig,.wx-level-kritisch{border-color:rgba(250,165,120,.25);background:rgba(227,117,94,.06)}
+.wx-level-ungünstig>span,.wx-level-kritisch>span{color:#ffc4a7}
+.wx-metrics{display:flex;flex-wrap:wrap;gap:8px}
+.wx-metrics span{font-size:10px;color:#d1d8ea;background:rgba(255,255,255,.05);border-radius:8px;padding:6px 8px}
+.wx-note,.wx-source,.wx-empty{font-size:11px;line-height:1.65;color:#93a6c4;margin:13px 0 0}
+.wx-source{border-top:1px solid rgba(178,191,230,.09);padding-top:13px;font-size:10px}
+.wx-source a{color:#bcb7ff;text-decoration:underline;text-underline-offset:2px}
+.wx-race-fields{margin:17px 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.wx-race-fields label{min-width:0;display:flex;flex-direction:column;gap:8px;font-size:11px;color:#c3d0e7;font-weight:770}
+.wx-race-fields input,.wx-race-fields select{min-width:0;width:100%}
+.wx-outside{padding:17px;border:1px solid rgba(238,186,114,.25);background:rgba(244,185,94,.07);border-radius:14px;margin:16px 0}
+.wx-outside strong{color:#ffe1a5;font-size:13px}
+.wx-outside p{font-size:12px;color:#cbd0db;line-height:1.55;margin:7px 0 0}
+.wx-race-result{margin-top:14px}
+.wx-race-status{display:flex;flex-direction:column;gap:6px;padding:12px 0}
+.wx-race-status strong{font-size:14px}
+.wx-race-status small{font-size:11px;color:#9cabc6}
+.wx-race-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.wx-race-step{display:flex;flex-direction:column;gap:7px;min-width:0;border-radius:12px;padding:13px 12px;background:rgba(126,151,208,.07);border:1px solid rgba(165,186,229,.1)}
+.wx-race-step span{font-size:10px;color:#b4b1f8;font-weight:800}
+.wx-race-step strong{font-size:13px;line-height:1.3}
+.wx-race-step small{font-size:10px;color:#a5b3ce;line-height:1.5}
+@media(max-width:760px){
+ .wx-panel{padding:18px 14px;border-radius:18px;margin-block:17px}
+ .wx-head{gap:8px;margin-bottom:14px}
+ .wx-head h3{font-size:20px}
+ .wx-head p{font-size:12px}
+ .wx-badge{font-size:8px;padding:7px 8px}
+ .wx-location{padding:13px 11px;gap:8px}
+ .wx-place strong{font-size:13px}
+ .wx-action{padding:8px 10px;font-size:11px}
+ .wx-now>div:first-child>strong{font-size:43px}
+ .wx-slot>strong{font-size:25px}
+ .wx-slot-toolbar>strong{font-size:12px}
+ .wx-slot-toolbar label{font-size:10px}
+ .wx-race-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .wx-race-fields label:last-child{grid-column:1 / -1}
+}
+@media(max-width:370px){
+ .wx-head{flex-wrap:wrap}
+ .wx-now-side{min-width:108px}
+ .wx-race-steps{grid-template-columns:minmax(0,1fr)}
+ .wx-slot-toolbar{flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce){.wx-panel *{scroll-behavior:auto}}
