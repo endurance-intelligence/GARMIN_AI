@@ -25,7 +25,7 @@ jobs:
       - name: Check out exact reviewed cloud audit version
         uses: actions/checkout@v4
         with:
-          ref: afe919ce2ffe6f250a3c52d627c35a78189adde8
+          ref: 7b53cf46bb6edeba68e654991324f29a331d7148
           persist-credentials: false
 
       - name: Configure Node.js
@@ -38,7 +38,7 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Test audit and OIDC access guards
-        run: node --test tests/garmin-cloud-data-audit.test.mjs tests/garmin-worker-claims.test.mjs tests/garmin-cloud-session.test.mjs
+        run: node --test tests/garmin-cloud-data-audit.test.mjs tests/garmin-worker-claims.test.mjs tests/garmin-cloud-session.test.mjs tests/garmin-cloud-audit-diagnostic.test.mjs
 
       - name: Read Garmin Connect via Supabase OIDC bridge
         run: node scripts/cloud/audit-garmin-connect.mjs
