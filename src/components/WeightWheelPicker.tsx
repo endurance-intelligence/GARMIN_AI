@@ -4,7 +4,7 @@
  * never write to Garmin or Supabase without the existing Save button.
  */
 import {useEffect,useLayoutEffect,useRef,useState} from 'react'
-import type {KeyboardEvent,UIEvent} from 'react'
+import type {KeyboardEvent as ReactKeyboardEvent,UIEvent} from 'react'
 import {createPortal} from 'react-dom'
 import {weightFromParts,weightToParts} from '../lib/weightPickerMath'
 import './WeightWheelPicker.css'
@@ -37,7 +37,7 @@ function WheelColumn({label,values,value,onChange}:{
     const index=Math.max(0,Math.min(values.length-1,Math.round(event.currentTarget.scrollTop/ROW)))
     if(index!==last.current){last.current=index;onChange(values[index])}
   }
-  function onKeys(event:KeyboardEvent<HTMLDivElement>){
+  function onKeys(event:ReactKeyboardEvent<HTMLDivElement>){
     const i=values.indexOf(value)
     if(event.key==='ArrowDown'){event.preventDefault();select(i+1,true)}
     if(event.key==='ArrowUp'){event.preventDefault();select(i-1,true)}
@@ -91,7 +91,7 @@ export function WeightWheelPicker({value,onChange,disabled=false}:{
     if(!open)return
     const previous=document.body.style.overflow
     document.body.style.overflow='hidden'
-    const onKey=(event:globalThis.KeyboardEvent)=>{
+    const onKey=(event:KeyboardEvent)=>{
       if(event.key==='Escape'){event.preventDefault();setOpen(false);requestAnimationFrame(()=>trigger.current?.focus())}
     }
     window.addEventListener('keydown',onKey)
