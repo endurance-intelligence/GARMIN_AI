@@ -85,7 +85,7 @@ function key(kind: 'publishable' | 'secret'): string {
   return Deno.env.get(legacy) || ''
 }
 function cors(origin: string | null): Record<string, string> {
-  const allow = !!origin && /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin)
+  const allow = origin==='https://endurance-intelligence.github.io' || (!!origin && /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin))
   return {
     ...(allow ? { 'Access-Control-Allow-Origin': origin, 'Vary': 'Origin' } : {}),
     'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
