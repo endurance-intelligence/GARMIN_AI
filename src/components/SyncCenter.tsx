@@ -21,6 +21,14 @@ function berlinDay(){
   const item=(type:string)=>parts.find(p=>p.type===type)?.value||''
   return [item('year'),item('month'),item('day')].join('-')
 }
+function shortWeightDate(day:string):string {
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return day
+  const instant=Date.parse(day+'T12:00:00Z')
+  if(!Number.isFinite(instant))return day
+  return new Intl.DateTimeFormat('de-DE',{
+    timeZone:'UTC',weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'
+  }).format(new Date(instant))
+}
 function dateText(raw?:string|null){
   if(!raw)return 'Noch kein bestätigter Stand'
   const timestamp=Date.parse(raw)
@@ -194,7 +202,7 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
     {name:'Trainingskalender',source:data?.sources.calendar,
       detail:'Letzter lokaler Snapshot: '+dateText(data?.sources.calendar.checkedAt)}
   ]
-  return <section className="sync-center" aria-label={mode==='weight'?'Tägliches Gewicht':'Synchronisierungsstatus'}>
+  return <section className={mode==='weight'?'sync-center sync-center-weight':'sync-center'} aria-label={mode==='weight'?'Tägliches Gewicht':'Synchronisierungsstatus'}>
     {mode==='weight'?<>
       <div className="sync-top"><div><span className="micro-label">MORGENROUTINE / GARMIN</span><h3>Gewicht eintragen.</h3>
         <p>Einmal morgens wiegen und erfassen. Die Übertragung nach Garmin wird separat bestätigt.</p></div>
@@ -202,10 +210,16 @@ export function SyncCenter({active,mode}:{active:boolean;mode:'weight'|'status'}
       {garminSupabaseReady&&!session&&<p className="sync-hint">Bitte unter Einstellungen anmelden.</p>}
       {!garminSupabaseReady&&<p className="sync-hint">Supabase-Zugang fehlt.</p>}
       {session&&<div className="sync-weigh-form">
-        <label className="sync-date-field">Datum
-          <input type="date" value={date}
+        <label className="sync-date-field">
+          <span className="sync-weight-label">Datum</span>
+          <span className="sync-date-display" aria-hidden="true">
+            <strong>{shortWeightDate(date)}</strong>
+            <span className="sync-date-action">Ändern</span>
+          </span>
+          <input type="date" aria-label="Datum auswählen" value={date}
             onChange={event=>{
               const selectedDate=event.target.value
+              if(!selectedDate)return
               setDate(selectedDate)
               const existing=data?.weightEntries.find(entry=>entry.weigh_date===selectedDate)
               if(existing)setWeight(Number(existing.weight_kg).toFixed(1))
