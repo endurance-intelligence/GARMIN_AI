@@ -271,7 +271,7 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
         <p>{snapshot ? `Stand: ${formatDate(snapshot.checked_at)} · Speicherung: ${formatDate(snapshot.synced_at)}` :
         'Noch kein Garmin-Connect-Snapshot gespeichert.'}</p>
       </div>
-      {mode==='gear' && <div className="gcs-toolbar">
+      {mode==='gear' && import.meta.env.DEV && <div className="gcs-toolbar">
         {snapshot?.activity_gear_scope==='complete' && <button type="button" className="gcs-sync-button"
           onClick={()=>void syncGearLinks()} disabled={!session||busy||syncBusy}>
           {syncBusy?'Abgleich läuft …':'Schuhzuordnungen synchronisieren'}
