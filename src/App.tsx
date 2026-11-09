@@ -9,6 +9,7 @@ import {GearPage} from './pages/GearPage'
 import {SettingsPage} from './pages/SettingsPage'
 import type {Page} from './navigation'
 import './styles/horizon.css'
+import './styles/mobile-first.css'
 
 const navigation: {id:Page; name:string; icon:string; mobile:string}[] = [
   {id:'home',name:'Coach',icon:'layout-dashboard',mobile:'Coach'},
