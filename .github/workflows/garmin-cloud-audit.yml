@@ -25,7 +25,7 @@ jobs:
       - name: Check out exact reviewed cloud audit version
         uses: actions/checkout@v4
         with:
-          ref: 7b53cf46bb6edeba68e654991324f29a331d7148
+          ref: f09413f5c4f69a17f0178a428e75cef0802cc873
           persist-credentials: false
 
       - name: Configure Node.js
