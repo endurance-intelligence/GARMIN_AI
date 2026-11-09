@@ -33,7 +33,7 @@ jobs:
       - name: Checkout reviewed mobile build
         uses: actions/checkout@v7
         with:
-          ref: 37fdbe592f33ef1be3014aff4db532c89621eb6f
+          ref: 74f6034914161c797a1e3b4ee5036547631d5fc0
           persist-credentials: false
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -42,8 +42,8 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Run mobile security, layout and weight-picker tests
-        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs
+      - name: Verify mobile access, calendar layout and weight-picker tests
+        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs tests/mobile-horizon-calendar.test.mjs
       - name: Build iPhone/iPad release
         run: npm run build
       - name: Verify GitHub Pages paths
@@ -71,7 +71,7 @@ jobs:
       - name: Check out exact reviewed mobile release
         uses: actions/checkout@v7
         with:
-          ref: 37fdbe592f33ef1be3014aff4db532c89621eb6f
+          ref: 74f6034914161c797a1e3b4ee5036547631d5fc0
           persist-credentials: false
 
       - name: Set up Node.js
@@ -96,7 +96,7 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Verify mobile access controls
-        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs
+        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs tests/mobile-horizon-calendar.test.mjs
 
       - name: Build GitHub Pages app
         run: npm run build
