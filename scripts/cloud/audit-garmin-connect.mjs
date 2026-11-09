@@ -9,7 +9,11 @@
 import {GarminClient,Garmin,MemoryTokenStore} from 'garminconnect-js'
 import {isGarminCloudSession,tokenChanged} from './garmin-cloud-session.mjs'
 import {buildCloudPreview} from './garmin-cloud-data-audit-model.mjs'
+import {safeAuditDiagnostic} from './safe-audit-diagnostic.mjs'
 
+let diagnosticPhase='github-oidc'
+let diagnosticHttpStatus=null
+const mark=phase=>{diagnosticPhase=phase;diagnosticHttpStatus=null}
 const ref='eurgupsebxypjqvyizci'
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms))
 const required=name=>{
@@ -32,7 +36,7 @@ async function githubIdentityToken() {
     headers:{authorization:'Bearer '+requestToken},
     signal:AbortSignal.timeout(15000),cache:'no-store',redirect:'error'
   })
-  if(!res.ok)throw Error('GitHub OIDC token request failed')
+  if(!res.ok){diagnosticHttpStatus=res.status;throw Error('GitHub OIDC token request failed')}
   const body=await res.json()
   if(typeof body?.value!=='string'||body.value.split('.').length!==3)
     throw Error('GitHub OIDC token missing')
@@ -47,17 +51,20 @@ async function workerCall(jwt,method,body) {
     },
     ...(body?{body:JSON.stringify(body)}:{})
   })
-  if(!res.ok)throw Error('Private Supabase worker authorization or storage failed')
+  if(!res.ok){diagnosticHttpStatus=res.status;throw Error('Private Supabase worker authorization or storage failed')}
   return res.json()
 }
 async function main(){
   // No long-lived Supabase service-role key is ever placed in GitHub.
+  mark('github-oidc')
   const jwt=await githubIdentityToken()
+  mark('supabase-vault-read')
   const credential=await workerCall(jwt,'GET')
   if(!credential||!Number.isSafeInteger(credential.version)||
      credential.version<=0||!isGarminCloudSession(credential.tokens))
     throw Error('Cloud Garmin session unavailable')
 
+  mark('load-garmin-session')
   const store=new MemoryTokenStore()
   await store.save(credential.tokens)
   const client=new GarminClient({tokenStore:store,timeoutMs:15000,retries:0})
@@ -65,24 +72,29 @@ async function main(){
   const garmin=new Garmin(client)
   let completed=false
   try{
+    mark('load-baseline')
     const baseline=credential.baseline
     if(!baseline||baseline.activity_gear_scope!=='complete')
       throw Error('Verified Garmin baseline missing')
 
+    mark('garmin-profile')
     const profile=await garmin.getUserProfile()
     if(!Number.isSafeInteger(profile?.profileId))
       throw Error('Garmin user profile not recognized')
+    mark('garmin-gear')
     const rawGear=await garmin.getGear(profile.profileId)
     if(!Array.isArray(rawGear)||rawGear.length<1||rawGear.length>100)
       throw Error('Garmin gear catalog shape unavailable')
 
     const start=new Date(Date.now()-14*86400_000).toISOString().slice(0,10)
     const end=new Date(Date.now()+42*86400_000).toISOString().slice(0,10)
+    mark('garmin-calendar')
     const rawCalendar=await garmin.getScheduledWorkoutSummaries(start,end)
 
     const ids=rawGear.map(g=>g?.uuid??g?.gearUUID??g?.gearUuid??g?.gearId)
     if(ids.some(id=>typeof id!=='string'))
       throw Error('Garmin gear IDs missing')
+    mark('garmin-gear-history')
     const activityLists=[]
     for(let i=0;i<ids.length;i++){
       // The full current catalog, including retired gear, must be scanned:
@@ -90,6 +102,7 @@ async function main(){
       activityLists.push(await garmin.getGearActivities(ids[i],1000))
       if(i+1<ids.length)await wait(700)
     }
+    mark('compare-catalog')
     const preview=buildCloudPreview({rawGear,rawCalendar,activityLists,baseline,windowStart:start,windowEnd:end})
     completed=true
     console.log('GARMIN CLOUD DATA AUDIT: VERIFIED')
@@ -104,6 +117,7 @@ async function main(){
     // even if a later data request failed, to keep the next check functional.
     const after=client.getTokens()
     if(after&&isGarminCloudSession(after)&&tokenChanged(credential.tokens,after)){
+      mark('save-rotated-session')
       const saved=await workerCall(jwt,'POST',{
         tokens:after,expectedVersion:credential.version
       })
@@ -114,6 +128,6 @@ async function main(){
 }
 main().catch(()=>{
   // Do not print raw SDK exceptions, account data or OAuth access tokens.
-  console.error('GARMIN CLOUD DATA AUDIT: failed. Investigate the private worker logs.')
+  console.error(safeAuditDiagnostic(diagnosticPhase,diagnosticHttpStatus))
   process.exitCode=1
 })
