@@ -31,7 +31,7 @@ jobs:
       - name: Check out exact reviewed mobile release
         uses: actions/checkout@v7
         with:
-          ref: 1812ce16e4422261548a91c04ab1e8bc36b6a537
+          ref: 5b94169b8416128b4968b2205d0008ab00768c70
           persist-credentials: false
 
       - name: Set up Node.js
@@ -56,7 +56,7 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Verify mobile access controls
-        run: node --test tests/mobile-web-policy.test.mjs
+        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs
 
       - name: Build GitHub Pages app
         run: npm run build
