@@ -16,8 +16,8 @@ begin
  select * into r from public.garmin_training_plan
  where state='pending' and session_type='workout'
    and garmin_workout_id>0 and attempt_count=0
-   and training_date>=current_date
-   and training_date<=current_date+90
+   and training_date>=(clock_timestamp() at time zone 'Europe/Berlin')::date
+   and training_date<=(clock_timestamp() at time zone 'Europe/Berlin')::date+90
  order by training_date,created_at limit 1;
  if not found then return pg_catalog.jsonb_build_object('available',false); end if;
  return pg_catalog.jsonb_build_object(
@@ -37,7 +37,7 @@ begin
  where id=p_id and revision=p_revision and state='pending'
    and session_type='workout' and approved_at is not null
    and training_date=p_date and garmin_workout_id=p_workout_id
-   and training_date>=current_date and training_date<=current_date+90
+   and training_date>=(clock_timestamp() at time zone 'Europe/Berlin')::date and training_date<=(clock_timestamp() at time zone 'Europe/Berlin')::date+90
    and attempt_count=0
  returning attempt_id into v_attempt;
  return pg_catalog.jsonb_build_object(
