@@ -91,3 +91,34 @@
  .wx-slot-toolbar{flex-wrap:wrap}
 }
 @media(prefers-reduced-motion:reduce){.wx-panel *{scroll-behavior:auto}}
+
+/* v0.9.9 – the default Coach/Calendar weather UI is a single useful glance. */
+.wx-brief{margin:14px 0 0;border-radius:13px;border:1px solid rgba(165,178,231,.13);background:#172137;min-width:0}
+.wx-brief-line{display:flex;align-items:center;gap:12px;padding:11px 12px;min-height:67px;min-width:0}
+.wx-brief-glyph{font-size:28px;line-height:1;flex:0 0 34px;text-align:center}
+.wx-brief-info{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.wx-brief-info>span{color:#a8b6d2;font-size:11px}
+.wx-brief-info strong{color:#f0f4ff;font-size:13px;letter-spacing:-.01em;line-height:1.3}
+.wx-brief-info small{color:#a0acc8;font-size:11px;line-height:1.35;overflow-wrap:anywhere}
+.wx-brief-more{border:1px solid rgba(185,187,248,.17);background:#252b49;color:#d5d1ff;border-radius:10px;min-height:42px;min-width:61px;padding:8px 9px;font-size:11px;font-weight:780}
+.wx-brief-more:hover{background:#36375f}
+.wx-brief-details{padding:12px;border-top:1px solid rgba(170,188,236,.11);min-width:0}
+.wx-brief-tools,.wx-brief-settings{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap}
+.wx-brief-tools span{font-size:12px;color:#c1cbe2}
+.wx-brief-tools button,.wx-brief-settings button{border:1px solid rgba(185,193,251,.19);border-radius:9px;background:#2a304b;color:#eff2ff;padding:9px 11px;min-height:42px;font-size:11px}
+.wx-brief-settings{margin-top:10px}
+.wx-brief-settings>span{font-size:10px;color:#8fa3c1;flex:1}
+.wx-brief-settings label{font-size:11px;color:#a4b3cf;display:flex;gap:6px;align-items:center}
+.wx-brief-settings select{min-width:82px;font-size:13px;color:#fff;background:#212b45;border:1px solid rgba(176,184,232,.23);border-radius:9px;min-height:42px;padding:5px}
+.wx-brief-data{font-size:11px;color:#b5c0d5;margin:11px 0 0;line-height:1.5}
+.wx-brief-source{font-size:10px;color:#8c9db9;margin:9px 0 0}
+.wx-brief-source a{color:#a9adff;text-decoration:underline}
+.wx-brief .wx-place-search{margin-top:10px}
+@media(max-width:760px){
+ .wx-brief{margin-top:12px}
+ .wx-brief-line{padding:10px;gap:8px}
+ .wx-brief-glyph{font-size:24px;flex-basis:27px}
+ .wx-brief-info strong{font-size:12px}
+ .wx-brief-info>span,.wx-brief-info small{font-size:10px}
+ .wx-brief-more{min-width:53px;padding:8px 6px}
+}
