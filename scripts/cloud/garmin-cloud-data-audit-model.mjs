@@ -48,6 +48,8 @@ export function buildCloudPreview({rawGear,rawCalendar,activityLists,baseline,wi
   return {
     checkedAt:new Date().toISOString(),complete:true,
     totals:{gear:gear.length,links:links.length,scheduled:calendar.length},
+    // Strictly normalized complete read, never an untrusted raw Garmin response.
+    snapshot:{gear,schedule:calendar,activityGear:links},
     differences:{
       gearAdded:ids.filter(id=>!pastIds.has(id)).length,
       linksAdded:[...seen].filter(k=>!previous.has(k)).length,
