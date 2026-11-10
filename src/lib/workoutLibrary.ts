@@ -1,11 +1,15 @@
 import {buildOrcWorkout,ORC_GROUPS} from './orcTrackWorkout.ts'
 import type {OrcGroup} from './orcTrackWorkout'
 export type WorkoutStepKind='run'|'recovery'|'drill'|'warmup'|'cooldown'
+/** Optional to keep all existing, immutable archived trainer posters valid. */
+export type WorkoutEndMode='lap'|'distance'
+export const endModeFor=(v:{endMode?:WorkoutEndMode}):WorkoutEndMode=>v.endMode==='distance'?'distance':'lap'
 export type TrainerStep={
  kind:WorkoutStepKind;distanceMeters:number|null;
- durationSeconds:number|null;paceSecondsPerKm:number|null;notes:string
+ durationSeconds:number|null;paceSecondsPerKm:number|null;notes:string;
+ endMode?:WorkoutEndMode
 }
-export type TrainerSegment={distanceMeters:number|null;durationSeconds:number|null;notes:string}
+export type TrainerSegment={distanceMeters:number|null;durationSeconds:number|null;notes:string;endMode?:WorkoutEndMode}
 export type TrainerGroup={name:string;notes:string;steps:TrainerStep[]}
 export type TrainerWorkout={
  version:1;title:string;trainer:string;sourceLabel:string;
@@ -30,7 +34,7 @@ export function parsePace(value:string):number|null{
 }
 export function blankStep(kind:WorkoutStepKind='run'):TrainerStep{
  return {kind,distanceMeters:kind==='run'?1000:kind==='recovery'?200:null,
-  durationSeconds:null,paceSecondsPerKm:null,notes:''}
+  durationSeconds:null,paceSecondsPerKm:null,notes:'',endMode:'lap'}
 }
 export function blankTrainerWorkout():TrainerWorkout{
  return {version:1,title:'',trainer:'',sourceLabel:'',
@@ -54,7 +58,7 @@ export function previousOrcFlyer():TrainerWorkout{
      kind:s.kind==='interval'?'run':'recovery',
      distanceMeters:s.distanceMeters??null,durationSeconds:null,
      paceSecondsPerKm:s.pace?.seconds??null,
-     notes:s.notes||''
+     notes:s.notes||'',endMode:'lap'
     }))
    return {name,notes:w.blocks.join(' + ')+' 1000-m-Blöcke',steps}
   })
