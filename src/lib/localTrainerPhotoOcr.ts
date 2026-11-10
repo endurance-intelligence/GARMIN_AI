@@ -92,7 +92,7 @@ const LOCAL_OCR_FRAME=`<!doctype html>
       let found=unique(anchors(labels.data,y,2.7));
       // Sparse/busy graphics sometimes hide names in a tall region.
       // Scan narrower overlapping bands ONLY when the first pass failed.
-      if(found.length<2){
+      if(found.length<5){
        for(let i=0;i<8;i++){
         const start=height*(.37+i*.072);
         if(start>=height*.96)break;
