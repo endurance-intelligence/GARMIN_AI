@@ -30,7 +30,11 @@ const reply=(status:number,data:unknown,h:Record<string,string>)=>
  new Response(JSON.stringify(data),{status,headers:h})
 const isObject=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v)
 const uuid=(v:unknown)=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
-const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
+const today=()=>{
+ const p=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
+ const v=(k:string)=>p.find(x=>x.type===k)?.value||''
+ return v('year')+'-'+v('month')+'-'+v('day')
+}
 class RemoteError extends Error {
  status:number
  constructor(status:number){super('Intervals HTTP '+status);this.status=status}
