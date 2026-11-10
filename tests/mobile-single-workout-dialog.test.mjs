@@ -14,7 +14,7 @@ test('training review is one portaled accessible dialog, not nested layers',()=>
  assert.match(modal,/role="dialog" aria-modal="true"/)
  assert.match(modal,/document\.body\.style\.overflow='hidden'/)
  assert.match(modal,/event\.key==='Escape'/)
- assert.match(modal,/event\.key==='Tab'/)
+ assert.match(modal,/event\.key!=='Tab'/)
  assert.doesNotMatch(page,/<div className="wa-editor">|<details className="wa-local-photo">/)
  assert.doesNotMatch(modal,/<details(?:\s|>)/)
 })
@@ -29,7 +29,7 @@ test('all five reviewed ORC groups can be chosen in one single modal',()=>{
  assert.match(modal,/workout\.groups\.map\(\(g,i\)=>/)
  assert.match(modal,/onGroup\(i\)/)
  assert.match(modal,/groupIndex===i/)
- assert.match(modal,/einzelnen Garmin-Schritte/)
+ assert.match(modal,/einzelne Garmin-Schritte/)
 })
 test('unreliable OCR remains clearly identified and does not fabricate missing groups',()=>{
  assert.match(page,/setOcrIdentifiedGroups\(interpreted.detectedGroups\)/)
