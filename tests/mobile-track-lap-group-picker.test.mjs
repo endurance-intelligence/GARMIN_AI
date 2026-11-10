@@ -69,7 +69,7 @@ test('original template is gated by explicit user checkbox before replacing part
  assert.match(read('src/components/WorkoutReviewDialog.tsx'),/checked=\{referenceConfirmed\}/)
  assert.match(read('src/components/WorkoutReviewDialog.tsx'),/Deine Gruppe wählen/)
  assert.match(read('src/components/WorkoutReviewDialog.tsx'),/groupIndex===i/)
- assert.match(read('src/components/WorkoutReviewDialog.tsx'),/makeTrackLapGuide\(workout,group.name\)/)
+ assert.match(read('src/components/WorkoutFinishSelector.tsx'),/makeTrackLapGuide\(workout,group.name\)/)
  assert.match(ui,/onClick=\{\(\)=>viewRecord\(record,group\)\}/)
 })
 test('owner-controlled private archive and Garmin write restrictions unchanged',()=>{
