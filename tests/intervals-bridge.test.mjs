@@ -16,8 +16,8 @@ test('structured export honors distance and LAP for each step',()=>{
  assert.equal(x.category,'WORKOUT');
  assert.equal(x.type,'Run');
  assert.match(x.description,/400mtr 4:00-4:20\/km Pace intensity=interval/);
- assert.match(x.description,/TRAB 200ER? Press lap 60m|TRAB 200M.*Press lap 60m/);
- assert.match(x.description,/800ER Press lap 60m 4:10-4:30\/km Pace/);
+ assert.match(x.description,/Press lap TRAB 200M 60m/);
+ assert.match(x.description,/Press lap LAUF 800ER 60m 4:10-4:30\/km Pace/);
  assert.match(x.description,/800mtr.*intensity=cooldown/);
 });
 test('does not upload another trainer group',()=>{
@@ -37,7 +37,7 @@ test('rejects incompatible completion modes',()=>{
 test('old archive steps default to manual LAP',()=>{
  const clone=structuredClone(base.archive_snapshot);
  delete clone.group.steps[0].endMode;
- assert.match(buildIntervalsWorkout(clone,'x').description,/400ER Press lap/);
+ assert.match(buildIntervalsWorkout(clone,'x').description,/Press lap LAUF 400ER/);
 });
 test('refuses more than 50 Garmin steps',()=>{
  const clone=structuredClone(base.archive_snapshot);
