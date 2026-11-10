@@ -6,6 +6,7 @@ import {
 import type {ArchiveRecord,TrainerWorkout,TrainerGroup,TrainerStep,WorkoutStepKind} from '../lib/workoutLibrary'
 import {readTrainerPhotoLocally} from '../lib/localTrainerPhotoOcr'
 import {interpretLocalPhotoText,isKnownOrcOriginal} from '../lib/localPhotoWorkout'
+import {TrackLapPreview} from './TrackLapPreview'
 import '../styles/workout-archive.css'
 
 type ArchiveResponse={entries:ArchiveRecord[];hasMore:boolean;nextPage:number|null;visionConfigured:boolean}
@@ -88,6 +89,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
  const [ocrWarnings,setOcrWarnings]=useState<string[]>([])
  const [ocrIdentifiedGroups,setOcrIdentifiedGroups]=useState(0)
  const [ocrWasTemplate,setOcrWasTemplate]=useState(false)
+ const [referenceConfirmed,setReferenceConfirmed]=useState(false)
  const [localPhotoUrl,setLocalPhotoUrl]=useState<string|null>(null)
  const localPhotoUrlRef=useRef<string|null>(null)
  const [choice,setChoice]=useState<Record<string,string>>({})
@@ -139,7 +141,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    return
   }
   setLocalBusy(true);setOcrProgress('Lokale Texterkennung startet …')
-  setOcrRaw('');setOcrWarnings([]);setError('');setSuccess('')
+  setOcrRaw('');setOcrWarnings([]);setReferenceConfirmed(false);setError('');setSuccess('')
   try{
    const [text,hashBuffer]=await Promise.all([
     readTrainerPhotoLocally(file,(phase,value)=>{
@@ -181,6 +183,19 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    setError(e instanceof Error?e.message:'Lokale Texterkennung fehlgeschlagen.')
   }finally{setLocalBusy(false);setOcrProgress('')}
  }
+ function loadReviewedOrcGroups(){
+  if(!referenceConfirmed||!localPhotoUrl||!ocrRaw)return
+  // Explicit selection of this EXACT, previously human-reviewed poster.
+  // OCR did not actually identify all five groups; don't claim otherwise.
+  begin(previousOrcFlyer(),'trainer_photo',imageHash)
+  setOcrWasTemplate(true)
+  setOcrWarnings([
+   'Du hast die geprüfte Vorlage „Schwelle im Wechsel“ ausgewählt.',
+   'Alle fünf Gruppen stammen aus der bereits kontrollierten Trainer-Grafik.',
+   'Vor dem Archivieren die aktuelle Grafik gegen die Pace-Werte prüfen.'
+  ])
+  setSuccess('Alle fünf Gruppen der geprüften Vorlage geladen. Gruppe auswählen und kontrollieren.')
+ }
  function completeOcrManually(){
   const blank=blankTrainerWorkout()
   blank.title='Trainertraining – Angaben aus Foto ergänzen'
@@ -192,7 +207,9 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
  }
  function begin(workout:TrainerWorkout,kind:SourceKind,hash:string|null=null){
   setEditing(workout);setSourceKind(kind);setImageHash(hash)
-  setEditGroup(0);setError('');setSuccess('')
+  setEditGroup(workout.groups.findIndex(g=>g.name==='Wolf')>=0?
+   workout.groups.findIndex(g=>g.name==='Wolf'):0)
+  setError('');setSuccess('')
   requestId.current=crypto.randomUUID()
  }
  function change(fn:(w:TrainerWorkout)=>void){
@@ -241,6 +258,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    if(result.saved!==true)throw Error('Speichern nicht bestätigt.')
    setEditing(null)
    setOcrWarnings([]);setOcrRaw('');setOcrIdentifiedGroups(0);setOcrWasTemplate(false)
+   setReferenceConfirmed(false)
    if(localPhotoUrlRef.current)URL.revokeObjectURL(localPhotoUrlRef.current)
    localPhotoUrlRef.current=null;setLocalPhotoUrl(null)
    await refresh()
@@ -319,9 +337,20 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    {ocrRaw&&<div className="wa-ocr-review" role="status">
     <strong>OCR-Auswertung · {ocrIdentifiedGroups} Gruppen aus Text erkannt{ocrWasTemplate?' · geprüfte Referenz übernommen':''}</strong>
     <ul>{ocrWarnings.map((warning,i)=><li key={i}>{warning}</li>)}</ul>
+    {!ocrWasTemplate&&localPhotoUrl&&<div className="wa-reference-action">
+     <strong>Ist das die bekannte ORC-Grafik „Schwelle im Wechsel“?</strong>
+     <p>Dann kannst du alle fünf Gruppen aus unserer bereits geprüften Originalvorlage
+      übernehmen. Diese Werte stammen <strong>nicht</strong> aus der unvollständigen
+      Texterkennung. Bei einem anderen Training bitte nicht auswählen.</p>
+     <label><input type="checkbox" checked={referenceConfirmed}
+      onChange={event=>setReferenceConfirmed(event.target.checked)}/>
+      Ja, die Grafik ist genau „Schwelle im Wechsel“.</label>
+     <button type="button" disabled={!referenceConfirmed||busy}
+      onClick={loadReviewedOrcGroups}>Alle 5 geprüften Gruppen übernehmen</button>
+    </div>}
     {!editing&&<button type="button" className="wa-manual-ocr" onClick={completeOcrManually}>
       Erkannten Text manuell ins Training übertragen
-    </button>}
+    </button>
     <details><summary>Erkannten Originaltext ansehen</summary>
      <pre>{ocrRaw||'Kein Text erkannt.'}</pre>
     </details>
@@ -351,6 +380,16 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
       <label>Hinweise<input value={editing[part].notes} maxLength={250}
        onChange={e=>change(w=>{w[part].notes=e.target.value})}/></label>
      </div>)}
+    </div>
+    <div className="wa-choice-row">
+     <label>Welche Gruppe läufst du?
+      <select aria-label="Gruppe für Trainingsvorschau wählen"
+       value={editGroup} onChange={e=>setEditGroup(Number(e.target.value))}>
+       {editing.groups.map((g,i)=><option key={i} value={i}>
+        {g.name||'Gruppe '+(i+1)}</option>)}
+      </select>
+     </label>
+     <span>{editing.groups.length} Gruppen in dieser Einheit</span>
     </div>
     <div className="wa-group-tabs" role="group" aria-label="Trainingsgruppe auswählen">
      {editing.groups.map((g,i)=><button type="button" key={i} aria-pressed={i===editGroup}
@@ -397,6 +436,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
        </div>
       </div>)}
      </div>
+     <TrackLapPreview workout={editing} group={editing.groups[editGroup].name}/>
      <div className="wa-add-step">
       <button type="button" onClick={()=>changeGroup(g=>{g.steps.push(blankStep('run'))})}>
        + Belastung</button>
@@ -430,7 +470,8 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    <div className="wa-list">
     {shown.map(record=>{
      const group=choice[record.id]||
-      record.workout.groups[0]?.name||''
+      (record.workout.groups.some(g=>g.name==='Wolf')?'Wolf':
+       record.workout.groups[0]?.name||'')
      const selected=record.workout.groups.find(g=>g.name===group)
      const overview=selected?workoutSummary(selected):null
      return <article className="wa-record" key={record.id}>
@@ -462,6 +503,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
          {sessionLabel(s)}</span>)}</div>
        <p><strong>Auslaufen:</strong> {record.workout.cooldown.notes||'offen'}</p>
        {selected.notes&&<p>{selected.notes}</p>}
+       <TrackLapPreview workout={record.workout} group={selected.name}/>
       </div>}
      </article>
     })}
