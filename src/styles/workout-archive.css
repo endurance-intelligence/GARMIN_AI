@@ -1,0 +1,86 @@
+/* Horizon dynamic workout archive – collapsed by default for clean Calendar. */
+.wa-root{margin:14px 0 0;border:1px solid rgba(178,190,233,.14);border-radius:16px;background:linear-gradient(130deg,#151e31,#101727);min-width:0}
+.wa-toggle{display:flex;align-items:center;gap:12px;padding:13px 14px;list-style:none;cursor:pointer;min-height:64px;color:#f0f3ff}
+.wa-toggle::-webkit-details-marker{display:none}
+.wa-toggle>span:nth-child(2){display:flex;flex:1;flex-direction:column;gap:4px;min-width:0}
+.wa-toggle strong{font-size:14px}
+.wa-toggle small{font-size:11px;color:#9daec8;line-height:1.5}
+.wa-icon{display:grid;place-items:center;flex:0 0 38px;height:38px;background:rgba(151,130,249,.16);color:#baa6ff;border-radius:12px;font-weight:850}
+.wa-count{font-size:11px;color:#aaa4f8;white-space:nowrap}
+.wa-content{padding:14px;border-top:1px solid rgba(169,185,239,.12);min-width:0}
+.wa-header h3{font-size:17px;letter-spacing:-.025em;margin:0 0 6px}
+.wa-header p,.wa-hint{font-size:11px;line-height:1.6;color:#99abc8;max-width:760px}
+.wa-header p{margin:0}
+.wa-hint{margin:11px 0}
+.wa-import-actions,.wa-add-step{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 7px}
+.wa-import-actions button,.wa-import-label,.wa-add-step button,.wa-editor-head button,
+.wa-record-actions button{display:flex;align-items:center;justify-content:center;min-height:43px;border-radius:10px;border:1px solid rgba(171,189,240,.24);background:#222b46;color:#e8eaff;padding:8px 12px;font-size:11px;font-weight:760;cursor:pointer;text-align:center}
+.wa-import-label{position:relative;background:#504878;color:#f5f2ff}
+.wa-import-label input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.wa-disabled,.wa-import-actions button:disabled{opacity:.45;cursor:default}
+.wa-import-label.wa-disabled input{cursor:default}
+.wa-editor{border:1px solid rgba(175,164,250,.2);background:#171f34;padding:16px;margin:17px 0;border-radius:15px;min-width:0}
+.wa-editor-head,.wa-list-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.wa-editor-head h3{font-size:17px;margin:0}
+.wa-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:15px 0}
+.wa-fields label,.wa-group-meta label,.wa-segment-fields label,.wa-step-fields label,.wa-record-controls label{display:flex;flex-direction:column;gap:6px;font-size:10px;color:#bbc9e1;min-width:0;font-weight:700}
+.wa-editor input,.wa-editor select,.wa-record select{width:100%;min-width:0;min-height:42px;padding:9px 10px;border-radius:9px;border:1px solid rgba(170,185,232,.26);font-size:14px;background:#202a44;color:#f1f4ff;color-scheme:dark;font-family:inherit;box-sizing:border-box}
+.wa-editor input::placeholder{color:#788ba9}
+.wa-segment-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:15px 0}
+.wa-segment-fields>div{display:grid;grid-template-columns:95px 1fr;gap:7px;border:1px solid rgba(178,193,240,.1);padding:12px;border-radius:11px;min-width:0}
+.wa-segment-fields>div>strong{grid-column:1/-1;font-size:12px}
+.wa-group-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 10px}
+.wa-group-tabs button{min-height:39px;border-radius:10px;background:#27314a;border:1px solid rgba(169,181,239,.18);padding:8px 10px;color:#c5d1ed;font-size:11px}
+.wa-group-tabs button.selected{background:#6555a3;border-color:#9c84dc;color:white}
+.wa-group-meta{display:grid;grid-template-columns:minmax(120px,.7fr) minmax(0,1.3fr);gap:8px;margin:0 0 10px}
+.wa-editor-steps{display:flex;flex-direction:column;gap:7px;max-height:560px;overflow-y:auto;overscroll-behavior:contain}
+.wa-step{border:1px solid rgba(185,198,245,.10);border-radius:11px;background:#131d30;padding:10px 11px;min-width:0}
+.wa-step-top{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}
+.wa-step-top strong{font-size:11px}
+.wa-step-top button{border:0;color:#e2a7a8;background:transparent;min-height:32px;font-size:10px}
+.wa-step-fields{display:grid;grid-template-columns:100px 90px 90px 90px minmax(0,1fr);gap:7px}
+.wa-editor-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding-top:13px;border-top:1px solid rgba(181,192,232,.11)}
+.wa-editor-footer p{font-size:11px;max-width:540px;color:#9cabc8;line-height:1.5;margin:0}
+.wa-editor-footer button,.wa-plan-button{background:#a4d779!important;color:#102414!important;border:1px solid #c8f6a1!important;border-radius:10px;font-size:12px;font-weight:830;min-height:44px;padding:9px 13px;white-space:nowrap}
+.wa-editor-footer button:disabled,.wa-plan-button:disabled{opacity:.48;cursor:default}
+.wa-list-header{margin:22px 0 11px}
+.wa-list-header strong{font-size:14px}
+.wa-list-header span{font-size:11px;color:#92a3c0}
+.wa-list{display:flex;flex-direction:column;gap:9px}
+.wa-record{border:1px solid rgba(165,179,227,.14);border-radius:13px;background:#151e31;padding:13px 14px;min-width:0}
+.wa-record-head{display:flex;align-items:start;justify-content:space-between;gap:10px}
+.wa-record-head>div{display:flex;flex-direction:column;gap:5px;min-width:0}
+.wa-record-head strong{font-size:14px;color:#eff1ff}
+.wa-record-head small{font-size:11px;color:#9aaacc;line-height:1.4}
+.wa-record-head>span{font-size:10px;color:#cbbcff;border:1px solid rgba(180,166,244,.22);padding:6px 8px;border-radius:999px;white-space:nowrap}
+.wa-record-controls{display:flex;align-items:end;gap:13px;margin:12px 0}
+.wa-record-controls label{width:min(200px,50%)}
+.wa-record-controls>span{font-size:11px;color:#a4b5d0;margin-bottom:10px}
+.wa-record-actions{display:flex;gap:9px;align-items:center;justify-content:space-between}
+.wa-record-details{margin-top:12px;border-top:1px solid rgba(180,193,244,.10);padding-top:10px}
+.wa-record-details p{font-size:11px;line-height:1.6;color:#adbad1;margin:6px 0}
+.wa-step-chips{display:flex;flex-wrap:wrap;gap:5px;margin:11px 0}
+.wa-chip{background:#254051;color:#b9dbe6;border:1px solid rgba(139,174,202,.14);padding:6px 9px;border-radius:8px;font-size:10px;font-variant-numeric:tabular-nums}
+.wa-chip-run{background:#44365a;color:#e8c4fc}
+.wa-success,.wa-error{font-size:12px;line-height:1.5;margin:10px 0;padding:11px 12px;border-radius:10px}
+.wa-success{background:rgba(153,211,135,.08);color:#bceab1;border:1px solid rgba(157,215,131,.19)}
+.wa-error{background:rgba(243,118,112,.08);color:#ffc5bc;border:1px solid rgba(243,118,112,.2)}
+@media(max-width:760px){
+ .wa-toggle{padding:10px;gap:9px;min-height:60px}
+ .wa-toggle small{font-size:10px}
+ .wa-content{padding:11px}
+ .wa-header h3{font-size:15px}
+ .wa-import-actions button,.wa-import-label{min-height:44px;flex:1;font-size:11px}
+ .wa-editor{padding:12px;margin:12px 0}
+ .wa-fields,.wa-segment-fields,.wa-group-meta{grid-template-columns:minmax(0,1fr)}
+ .wa-segment-fields>div{grid-template-columns:minmax(80px,.35fr) minmax(0,1fr)}
+ .wa-step-fields{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .wa-step-fields label:last-child{grid-column:1/-1}
+ .wa-editor-footer{flex-direction:column;align-items:stretch}
+ .wa-editor-footer button{width:100%}
+ .wa-record-head{flex-wrap:wrap}
+ .wa-record-actions{flex-wrap:wrap}
+ .wa-record-actions button{flex:1}
+ .wa-record-controls{flex-wrap:wrap}
+}
+@media(max-width:370px){.wa-step-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.wa-record-actions button{flex-basis:100%}}
