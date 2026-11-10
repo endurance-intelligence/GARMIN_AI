@@ -9,7 +9,7 @@ export function applyFinishPreset(workout:TrainerWorkout,groupIndex:number,mode:
  if(!group)return {updated:0,skipped:0}
  let updated=0,skipped=0
  for(const step of [workout.warmup,...group.steps,workout.cooldown]){
-  if(step.kind==='drill')continue
+  if('kind' in step&&step.kind==='drill')continue
   if(mode==='distance'&&step.distanceMeters===null){skipped++;continue}
   step.endMode=mode
   updated++
