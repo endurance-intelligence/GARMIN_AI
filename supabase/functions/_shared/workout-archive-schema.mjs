@@ -11,6 +11,8 @@ const positive=(v,min,max)=>typeof v==='number'&&Number.isSafeInteger(v)&&
 const optional=(v,min,max)=>v===null||
  positive(v,min,max)
 const stepKinds=new Set(['run','recovery','drill','warmup','cooldown'])
+// Old archived templates have no endMode. They stay manual-LAP by default.
+const endMode=(v)=>v===undefined?'lap':v==='lap'||v==='distance'?v:null
 export function validateTrainerWorkout(value) {
  if(!value||typeof value!=='object'||Array.isArray(value)||
     value.version!==1)return null
@@ -24,9 +26,10 @@ export function validateTrainerWorkout(value) {
   if(!value||typeof value!=='object'||Array.isArray(value))return null
   const dist=value.distanceMeters??null,duration=value.durationSeconds??null
   const notes=cleanText(value.notes,250)
-  if(notes===null||!optional(dist,20,50000)||!optional(duration,20,36000))
-   return null
-  return {kind,distanceMeters:dist,durationSeconds:duration,notes}
+  const finish=endMode(value.endMode)
+  if(notes===null||!optional(dist,20,50000)||!optional(duration,20,36000)||
+    finish===null||(finish==='distance'&&dist===null))return null
+  return {kind,distanceMeters:dist,durationSeconds:duration,notes,endMode:finish}
  }
  const warmup=meta(value.warmup,'warmup')
  const cooldown=meta(value.cooldown,'cooldown')
@@ -49,12 +52,14 @@ export function validateTrainerWorkout(value) {
    const dist=s.distanceMeters??null,duration=s.durationSeconds??null
    const pace=s.paceSecondsPerKm??null
    const comment=cleanText(s.notes,180)
+   const finish=endMode(s.endMode)
    if(!optional(dist,20,50000)||!optional(duration,10,14400)||
-      !optional(pace,120,900)||comment===null||
+      !optional(pace,120,900)||comment===null||finish===null||
+      (finish==='distance'&&dist===null)||
       (dist===null&&duration===null&&!['drill','warmup','cooldown','recovery'].includes(s.kind)))return null
    if(s.kind==='run'){workouts++}
    steps.push({kind:s.kind,distanceMeters:dist,durationSeconds:duration,
-    paceSecondsPerKm:pace,notes:comment})
+    paceSecondsPerKm:pace,notes:comment,endMode:finish})
   }
   if(workouts<1)return null
   totalSteps+=steps.length
