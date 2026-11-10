@@ -33,7 +33,7 @@ jobs:
       - name: Checkout reviewed mobile build
         uses: actions/checkout@v7
         with:
-          ref: 71859def47c65d01b67c6735f89eac91d6058f34
+          ref: f997edd5a7034f342652987a9d5109e15609b85d
           persist-credentials: false
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -43,7 +43,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Verify mobile access, calendar layout and weight-picker tests
-        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-recovery-context.test.mjs tests/mobile-recovery-sparklines.test.mjs tests/mobile-orc-track-workout.test.mjs tests/mobile-dynamic-workout-archive.test.mjs tests/mobile-workout-archive-navigation.test.mjs tests/mobile-photo-import-diagnostics.test.mjs tests/mobile-photo-429-quotas.test.mjs tests/mobile-free-photo-ocr.test.mjs tests/mobile-ocr-structured-editor.test.mjs tests/mobile-track-lap-group-picker.test.mjs
+        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-recovery-context.test.mjs tests/mobile-recovery-sparklines.test.mjs tests/mobile-orc-track-workout.test.mjs tests/mobile-dynamic-workout-archive.test.mjs tests/mobile-workout-archive-navigation.test.mjs tests/mobile-photo-import-diagnostics.test.mjs tests/mobile-photo-429-quotas.test.mjs tests/mobile-free-photo-ocr.test.mjs tests/mobile-ocr-structured-editor.test.mjs tests/mobile-track-lap-group-picker.test.mjs tests/mobile-single-workout-dialog.test.mjs
       - name: Build iPhone/iPad release
         run: npm run build
       - name: Verify GitHub Pages paths
@@ -71,7 +71,7 @@ jobs:
       - name: Check out exact reviewed mobile release
         uses: actions/checkout@v7
         with:
-          ref: 71859def47c65d01b67c6735f89eac91d6058f34
+          ref: f997edd5a7034f342652987a9d5109e15609b85d
           persist-credentials: false
 
       - name: Set up Node.js
@@ -96,7 +96,7 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Verify mobile access controls
-        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-recovery-context.test.mjs tests/mobile-recovery-sparklines.test.mjs tests/mobile-orc-track-workout.test.mjs tests/mobile-dynamic-workout-archive.test.mjs tests/mobile-workout-archive-navigation.test.mjs tests/mobile-photo-import-diagnostics.test.mjs tests/mobile-photo-429-quotas.test.mjs tests/mobile-free-photo-ocr.test.mjs tests/mobile-ocr-structured-editor.test.mjs tests/mobile-track-lap-group-picker.test.mjs
+        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-recovery-context.test.mjs tests/mobile-recovery-sparklines.test.mjs tests/mobile-orc-track-workout.test.mjs tests/mobile-dynamic-workout-archive.test.mjs tests/mobile-workout-archive-navigation.test.mjs tests/mobile-photo-import-diagnostics.test.mjs tests/mobile-photo-429-quotas.test.mjs tests/mobile-free-photo-ocr.test.mjs tests/mobile-ocr-structured-editor.test.mjs tests/mobile-track-lap-group-picker.test.mjs tests/mobile-single-workout-dialog.test.mjs
 
       - name: Build GitHub Pages app
         run: npm run build
