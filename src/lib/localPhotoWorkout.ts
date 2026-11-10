@@ -46,9 +46,11 @@ function makeSteps(count:number,meters:number,paceValues:(number|null)[],note:st
  return steps
 }
 function findRecoveryMeters(section:string,full:string){
- const local=section.match(/(?:trab|pause|recovery|serie)[^\n]{0,25}?(\d{2,4})\s*m/i)
- const global=full.match(/(?:trab|pause|recovery|serie)[^\n]{0,25}?(\d{2,4})\s*m/i)
- const meters=Number(local?.[1]||global?.[1]||0)
+ const backward=/(?:trab|pause|recovery|serie)[^\n]{0,25}?(\d{2,4})\s*m/i
+ const forward=/(\d{2,4})\s*m[^\n]{0,24}?(?:trab|pause|recovery|serie)/i
+ const value=section.match(backward)?.[1]||section.match(forward)?.[1]||
+  full.match(backward)?.[1]||full.match(forward)?.[1]
+ const meters=Number(value||0)
  return meters>=20&&meters<=5000?meters:null
 }
 /** Extract text and known facts. Do not interpolate missing training prescriptions. */
