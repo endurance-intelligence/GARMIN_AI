@@ -75,11 +75,12 @@ test('private draft summary is short enough for edge validation',()=>{
  assert.match(notes,/KEIN Garmin-Workout/)
 })
 
-test('calendar exposes workout builder only for existing Tuesday / Saturday choices',()=>{
+test('ORC poster remains accurately transcribed as an optional archived reference',()=>{
+ const archive=read('src/lib/workoutLibrary.ts')
  const cal=read('src/pages/CalendarPage.tsx')
- assert.match(cal,/\[2,6\]\.includes\(new Date\(selected\+'T12:00:00Z'\)\.getUTCDay\(\)\)/)
- assert.match(cal,/\{orcDay&&<OrcTrackBuilder date=\{selected\}/)
- assert.match(cal,/hasGarminWorkout=\{matching.some\(e=>e.source==='garmin'\)\}/)
+ assert.match(archive,/previousOrcFlyer\(\)/)
+ assert.match(archive,/ORC_GROUPS\.map/)
+ assert.match(cal,/<WorkoutArchivePanel active=\{active\}/)
  assert.match(cal,/<details className="hc-plan-notes">/)
 })
 
