@@ -323,7 +323,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
      onClick={()=>begin(blankTrainerWorkout(),'manual')}>Manuell erfassen</button>
     <button type="button" disabled={busy||localBusy}
      onClick={()=>begin(previousOrcFlyer(),'orc_reference')}>
-     Letzte ORC-Grafik übernehmen
+     Schwelle im Wechsel · alle 5 Gruppen
     </button>
    </div>
    {localBusy&&<p className="wa-ocr-progress" role="status">{ocrProgress}</p>}
