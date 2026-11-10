@@ -2,12 +2,14 @@ import type { Page } from '../navigation'
 import { GarminAuthSettings } from '../components/GarminAuthSettings'
 import { HeartRateZonesSettings } from '../components/HeartRateZonesSettings'
 import { SyncCenter } from '../components/SyncCenter'
+import { IntervalsConnection } from '../components/IntervalsConnection'
 
 export function SettingsPage({ active }: { active: boolean; onGo: (page: Page) => void }) {
   return <section className={active ? 'page active' : 'page'}>
     <div className="page-intro"><div><div className="eyebrow">PERSONAL WORKSPACE</div><h1>Weniger Settings.<br/>Mehr Fokus<span style={{ color: 'var(--a)' }}>.</span></h1><p>Deine Verbindungen und Freigaben an einem Ort.</p></div></div>
     <nav className="settings-shortcuts" aria-label="Zu den Einstellungen">
       <button type="button" onClick={() => document.getElementById('settings-sync')?.scrollIntoView({behavior:'smooth'})}>Synchronisierung</button>
+      <button type="button" onClick={() => document.getElementById('settings-intervals')?.scrollIntoView({behavior:'smooth'})}>Intervals.icu</button>
       <button type="button" onClick={() => document.getElementById('settings-account')?.scrollIntoView({behavior:'smooth'})}>Konto</button>
       <button type="button" onClick={() => document.getElementById('settings-zones')?.scrollIntoView({behavior:'smooth'})}>HF-Zonen</button>
     </nav>
@@ -18,6 +20,7 @@ export function SettingsPage({ active }: { active: boolean; onGo: (page: Page) =
     <div id="settings-sync" className="settings-anchor">
       <h2 className="settings-section-title">Synchronisierung</h2>
       <SyncCenter active={active} mode="status"/>
+      <IntervalsConnection active={active}/>
     </div>
     <div id="settings-account" className="settings-anchor">
       <h2 className="settings-section-title">Konto und Anmeldung</h2>
