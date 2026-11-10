@@ -54,7 +54,7 @@ export function WorkoutReviewDialog(props:Props){
    if(event.key!=='Tab'||!dialog.current)return
    const focusable=Array.from(dialog.current.querySelectorAll<HTMLElement>(
     'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
-   )].filter(el=>el.getClientRects().length>0)
+   )).filter(el=>el.getClientRects().length>0)
    if(focusable.length===0)return
    const first=focusable[0],last=focusable[focusable.length-1]
    if(event.shiftKey&&document.activeElement===first){
