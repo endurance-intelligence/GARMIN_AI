@@ -39,6 +39,10 @@ export function WorkoutReviewDialog(props:Props){
  const [approved,setApproved]=useState(false)
  const closeButton=useRef<HTMLButtonElement>(null)
  const dialog=useRef<HTMLDivElement>(null)
+ const closeAction=useRef(onClose)
+ const canClose=useRef(!busy&&!localBusy)
+ closeAction.current=onClose
+ canClose.current=!busy&&!localBusy
  useEffect(()=>{
   if(!open)return
   const prior=document.body.style.overflow
@@ -46,7 +50,7 @@ export function WorkoutReviewDialog(props:Props){
   document.body.style.overflow='hidden'
   const focus=requestAnimationFrame(()=>closeButton.current?.focus())
   const onKey=(event:KeyboardEvent)=>{
-   if(event.key==='Escape'&&!busy&&!localBusy){event.preventDefault();onClose()}
+   if(event.key==='Escape'&&canClose.current){event.preventDefault();closeAction.current()}
    if(event.key!=='Tab'||!dialog.current)return
    const focusable=[...dialog.current.querySelectorAll<HTMLElement>(
     'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
@@ -66,8 +70,9 @@ export function WorkoutReviewDialog(props:Props){
    document.removeEventListener('keydown',onKey)
    focusBefore?.focus()
   }
- },[open,busy,localBusy,onClose])
+ },[open])
  useEffect(()=>{if(!open){setPane('overview');setPhotoShown(false);setRawShown(false);setApproved(false)}},[open])
+ useEffect(()=>{setApproved(false)},[editing])
  if(!open)return null
  const workout=editing??preview?.workout??null
  const group=workout?.groups[groupIndex]??null
