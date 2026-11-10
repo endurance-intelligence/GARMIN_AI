@@ -1,4 +1,4 @@
-import {buildOrcWorkout,ORC_GROUPS} from './orcTrackWorkout'
+import {buildOrcWorkout,ORC_GROUPS} from './orcTrackWorkout.ts'
 import type {OrcGroup} from './orcTrackWorkout'
 export type WorkoutStepKind='run'|'recovery'|'drill'|'warmup'|'cooldown'
 export type TrainerStep={
