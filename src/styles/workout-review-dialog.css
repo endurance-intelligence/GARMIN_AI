@@ -110,3 +110,5 @@
  .wr-lap-grid{gap:6px}
  .wr-lap-card{padding:9px}
 }
+
+.wr-switcher-two{grid-template-columns:repeat(2,minmax(0,1fr))}
