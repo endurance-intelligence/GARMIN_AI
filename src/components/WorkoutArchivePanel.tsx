@@ -36,8 +36,9 @@ async function callArchive<T>(body?:Record<string,unknown>,page=0):Promise<T>{
   const visionErrors:Record<string,string>={
    invalid_image:'Das Fotoformat ist ungültig. Bitte JPG, PNG oder WebP wählen.',
    vision_credentials_rejected:'OpenAI hat den API-Key abgelehnt. Bitte den OPENAI_API_KEY in Supabase prüfen.',
-   vision_quota_exceeded:'OpenAI hat kein verfügbares API-Guthaben oder das Projektlimit ist erreicht. Bitte OpenAI Billing prüfen.',
-   vision_rate_limited:'OpenAI hat vorübergehend zu viele Anfragen gemeldet (HTTP 429). Bitte später erneut versuchen.',
+   vision_quota_exceeded:'OpenAI meldet fehlendes API-Guthaben oder ein erreichtes Ausgaben- bzw. Nutzungslimit. Bitte Billing und Projektlimits in platform.openai.com prüfen.',
+   vision_rate_limited:'OpenAI hat ein tatsächliches Anfragen- oder Token-Ratenlimit erreicht. Bitte nach der angezeigten Wartezeit erneut versuchen.',
+   vision_429_unclear:'OpenAI meldet HTTP 429, ohne eindeutig zwischen Ratenlimit und API-Guthaben zu unterscheiden. Bitte zuerst Billing, Projektlimits und Rate Limits prüfen – nicht wiederholt versuchen.',
    vision_model_unavailable:'Das konfigurierte OpenAI-Modell ist für dieses Projekt nicht verfügbar.',
    vision_request_rejected:'OpenAI hat die Anfrage abgelehnt. Der Bildanalysedienst muss korrigiert werden.',
    vision_timeout:'Die KI-Bildanalyse hat zu lange gedauert. Bitte später erneut versuchen.',
