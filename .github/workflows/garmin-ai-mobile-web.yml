@@ -33,7 +33,7 @@ jobs:
       - name: Checkout reviewed mobile build
         uses: actions/checkout@v7
         with:
-          ref: ad3d1931afb202a03d2d308b2823a0e4d24940d8
+          ref: 55065f08a1fdd0efa23089d21ec014f5af999d05
           persist-credentials: false
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -43,7 +43,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Verify mobile access, calendar layout and weight-picker tests
-        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-recovery-context.test.mjs tests/mobile-recovery-sparklines.test.mjs tests/mobile-orc-track-workout.test.mjs tests/mobile-dynamic-workout-archive.test.mjs tests/mobile-workout-archive-navigation.test.mjs
+        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-recovery-context.test.mjs tests/mobile-recovery-sparklines.test.mjs tests/mobile-orc-track-workout.test.mjs tests/mobile-dynamic-workout-archive.test.mjs tests/mobile-workout-archive-navigation.test.mjs tests/mobile-photo-import-diagnostics.test.mjs
       - name: Build iPhone/iPad release
         run: npm run build
       - name: Verify GitHub Pages paths
@@ -71,7 +71,7 @@ jobs:
       - name: Check out exact reviewed mobile release
         uses: actions/checkout@v7
         with:
-          ref: ad3d1931afb202a03d2d308b2823a0e4d24940d8
+          ref: 55065f08a1fdd0efa23089d21ec014f5af999d05
           persist-credentials: false
 
       - name: Set up Node.js
@@ -96,7 +96,7 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Verify mobile access controls
-        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-recovery-context.test.mjs tests/mobile-recovery-sparklines.test.mjs tests/mobile-orc-track-workout.test.mjs tests/mobile-dynamic-workout-archive.test.mjs tests/mobile-workout-archive-navigation.test.mjs
+        run: node --test tests/mobile-web-policy.test.mjs tests/mobile-first-polish.test.mjs tests/mobile-weight-picker.test.mjs tests/mobile-ipad-ux.test.mjs tests/compact-weight-card.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-recovery-context.test.mjs tests/mobile-recovery-sparklines.test.mjs tests/mobile-orc-track-workout.test.mjs tests/mobile-dynamic-workout-archive.test.mjs tests/mobile-workout-archive-navigation.test.mjs tests/mobile-photo-import-diagnostics.test.mjs
 
       - name: Build GitHub Pages app
         run: npm run build
