@@ -113,3 +113,12 @@
 .hc-more-chevron{color:#9eacde;font-size:28px;font-weight:500}
 .hc-more-link:hover{border-color:rgba(190,172,253,.4)}
 @media(max-width:760px){.hc-more-grid{grid-template-columns:minmax(0,1fr)}.hc-more-link{min-height:105px;padding:16px}.hc-more-link strong{font-size:15px}}
+
+
+/* Intervals.icu: direct, explicit publishing action (touch friendly) */
+.hc-intervals-button{display:inline-flex;align-items:center;justify-content:center;margin-top:10px;
+ padding:11px 15px;min-height:44px;max-width:100%;border-radius:12px;
+ border:1px solid rgba(140,170,255,.4);background:rgba(104,119,255,.12);
+ color:inherit;font:inherit;font-weight:700;cursor:pointer;touch-action:manipulation}
+.hc-intervals-button:disabled{opacity:.48;cursor:not-allowed}
+.hc-intervals-button:not(:disabled):hover{background:rgba(104,119,255,.22)}
