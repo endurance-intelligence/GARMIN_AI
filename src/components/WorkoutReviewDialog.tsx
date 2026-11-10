@@ -52,7 +52,7 @@ export function WorkoutReviewDialog(props:Props){
   const onKey=(event:KeyboardEvent)=>{
    if(event.key==='Escape'&&canClose.current){event.preventDefault();closeAction.current()}
    if(event.key!=='Tab'||!dialog.current)return
-   const focusable=[...dialog.current.querySelectorAll<HTMLElement>(
+   const focusable=Array.from(dialog.current.querySelectorAll<HTMLElement>(
     'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
    )].filter(el=>el.getClientRects().length>0)
    if(focusable.length===0)return
