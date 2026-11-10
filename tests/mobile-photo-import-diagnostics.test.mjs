@@ -8,7 +8,7 @@ const service=read('supabase/functions/garmin-workout-archive/index.ts')
 
 test('OpenAI response classes remain distinct from private archive availability',()=>{
  for(const code of [
-  'vision_credentials_rejected','vision_quota_exceeded','vision_rate_limited',
+  'vision_credentials_rejected','vision_quota_exceeded','vision_rate_limited','vision_429_unclear',
   'vision_model_unavailable','vision_request_rejected','vision_timeout',
   'vision_output_truncated','vision_incomplete','vision_invalid_output',
   'vision_upstream_unavailable','vision_needs_manual_review'
@@ -16,7 +16,7 @@ test('OpenAI response classes remain distinct from private archive availability'
   assert.ok(ui.includes(code),code)
   assert.ok(service.includes(code),code)
  }
- assert.match(ui,/OpenAI hat kein verfügbares API-Guthaben/)
+ assert.match(ui,/OpenAI meldet fehlendes API-Guthaben/)
  assert.match(ui,/OpenAI hat den API-Key abgelehnt/)
  assert.match(ui,/Der OpenAI-Bildanalysedienst ist derzeit nicht erreichbar/)
  assert.match(ui,/Anfrage fehlgeschlagen \(HTTP '/)
