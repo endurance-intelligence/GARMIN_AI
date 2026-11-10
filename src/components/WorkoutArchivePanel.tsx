@@ -312,7 +312,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
     </label>
    </details>}
 
-   {localPhotoUrl&&ocrRaw&&<details className="wa-local-photo">
+   {localPhotoUrl&&ocrRaw&&sourceKind==='trainer_photo'&&<details className="wa-local-photo">
     <summary>Originalfoto zur Kontrolle einblenden</summary>
     <img src={localPhotoUrl} alt="Lokal ausgewähltes ORC-Trainerfoto zur Überprüfung der erkannten Daten"/>
    </details>}
