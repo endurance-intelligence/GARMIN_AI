@@ -2,7 +2,7 @@ import {useEffect,useMemo,useRef,useState} from 'react'
 import {Icon} from '../components/Icon'
 import {EI_EXERCISES} from '../lib/eiExercises'
 import type {EIExercise} from '../lib/eiExercises'
-import {berlinDate,crossKind,daysSince,loadCrossTraining,saveCrossTraining} from '../lib/crossTrainingClient'
+import {berlinDate,crossKind,loadCrossTraining,saveCrossTraining} from '../lib/crossTrainingClient'
 import type {CrossResponse,CrossKind} from '../lib/crossTrainingClient'
 import '../styles/strength-studio.css'
 
