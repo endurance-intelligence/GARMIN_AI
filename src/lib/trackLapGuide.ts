@@ -6,7 +6,7 @@
 import type {TrainerWorkout,TrainerGroup,TrainerStep,WorkoutEndMode} from './workoutLibrary.ts'
 import {formatPace,endModeFor} from './workoutLibrary.ts'
 export type TrackLapCue={
- index:number;type:'warmup'|'run'|'recovery'|'cooldown';
+ index:number;type:'warmup'|'run'|'recovery'|'cooldown'|'drill';
  block:number|null;withinBlock:number|null;blocks:number|null;
  repeat:number|null;repeats:number|null;distanceMeters:number|null;
  paceSecondsPerKm:number|null;paceLabel:string|null;
@@ -41,6 +41,7 @@ export function makeTrackLapGuide(workout:TrainerWorkout,groupName:string):Track
   const label=type==='warmup'?'Einlaufen bis bereit':
    type==='cooldown'?'Locker auslaufen bis fertig':
    type==='recovery'?'Trabpause bis zur Bahnmarkierung':
+   type==='drill'?'Übung bis LAP':
    'Intervall '+repeat+'/'+total+' · '+(paceLabel??'Tempo prüfen')+'/km'
   cues.push({index:++index,type,block:type==='run'?block+1:null,
    withinBlock:type==='run'?inBlock:null,
@@ -60,6 +61,7 @@ export function makeTrackLapGuide(workout:TrainerWorkout,groupName:string):Track
    }
    add('run',step)
   }else if(step.kind==='recovery')add('recovery',step)
+  else if(step.kind==='drill')add('drill',step)
   else if(step.kind==='cooldown'||step.kind==='warmup')add(step.kind,step)
  }
  add('cooldown',{kind:'cooldown',distanceMeters:workout.cooldown.distanceMeters,
@@ -73,6 +75,7 @@ export function lapStepSummary(cue:TrackLapCue):string{
  if(cue.type==='warmup')return 'Einlaufen · '+finish
  if(cue.type==='cooldown')return 'Auslaufen · '+finish
  if(cue.type==='recovery')return 'Trabpause · '+finish
+ if(cue.type==='drill')return 'Übung · '+finish
  return 'Satz '+(cue.block??'?')+'/'+(cue.blocks??'?')+
   ' · Intervall '+cue.repeat+'/'+cue.repeats+
   ' · '+(cue.distanceMeters??'–')+' m · '+(cue.paceLabel||'Pace offen')+'/km · '+finish
