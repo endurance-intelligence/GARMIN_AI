@@ -16,7 +16,29 @@ const GROUP_NAMES=[
  {pattern:/\bB[ÄA]REN\b/i,name:'Bären'},
  {pattern:/\bCAPYBARA\b/i,name:'Capybara'}
 ]
-const REPS=/\b(\d{1,2})\s*[x×]\s*(\d{2,5})\s*m\b/i
+const REPS=/\b(\d{1,2})\s*[x×*]\s*(\d{2,5})\s*m\b/i
+// Tesseract frequently drops the multiplier or collapses "8 × 1000 m" to "81000 m".
+const REPS_SPACED=/\b(\d{1,2})\s+(\d{3,5})\s*m\b/i
+const REPS_FUSED=/\b([1-9]|[1-4]\d)(1000|400|800|2000)\s*m\b/i
+function countMeters(section:string):{count:number;meters:number;uncertain:boolean}|null{
+ const normal=section.match(REPS)
+ if(normal)return {count:Number(normal[1]),meters:Number(normal[2]),uncertain:false}
+ const spaced=section.match(REPS_SPACED)
+ if(spaced)return {count:Number(spaced[1]),meters:Number(spaced[2]),uncertain:true}
+ const fused=section.match(REPS_FUSED)
+ if(fused)return {count:Number(fused[1]),meters:Number(fused[2]),uncertain:true}
+ return null
+}
+export function isKnownOrcOriginal(text:string):boolean{
+ // This is a suggestion to load our previously checked reference template,
+ // NOT a claim that arbitrary OCR has recovered the complete poster.
+ const t=text.normalize('NFKC')
+ const names=GROUP_NAMES.filter(g=>g.pattern.test(t)).length
+ const title=/schwelle\s+im\s+wechsel/i.test(t)
+ const header=/3\s*[x×*]\s*\(?3\s*[x×*]\s*1000/i.test(t)
+ const paces=['4:00','4:10','4:20','4:30'].filter(p=>t.includes(p)).length
+ return title&&header&&names>=4&&paces>=2
+}
 const BLOCKS=/\b\d{1,2}(?:\s*\+\s*\d{1,2}){1,7}\b/
 const PACE=/\b(?:[2-9]|1[0-4]):[0-5]\d\b/g
 const MAX_STEPS=160
@@ -26,10 +48,12 @@ function getPaces(source:string){
   .filter((n):n is number=>n!==null&&n>=180)
 }
 function findWarmup(text:string):number|null{
- const match=text.match(/(?:einlaufen|warm\s*up|warmup)[\s\S]{0,90}?(\d+(?:[.,]\d+)?)\s*km\b/i)
+ const match=text.match(/(?:einlaufen|warm\s*up|warmup)[\s\S]{0,95}?(\d+(?:[.,]\d+)?)\s*km\b/i)
+  ||text.match(/(\d+(?:[.,]\d+)?)\s*km[\s\S]{0,95}?(?:einlaufen|warm\s*up|warmup)/i)
  if(!match)return null
- const m=Math.round(Number(match[1].replace(',','.'))*1000)
- return m>=20&&m<=50000?m:null
+ const amount=match[1]
+ const meters=Math.round(Number(amount.replace(',','.'))*1000)
+ return meters>=20&&meters<=50000?meters:null
 }
 function makeSteps(count:number,meters:number,paceValues:(number|null)[],note:string){
  const steps:TrainerStep[]=[]
@@ -85,9 +109,11 @@ export function interpretLocalPhotoText(text:string):PhotoTextDraft {
  result.cooldown.notes='Originalgrafik prüfen: Auslaufen'
  const groups:TrainerGroup[]=[]
  for(const candidate of candidates){
-  const match=candidate.section.match(REPS)
-  if(!match)continue
-  const count=Number(match[1]),meters=Number(match[2])
+  const reps=countMeters(candidate.section)
+  if(!reps)continue
+  const {count,meters}=reps
+  if(reps.uncertain)warnings.push(
+   candidate.name+': Multiplikationszeichen nicht sicher erkannt – '+count+' × '+meters+' m bitte mit dem Bild prüfen.')
   if(count<1||count>50||meters<50||meters>10000||2*count-1>MAX_STEPS)continue
   const blocks=candidate.section.match(BLOCKS)?.[0]||''
   const blockSizes=blocks?blocks.split('+').map(n=>Number(n.trim())):[]
@@ -125,6 +151,9 @@ export function interpretLocalPhotoText(text:string):PhotoTextDraft {
   warnings:['Die Schrift wurde gelesen, aber Gruppen/Intervalle sind nicht eindeutig. Im Editor manuell anhand des Originalbilds ergänzen.']
  }
  result.groups=groups.slice(0,12)
+ const visibleNames=GROUP_NAMES.filter(g=>g.pattern.test(recognizedText)).length
+ if(visibleNames>groups.length)warnings.push(
+  (visibleNames-groups.length)+' weitere Gruppen im Bild erkannt, deren Intervalle die OCR nicht sicher zuordnen konnte.')
  warnings.unshift('Lokale OCR ist keine vollständige Bild-KI. Jede Gruppe, Pace und Pause vor dem Archivieren mit der Grafik vergleichen.')
  if(groups.length===1&&GROUP_NAMES.length>1&&
    GROUP_NAMES.some(g=>g.pattern.test(recognizedText)&&g.name!==groups[0].name))
