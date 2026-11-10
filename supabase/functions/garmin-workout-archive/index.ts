@@ -150,11 +150,17 @@ Deno.serve(async req=>{
   const db=createClient(project,key('service'),{auth:{persistSession:false,autoRefreshToken:false}})
 
   if(req.method==='GET'){
+   const page=new URL(req.url).searchParams.get('page')||'0'
+   if(!/^(0|[1-9][0-9]{0,2})$/.test(page)||Number(page)>50)
+    return respond(422,{error:'Invalid archive page'},h)
+   const offset=Number(page)*100
    const {data,error}=await db.from('garmin_workout_archive')
     .select('id,title,coach_name,source_label,source_kind,source_image_sha256,workout,created_at')
-    .order('created_at',{ascending:false}).limit(101)
+    .order('created_at',{ascending:false}).order('id',{ascending:false})
+    .range(offset,offset+100)
    if(error)return respond(503,{error:'Training archive unavailable'},h)
    return respond(200,{entries:(data||[]).slice(0,100),hasMore:(data||[]).length>100,
+    nextPage:(data||[]).length>100?Number(page)+1:null,
     visionConfigured:visionAvailable(),garminWritesActive:false},h)
   }
   if(Number(req.headers.get('content-length')||0)>3_750_000)
