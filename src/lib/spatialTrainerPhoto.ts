@@ -30,7 +30,7 @@ function rowPaces(text:string){
  let best:number[]=[]
  for(const line of text.split('\n')){
   const values=[...line.matchAll(PACE)].map(m=>parsePace(m[0]))
-   .filter((n):n is number=>n!==null)
+   .filter((n):n is number=>n!==null&&n>=180)
   if(values.length>best.length)best=values
  }
  return best
