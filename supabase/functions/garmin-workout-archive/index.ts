@@ -116,18 +116,52 @@ async function parsePhoto(input:Record<string,unknown>){
       strict:true,schema:outputSchema}}
    })
   })
-  if(!response.ok)return {code:'vision_upstream_unavailable'}
+  if(!response.ok){
+   // Never return or log OpenAI's raw error body, credentials or image.
+   // Only allowlisted provider error codes and HTTP status are retained.
+   let providerCode=''
+   try{
+    const body=await response.json() as {error?:{code?:unknown}}
+    const possible=body?.error?.code
+    if(typeof possible==='string'&&['insufficient_quota','billing_hard_limit_reached',
+      'model_not_found'].includes(possible))providerCode=possible
+   }catch{/* Non-JSON upstream error: status is sufficient. */}
+   const code=response.status===401||response.status===403?'vision_credentials_rejected':
+    response.status===429&&['insufficient_quota','billing_hard_limit_reached'].includes(providerCode)?
+     'vision_quota_exceeded':
+    response.status===429?'vision_rate_limited':
+    response.status===404||providerCode==='model_not_found'?'vision_model_unavailable':
+    response.status===400||response.status===422?'vision_request_rejected':
+    'vision_upstream_unavailable'
+   console.info('GARMIN_AI photo parser outcome',code,'upstream HTTP',response.status)
+   return {code,upstreamStatus:response.status}
+  }
   const result=await response.json()
   const raw=result?.output_text||
    result?.output?.flatMap((r:Record<string,unknown>)=>Array.isArray(r.content)?r.content:[])
     ?.find((c:Record<string,unknown>)=>c.type==='output_text')?.text
-  if(typeof raw!=='string'||raw.length>55000)return {code:'vision_incomplete'}
+  if(typeof raw!=='string'||raw.length>55000){
+   const code=result?.status==='incomplete'?'vision_output_truncated':'vision_incomplete'
+   console.info('GARMIN_AI photo parser outcome',code)
+   return {code}
+  }
   let json:unknown
-  try{json=JSON.parse(raw)}catch{return {code:'vision_invalid_output'}}
+  try{json=JSON.parse(raw)}catch{
+   console.info('GARMIN_AI photo parser outcome vision_invalid_output')
+   return {code:'vision_invalid_output'}
+  }
   const validated=validateTrainerWorkout(json)
-  if(!validated)return {code:'vision_needs_manual_review'}
+  if(!validated){
+   console.info('GARMIN_AI photo parser outcome vision_needs_manual_review')
+   return {code:'vision_needs_manual_review'}
+  }
   return {code:'parsed',workout:validated,sourceImageSha256:hash}
- }catch{return {code:'vision_upstream_unavailable'}}
+ }catch(e){
+  const code=e instanceof Error&&e.name==='AbortError'?'vision_timeout':
+   'vision_upstream_unavailable'
+  console.info('GARMIN_AI photo parser outcome',code)
+  return {code}
+ }
  finally{clearTimeout(timeout)}
 }
 
@@ -173,7 +207,14 @@ Deno.serve(async req=>{
   if(body.action==='parse_photo'){
    if(!visionAvailable())return respond(503,{code:'vision_not_configured'},h)
    const parsed=await parsePhoto(body)
-   return respond(parsed.code==='parsed'?200:422,parsed,h)
+   const status=parsed.code==='parsed'?200:
+    parsed.code==='vision_rate_limited'?429:
+    parsed.code==='vision_quota_exceeded'?503:
+    parsed.code==='vision_credentials_rejected'?503:
+    parsed.code==='vision_model_unavailable'?503:
+    parsed.code==='vision_timeout'?504:
+    parsed.code==='vision_upstream_unavailable'?503:422
+   return respond(status,parsed,h)
   }
   if(body.action==='save'){
    const verified=validateTrainerWorkout(body.workout)
