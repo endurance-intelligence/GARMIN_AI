@@ -31,9 +31,26 @@ async function callArchive<T>(body?:Record<string,unknown>,page=0):Promise<T>{
   if(json.code==='vision_not_configured')
    throw Error('Die Fotoanalyse benötigt noch den privaten KI-Zugang.')
   if(json.code==='vision_needs_manual_review')
-   throw Error('Foto konnte nicht sicher erkannt werden. Bitte Werte manuell übernehmen.')
+   throw Error('Die Trainingsgrafik konnte nicht sicher erkannt werden. Bitte die Vorlage manuell erfassen oder ein klareres Bild verwenden.')
+  // Specific and safe status messages: never expose upstream request data.
+  const visionErrors:Record<string,string>={
+   invalid_image:'Das Fotoformat ist ungültig. Bitte JPG, PNG oder WebP wählen.',
+   vision_credentials_rejected:'OpenAI hat den API-Key abgelehnt. Bitte den OPENAI_API_KEY in Supabase prüfen.',
+   vision_quota_exceeded:'OpenAI hat kein verfügbares API-Guthaben oder das Projektlimit ist erreicht. Bitte OpenAI Billing prüfen.',
+   vision_rate_limited:'OpenAI hat vorübergehend zu viele Anfragen gemeldet (HTTP 429). Bitte später erneut versuchen.',
+   vision_model_unavailable:'Das konfigurierte OpenAI-Modell ist für dieses Projekt nicht verfügbar.',
+   vision_request_rejected:'OpenAI hat die Anfrage abgelehnt. Der Bildanalysedienst muss korrigiert werden.',
+   vision_timeout:'Die KI-Bildanalyse hat zu lange gedauert. Bitte später erneut versuchen.',
+   vision_output_truncated:'Die KI-Antwort war unvollständig. Bitte ein besser zugeschnittenes Bild probieren.',
+   vision_incomplete:'Die KI hat keine vollständige Trainingsstruktur geliefert. Bitte das Foto prüfen.',
+   vision_invalid_output:'Die KI hat ungültige Trainingsdaten zurückgegeben. Bitte das Foto prüfen.',
+   vision_upstream_unavailable:'Der OpenAI-Bildanalysedienst ist derzeit nicht erreichbar.'
+  }
+  if(typeof json.code==='string'&&visionErrors[json.code])
+   throw Error(visionErrors[json.code])
   throw Error(r.status===401?'Bitte neu anmelden.':
-   typeof json.error==='string'?json.error:'Trainingsarchiv momentan nicht verfügbar.')
+   typeof json.error==='string'?json.error:
+   'Trainingsarchiv: Anfrage fehlgeschlagen (HTTP '+r.status+').')
  }
  return json as T
 }
