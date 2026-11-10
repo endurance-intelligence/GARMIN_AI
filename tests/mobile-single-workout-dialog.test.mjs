@@ -29,7 +29,7 @@ test('all five reviewed ORC groups can be chosen in one single modal',()=>{
  assert.match(modal,/workout\.groups\.map\(\(g,i\)=>/)
  assert.match(modal,/onGroup\(i\)/)
  assert.match(modal,/groupIndex===i/)
- assert.match(modal,/einzelne Garmin-Schritte/)
+ assert.match(read('src/components/WorkoutFinishSelector.tsx'),/Du bestimmst pro Abschnitt/)
 })
 test('unreliable OCR remains clearly identified and does not fabricate missing groups',()=>{
  assert.match(page,/setOcrIdentifiedGroups\(interpreted.detectedGroups\)/)
