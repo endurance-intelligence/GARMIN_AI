@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {
- blankStep,blankTrainerWorkout,previousOrcFlyer,workoutSummary
+ blankTrainerWorkout,previousOrcFlyer,workoutSummary
 } from '../lib/workoutLibrary'
 import type {ArchiveRecord,TrainerWorkout,TrainerGroup,TrainerStep} from '../lib/workoutLibrary'
 import {readTrainerPhotoLocally} from '../lib/localTrainerPhotoOcr'
