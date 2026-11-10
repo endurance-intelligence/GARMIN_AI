@@ -4,6 +4,8 @@ import {
  blankStep,blankTrainerWorkout,formatPace,parsePace,previousOrcFlyer,workoutSummary
 } from '../lib/workoutLibrary'
 import type {ArchiveRecord,TrainerWorkout,TrainerGroup,TrainerStep,WorkoutStepKind} from '../lib/workoutLibrary'
+import {readTrainerPhotoLocally} from '../lib/localTrainerPhotoOcr'
+import {interpretLocalPhotoText} from '../lib/localPhotoWorkout'
 import '../styles/workout-archive.css'
 
 type ArchiveResponse={entries:ArchiveRecord[];hasMore:boolean;nextPage:number|null;visionConfigured:boolean}
@@ -80,10 +82,17 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
  const [imageHash,setImageHash]=useState<string|null>(null)
  const [editGroup,setEditGroup]=useState(0)
  const [busy,setBusy]=useState(false)
+ const [localBusy,setLocalBusy]=useState(false)
+ const [ocrProgress,setOcrProgress]=useState('')
+ const [ocrRaw,setOcrRaw]=useState('')
+ const [ocrWarnings,setOcrWarnings]=useState<string[]>([])
+ const [localPhotoUrl,setLocalPhotoUrl]=useState<string|null>(null)
+ const localPhotoUrlRef=useRef<string|null>(null)
  const [choice,setChoice]=useState<Record<string,string>>({})
  const [expanded,setExpanded]=useState<string|null>(null)
  const requestId=useRef<string>(crypto.randomUUID())
  const planIds=useRef<Map<string,string>>(new Map())
+ useEffect(()=>()=>{if(localPhotoUrlRef.current)URL.revokeObjectURL(localPhotoUrlRef.current)},[])
 
  async function refresh(){
   setLoading(true);setError('')
@@ -119,6 +128,48 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    ...record.workout.groups.map(g=>g.name)].some(text=>
     text.toLocaleLowerCase('de-DE').includes(needle))
  })
+
+ async function localImageSelected(file:File|null){
+  if(!file)return
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)||
+    file.size<1000||file.size>8_000_000){
+   setError('Bitte JPG, PNG oder WebP unter 8 MB auswählen.')
+   return
+  }
+  setLocalBusy(true);setOcrProgress('Lokale Texterkennung startet …')
+  setOcrRaw('');setOcrWarnings([]);setError('');setSuccess('')
+  try{
+   const [text,hashBuffer]=await Promise.all([
+    readTrainerPhotoLocally(file,(phase,value)=>{
+     setOcrProgress(phase+(value>0?' · '+Math.round(value*100)+' %':''))
+    }),
+    crypto.subtle.digest('SHA-256',await file.arrayBuffer())
+   ])
+   const hash=Array.from(new Uint8Array(hashBuffer),n=>n.toString(16).padStart(2,'0')).join('')
+   const interpreted=interpretLocalPhotoText(text)
+   if(localPhotoUrlRef.current)URL.revokeObjectURL(localPhotoUrlRef.current)
+   const url=URL.createObjectURL(file)
+   localPhotoUrlRef.current=url
+   setLocalPhotoUrl(url)
+   setOcrRaw(interpreted.recognizedText)
+   setOcrWarnings(interpreted.warnings)
+   if(interpreted.workout){
+    begin(interpreted.workout,'trainer_photo',hash)
+    setSuccess(interpreted.detectedGroups+' Gruppen erkannt. Alle Paces und Pausen bitte mit dem Bild vergleichen!')
+   }else{
+    // No fake 1000-m run is prefilled when OCR could not parse a structure.
+    const blank=blankTrainerWorkout()
+    blank.title='Trainertraining – Angaben ergänzen'
+    blank.sourceLabel='Foto lokal gelesen · Original prüfen'
+    blank.groups[0].name='Gruppe prüfen'
+    blank.groups[0].steps[0].distanceMeters=null
+    begin(blank,'trainer_photo',hash)
+    setSuccess('Text lokal gelesen. Die Einheit muss anhand des Bildes im Editor ergänzt werden.')
+   }
+  }catch(e){
+   setError(e instanceof Error?e.message:'Lokale Texterkennung fehlgeschlagen.')
+  }finally{setLocalBusy(false);setOcrProgress('')}
+ }
  function begin(workout:TrainerWorkout,kind:SourceKind,hash:string|null=null){
   setEditing(workout);setSourceKind(kind);setImageHash(hash)
   setEditGroup(0);setError('');setSuccess('')
@@ -169,6 +220,9 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    })
    if(result.saved!==true)throw Error('Speichern nicht bestätigt.')
    setEditing(null)
+   setOcrWarnings([]);setOcrRaw('')
+   if(localPhotoUrlRef.current)URL.revokeObjectURL(localPhotoUrlRef.current)
+   localPhotoUrlRef.current=null;setLocalPhotoUrl(null)
    await refresh()
    setSuccess('Trainertraining im Archiv gespeichert. Alle Gruppen bleiben verfügbar.')
   }catch(e){setError(e instanceof Error?e.message:'Vorlage nicht gespeichert')}
@@ -209,27 +263,46 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
     </div>
    </div>
    <div className="wa-import-actions">
-    <label className={'wa-import-label'+(!configured?' wa-disabled':'')}>
-     {busy?'Analysiere …':'Trainerbild importieren'}
-     <input type="file" accept="image/jpeg,image/png,image/webp" disabled={!configured||busy}
-      onChange={e=>{const f=e.currentTarget.files?.[0]||null;
-       e.currentTarget.value='';void imageSelected(f)}}/>
+    <label className="wa-import-label wa-import-free">
+     {localBusy?'Lese Bild auf deinem Gerät …':'Foto kostenlos lokal lesen'}
+     <input type="file" accept="image/jpeg,image/png,image/webp"
+      disabled={busy||localBusy}
+      onChange={e=>{const file=e.currentTarget.files?.[0]||null;
+       e.currentTarget.value='';void localImageSelected(file)}}/>
     </label>
-    <button type="button" disabled={busy}
+    <button type="button" disabled={busy||localBusy}
      onClick={()=>begin(blankTrainerWorkout(),'manual')}>Manuell erfassen</button>
-    <button type="button" disabled={busy}
+    <button type="button" disabled={busy||localBusy}
      onClick={()=>begin(previousOrcFlyer(),'orc_reference')}>
      Letzte ORC-Grafik übernehmen
     </button>
    </div>
-   {!configured&&<p className="wa-hint">
-    Fotoanalyse ist noch nicht aktiviert: Dafür fehlt die Konfiguration des privaten KI-Dienstes.
-    Manuelle Trainings und die bereits ausgelesene ORC-Grafik funktionieren trotzdem.
-   </p>}
-   <p className="wa-hint">Fotos werden bei aktivierter Analyse einmalig an den KI-Dienst
-    übertragen. Im Archiv speichern wir die geprüften Trainingsschritte,
-    Trainerangaben und einen Bild-Fingerabdruck, nicht die Originaldatei.</p>
+   {localBusy&&<p className="wa-ocr-progress" role="status">{ocrProgress}</p>}
+   <p className="wa-hint">Kostenlose Texterkennung auf deinem Gerät – ohne API-Guthaben.
+    Nur geprüfte Trainingsdaten und der Bild-Fingerabdruck werden im privaten
+    Archiv gespeichert. Die benötigte OCR-Software wird beim ersten Import geladen.</p>
+   {configured&&<details className="wa-paid-alternative">
+    <summary>Optional: externe KI-Bildanalyse (kostenpflichtige API)</summary>
+    <p>Diese Option sendet das Bild an OpenAI und benötigt verfügbares API-Guthaben.</p>
+    <label className="wa-import-label">
+     {busy?'Analysiere …':'Mit OpenAI analysieren'}
+     <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy||localBusy}
+      onChange={e=>{const file=e.currentTarget.files?.[0]||null;
+       e.currentTarget.value='';void imageSelected(file)}}/>
+    </label>
+   </details>}
 
+   {localPhotoUrl&&editing&&sourceKind==='trainer_photo'&&<details className="wa-local-photo">
+    <summary>Originalfoto zur Kontrolle einblenden</summary>
+    <img src={localPhotoUrl} alt="Lokal ausgewähltes ORC-Trainerfoto zur Überprüfung der erkannten Daten"/>
+   </details>}
+   {ocrWarnings.length>0&&editing&&<div className="wa-ocr-review" role="status">
+    <strong>Vor dem Speichern prüfen</strong>
+    <ul>{ocrWarnings.map((warning,i)=><li key={i}>{warning}</li>)}</ul>
+    <details><summary>Erkannten Originaltext ansehen</summary>
+     <pre>{ocrRaw||'Kein Text erkannt.'}</pre>
+    </details>
+   </div>}
    {editing&&<div className="wa-editor">
     <div className="wa-editor-head">
      <h3>Trainertraining überprüfen</h3>
