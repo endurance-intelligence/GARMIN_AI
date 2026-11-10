@@ -80,15 +80,16 @@ Deno.serve(async req=>{
     return reply(403,{error:'Not authorized'},h)
   const db=createClient(project,key('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
   if(req.method==='GET'){
-   const [{data:link,error:linkError},{data:rows,error:rowsError}]=await Promise.all([
+   const [{data:link,error:linkError},{data:rows,error:rowsError},{data:eligible,error:eligibleError}]=await Promise.all([
     db.from('garmin_intervals_connection').select('connected_at').eq('user_id',user.id).maybeSingle(),
     db.from('garmin_training_plan')
      .select('id,revision,intervals_event_id,intervals_published_revision,intervals_published_at,intervals_sync_status')
-     .not('intervals_published_revision','is',null).order('intervals_published_at',{ascending:false}).limit(100)
+     .not('intervals_published_revision','is',null).order('intervals_published_at',{ascending:false}).limit(100),
+    db.from('garmin_training_plan').select('id').not('archive_workout_id','is',null).neq('state','cancelled').limit(100)
    ])
-   if(linkError||rowsError)return reply(503,{error:'Intervals status unavailable'},h)
+   if(linkError||rowsError||eligibleError)return reply(503,{error:'Intervals status unavailable'},h)
    return reply(200,{configured:!!link,connectedAt:link?.connected_at||null,
-    publications:rows||[],garminConfirmed:false},h)
+    publications:rows||[],eligiblePlanIds:(eligible||[]).map(x=>x.id),garminConfirmed:false},h)
   }
   const raw=await req.text()
   if(raw.length>16000)return reply(413,{error:'Request too large'},h)
