@@ -29,7 +29,7 @@ test('calendar reads only verified owner APIs with publishable keys',()=>{
 test('calendar distinguishes Garmin entries, drafts, pending and errors',()=>{
  const cal=read('src/pages/CalendarPage.tsx')
  for(const label of ['Aus Garmin übernommen','Entwurf · nicht übertragen',
-  'Freigegeben · Garmin ausstehend','Prüfung erforderlich','Mit Garmin bestätigt']){
+  'Freigegeben · Intervals.icu ausstehend','Prüfung erforderlich','Mit Garmin bestätigt']){
   assert.ok(cal.includes(label),label)
  }
  assert.match(cal,/Noch kein bestätigter Garmin-Abruf/)
