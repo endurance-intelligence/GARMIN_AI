@@ -36,8 +36,8 @@ function rowPaces(text:string){
  return best
 }
 function getRecovery(text:string){
- const m=text.match(/(\d{2,4})\s*m.{0,25}?(?:trab|pause)/i)||
-  text.match(/(?:trab|pause).{0,25}?(\d{2,4})\s*m/i)
+ const m=text.match(/(\d{2,4})\s*m\s*(?:trab(?:pause|en)?|pause)/i)||
+  text.match(/(?:trab(?:pause|en)?|pause)\s*:?\s*(\d{2,4})\s*m/i)
  const v=Number(m?.[1]||0)
  return v>=20&&v<=2000?v:null
 }
