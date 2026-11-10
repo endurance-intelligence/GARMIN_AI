@@ -5,7 +5,7 @@
  * Only a reviewed, individually approved GARMIN_AI training plan may be sent.
  */
 import {createClient} from 'npm:@supabase/supabase-js@2'
-import {buildIntervalsEvent} from '../_shared/intervals-workout.mjs'
+import {buildIntervalsEvent,validateStoredIntervalsWorkout} from '../_shared/intervals-workout.mjs'
 
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
@@ -67,6 +67,12 @@ async function readEvents(apiKey:string,date:string):Promise<Record<string,unkno
  if(!Array.isArray(result))throw Error('Unexpected event list')
  return result.filter(isObject)
 }
+async function fullEvent(apiKey:string,id:unknown):Promise<Record<string,unknown>>{
+ if(!Number.isSafeInteger(Number(id))||Number(id)<1)throw Error('Invalid remote event identifier')
+ const item=await intervals('GET','/athlete/0/events/'+Number(id),apiKey)
+ if(!isObject(item))throw Error('Invalid Intervals event response')
+ return item
+}
 Deno.serve(async req=>{
  const origin=req.headers.get('origin'),h=headers(origin)
  if(origin&&!h['Access-Control-Allow-Origin'])return reply(403,{error:'Origin not allowed'},h)
@@ -87,7 +93,7 @@ Deno.serve(async req=>{
    const [{data:link,error:linkError},{data:rows,error:rowsError},{data:eligible,error:eligibleError}]=await Promise.all([
     db.from('garmin_intervals_connection').select('connected_at').eq('user_id',user.id).maybeSingle(),
     db.from('garmin_training_plan')
-     .select('id,revision,intervals_event_id,intervals_published_revision,intervals_published_at,intervals_sync_status')
+     .select('id,revision,intervals_event_id,intervals_published_revision,intervals_published_at,intervals_sync_status,intervals_export_version')
      .not('intervals_published_revision','is',null).order('intervals_published_at',{ascending:false}).limit(100),
     db.from('garmin_training_plan').select('id').not('archive_workout_id','is',null).neq('state','cancelled').limit(100)
    ])
@@ -117,17 +123,29 @@ Deno.serve(async req=>{
    if(unlinkError)return reply(503,{error:'Trennung fehlgeschlagen'},h)
    return reply(200,{connected:false,remoteEventsRetained:true},h)
   }
-  if(input.action!=='publish'||!uuid(input.planId))
+  if(!['publish','repair'].includes(String(input.action))||!uuid(input.planId))
     return reply(422,{error:'Unknown action or plan ID'},h)
   const {data:plan,error:planError}=await db.from('garmin_training_plan')
-   .select('id,training_date,title,state,revision,approved_at,archive_snapshot,archive_group,intervals_published_revision,intervals_sync_status')
+   .select('id,training_date,title,state,revision,approved_at,archive_snapshot,archive_group,intervals_event_id,intervals_published_revision,intervals_sync_status,intervals_export_version')
    .eq('id',input.planId).maybeSingle()
   if(planError||!plan)return reply(404,{error:'Workout not found'},h)
   if(plan.state!=='pending'||!plan.approved_at||!plan.archive_snapshot)
    return reply(409,{error:'Trainingsgruppe zuerst im GARMIN_AI Kalender freigeben.'},h)
-  if(plan.training_date<today())return reply(409,{error:'Vergangene Trainings können nicht veröffentlicht werden.'},h)
-  if(plan.intervals_published_revision===plan.revision&&plan.intervals_sync_status==='confirmed')
-   return reply(200,{published:true,alreadyPublished:true,intervalsConfirmed:true,garminConfirmed:false},h)
+  const repairing=input.action==='repair'
+  if(!repairing&&plan.training_date<today())return reply(409,{error:'Vergangene Trainings können nicht veröffentlicht werden.'},h)
+  if(repairing){
+   // Repair a single already approved event, never create a duplicate or touch EI events.
+   const minDay=new Date(Date.now()-31*86400000).toISOString().slice(0,10)
+   if(input.acknowledge!==true||plan.training_date<minDay||
+      plan.intervals_published_revision!==plan.revision||
+      !Number.isSafeInteger(Number(plan.intervals_event_id))||Number(plan.intervals_event_id)<1||
+      plan.intervals_export_version>=2)
+    return reply(409,{error:'Nur der ausdrücklich bestätigte, bisher fehlerhafte Export darf korrigiert werden.'},h)
+  }else if(plan.intervals_published_revision===plan.revision){
+   if(plan.intervals_export_version>=2&&plan.intervals_sync_status==='confirmed')
+    return reply(200,{published:true,alreadyPublished:true,intervalsConfirmed:true,garminConfirmed:false},h)
+   return reply(409,{error:'Vorhandenes Training benötigt die ausdrücklich bestätigte Export-Korrektur.'},h)
+  }
   let event:Record<string,unknown>
   try{event=buildIntervalsEvent(plan)}
   catch{return reply(422,{error:'Trainingsstruktur ungültig oder mehr als 50 Schritte.'},h)}
@@ -136,35 +154,44 @@ Deno.serve(async req=>{
    return reply(409,{error:'Intervals.icu erst unter Einstellungen verbinden.'},h)
   const externalId=String(event.external_id)
   try{
-   // Upsert with stable external_id is the Endurance Intelligence strategy.
-   // It does not delete unrelated or old EI training calendar events.
-   const existing=await readEvents(secret,plan.training_date)
-   let found=existing.find(x=>x.external_id===externalId)
-   if(!found||found.description!==event.description||found.category!=='WORKOUT'){
-    const result=await intervals('POST','/athlete/0/events/bulk?upsert=true',secret,[event])
-    if(!Array.isArray(result)||!result.length)throw Error('Unexpected Intervals response')
-    // Confirm by fetching the event back; never claim Garmin delivered it.
-    const check=await readEvents(secret,plan.training_date)
-    found=check.find(x=>x.external_id===externalId)
+   // Repair may only update the exact pre-existing event ID and external_id.
+   let oldEvent:Record<string,unknown>|null=null
+   if(repairing){
+    oldEvent=await fullEvent(secret,plan.intervals_event_id)
+    if(oldEvent.external_id!==externalId||Number(oldEvent.id)!==Number(plan.intervals_event_id))
+     return reply(409,{error:'Der gespeicherte Intervals-Termin gehört nicht eindeutig zu diesem GARMIN_AI-Training.'},h)
    }
-   const count=(String(found?.description||'').match(/intensity=/g)||[]).length
-   const expected=(String(event.description).match(/intensity=/g)||[]).length
-   if(!found||found.category!=='WORKOUT'||String(found.type).toLowerCase()!=='run'||
-      count<expected||!Number.isSafeInteger(Number(found.id))){
+   const existing=repairing?[oldEvent!]:await readEvents(secret,plan.training_date)
+   let found=existing.find(x=>x.external_id===externalId)
+   // One remote write only, initiated by the user's direct button click.
+   if(repairing){
+    await intervals('PUT','/athlete/0/events/'+Number(plan.intervals_event_id),secret,{
+     ...event,id:Number(plan.intervals_event_id)
+    })
+    found=await fullEvent(secret,plan.intervals_event_id)
+   }else if(!found||found.description!==event.description||found.category!=='WORKOUT'){
+    const created=await intervals('POST','/athlete/0/events/bulk?upsert=true',secret,[event])
+    if(!Array.isArray(created)||!created.length)throw Error('Unexpected Intervals response')
+    const list=await readEvents(secret,plan.training_date)
+    found=list.find(x=>x.external_id===externalId)
+   }
+   if(found?.id)found=await fullEvent(secret,found.id)
+   const review=validateStoredIntervalsWorkout(found,plan.archive_snapshot,event)
+   if(!review.ok){
     await db.from('garmin_training_plan').update({intervals_sync_status:'needs_review'})
       .eq('id',plan.id).eq('revision',plan.revision)
-    return reply(409,{error:'Intervals.icu konnte nicht vollständig bestätigt werden. Bitte dort prüfen – kein automatischer Wiederholungsversuch.'},h)
+    return reply(409,{error:'Intervals.icu hat das Training nicht korrekt interpretiert: '+review.reason+'. Bitte nicht auf der Uhr starten.',verified:false},h)
    }
    const {data:saved,error:saveError}=await db.from('garmin_training_plan')
-    .update({intervals_sync_status:'confirmed',intervals_event_id:Number(found.id),
-      intervals_published_revision:plan.revision,intervals_published_at:new Date().toISOString()})
+    .update({intervals_sync_status:'confirmed',intervals_event_id:Number(found!.id),
+      intervals_published_revision:plan.revision,intervals_export_version:2,
+      intervals_published_at:new Date().toISOString()})
     .eq('id',plan.id).eq('revision',plan.revision).eq('state','pending')
     .select('id').maybeSingle()
    if(saveError||!saved)return reply(409,{error:'Intervals.icu wurde aktualisiert, GARMIN_AI-Bestätigung benötigt Prüfung.'},h)
    return reply(200,{published:true,intervalsConfirmed:true,garminConfirmed:false,
-    intervalsEventId:found.id,date:plan.training_date})
+    validatedStructure:true,repair:repairing,intervalsEventId:found!.id,date:plan.training_date})
   }catch(e){
-   // Do not automatically retry remote writes (even on timeouts).
    await db.from('garmin_training_plan').update({intervals_sync_status:'needs_review'})
     .eq('id',plan.id).eq('revision',plan.revision)
    return reply(502,{error:errorMessage(e)+' Status bei Intervals.icu prüfen, bevor du erneut sendest.'},h)
