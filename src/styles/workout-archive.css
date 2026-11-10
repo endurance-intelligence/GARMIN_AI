@@ -27,7 +27,7 @@
 .wa-editor input,.wa-editor select,.wa-record select{width:100%;min-width:0;min-height:42px;padding:9px 10px;border-radius:9px;border:1px solid rgba(170,185,232,.26);font-size:14px;background:#202a44;color:#f1f4ff;color-scheme:dark;font-family:inherit;box-sizing:border-box}
 .wa-editor input::placeholder{color:#788ba9}
 .wa-segment-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:15px 0}
-.wa-segment-fields>div{display:grid;grid-template-columns:95px 1fr;gap:7px;border:1px solid rgba(178,193,240,.1);padding:12px;border-radius:11px;min-width:0}
+.wa-segment-fields>div{display:grid;grid-template-columns:85px 100px 1fr;gap:7px;border:1px solid rgba(178,193,240,.1);padding:12px;border-radius:11px;min-width:0}
 .wa-segment-fields>div>strong{grid-column:1/-1;font-size:12px}
 .wa-group-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 10px}
 .wa-group-tabs button{min-height:39px;border-radius:10px;background:#27314a;border:1px solid rgba(169,181,239,.18);padding:8px 10px;color:#c5d1ed;font-size:11px}
@@ -38,7 +38,7 @@
 .wa-step-top{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}
 .wa-step-top strong{font-size:11px}
 .wa-step-top button{border:0;color:#e2a7a8;background:transparent;min-height:32px;font-size:10px}
-.wa-step-fields{display:grid;grid-template-columns:100px 90px 90px 90px minmax(0,1fr);gap:7px}
+.wa-step-fields{display:grid;grid-template-columns:90px 78px 85px 75px minmax(0,1fr);gap:7px}
 .wa-editor-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding-top:13px;border-top:1px solid rgba(181,192,232,.11)}
 .wa-editor-footer p{font-size:11px;max-width:540px;color:#9cabc8;line-height:1.5;margin:0}
 .wa-editor-footer button,.wa-plan-button{background:#a4d779!important;color:#102414!important;border:1px solid #c8f6a1!important;border-radius:10px;font-size:12px;font-weight:830;min-height:44px;padding:9px 13px;white-space:nowrap}
@@ -73,7 +73,7 @@
  .wa-import-actions button,.wa-import-label{min-height:44px;flex:1;font-size:11px}
  .wa-editor{padding:12px;margin:12px 0}
  .wa-fields,.wa-segment-fields,.wa-group-meta{grid-template-columns:minmax(0,1fr)}
- .wa-segment-fields>div{grid-template-columns:minmax(80px,.35fr) minmax(0,1fr)}
+ .wa-segment-fields>div{grid-template-columns:repeat(2,minmax(0,1fr))}.wa-segment-fields>div>label:last-child{grid-column:1/-1}
  .wa-step-fields{grid-template-columns:repeat(3,minmax(0,1fr))}
  .wa-step-fields label:last-child{grid-column:1/-1}
  .wa-editor-footer{flex-direction:column;align-items:stretch}
@@ -84,3 +84,5 @@
  .wa-record-controls{flex-wrap:wrap}
 }
 @media(max-width:370px){.wa-step-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.wa-record-actions button{flex-basis:100%}}
+
+@media(min-width:761px) and (max-width:1000px){.wa-step-fields{grid-template-columns:repeat(4,minmax(0,1fr))}.wa-step-fields label:last-child{grid-column:1/-1}}
