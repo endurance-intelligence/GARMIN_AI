@@ -17,7 +17,7 @@ type Plan={
  sport:string;garmin_workout_id:number|null;notes:string;revision:number
 }
 type CalendarEntry={key:string;date:string;title:string;sub:string;note:string;source:'garmin'|'plan';status:string}
-type IntervalsPublication={id:string;revision:number;intervals_published_revision:number|null;intervals_sync_status:string;intervals_event_id:number|null}
+type IntervalsPublication={id:string;revision:number;intervals_published_revision:number|null;intervals_sync_status:string;intervals_event_id:number|null;intervals_export_version:number|null}
 const LOCAL_TZ='Europe/Berlin'
 function todayBerlin(){
  const parts=new Intl.DateTimeFormat('de-DE',{
@@ -85,6 +85,7 @@ export function CalendarPage({active}:{active:boolean}){
  const [eligiblePlanIds,setEligiblePlanIds]=useState<string[]>([])
  const [published,setPublished]=useState<Record<string,IntervalsPublication>>({})
  const [acting,setActing]=useState<string|null>(null)
+ const [repairArmed,setRepairArmed]=useState<string|null>(null)
  const [busy,setBusy]=useState(false)
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
@@ -171,9 +172,28 @@ export function CalendarPage({active}:{active:boolean}){
    if(!result.published||!result.intervalsConfirmed)throw Error('Intervals-Bestätigung fehlt')
    setPublished(old=>({...old,[plan.id]:{
     id:plan.id,revision:plan.revision,intervals_published_revision:plan.revision,
-    intervals_sync_status:'confirmed',intervals_event_id:result.intervalsEventId}}))
+    intervals_sync_status:'confirmed',intervals_event_id:result.intervalsEventId,intervals_export_version:2}}))
    setNotice('Intervals.icu hat das Training bestätigt. Prüfe es nach der Synchronisierung in Garmin Connect bzw. auf deiner Uhr.')
   }catch(e){setError(e instanceof Error?e.message:'Übertragung fehlgeschlagen')}
+  finally{setActing(null)}
+ }
+ async function repairPublishedWorkout(plan:Plan){
+  if(acting||!garminSupabase||!intervalsConnected)return
+  setActing(plan.id);setError('');setNotice('')
+  try{
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)throw Error('Bitte zuerst anmelden')
+   const result=await ownerPost<{published:boolean;intervalsConfirmed:boolean;intervalsEventId:number;validatedStructure:boolean}>(session,
+    'garmin-intervals',{action:'repair',planId:plan.id,acknowledge:true})
+   if(!result.published||!result.intervalsConfirmed||!result.validatedStructure)
+    throw Error('Die korrigierte Trainingsstruktur wurde nicht bestätigt.')
+   setPublished(old=>({...old,[plan.id]:{
+    id:plan.id,revision:plan.revision,intervals_published_revision:plan.revision,
+    intervals_sync_status:'confirmed',intervals_event_id:result.intervalsEventId,intervals_export_version:2
+   }}))
+   setRepairArmed(null)
+   setNotice('Korrigierte Intervalle sind in Intervals.icu gespeichert und geprüft. Bitte auch Garmin Connect kontrollieren.')
+  }catch(e){setError(e instanceof Error?e.message:'Korrektur fehlgeschlagen')}
   finally{setActing(null)}
  }
  function changeWeek(delta:number){
@@ -229,8 +249,9 @@ export function CalendarPage({active}:{active:boolean}){
       {matching.map(entry=>{
        const plan=entry.source==='plan'?plans.find(p=>'p-'+p.id===entry.key):undefined
        const publication=plan?published[plan.id]:undefined
-       const sent=!!(plan&&publication&&publication.intervals_published_revision===plan.revision&&
-        publication.intervals_sync_status==='confirmed')
+       const previouslyPublished=!!(plan&&publication&&publication.intervals_published_revision===plan.revision&&publication.intervals_event_id)
+       const needsRepair=previouslyPublished&&!(publication?.intervals_export_version&&publication.intervals_export_version>=2&&publication.intervals_sync_status==='confirmed')
+       const sent=previouslyPublished&&!needsRepair
        const eligible=!!plan&&eligiblePlanIds.includes(plan.id)
        const state=entry.source==='garmin'?
         {text:'Aus Garmin übernommen',type:'verified'}:
@@ -245,7 +266,21 @@ export function CalendarPage({active}:{active:boolean}){
          {plan&&eligible&&plan.state==='draft'&&<button type="button" className="hc-intervals-button"
            disabled={acting!==null} onClick={()=>void approvePlan(plan)}>
             {acting===plan.id?'Freigabe …':'Training freigeben'}</button>}
-         {plan&&eligible&&plan.state==='pending'&&!sent&&<>
+         {plan&&eligible&&plan.state==='pending'&&needsRepair&&<>
+          <p className="hc-error">Der bisherige Intervals-Export hatte ungültige Zeit-/Distanzwerte. Nicht auf Garmin starten.</p>
+          {repairArmed!==plan.id?
+           <button type="button" className="hc-intervals-button" disabled={acting!==null||!intervalsConnected}
+             onClick={()=>setRepairArmed(plan.id)}>Korrigierten Export vorbereiten</button>:
+           <div className="hc-repair-confirm">
+            <small>Das bestehende Training bei Intervals.icu wird am selben Termin überschrieben. Kein neues Training wird angelegt.</small>
+            <button type="button" disabled={acting!==null} className="hc-intervals-button"
+             onClick={()=>void repairPublishedWorkout(plan)}>
+             {acting===plan.id?'Korrigiere …':'Ja, vorhandenes Training korrigieren'}</button>
+            <button type="button" disabled={acting!==null} className="hc-intervals-button"
+             onClick={()=>setRepairArmed(null)}>Abbrechen</button>
+           </div>}
+         </>}
+         {plan&&eligible&&plan.state==='pending'&&!sent&&!needsRepair&&<>
           <button type="button" className="hc-intervals-button"
            disabled={!intervalsConnected||acting!==null} onClick={()=>void publishPlan(plan)}>
             {acting===plan.id?'Übertrage …':'An Intervals.icu senden'}</button>
