@@ -210,6 +210,9 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
       <label>Distanz (m)<input inputMode="numeric" type="number" min={20} max={50000}
        value={editing[part].distanceMeters??''}
        onChange={e=>change(w=>{w[part].distanceMeters=integer(e.target.value)})}/></label>
+      <label>Sekunden<input type="number" inputMode="numeric" min={20} max={36000}
+       value={editing[part].durationSeconds??''}
+       onChange={e=>change(w=>{w[part].durationSeconds=integer(e.target.value)})}/></label>
       <label>Hinweise<input value={editing[part].notes} maxLength={250}
        onChange={e=>change(w=>{w[part].notes=e.target.value})}/></label>
      </div>)}
@@ -247,10 +250,13 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
         <label>Meter<input type="number" inputMode="numeric" min={20} max={50000}
          value={step.distanceMeters??''} onChange={e=>changeStep(i,s=>({
           ...s,distanceMeters:integer(e.target.value)}))}/></label>
-        <label>Tempo/km<input type="text" inputMode="text" placeholder="4:20"
-         value={formatPace(step.paceSecondsPerKm)} maxLength={5}
-         onChange={e=>changeStep(i,s=>({...s,
+        <label>Tempo/km<input key={editGroup+'-'+i} type="text"
+         inputMode="text" placeholder="4:20" defaultValue={formatPace(step.paceSecondsPerKm)}
+         maxLength={5} onBlur={e=>changeStep(i,s=>({...s,
           paceSecondsPerKm:parsePace(e.target.value)}))}/></label>
+        <label>Sekunden<input type="number" inputMode="numeric" min={10} max={14400}
+         value={step.durationSeconds??''} onChange={e=>changeStep(i,s=>({
+          ...s,durationSeconds:integer(e.target.value)}))}/></label>
         <label>Notiz<input value={step.notes} maxLength={180}
          onChange={e=>changeStep(i,s=>({...s,notes:e.target.value}))}/></label>
        </div>
