@@ -107,7 +107,7 @@ test('mobile calendar no longer binds ORC to two fixed weekdays',()=>{
  const panel=read('src/components/WorkoutArchivePanel.tsx')
  assert.match(calendar,/<WorkoutArchivePanel active=\{active\} date=\{selected\}/)
  assert.doesNotMatch(calendar,/orcDay|<OrcTrackBuilder/)
- assert.match(panel,/Trainerbild importieren/)
+ assert.match(panel,/Foto kostenlos lokal lesen/)
  assert.match(panel,/Manuell erfassen/)
  assert.match(panel,/Letzte ORC-Grafik übernehmen/)
  assert.match(panel,/Geprüfte Vorlage archivieren/)
