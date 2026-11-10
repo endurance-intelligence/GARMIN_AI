@@ -81,9 +81,9 @@ test('free import is default, paid external vision must be expanded deliberately
  assert.match(ui,/crypto\.subtle\.digest\('SHA-256',await file\.arrayBuffer\(\)\)/)
  assert.match(ui,/<details className="wa-paid-alternative">/)
  assert.match(ui,/kostenpflichtige API/)
- assert.match(ui,/sourceKind==='trainer_photo'/)
- assert.match(ui,/Originalfoto zur Kontrolle einblenden/)
- assert.match(ui,/Geprüfte Vorlage archivieren/)
+ assert.match(ui,/begin\(interpreted.workout,'trainer_photo',hash\)/)
+ assert.match(read('src/components/WorkoutReviewDialog.tsx'),/Originalfoto zum Vergleichen/)
+ assert.match(read('src/components/WorkoutReviewDialog.tsx'),/Geprüfte Vorlage archivieren/)
  assert.match(read('src/App.tsx'),/<OnlineAccessGate>/)
 })
 test('save stays owner-approved and photo-hashed without changing protected Garmin writes',()=>{
