@@ -1,0 +1,55 @@
+/* ORC track – intentionally collapsed until the user chooses to plan a session. */
+.orc-builder{margin:15px 0 0;min-width:0;border-radius:14px;background:#131b2d;border:1px solid rgba(163,178,238,.14);overflow:hidden}
+.orc-builder>summary{list-style:none;display:flex;align-items:center;gap:12px;min-height:66px;padding:12px 15px;cursor:pointer;user-select:none;color:#f1f3ff}
+.orc-builder>summary::-webkit-details-marker{display:none}
+.orc-builder[open]>summary{border-bottom:1px solid rgba(181,190,237,.11)}
+.orc-mark{display:grid;place-items:center;flex:0 0 44px;height:39px;border-radius:12px;background:#2d3157;color:#cabaff;font-size:12px;font-weight:900;letter-spacing:.06em}
+.orc-summary{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
+.orc-summary strong{font-size:13px;font-weight:790}
+.orc-summary small{font-size:11px;color:#9eafc8;line-height:1.35}
+.orc-chevron{font-size:21px;color:#ac9cff}
+.orc-builder[open] .orc-chevron{transform:rotate(180deg)}
+.orc-content{padding:15px;min-width:0}
+.orc-picker{display:flex;align-items:end;justify-content:space-between;gap:16px}
+.orc-picker>div{min-width:0}
+.orc-kicker{font-size:9px;font-weight:820;letter-spacing:.1em;color:#b9a7ff}
+.orc-picker h3{font-size:20px;letter-spacing:-.035em;margin:6px 0}
+.orc-picker p{font-size:11px;line-height:1.6;color:#97a7c2;max-width:540px;margin:0}
+.orc-picker label{flex:0 0 145px;font-size:11px;color:#b4c4df;display:flex;flex-direction:column;gap:7px;font-weight:700}
+.orc-picker select{font:inherit;font-size:16px;border:1px solid rgba(178,191,233,.3);color:#eef1ff;background:#242c4a;padding:10px 11px;min-width:0;min-height:45px;border-radius:11px}
+.orc-measures{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:19px 0}
+.orc-measures>div{border:1px solid rgba(179,186,230,.1);border-radius:11px;background:rgba(153,166,217,.045);padding:11px;display:flex;flex-direction:column;gap:6px}
+.orc-measures small{font-size:10px;color:#9caecb}
+.orc-measures strong{font-size:15px;line-height:1.35;color:#f3f5ff;font-variant-numeric:tabular-nums}
+.orc-sequence{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:7px;max-width:690px;margin:11px 0 13px;min-width:0}
+.orc-effort{min-width:0;text-align:center}
+.orc-effort-pill{min-height:53px;display:flex;align-items:center;justify-content:center;border-radius:9px;font-size:15px;font-weight:850;font-variant-numeric:tabular-nums;letter-spacing:-.02em;border:1px solid rgba(255,255,255,.09)}
+.orc-tone-0{background:#997337;color:#ffe0a1}
+.orc-tone-1{background:#ba8535;color:#fff0b8}
+.orc-tone-2{background:#385b6b;color:#c8eff8}
+.orc-effort small{display:block;color:#8e9fb9;margin-top:5px;font-size:10px}
+.orc-structure{font-size:12px;line-height:1.7;color:#d2daea;margin:14px 0 7px}
+.orc-structure strong{color:#fff}
+.orc-workout-hint{color:#92a2c1;font-size:10.5px;line-height:1.65;margin:0 0 14px}
+.orc-existing{color:#edd59a;font-size:11px;line-height:1.5;padding:10px 11px;background:rgba(217,172,105,.05);border:1px solid rgba(226,176,105,.18);border-radius:10px}
+.orc-actions{display:flex;align-items:center;justify-content:space-between;gap:13px;border-top:1px solid rgba(173,187,234,.11);padding-top:13px}
+.orc-actions span{font-size:11px;color:#9dacca;line-height:1.5;max-width:430px}
+.orc-actions button{background:#9c8eeb;border:1px solid #b6a6fc;border-radius:11px;color:#16142a;min-height:45px;font-size:12px;font-weight:820;padding:11px 15px;flex:0 0 auto}
+.orc-actions button:disabled{opacity:.5;cursor:default}
+.orc-error,.orc-done{margin:12px 0 0;font-size:11px;line-height:1.5}
+.orc-error{color:#ffb3ad}.orc-done{color:#b4e6bb}
+@media(max-width:760px){
+ .orc-builder{margin-top:12px}
+ .orc-builder>summary{min-height:61px;padding:10px 12px;gap:10px}
+ .orc-content{padding:12px}
+ .orc-picker{align-items:stretch;gap:13px;flex-direction:column}
+ .orc-picker h3{font-size:18px}
+ .orc-picker label{flex:auto}
+ .orc-picker select{width:100%}
+ .orc-measures{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:15px 0}
+ .orc-measures>div{padding:9px}
+ .orc-sequence{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:100%}
+ .orc-effort-pill{min-height:43px;font-size:14px}
+ .orc-actions{align-items:stretch;flex-direction:column;gap:10px}
+ .orc-actions button{width:100%}
+}
