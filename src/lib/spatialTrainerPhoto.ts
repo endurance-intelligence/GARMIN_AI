@@ -49,7 +49,8 @@ function getWarmup(text:string){
  return metres>=100&&metres<=50000?metres:null
 }
 export function interpretSpatialTrainerPhoto(result:SpatialOcrResult):SpatialWorkoutDraft{
- const recognizedText=result.text.slice(0,14000)
+ const recognizedText=(result.text+'\n\n--- Zeilenweise Gruppenlesung ---\n'+
+  result.rows.map(r=>r.name+'\nANZAHL: '+r.leftText+'\nTEMPI: '+r.rightText).join('\n---\n')).slice(0,14000)
  const warnings:string[]=[],incompleteGroups:string[]=[]
  const groups:TrainerGroup[]=[]
  const seen=new Set<string>()
@@ -110,7 +111,10 @@ export function interpretSpatialTrainerPhoto(result:SpatialOcrResult):SpatialWor
 export function spatialPhotoReviewIssues(workout:TrainerWorkout):string[]{
  return workout.groups.flatMap(group=>{
   const runs=group.steps.filter(s=>s.kind==='run')
-  return runs.length===0||runs.some(s=>s.distanceMeters===null&&s.durationSeconds===null)?
-   [group.name+': Belastungsdistanz oder Dauer fehlt']:[]
+  if(runs.length===0||runs.some(s=>s.distanceMeters===null&&s.durationSeconds===null))
+   return [group.name+': Belastungsdistanz oder Dauer fehlt']
+  if(runs.some(s=>s.paceSecondsPerKm===null&&s.notes.startsWith('OCR:')))
+   return [group.name+': Zielpace nicht vollständig erkannt – im Editor prüfen']
+  return []
  })
 }
