@@ -1,12 +1,12 @@
 import {useEffect,useRef,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {
- blankStep,blankTrainerWorkout,formatPace,parsePace,previousOrcFlyer,workoutSummary
+ blankStep,blankTrainerWorkout,previousOrcFlyer,workoutSummary
 } from '../lib/workoutLibrary'
-import type {ArchiveRecord,TrainerWorkout,TrainerGroup,TrainerStep,WorkoutStepKind} from '../lib/workoutLibrary'
+import type {ArchiveRecord,TrainerWorkout,TrainerGroup,TrainerStep} from '../lib/workoutLibrary'
 import {readTrainerPhotoLocally} from '../lib/localTrainerPhotoOcr'
 import {interpretLocalPhotoText,isKnownOrcOriginal} from '../lib/localPhotoWorkout'
-import {TrackLapPreview} from './TrackLapPreview'
+import {WorkoutReviewDialog} from './WorkoutReviewDialog'
 import '../styles/workout-archive.css'
 
 type ArchiveResponse={entries:ArchiveRecord[];hasMore:boolean;nextPage:number|null;visionConfigured:boolean}
@@ -58,14 +58,6 @@ async function callArchive<T>(body?:Record<string,unknown>,page=0):Promise<T>{
  }
  return json as T
 }
-const integer=(value:string)=>value===''?null:Number(value)
-function sessionLabel(s:TrainerStep){
- const quantity=s.distanceMeters? s.distanceMeters+' m':
-  s.durationSeconds?Math.round(s.durationSeconds/60*10)/10+' min':'offen'
- return (s.kind==='run'?'Lauf':s.kind==='recovery'?'Trab':
-  s.kind==='drill'?'Übung':s.kind==='warmup'?'Einlaufen':'Auslaufen')+
-  ' · '+quantity+(s.paceSecondsPerKm?' · '+formatPace(s.paceSecondsPerKm)+'/km':'')
-}
 export function WorkoutArchivePanel({active,date,onPlanned}:{
  active:boolean;date:string;onPlanned:()=>void
 }){
@@ -93,7 +85,8 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
  const [localPhotoUrl,setLocalPhotoUrl]=useState<string|null>(null)
  const localPhotoUrlRef=useRef<string|null>(null)
  const [choice,setChoice]=useState<Record<string,string>>({})
- const [expanded,setExpanded]=useState<string|null>(null)
+ const [reviewOpen,setReviewOpen]=useState(false)
+ const [previewRecord,setPreviewRecord]=useState<ArchiveRecord|null>(null)
  const requestId=useRef<string>(crypto.randomUUID())
  const planIds=useRef<Map<string,string>>(new Map())
  useEffect(()=>()=>{if(localPhotoUrlRef.current)URL.revokeObjectURL(localPhotoUrlRef.current)},[])
@@ -140,6 +133,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    setError('Bitte JPG, PNG oder WebP unter 8 MB auswählen.')
    return
   }
+  setReviewOpen(true);setPreviewRecord(null)
   setLocalBusy(true);setOcrProgress('Lokale Texterkennung startet …')
   setOcrRaw('');setOcrWarnings([]);setReferenceConfirmed(false);setError('');setSuccess('')
   try{
@@ -206,11 +200,26 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
   setOcrWarnings(old=>[...old,'Alle Schritte müssen anhand des Fotos ergänzt werden.'])
  }
  function begin(workout:TrainerWorkout,kind:SourceKind,hash:string|null=null){
+  setPreviewRecord(null);setReviewOpen(true)
   setEditing(workout);setSourceKind(kind);setImageHash(hash)
   setEditGroup(workout.groups.findIndex(g=>g.name==='Wolf')>=0?
    workout.groups.findIndex(g=>g.name==='Wolf'):0)
   setError('');setSuccess('')
   requestId.current=crypto.randomUUID()
+ }
+ function viewRecord(record:ArchiveRecord,groupName:string){
+  setEditing(null);setPreviewRecord(record);setReviewOpen(true)
+  setEditGroup(Math.max(0,record.workout.groups.findIndex(g=>g.name===groupName)))
+  setOcrRaw('');setOcrWarnings([]);setError('');setSuccess('')
+ }
+ function closeReview(){
+  if(busy||localBusy)return
+  setReviewOpen(false);setPreviewRecord(null);setEditing(null)
+  setOcrWarnings([]);setOcrRaw('');setOcrIdentifiedGroups(0)
+  setOcrWasTemplate(false);setReferenceConfirmed(false)
+  if(localPhotoUrlRef.current)URL.revokeObjectURL(localPhotoUrlRef.current)
+  localPhotoUrlRef.current=null;setLocalPhotoUrl(null)
+  setError('')
  }
  function change(fn:(w:TrainerWorkout)=>void){
   setEditing(w=>{if(!w)return w;const next=structuredClone(w);fn(next);return next})
@@ -229,6 +238,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    setError('Bitte JPG, PNG oder WebP bis 2,7 MB auswählen.')
    return
   }
+  setReviewOpen(true);setPreviewRecord(null)
   setBusy(true);setError('');setSuccess('')
   try{
    const data=await new Promise<string>((resolve,reject)=>{
@@ -256,7 +266,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
     workout:editing,sourceKind,sourceImageSha256:imageHash
    })
    if(result.saved!==true)throw Error('Speichern nicht bestätigt.')
-   setEditing(null)
+   setEditing(null);setPreviewRecord(null);setReviewOpen(false)
    setOcrWarnings([]);setOcrRaw('');setOcrIdentifiedGroups(0);setOcrWasTemplate(false)
    setReferenceConfirmed(false)
    if(localPhotoUrlRef.current)URL.revokeObjectURL(localPhotoUrlRef.current)
@@ -279,12 +289,13 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    if(response.saved!==true)throw Error('Einplanen nicht bestätigt')
    setSuccess((response.created?'Als Entwurf eingetragen: ':'Bereits im Kalender: ')+
     template.title+' · '+group+'. Kein Garmin-Schreibzugriff.')
+   setReviewOpen(false);setPreviewRecord(null)
    onPlanned()
   }catch(e){setError(e instanceof Error?e.message:'Planung fehlgeschlagen')}
   finally{setBusy(false)}
  }
 
- return <details className="wa-root" open={open}
+ return <><details className="wa-root" open={open}
   onToggle={e=>setOpen(e.currentTarget.open)}>
   <summary className="wa-toggle">
    <span className="wa-icon">↗</span>
@@ -330,132 +341,6 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
     </label>
    </details>}
 
-   {localPhotoUrl&&ocrRaw&&sourceKind==='trainer_photo'&&<details className="wa-local-photo">
-    <summary>Originalfoto zur Kontrolle einblenden</summary>
-    <img src={localPhotoUrl} alt="Lokal ausgewähltes ORC-Trainerfoto zur Überprüfung der erkannten Daten"/>
-   </details>}
-   {ocrRaw&&<div className="wa-ocr-review" role="status">
-    <strong>OCR-Auswertung · {ocrIdentifiedGroups} Gruppen aus Text erkannt{ocrWasTemplate?' · geprüfte Referenz übernommen':''}</strong>
-    <ul>{ocrWarnings.map((warning,i)=><li key={i}>{warning}</li>)}</ul>
-    {!ocrWasTemplate&&localPhotoUrl&&<div className="wa-reference-action">
-     <strong>Ist das die bekannte ORC-Grafik „Schwelle im Wechsel“?</strong>
-     <p>Dann kannst du alle fünf Gruppen aus unserer bereits geprüften Originalvorlage
-      übernehmen. Diese Werte stammen <strong>nicht</strong> aus der unvollständigen
-      Texterkennung. Bei einem anderen Training bitte nicht auswählen.</p>
-     <label><input type="checkbox" checked={referenceConfirmed}
-      onChange={event=>setReferenceConfirmed(event.target.checked)}/>
-      Ja, die Grafik ist genau „Schwelle im Wechsel“.</label>
-     <button type="button" disabled={!referenceConfirmed||busy}
-      onClick={loadReviewedOrcGroups}>Alle 5 geprüften Gruppen übernehmen</button>
-    </div>}
-    {!editing&&<button type="button" className="wa-manual-ocr" onClick={completeOcrManually}>
-      Erkannten Text manuell ins Training übertragen
-    </button>}
-    <details><summary>Erkannten Originaltext ansehen</summary>
-     <pre>{ocrRaw||'Kein Text erkannt.'}</pre>
-    </details>
-   </div>}
-   {editing&&<div className="wa-editor">
-    <div className="wa-editor-head">
-     <h3>Trainertraining überprüfen</h3>
-     <button type="button" onClick={()=>setEditing(null)} disabled={busy}>Abbrechen</button>
-    </div>
-    <div className="wa-fields">
-     <label>Name der Einheit<input value={editing.title} maxLength={120}
-      onChange={e=>change(w=>{w.title=e.target.value})} placeholder="z. B. Schwelle im Wechsel"/></label>
-     <label>Trainer / Verein<input value={editing.trainer} maxLength={100}
-      onChange={e=>change(w=>{w.trainer=e.target.value})} placeholder="z. B. ORC Runcrew"/></label>
-     <label>Quelle / Veranstaltung<input value={editing.sourceLabel} maxLength={120}
-      onChange={e=>change(w=>{w.sourceLabel=e.target.value})} placeholder="z. B. Track Tuesday"/></label>
-    </div>
-    <div className="wa-segment-fields">
-     {(['warmup','cooldown'] as const).map(part=><div key={part}>
-      <strong>{part==='warmup'?'Einlaufen':'Auslaufen'}</strong>
-      <label>Distanz (m)<input inputMode="numeric" type="number" min={20} max={50000}
-       value={editing[part].distanceMeters??''}
-       onChange={e=>change(w=>{w[part].distanceMeters=integer(e.target.value)})}/></label>
-      <label>Sekunden<input type="number" inputMode="numeric" min={20} max={36000}
-       value={editing[part].durationSeconds??''}
-       onChange={e=>change(w=>{w[part].durationSeconds=integer(e.target.value)})}/></label>
-      <label>Hinweise<input value={editing[part].notes} maxLength={250}
-       onChange={e=>change(w=>{w[part].notes=e.target.value})}/></label>
-     </div>)}
-    </div>
-    <div className="wa-choice-row">
-     <label>Welche Gruppe läufst du?
-      <select aria-label="Gruppe für Trainingsvorschau wählen"
-       value={editGroup} onChange={e=>setEditGroup(Number(e.target.value))}>
-       {editing.groups.map((g,i)=><option key={i} value={i}>
-        {g.name||'Gruppe '+(i+1)}</option>)}
-      </select>
-     </label>
-     <span>{editing.groups.length} Gruppen in dieser Einheit</span>
-    </div>
-    <div className="wa-group-tabs" role="group" aria-label="Trainingsgruppe auswählen">
-     {editing.groups.map((g,i)=><button type="button" key={i} aria-pressed={i===editGroup}
-      className={i===editGroup?'selected':''} onClick={()=>setEditGroup(i)}>
-      {g.name||'Gruppe '+(i+1)}</button>)}
-     {editing.groups.length<12&&<button type="button"
-      onClick={()=>{change(w=>{w.groups.push({name:'Gruppe '+(w.groups.length+1),
-       notes:'',steps:[blankStep()]})});setEditGroup(editing.groups.length)}}>
-      + Gruppe</button>}
-    </div>
-    {editing.groups[editGroup]&&<>
-     <div className="wa-group-meta">
-      <label>Gruppenname<input maxLength={50} value={editing.groups[editGroup].name}
-       onChange={e=>changeGroup(g=>{g.name=e.target.value})}/></label>
-      <label>Trainerhinweise<input maxLength={350} value={editing.groups[editGroup].notes}
-       onChange={e=>changeGroup(g=>{g.notes=e.target.value})}/></label>
-     </div>
-     <div className="wa-editor-steps">
-      {editing.groups[editGroup].steps.map((step,i)=><div className="wa-step" key={i}>
-       <div className="wa-step-top">
-        <strong>Schritt {i+1}</strong>
-        <button type="button" disabled={editing.groups[editGroup].steps.length<=1}
-         onClick={()=>changeGroup(g=>{g.steps.splice(i,1)})}>Entfernen</button>
-       </div>
-       <div className="wa-step-fields">
-        <label>Art<select value={step.kind}
-         onChange={e=>changeStep(i,s=>({...s,kind:e.target.value as WorkoutStepKind}))}>
-         <option value="run">Laufen</option><option value="recovery">Trabpause</option>
-         <option value="drill">Übung</option><option value="warmup">Einlaufen</option>
-         <option value="cooldown">Auslaufen</option>
-        </select></label>
-        <label>Meter<input type="number" inputMode="numeric" min={20} max={50000}
-         value={step.distanceMeters??''} onChange={e=>changeStep(i,s=>({
-          ...s,distanceMeters:integer(e.target.value)}))}/></label>
-        <label>Tempo/km<input key={editGroup+'-'+i} type="text"
-         inputMode="text" placeholder="4:20" defaultValue={formatPace(step.paceSecondsPerKm)}
-         maxLength={5} onBlur={e=>changeStep(i,s=>({...s,
-          paceSecondsPerKm:parsePace(e.target.value)}))}/></label>
-        <label>Sekunden<input type="number" inputMode="numeric" min={10} max={14400}
-         value={step.durationSeconds??''} onChange={e=>changeStep(i,s=>({
-          ...s,durationSeconds:integer(e.target.value)}))}/></label>
-        <label>Notiz<input value={step.notes} maxLength={180}
-         onChange={e=>changeStep(i,s=>({...s,notes:e.target.value}))}/></label>
-       </div>
-      </div>)}
-     </div>
-     <TrackLapPreview workout={editing} group={editing.groups[editGroup].name}/>
-     <div className="wa-add-step">
-      <button type="button" onClick={()=>changeGroup(g=>{g.steps.push(blankStep('run'))})}>
-       + Belastung</button>
-      <button type="button" onClick={()=>changeGroup(g=>{g.steps.push(blankStep('recovery'))})}>
-       + Pause</button>
-      {editing.groups.length>1&&<button type="button"
-       onClick={()=>{change(w=>{w.groups.splice(editGroup,1)});
-        setEditGroup(Math.max(0,editGroup-1))}}>Gruppe entfernen</button>}
-     </div>
-    </>}
-    <div className="wa-editor-footer">
-     <p>Bitte alle erkannten Gruppen und Paces kontrollieren.
-      Eine gespeicherte Version bleibt unverändert; Korrekturen werden als neue Version archiviert.</p>
-     <button type="button" disabled={busy} onClick={()=>void save()}>
-      {busy?'Speichere …':'Geprüfte Vorlage archivieren'}
-     </button>
-    </div>
-   </div>}
-
    <div className="wa-list-header">
     <strong>Dein Trainingsarchiv</strong>
     <span>{entries.length} geladene Vorlagen</span>
@@ -488,23 +373,12 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
         {overview?.distanceMeters?' · '+(overview.distanceMeters/1000).toLocaleString('de-DE')+' km':''}</span>
       </div>
       <div className="wa-record-actions">
-       <button type="button" onClick={()=>setExpanded(expanded===record.id?null:record.id)}>
-        {expanded===record.id?'Ablauf schließen':'Training ansehen'}</button>
+       <button type="button" onClick={()=>viewRecord(record,group)}>Training ansehen</button>
        <button type="button" onClick={()=>begin(structuredClone(record.workout),'manual')} disabled={busy}>
         Als neue Version bearbeiten</button>
        <button type="button" className="wa-plan-button" disabled={busy||date<todayBerlin()||!selected}
         onClick={()=>void plan(record,group)}>Für {date.split('-').reverse().join('.')} vormerken</button>
       </div>
-      {expanded===record.id&&selected&&<div className="wa-record-details">
-       <p><strong>Einlaufen:</strong> {record.workout.warmup.distanceMeters?
-        record.workout.warmup.distanceMeters+' m · ':''}{record.workout.warmup.notes||'offen'}</p>
-       <div className="wa-step-chips">{selected.steps.map((s,i)=>
-        <span key={i} className={'wa-chip '+(s.kind==='run'?'wa-chip-run':'')}>
-         {sessionLabel(s)}</span>)}</div>
-       <p><strong>Auslaufen:</strong> {record.workout.cooldown.notes||'offen'}</p>
-       {selected.notes&&<p>{selected.notes}</p>}
-       <TrackLapPreview workout={record.workout} group={selected.name}/>
-      </div>}
      </article>
     })}
    </div>
@@ -517,4 +391,26 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
     und automatische Coach-Auswahl bleiben bis zur separaten Prüfung deaktiviert.</p>
   </div>}
  </details>
+ <WorkoutReviewDialog
+  open={reviewOpen} busy={busy} localBusy={localBusy} ocrProgress={ocrProgress}
+  editing={editing} preview={previewRecord} groupIndex={editGroup}
+  onGroup={setEditGroup} onClose={closeReview}
+  onChange={change} onChangeGroup={changeGroup} onChangeStep={changeStep}
+  onSave={()=>void save()}
+  onCopy={()=>{
+   if(!previewRecord)return
+   begin(structuredClone(previewRecord.workout),'manual')
+  }}
+  onPlan={()=>{
+   if(!previewRecord)return
+   const selected=previewRecord.workout.groups[editGroup]
+   if(selected)void plan(previewRecord,selected.name)
+  }}
+  date={date} error={error} success={success}
+  ocrRaw={ocrRaw} ocrWarnings={ocrWarnings}
+  ocrIdentifiedGroups={ocrIdentifiedGroups} ocrWasTemplate={ocrWasTemplate}
+  referenceConfirmed={referenceConfirmed} onReferenceConfirm={setReferenceConfirmed}
+  onUseReference={loadReviewedOrcGroups} onManual={completeOcrManually}
+  photoUrl={localPhotoUrl}/>
+ </>
 }
