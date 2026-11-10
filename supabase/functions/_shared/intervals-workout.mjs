@@ -26,7 +26,7 @@ function renderStep(s,i,section){
  const intensity=s.kind==='run'?'interval':s.kind==='recovery'?'recovery':s.kind==='warmup'?'warmup':s.kind==='cooldown'?'cooldown':'other';
  const prefix=s.kind==='run'?'LAUF':s.kind==='recovery'?'TRAB':s.kind==='warmup'?'EINLAUFEN':s.kind==='cooldown'?'AUSLAUFEN':'DRILLS';
  const meters=dist!==null?(dist===400?'400ER':dist===800?'800ER':dist+'M'):'';
- const info=label([prefix,meters,i>0?String(i):''].filter(Boolean).join(' '));
+ const info=label([prefix,meters].filter(Boolean).join(' '));
  // Intervals.icu supports "Press lap" for Garmin. A generous reference
  // duration allows Garmin to display a field; pressing LAP ends the step.
  const completion=mode==='distance'?distanceToken(dist):'Press lap '+(duration!==null?duration+'s':'60m');
