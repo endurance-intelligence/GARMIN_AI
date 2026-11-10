@@ -77,7 +77,7 @@ test('free import is default, paid external vision must be expanded deliberately
  const ui=read('src/components/WorkoutArchivePanel.tsx')
  assert.match(ui,/Foto kostenlos lokal lesen/)
  assert.match(ui,/readTrainerPhotoLocally\(file/)
- assert.match(ui,/interpretLocalPhotoText\(text\)/)
+ assert.match(ui,/interpretLocalPhotoText\(ocr\.text\)/)
  assert.match(ui,/crypto\.subtle\.digest\('SHA-256',await file\.arrayBuffer\(\)\)/)
  assert.match(ui,/<details className="wa-paid-alternative">/)
  assert.match(ui,/kostenpflichtige API/)
