@@ -119,17 +119,32 @@ async function parsePhoto(input:Record<string,unknown>){
   if(!response.ok){
    // Never return or log OpenAI's raw error body, credentials or image.
    // Only allowlisted provider error codes and HTTP status are retained.
-   let providerCode=''
+   let providerCode='',providerType=''
    try{
-    const body=await response.json() as {error?:{code?:unknown}}
-    const possible=body?.error?.code
-    if(typeof possible==='string'&&['insufficient_quota','billing_hard_limit_reached',
-      'model_not_found'].includes(possible))providerCode=possible
+    const body=await response.json() as {error?:{code?:unknown;type?:unknown}}
+    // OpenAI's 429 quota errors can report the more general
+    // error.type='insufficient_quota' while error.code names the exact limit.
+    const codes=[
+     'insufficient_quota','billing_hard_limit_reached',
+     'credit_balance_exhausted','organization_usage_limit_exceeded',
+     'organization_spend_limit_exceeded','project_spend_limit_exceeded',
+     'rate_limit_exceeded','model_not_found'
+    ]
+    if(typeof body?.error?.code==='string'&&codes.includes(body.error.code))
+     providerCode=body.error.code
+    if(typeof body?.error?.type==='string'&&
+      ['insufficient_quota','rate_limit_exceeded'].includes(body.error.type))
+     providerType=body.error.type
    }catch{/* Non-JSON upstream error: status is sufficient. */}
+   const isQuota=providerType==='insufficient_quota'||
+    ['insufficient_quota','billing_hard_limit_reached','credit_balance_exhausted',
+     'organization_usage_limit_exceeded','organization_spend_limit_exceeded',
+     'project_spend_limit_exceeded'].includes(providerCode)
+   const isRateLimit=providerType==='rate_limit_exceeded'||providerCode==='rate_limit_exceeded'
    const code=response.status===401||response.status===403?'vision_credentials_rejected':
-    response.status===429&&['insufficient_quota','billing_hard_limit_reached'].includes(providerCode)?
-     'vision_quota_exceeded':
-    response.status===429?'vision_rate_limited':
+    response.status===429&&isQuota?'vision_quota_exceeded':
+    response.status===429&&isRateLimit?'vision_rate_limited':
+    response.status===429?'vision_429_unclear':
     response.status===404||providerCode==='model_not_found'?'vision_model_unavailable':
     response.status===400||response.status===422?'vision_request_rejected':
     'vision_upstream_unavailable'
@@ -209,6 +224,7 @@ Deno.serve(async req=>{
    const parsed=await parsePhoto(body)
    const status=parsed.code==='parsed'?200:
     parsed.code==='vision_rate_limited'?429:
+    parsed.code==='vision_429_unclear'?429:
     parsed.code==='vision_quota_exceeded'?503:
     parsed.code==='vision_credentials_rejected'?503:
     parsed.code==='vision_model_unavailable'?503:
