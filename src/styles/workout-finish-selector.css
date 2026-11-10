@@ -1,0 +1,29 @@
+/* Step controls inside the existing single workout modal. */
+.wf-panel{min-width:0}
+.wf-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px}
+.wf-kicker{font-size:9px;color:#bba8fe;font-weight:830;letter-spacing:.1em}
+.wf-head h4{font-size:20px;letter-spacing:-.04em;color:#f4f1ff;margin:5px 0}
+.wf-head p{font-size:11px;color:#9eafc9;margin:0;line-height:1.5}
+.wf-count{font-size:10px;white-space:nowrap;border:1px solid rgba(182,173,237,.20);padding:7px 9px;border-radius:99px;color:#bfb3ec}
+.wf-presets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.wf-presets button{min-height:64px;border:1px solid rgba(170,183,239,.2);border-radius:12px;background:linear-gradient(145deg,#293552,#1a2840);color:#f1f0ff;text-align:left;padding:12px;display:flex;flex-direction:column;gap:5px}
+.wf-presets strong{font-size:13px}.wf-presets small{font-size:10px;color:#abbbd5}
+.wf-explainer{font-size:11px;color:#9cacc8;line-height:1.6;margin:10px 0 14px}
+.wf-steps{display:flex;flex-direction:column;gap:6px}
+.wf-step{display:flex;align-items:center;gap:10px;padding:10px 12px;min-height:62px;background:#1c2940;border:1px solid rgba(160,175,232,.12);border-radius:12px;min-width:0}
+.wf-step-index{font-size:11px;font-weight:850;color:#998fc6;width:22px;flex:0 0 22px}
+.wf-step-description{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.wf-step-description strong{color:#f2efff;font-size:12px}
+.wf-step-description small{color:#9eb4d2;font-size:10px;line-height:1.45}
+.wf-step-description .wf-split{color:#dec999;font-variant-numeric:tabular-nums}
+.wf-step-mode{flex:0 0 auto;max-width:125px}
+.wf-step-mode label{display:flex;flex-direction:column;gap:3px;color:#9badc9;font-size:9px}
+.wf-step-mode select{max-width:125px;min-height:42px;background:#333a61;border:1px solid rgba(171,179,246,.23);border-radius:10px;color:#f1edff;padding:8px 10px;font-size:12px;font-weight:740}
+.wf-mode-readonly{font-size:11px;color:#c4b7ff;font-weight:760}
+.wf-warning{font-size:11px;padding:10px 11px;line-height:1.5;border:1px solid rgba(223,174,83,.3);border-radius:10px;color:#f5d79d;background:rgba(233,177,73,.05)}
+.wf-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:15px;padding-top:12px;border-top:1px solid rgba(164,183,238,.14)}
+.wf-footer p{font-size:10px;color:#9cacc7;line-height:1.55;max-width:500px;margin:0}
+.wf-footer button{flex:0 0 auto;min-height:44px;padding:10px 12px;border-radius:11px;background:#3c3a65;border:1px solid rgba(172,166,247,.3);color:#f4ecff;font-size:11px;font-weight:800}
+.wf-copy-status{font-size:10px;color:#bbeec3;margin:9px 0 0}
+@media(max-width:760px){.wf-step{padding:9px;gap:7px}.wf-step-index{width:17px;flex-basis:17px}.wf-step-mode{max-width:112px}.wf-step-mode select{font-size:11px;padding:7px}.wf-footer{align-items:stretch;flex-direction:column}.wf-footer button{width:100%}}
+@media(max-width:365px){.wf-step-mode{max-width:97px}.wf-step-mode select{max-width:97px;font-size:10px}.wf-step-description strong{font-size:11px}}
