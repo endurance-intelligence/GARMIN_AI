@@ -5,7 +5,7 @@ import {
 } from '../lib/workoutLibrary'
 import type {ArchiveRecord,TrainerWorkout,TrainerGroup,TrainerStep,WorkoutStepKind} from '../lib/workoutLibrary'
 import {readTrainerPhotoLocally} from '../lib/localTrainerPhotoOcr'
-import {interpretLocalPhotoText} from '../lib/localPhotoWorkout'
+import {interpretLocalPhotoText,isKnownOrcOriginal} from '../lib/localPhotoWorkout'
 import '../styles/workout-archive.css'
 
 type ArchiveResponse={entries:ArchiveRecord[];hasMore:boolean;nextPage:number|null;visionConfigured:boolean}
@@ -86,6 +86,8 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
  const [ocrProgress,setOcrProgress]=useState('')
  const [ocrRaw,setOcrRaw]=useState('')
  const [ocrWarnings,setOcrWarnings]=useState<string[]>([])
+ const [ocrIdentifiedGroups,setOcrIdentifiedGroups]=useState(0)
+ const [ocrWasTemplate,setOcrWasTemplate]=useState(false)
  const [localPhotoUrl,setLocalPhotoUrl]=useState<string|null>(null)
  const localPhotoUrlRef=useRef<string|null>(null)
  const [choice,setChoice]=useState<Record<string,string>>({})
@@ -147,28 +149,46 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    ])
    const hash=Array.from(new Uint8Array(hashBuffer),n=>n.toString(16).padStart(2,'0')).join('')
    const interpreted=interpretLocalPhotoText(text)
+   const knownTemplate=isKnownOrcOriginal(text)
+   setOcrIdentifiedGroups(interpreted.detectedGroups)
+   setOcrWasTemplate(knownTemplate)
    if(localPhotoUrlRef.current)URL.revokeObjectURL(localPhotoUrlRef.current)
    const url=URL.createObjectURL(file)
    localPhotoUrlRef.current=url
    setLocalPhotoUrl(url)
    setOcrRaw(interpreted.recognizedText)
-   setOcrWarnings(interpreted.warnings)
-   if(interpreted.workout){
+   setImageHash(hash)
+   if(knownTemplate){
+    // The values come from our previously human-reviewed ORC original,
+    // NOT from a claim that OCR has reconstructed all chart bars.
+    begin(previousOrcFlyer(),'trainer_photo',hash)
+    setOcrWarnings(['Bekannte ORC-Originalvorlage erkannt: Die Paces stammen aus unserer zuvor geprüften Trainer-Grafik – nicht aus der lokalen OCR.',
+      'Bitte prüfen, ob dein Foto wirklich exakt dieselbe Einheit zeigt.',
+      ...interpreted.warnings])
+    setSuccess('Bekannte ORC-Vorlage in alle fünf Gruppen übernommen. Originalfoto und Werte vor dem Speichern kontrollieren.')
+   }else if(interpreted.workout){
     begin(interpreted.workout,'trainer_photo',hash)
-    setSuccess(interpreted.detectedGroups+' Gruppen erkannt. Alle Paces und Pausen bitte mit dem Bild vergleichen!')
+    setOcrWarnings(interpreted.warnings)
+    setSuccess(interpreted.detectedGroups+' Gruppe(n) teilweise ausgelesen. Fehlende Werte und unerkannte Gruppen müssen vor dem Archivieren ergänzt werden.')
    }else{
-    // No fake 1000-m run is prefilled when OCR could not parse a structure.
-    const blank=blankTrainerWorkout()
-    blank.title='Trainertraining – Angaben ergänzen'
-    blank.sourceLabel='Foto lokal gelesen · Original prüfen'
-    blank.groups[0].name='Gruppe prüfen'
-    blank.groups[0].steps[0].distanceMeters=null
-    begin(blank,'trainer_photo',hash)
-    setSuccess('Text lokal gelesen. Die Einheit muss anhand des Bildes im Editor ergänzt werden.')
+    setEditing(null)
+    setSourceKind('trainer_photo')
+    setOcrWarnings([...interpreted.warnings,
+      'Es wurden keine sicheren Intervalle zugeordnet. Wir öffnen deshalb keinen scheinbar ausgefüllten Entwurf.'])
+    setError('Schrift erkannt, aber keine vollständige Intervallstruktur. Originaltext unten ansehen oder manuell anhand des Fotos ergänzen.')
    }
   }catch(e){
    setError(e instanceof Error?e.message:'Lokale Texterkennung fehlgeschlagen.')
   }finally{setLocalBusy(false);setOcrProgress('')}
+ }
+ function completeOcrManually(){
+  const blank=blankTrainerWorkout()
+  blank.title='Trainertraining – Angaben aus Foto ergänzen'
+  blank.sourceLabel='ORC-Foto · kostenlose lokale OCR'
+  blank.groups[0].name='Gruppe prüfen'
+  blank.groups[0].steps[0].distanceMeters=null
+  begin(blank,'trainer_photo',imageHash)
+  setOcrWarnings(old=>[...old,'Alle Schritte müssen anhand des Fotos ergänzt werden.'])
  }
  function begin(workout:TrainerWorkout,kind:SourceKind,hash:string|null=null){
   setEditing(workout);setSourceKind(kind);setImageHash(hash)
@@ -220,7 +240,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    })
    if(result.saved!==true)throw Error('Speichern nicht bestätigt.')
    setEditing(null)
-   setOcrWarnings([]);setOcrRaw('')
+   setOcrWarnings([]);setOcrRaw('');setOcrIdentifiedGroups(0);setOcrWasTemplate(false)
    if(localPhotoUrlRef.current)URL.revokeObjectURL(localPhotoUrlRef.current)
    localPhotoUrlRef.current=null;setLocalPhotoUrl(null)
    await refresh()
@@ -292,13 +312,16 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
     </label>
    </details>}
 
-   {localPhotoUrl&&editing&&sourceKind==='trainer_photo'&&<details className="wa-local-photo">
+   {localPhotoUrl&&ocrRaw&&<details className="wa-local-photo">
     <summary>Originalfoto zur Kontrolle einblenden</summary>
     <img src={localPhotoUrl} alt="Lokal ausgewähltes ORC-Trainerfoto zur Überprüfung der erkannten Daten"/>
    </details>}
-   {ocrWarnings.length>0&&editing&&<div className="wa-ocr-review" role="status">
-    <strong>Vor dem Speichern prüfen</strong>
+   {ocrRaw&&<div className="wa-ocr-review" role="status">
+    <strong>OCR-Auswertung · {ocrIdentifiedGroups} Gruppen aus Text erkannt{ocrWasTemplate?' · geprüfte Referenz übernommen':''}</strong>
     <ul>{ocrWarnings.map((warning,i)=><li key={i}>{warning}</li>)}</ul>
+    {!editing&&<button type="button" className="wa-manual-ocr" onClick={completeOcrManually}>
+      Erkannten Text manuell ins Training übertragen
+    </button>}
     <details><summary>Erkannten Originaltext ansehen</summary>
      <pre>{ocrRaw||'Kein Text erkannt.'}</pre>
     </details>
