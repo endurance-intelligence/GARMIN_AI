@@ -4,6 +4,7 @@ import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garm
 import {Icon} from '../components/Icon'
 import {WeatherPanel} from '../components/WeatherPanel'
 import {WorkoutArchivePanel} from '../components/WorkoutArchivePanel'
+import {WeeklyTrainingOptions} from '../components/WeeklyTrainingOptions'
 import '../styles/horizon-calendar.css'
 
 type GarminWorkout={
@@ -263,6 +264,7 @@ export function CalendarPage({active}:{active:boolean}){
    <WorkoutArchivePanel active={active} date={selected}
     onPlanned={()=>setRefresh(n=>n+1)}/>
   </div>
+  <WeeklyTrainingOptions active={active} weekStart={start}/>
   <div className="hc-source-grid">
    <article>
     <div className="hc-source-icon"><Icon name="check"/></div>
