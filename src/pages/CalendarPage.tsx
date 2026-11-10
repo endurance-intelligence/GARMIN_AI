@@ -3,6 +3,7 @@ import type {Session} from '@supabase/supabase-js'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {Icon} from '../components/Icon'
 import {WeatherPanel} from '../components/WeatherPanel'
+import {OrcTrackBuilder} from '../components/OrcTrackBuilder'
 import '../styles/horizon-calendar.css'
 
 type GarminWorkout={
@@ -14,7 +15,7 @@ type Plan={
  id:string;training_date:string;title:string;state:string;session_type:string;
  sport:string;garmin_workout_id:number|null;notes:string
 }
-type CalendarEntry={key:string;date:string;title:string;sub:string;source:'garmin'|'plan';status:string}
+type CalendarEntry={key:string;date:string;title:string;sub:string;note:string;source:'garmin'|'plan';status:string}
 const LOCAL_TZ='Europe/Berlin'
 function todayBerlin(){
  const parts=new Intl.DateTimeFormat('de-DE',{
@@ -80,18 +81,20 @@ export function CalendarPage({active}:{active:boolean}){
    .map((w,i)=>({
     key:'g-'+w.date+'-'+(w.id||w.workoutId||String(i)),
     date:w.date,title:w.name||(w.restDay?'Ruhetag':'Garmin-Training'),
-    sub:w.restDay?'Ruhetag':(w.sport||'Training'),
+    sub:w.restDay?'Ruhetag':(w.sport||'Training'),note:'',
     source:'garmin' as const,status:'garmin'
    }))
   const local=plans.filter(p=>p.state!=='cancelled').map(p=>({
    key:'p-'+p.id,date:p.training_date,title:p.title,
-   sub:p.session_type==='workout'?'Garmin-Workout-Vorlage':'GARMIN_AI-Planung',
+   sub:p.title.startsWith('ORC · ')?'ORC Bahntraining · Entwurf':p.session_type==='workout'?'Garmin-Workout-Vorlage':'GARMIN_AI-Planung',
+   note:p.notes||'',
    source:'plan' as const,status:p.state
   }))
   return [...garmin,...local]
  },[snapshot,plans])
  const matching=entries.filter(e=>e.date===selected)
  const countInWeek=entries.filter(e=>e.date>=start&&e.date<=days[6]).length
+ const orcDay=[2,6].includes(new Date(selected+'T12:00:00Z').getUTCDay())
 
  useEffect(()=>{
   if(!active||!garminSupabase)return
@@ -179,6 +182,7 @@ export function CalendarPage({active}:{active:boolean}){
          <strong>{entry.title}</strong>
          <small>{entry.sub}</small>
          <span className={'hc-entry-state '+state.type}>{state.text}</span>
+         {entry.note&&<details className="hc-plan-notes"><summary>Ablauf ansehen</summary><p>{entry.note}</p></details>}
         </div>
        </article>
       })}
@@ -189,6 +193,9 @@ export function CalendarPage({active}:{active:boolean}){
       <span>Ein freier Tag bleibt frei – wir erfinden keine Trainingseinheit.</span>
      </div>}
    </div>
+   {orcDay&&<OrcTrackBuilder date={selected}
+    hasGarminWorkout={matching.some(e=>e.source==='garmin')}
+    onSaved={()=>setRefresh(n=>n+1)}/>}
   </div>
   <div className="hc-source-grid">
    <article>
