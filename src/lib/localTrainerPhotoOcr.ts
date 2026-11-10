@@ -9,7 +9,7 @@ type OcrMessage={
  type:'ready'|'progress'|'result'|'error';
  taskId?:string;text?:string;progress?:number;phase?:string
 }
-const LOCAL_OCR_FRAME=String.raw`<!doctype html>
+const LOCAL_OCR_FRAME=`<!doctype html>
 <html lang="de"><head><meta charset="utf-8">
 <meta name="referrer" content="no-referrer"></head><body>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js"><\/script>
