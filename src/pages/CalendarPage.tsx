@@ -3,7 +3,7 @@ import type {Session} from '@supabase/supabase-js'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {Icon} from '../components/Icon'
 import {WeatherPanel} from '../components/WeatherPanel'
-import {OrcTrackBuilder} from '../components/OrcTrackBuilder'
+import {WorkoutArchivePanel} from '../components/WorkoutArchivePanel'
 import '../styles/horizon-calendar.css'
 
 type GarminWorkout={
@@ -94,7 +94,6 @@ export function CalendarPage({active}:{active:boolean}){
  },[snapshot,plans])
  const matching=entries.filter(e=>e.date===selected)
  const countInWeek=entries.filter(e=>e.date>=start&&e.date<=days[6]).length
- const orcDay=[2,6].includes(new Date(selected+'T12:00:00Z').getUTCDay())
 
  useEffect(()=>{
   if(!active||!garminSupabase)return
@@ -193,9 +192,8 @@ export function CalendarPage({active}:{active:boolean}){
       <span>Ein freier Tag bleibt frei – wir erfinden keine Trainingseinheit.</span>
      </div>}
    </div>
-   {orcDay&&<OrcTrackBuilder date={selected}
-    hasGarminWorkout={matching.some(e=>e.source==='garmin')}
-    onSaved={()=>setRefresh(n=>n+1)}/>}
+   <WorkoutArchivePanel active={active} date={selected}
+    onPlanned={()=>setRefresh(n=>n+1)}/>
   </div>
   <div className="hc-source-grid">
    <article>
