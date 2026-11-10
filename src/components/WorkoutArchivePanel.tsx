@@ -350,7 +350,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
     </div>}
     {!editing&&<button type="button" className="wa-manual-ocr" onClick={completeOcrManually}>
       Erkannten Text manuell ins Training übertragen
-    </button>
+    </button>}
     <details><summary>Erkannten Originaltext ansehen</summary>
      <pre>{ocrRaw||'Kein Text erkannt.'}</pre>
     </details>
