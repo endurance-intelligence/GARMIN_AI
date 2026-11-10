@@ -18,7 +18,7 @@ test('prior ORC poster is a one-time archive candidate with all five original gr
  assert.deepEqual(wolf.steps.filter(s=>s.kind==='run').map(s=>s.paceSecondsPerKm),
   [260,250,270,260,250,270,260,250])
  assert.equal(workoutSummary(wolf).distanceMeters,8000)
- assert.equal(describeWorkoutGroup(flyer,'Wolf').recoveries,7)
+ assert.equal(describeWorkoutGroup(flyer,'Wolf').recoveryCount,7)
  assert.match(flyer.warmup.notes,/Minibändern/)
 })
 
