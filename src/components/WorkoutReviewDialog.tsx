@@ -77,7 +77,6 @@ export function WorkoutReviewDialog(props:Props){
  const workout=editing??preview?.workout??null
  const group=workout?.groups[groupIndex]??null
  const summary=group?workoutSummary(group):null
- const runSteps=group?.steps.filter(x=>x.kind==='run')??[]
  const recovering=group?.steps.filter(x=>x.kind==='recovery').length??0
  const cues=workout&&group?makeTrackLapGuide(workout,group.name):[]
  const runningCues=cues.filter(x=>x.type==='run')
