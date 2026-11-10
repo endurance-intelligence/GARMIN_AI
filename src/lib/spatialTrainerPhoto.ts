@@ -6,7 +6,7 @@ export type SpatialOcrRow={name:string;leftText:string;rightText:string}
 export type SpatialOcrResult={text:string;rows:SpatialOcrRow[]}
 export type SpatialWorkoutDraft={workout:TrainerWorkout|null;warnings:string[];
  recognizedText:string;detectedGroups:number;incompleteGroups:string[]}
-const NORMAL=/\b(\d{1,2})\s*[x×*]\s*(\d{2,5})\s*m\b/i
+const NORMAL=/\b(\d{1,2})\s*[x×*=]{1,3}\s*(\d{2,5})\s*m\b/i
 const SPACED=/\b(\d{1,2})[ \t]+(\d{3,5})\s*m\b/i
 const FUSED=/\b([1-9]|[1-4]\d)(1000|400|800|2000)\s*m\b/i
 const PACE=/\b(?:[2-9]|1[0-4]):[0-5]\d\b/g
