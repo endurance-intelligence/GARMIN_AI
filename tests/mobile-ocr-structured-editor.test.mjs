@@ -6,7 +6,7 @@ import {previousOrcFlyer} from '../src/lib/workoutLibrary.ts'
 import {validateTrainerWorkout} from '../supabase/functions/_shared/workout-archive-schema.mjs'
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8')
 
-const noisyPoster=String.raw\`@MR.MORNINGRUN OERLINGHAUSEN RUNCREW
+const noisyPoster=String.raw`@MR.MORNINGRUN OERLINGHAUSEN RUNCREW
 TRACK TUESDAY - TEMPOGEFUHL
 Schwelle im Wechsel.
 3 x (3 x 1000 m)
@@ -32,7 +32,7 @@ S 7*1000m
 CAPYBARA
 > 7*1000 m
 3+3+1
-\`
+`
 
 test('real noisy poster OCR no longer opens an empty fake workout',()=>{
  const parsed=interpretLocalPhotoText(noisyPoster)
