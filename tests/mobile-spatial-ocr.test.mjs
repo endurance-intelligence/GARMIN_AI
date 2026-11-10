@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
+import vm from 'node:vm'
 import {interpretSpatialTrainerPhoto,spatialPhotoReviewIssues} from '../src/lib/spatialTrainerPhoto.ts'
 import {validateTrainerWorkout} from '../supabase/functions/_shared/workout-archive-schema.mjs'
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
@@ -93,4 +94,21 @@ test('single popup uses dynamic row OCR before flat fallback, never the old temp
  assert.match(code,/spatialPhotoReviewIssues\(editing\)/)
  assert.match(code,/<WorkoutReviewDialog/)
  assert.match(code,/action:'save',clientRequestId:requestId\.current,reviewed:true/)
+})
+
+test('sandbox iframe code is executable JS with functional word-boundary group patterns',()=>{
+ const source=read('src/lib/localTrainerPhotoOcr.ts')
+ const start=source.indexOf('const LOCAL_OCR_FRAME=')
+ const end=source.indexOf(';\n\nfunction readDataUrl(',start)
+ assert.ok(start>=0&&end>start)
+ const assignment=source.slice(start+'const LOCAL_OCR_FRAME='.length,end)
+ const html=vm.runInNewContext(assignment)
+ const scriptStart=html.indexOf('<script>\n(function(){')
+ assert.ok(scriptStart>0)
+ const scriptEnd=html.indexOf('</script>',scriptStart)
+ assert.ok(scriptEnd>scriptStart)
+ assert.doesNotThrow(()=>new vm.Script(html.slice(scriptStart+8,scriptEnd)))
+ assert.match(html,/\/\bFUCHS\b\/i/)
+ assert.match(html,/\/\bB\[ÄA\]REN\b\/i/)
+ assert.doesNotMatch(html,/allow-same-origin|api\.openai\.com/)
 })
