@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import type {TrainerWorkout,TrainerStep,WorkoutEndMode} from '../lib/workoutLibrary'
-import {makeTrackLapGuide,splitClock,lapStepSummary} from '../lib/trackLapGuide'
+import {makeTrackLapGuide,splitClock} from '../lib/trackLapGuide'
 import {applyFinishPreset,toWorkoutTransferDraft,workoutTransferInstructions} from '../lib/workoutStepControls'
 import '../styles/workout-finish-selector.css'
 
