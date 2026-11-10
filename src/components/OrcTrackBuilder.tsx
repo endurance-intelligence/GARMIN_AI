@@ -23,8 +23,10 @@ export function OrcTrackBuilder({date,hasGarminWorkout,onSaved}:{
  const workout=buildOrcWorkout(group)
  const intervals=workout.steps.filter(step=>step.kind==='interval')
  const key=date+'|'+group
- const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',
-  year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',
+  year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
+ const part=(k:string)=>parts.find(p=>p.type===k)?.value||''
+ const today=part('year')+'-'+part('month')+'-'+part('day')
  const usable=canUseDate(date)&&date>=today
  const targetDate=canUseDate(date)?date.split('-').reverse().join('.'):date
  async function save(){
