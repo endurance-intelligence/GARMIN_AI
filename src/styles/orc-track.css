@@ -53,3 +53,8 @@
  .orc-actions{align-items:stretch;flex-direction:column;gap:10px}
  .orc-actions button{width:100%}
 }
+
+/* Saved local draft detail lives in the day entry; default stays collapsed. */
+.hc-plan-notes{margin-top:5px;font-size:11px;color:#c4b5fb;max-width:650px}
+.hc-plan-notes>summary{min-height:35px;display:flex;align-items:center;cursor:pointer;font-size:11px;font-weight:750}
+.hc-plan-notes p{line-height:1.6;color:#acbbd4;margin:6px 0 0;overflow-wrap:anywhere}
