@@ -18,7 +18,7 @@ const GROUP_NAMES=[
 ]
 const REPS=/\b(\d{1,2})\s*[x×*]\s*(\d{2,5})\s*m\b/i
 // Tesseract frequently drops the multiplier or collapses "8 × 1000 m" to "81000 m".
-const REPS_SPACED=/\b(\d{1,2})\s+(\d{3,5})\s*m\b/i
+const REPS_SPACED=/\b(\d{1,2})[ \t]+(\d{3,5})[ \t]*m\b/i
 const REPS_FUSED=/\b([1-9]|[1-4]\d)(1000|400|800|2000)\s*m\b/i
 function countMeters(section:string):{count:number;meters:number;uncertain:boolean}|null{
  const normal=section.match(REPS)
