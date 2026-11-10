@@ -21,8 +21,8 @@ const LOCAL_OCR_FRAME=`<!doctype html>
   const send=(data)=>parent.postMessage(Object.assign({source},data),'*');
   let busy=false;
   const names=[
-   ['Fuchs',/\bFUCHS\b/i],['Wolf',/\bWOLF\b/i],['Tiger',/\bTIGER\b/i],
-   ['Bären',/\bB[ÄA]REN\b/i],['Capybara',/\bCAPYBARA\b/i]
+   ['Fuchs',/\\bFUCHS\\b/i],['Wolf',/\\bWOLF\\b/i],['Tiger',/\\bTIGER\\b/i],
+   ['Bären',/\\bB[ÄA]REN\\b/i],['Capybara',/\\bCAPYBARA\\b/i]
   ];
   const decode=(src)=>new Promise((resolve,reject)=>{
    const image=new Image();
@@ -134,7 +134,7 @@ const LOCAL_OCR_FRAME=`<!doctype html>
 })();
 <\/script></body></html>`;
 
-function readDataUrl(file:File):Promise<SpatialOcrResult>{
+function readDataUrl(file:File):Promise<string>{
  return new Promise((resolve,reject)=>{
   const reader=new FileReader()
   reader.onload=()=>typeof reader.result==='string'?resolve(reader.result):
@@ -145,7 +145,7 @@ function readDataUrl(file:File):Promise<SpatialOcrResult>{
 }
 export async function readTrainerPhotoLocally(
  file:File,onProgress:(phase:string,progress:number)=>void
-):Promise<string>{
+):Promise<SpatialOcrResult>{
  if(!['image/png','image/jpeg','image/webp'].includes(file.type)||
    file.size<1000||file.size>8_000_000)
    throw Error('Bitte JPG, PNG oder WebP unter 8 MB auswählen.')
