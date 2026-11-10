@@ -110,7 +110,7 @@ test('mobile calendar no longer binds ORC to two fixed weekdays',()=>{
  assert.match(panel,/Foto kostenlos lokal lesen/)
  assert.match(panel,/Manuell erfassen/)
  assert.match(panel,/Letzte ORC-Grafik übernehmen/)
- assert.match(panel,/Geprüfte Vorlage archivieren/)
+ assert.match(read('src/components/WorkoutReviewDialog.tsx'),/Geprüfte Vorlage archivieren/)
  assert.match(panel,/action:'plan'/)
  assert.match(panel,/action:'parse_photo'/)
  assert.match(panel,/p\.notes|record\.workout\.groups/)
