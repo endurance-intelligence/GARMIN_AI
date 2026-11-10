@@ -9,6 +9,7 @@ import {LiveGarminActivities} from './components/LiveGarminActivities'
 import {RacePage} from './pages/RacePage'
 import {GearPage} from './pages/GearPage'
 import {SettingsPage} from './pages/SettingsPage'
+import {StrengthPage} from './pages/StrengthPage'
 import type {Page} from './navigation'
 import './styles/horizon.css'
 import './styles/mobile-first.css'
@@ -22,7 +23,7 @@ const navigation: {id:Page; name:string; icon:string; mobile:string}[] = [
   {id:'more',name:'Mehr',icon:'more-horizontal',mobile:'Mehr'}
 ]
 const navActive=(page:Page,id:Page)=>page===id||
-  (id==='more'&&(page==='gear'||page==='settings'))
+  (id==='more'&&(page==='gear'||page==='settings'||page==='strength'))
 
 function App() {
   const [page,setPage]=useState<Page>('home')
@@ -40,10 +41,11 @@ function App() {
       <div className="profile"><div className="avatar">DK</div><div><b>Personal workspace</b><span>Single athlete · Privat</span></div></div>
     </aside>
     <main className="main"><div className="main-in">
-      <header className="topbar"><div className="crumbs"><span>WORKSPACE</span><span className="slash">/</span><strong>{(page==='gear'?'Equipment':page==='settings'?'Einstellungen':navigation.find(n=>n.id===page)?.name)}</strong></div><div className="top-actions"><div className="mobile-brand" style={{display:'none'}}><div className="brand-logo"><Icon name="activity"/></div>GARMIN_AI</div><span className="date">DESIGN CONCEPT / NOV 2026</span><span className="pill"><span className="pulse"/> LIVE DATA · COACH DEMO</span><div className="round-icon"><Icon name="bell"/></div></div></header>
+      <header className="topbar"><div className="crumbs"><span>WORKSPACE</span><span className="slash">/</span><strong>{(page==='gear'?'Equipment':page==='settings'?'Einstellungen':page==='strength'?'Stabi Studio':navigation.find(n=>n.id===page)?.name)}</strong></div><div className="top-actions"><div className="mobile-brand" style={{display:'none'}}><div className="brand-logo"><Icon name="activity"/></div>GARMIN_AI</div><span className="date">DESIGN CONCEPT / NOV 2026</span><span className="pill"><span className="pulse"/> LIVE DATA · COACH DEMO</span><div className="round-icon"><Icon name="bell"/></div></div></header>
       <CoachPage active={page==='home'} onGo={go}/>
       <CalendarPage active={page==='calendar'}/>
       <TrainingPage active={page==='training'} onGo={go}/>
+      <StrengthPage active={page==='strength'}/>
       {import.meta.env.DEV && <LiveGarminActivities active={page==='training'}/>}
       <RacePage active={page==='race'} onGo={go}/>
       <GearPage active={page==='gear'} onGo={go}/>

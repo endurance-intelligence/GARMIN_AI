@@ -15,6 +15,11 @@ export function MorePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
     <span><strong>Equipment</strong><small>Laufschuhe, Garmin-Zuordnungen und Kilometerstände</small></span>
     <span className="hc-more-chevron">›</span>
    </button>
+   <button type="button" className="hc-more-link" onClick={()=>onGo('strength')}>
+    <span className="hc-more-symbol"><Icon name="dumbbell"/></span>
+    <span><strong>Stabi Studio</strong><small>26 Übungen aus Endurance Intelligence · Mobility · Rudertraining</small></span>
+    <span className="hc-more-chevron">›</span>
+   </button>
    <button type="button" className="hc-more-link" onClick={()=>onGo('settings')}>
     <span className="hc-more-symbol"><Icon name="settings"/></span>
     <span><strong>Einstellungen</strong><small>Synchronisierung, Konto und Herzfrequenzzonen</small></span>

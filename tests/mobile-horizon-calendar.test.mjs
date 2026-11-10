@@ -10,7 +10,7 @@ test('production app remains owner-gated and adds calendar as a real main tab',(
  assert.match(app,/<MorePage active=\{page==='more'\}/)
  assert.match(app,/id:'calendar',name:'Kalender'/)
  assert.match(app,/id:'more',name:'Mehr'/)
- assert.match(app,/id==='more'&&\(page==='gear'\|\|page==='settings'\)/)
+ assert.match(app,/id==='more'&&\(page==='gear'\|\|page==='settings'\|\|page==='strength'\)/)
  const nav=read('src/navigation.ts')
  for(const name of ['calendar','more','gear','settings'])assert.ok(nav.includes("'"+name+"'"))
 })

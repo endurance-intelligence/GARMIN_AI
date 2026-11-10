@@ -1,0 +1,37 @@
+name: GARMIN_AI movement studio tests
+on:
+  push:
+    paths:
+      - 'src/lib/eiExercises.ts'
+      - 'src/lib/crossTrainingClient.ts'
+      - 'src/pages/StrengthPage.tsx'
+      - 'src/components/CrossTrainingCoachCard.tsx'
+      - 'src/styles/strength-studio.css'
+      - 'src/styles/cross-training-coach.css'
+      - 'supabase/functions/garmin-cross-training/**'
+      - 'supabase/migrations/*cross_training_studio*'
+      - 'tests/mobile-stabi-studio.test.mjs'
+      - '.github/workflows/garmin-movement-studio.yml'
+  pull_request:
+    paths:
+      - 'src/lib/eiExercises.ts'
+      - 'src/lib/crossTrainingClient.ts'
+      - 'src/pages/StrengthPage.tsx'
+      - 'src/components/CrossTrainingCoachCard.tsx'
+      - 'src/styles/strength-studio.css'
+      - 'src/styles/cross-training-coach.css'
+      - 'supabase/functions/garmin-cross-training/**'
+      - 'supabase/migrations/*cross_training_studio*'
+      - 'tests/mobile-stabi-studio.test.mjs'
+      - '.github/workflows/garmin-movement-studio.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test tests/mobile-stabi-studio.test.mjs
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run build
