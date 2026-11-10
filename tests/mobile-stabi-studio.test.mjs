@@ -56,7 +56,7 @@ test('cross-training writes are owner-only and user approved',()=>{
  assert.match(migration,/enable row level security/)
  assert.match(migration,/revoke all .* public,anon,authenticated/)
  assert.match(migration,/grant select,insert .* to service_role/)
- assert.match(api,/requestId/)
+ assert.match(api,/p\.clientRequestId/)
 })
 test('Coach sees combined sports without turning them into running km',()=>{
  assert.match(coach,/loadCrossTraining\(/)
