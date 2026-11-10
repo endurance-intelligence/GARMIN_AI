@@ -54,7 +54,7 @@ test('cross-training writes are owner-only and user approved',()=>{
  assert.match(api,/user\.email_confirmed_at/)
  assert.match(api,/user\.email\?\.toLowerCase\(\)\.trim\(\)!==owner/)
  assert.match(migration,/enable row level security/)
- assert.match(migration,/revoke all .* authenticated/)
+ assert.match(migration,/revoke all .* public,anon,authenticated/)
  assert.match(migration,/grant select,insert .* to service_role/)
  assert.match(api,/requestId/)
 })
