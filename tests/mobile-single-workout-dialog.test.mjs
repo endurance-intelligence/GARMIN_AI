@@ -42,7 +42,7 @@ test('group has direct summary and interval sequence without nested accordions',
  assert.match(modal,/pane==='track'/)
  assert.match(modal,/pane==='edit'/)
  assert.match(modal,/group\.steps\.map\(\(step,i\)=>/)
- assert.match(modal,/makeTrackLapGuide\(workout,group.name\)/)
+ assert.match(read('src/components/WorkoutFinishSelector.tsx'),/makeTrackLapGuide\(workout,group.name\)/)
  assert.match(modal,/wr-interval-run/)
  assert.match(css,/\.wr-interval\{display:grid/)
  assert.match(css,/@media\(max-width:760px\)/)
