@@ -30,7 +30,7 @@ function renderStep(s,i,section){
  // Intervals.icu supports "Press lap" for Garmin. A generous reference
  // duration allows Garmin to display a field; pressing LAP ends the step.
  const completion=mode==='distance'?distanceToken(dist):'Press lap '+(duration!==null?duration+'s':'60m');
- return '- '+[info,completion,target(s.paceSecondsPerKm), 'intensity='+intensity].filter(Boolean).join(' ');
+ return '- '+(mode==='lap'?'Press lap ':'')+[info,mode==='lap'?completion.replace(/^Press lap /,''):completion,target(s.paceSecondsPerKm), 'intensity='+intensity].filter(Boolean).join(' ');
 }
 export function buildIntervalsWorkout(snapshot,title){
  if(!snapshot||typeof snapshot!=='object'||!snapshot.group||!Array.isArray(snapshot.group.steps)||!snapshot.group.steps.length)
