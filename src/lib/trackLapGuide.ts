@@ -3,15 +3,15 @@
  * The start/finish lines and 200m mark, not GPS distance, determine step
  * completion. A runner presses LAP to advance at each real-world marker.
  */
-import type {TrainerWorkout,TrainerGroup,TrainerStep} from './workoutLibrary.ts'
-import {formatPace} from './workoutLibrary.ts'
+import type {TrainerWorkout,TrainerGroup,TrainerStep,WorkoutEndMode} from './workoutLibrary.ts'
+import {formatPace,endModeFor} from './workoutLibrary.ts'
 export type TrackLapCue={
  index:number;type:'warmup'|'run'|'recovery'|'cooldown';
  block:number|null;withinBlock:number|null;blocks:number|null;
  repeat:number|null;repeats:number|null;distanceMeters:number|null;
  paceSecondsPerKm:number|null;paceLabel:string|null;
  fourHundredSeconds:number|null;expectedSeconds:number|null;
- target:string;end:'lap'
+ target:string;end:WorkoutEndMode
 }
 const extractBlocks=(group:TrainerGroup):number[]=>{
  const n=group.steps.filter(s=>s.kind==='run').length
@@ -47,11 +47,11 @@ export function makeTrackLapGuide(workout:TrainerWorkout,groupName:string):Track
    blocks:type==='run'?blocks.length:null,repeat:type==='run'?repeat:null,
    repeats:type==='run'?total:null,distanceMeters:meters,paceSecondsPerKm:pace,
    paceLabel,fourHundredSeconds:fourHundred,expectedSeconds:expected,
-   target:label,end:'lap'})
+   target:label,end:step?endModeFor(step):'lap'})
  }
  add('warmup',{kind:'warmup',distanceMeters:workout.warmup.distanceMeters,
   durationSeconds:workout.warmup.durationSeconds,paceSecondsPerKm:null,
-  notes:workout.warmup.notes})
+  notes:workout.warmup.notes,endMode:workout.warmup.endMode})
  for(const step of group.steps){
   if(step.kind==='run'){
    repeat++;inBlock++
@@ -64,14 +64,16 @@ export function makeTrackLapGuide(workout:TrainerWorkout,groupName:string):Track
  }
  add('cooldown',{kind:'cooldown',distanceMeters:workout.cooldown.distanceMeters,
   durationSeconds:workout.cooldown.durationSeconds,paceSecondsPerKm:null,
-  notes:workout.cooldown.notes})
+  notes:workout.cooldown.notes,endMode:workout.cooldown.endMode})
  return cues
 }
 export function lapStepSummary(cue:TrackLapCue):string{
- if(cue.type==='warmup')return 'Einlaufen · LAP, wenn bereit'
- if(cue.type==='cooldown')return 'Auslaufen · LAP am Trainingsende'
- if(cue.type==='recovery')return (cue.distanceMeters??'–')+' m traben · LAP an der Markierung'
+ const finish=cue.end==='lap'?'LAP an der Markierung':
+  (cue.distanceMeters===null?'Distanz fehlt':cue.distanceMeters+' m automatisch')
+ if(cue.type==='warmup')return 'Einlaufen · '+finish
+ if(cue.type==='cooldown')return 'Auslaufen · '+finish
+ if(cue.type==='recovery')return 'Trabpause · '+finish
  return 'Satz '+(cue.block??'?')+'/'+(cue.blocks??'?')+
   ' · Intervall '+cue.repeat+'/'+cue.repeats+
-  ' · '+(cue.distanceMeters??'–')+' m · '+(cue.paceLabel||'Pace offen')+'/km'
+  ' · '+(cue.distanceMeters??'–')+' m · '+(cue.paceLabel||'Pace offen')+'/km · '+finish
 }
