@@ -81,9 +81,9 @@ test('OCR fallback reports original text and never silently claims successful ex
  assert.match(ui,/else if\(interpreted.workout\)/)
  assert.match(ui,/setEditing\(null\)/)
  assert.match(ui,/keine vollständige Intervallstruktur/)
- assert.match(ui,/<pre>\{ocrRaw\|\|'Kein Text erkannt\.'\}<\/pre>/)
+ assert.match(read('src/components/WorkoutReviewDialog.tsx'),/className="wr-ocr-text"/)
  assert.match(ui,/completeOcrManually/)
- assert.match(ui,/Geprüfte Vorlage archivieren/)
+ assert.match(read('src/components/WorkoutReviewDialog.tsx'),/Geprüfte Vorlage archivieren/)
 })
 test('no new Garmin writes or unreviewed archive records',()=>{
  const ui=read('src/components/WorkoutArchivePanel.tsx')
