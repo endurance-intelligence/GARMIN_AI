@@ -152,7 +152,7 @@ export function WorkoutReviewDialog(props:Props){
          {g.name||'Gruppe '+(i+1)}</button>)}
        </div>
       </div>
-      <div className="wr-switcher" role="group" aria-label="Ansicht">
+      <div className={'wr-switcher'+(!editing?' wr-switcher-two':'')} role="group" aria-label="Ansicht">
        <button type="button" className={pane==='overview'?'selected':''}
         aria-pressed={pane==='overview'} onClick={()=>setPane('overview')}>Ablauf</button>
        <button type="button" className={pane==='track'?'selected':''}
