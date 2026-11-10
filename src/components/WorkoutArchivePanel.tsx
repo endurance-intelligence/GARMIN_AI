@@ -6,7 +6,7 @@ import {
 import type {ArchiveRecord,TrainerWorkout,TrainerGroup,TrainerStep,WorkoutStepKind} from '../lib/workoutLibrary'
 import '../styles/workout-archive.css'
 
-type ArchiveResponse={entries:ArchiveRecord[];hasMore:boolean;visionConfigured:boolean}
+type ArchiveResponse={entries:ArchiveRecord[];hasMore:boolean;nextPage:number|null;visionConfigured:boolean}
 type SourceKind='trainer_photo'|'manual'|'orc_reference'
 const endpoint=garminSupabaseUrl+'/functions/v1/garmin-workout-archive'
 function todayBerlin(){
@@ -16,11 +16,11 @@ function todayBerlin(){
  const v=(type:string)=>parts.find(p=>p.type===type)?.value||''
  return [v('year'),v('month'),v('day')].join('-')
 }
-async function callArchive<T>(body?:Record<string,unknown>):Promise<T>{
+async function callArchive<T>(body?:Record<string,unknown>,page=0):Promise<T>{
  if(!garminSupabase)throw Error('Bitte zuerst anmelden.')
  const {data:{session}}=await garminSupabase.auth.getSession()
  if(!session)throw Error('Bitte zuerst anmelden.')
- const r=await fetch(endpoint,{method:body?'POST':'GET',cache:'no-store',
+ const r=await fetch(endpoint+(body?'':'?page='+page),{method:body?'POST':'GET',cache:'no-store',
   headers:{
    authorization:'Bearer '+session.access_token,
    apikey:garminPublishableKey,
@@ -53,6 +53,8 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
  const [entries,setEntries]=useState<ArchiveRecord[]>([])
  const [configured,setConfigured]=useState(false)
  const [hasMore,setHasMore]=useState(false)
+ const [nextPage,setNextPage]=useState<number|null>(null)
+ const [search,setSearch]=useState('')
  const [error,setError]=useState('')
  const [success,setSuccess]=useState('')
  const [editing,setEditing]=useState<TrainerWorkout|null>(null)
@@ -72,6 +74,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    setEntries(result.entries||[])
    setConfigured(result.visionConfigured===true)
    setHasMore(result.hasMore===true)
+   setNextPage(result.nextPage??null)
   }catch(e){setError(e instanceof Error?e.message:'Archiv konnte nicht geladen werden.')}
   finally{setLoading(false)}
  }
@@ -80,6 +83,24 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
   void refresh()
  },[active,open])
 
+ async function loadMore(){
+  if(nextPage===null||loading)return
+  setLoading(true);setError('')
+  try{
+   const result=await callArchive<ArchiveResponse>(undefined,nextPage)
+   setEntries(old=>[...old,...(result.entries||[]).filter(entry=>!old.some(p=>p.id===entry.id))])
+   setHasMore(result.hasMore===true)
+   setNextPage(result.nextPage??null)
+  }catch(e){setError(e instanceof Error?e.message:'Weitere Vorlagen nicht geladen.')}
+  finally{setLoading(false)}
+ }
+ const shown=entries.filter(record=>{
+  const needle=search.trim().toLocaleLowerCase('de-DE')
+  if(!needle)return true
+  return [record.title,record.coach_name,record.source_label,
+   ...record.workout.groups.map(g=>g.name)].some(text=>
+    text.toLocaleLowerCase('de-DE').includes(needle))
+ })
  function begin(workout:TrainerWorkout,kind:SourceKind,hash:string|null=null){
   setEditing(workout);setSourceKind(kind);setImageHash(hash)
   setEditGroup(0);setError('');setSuccess('')
@@ -283,13 +304,17 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
 
    <div className="wa-list-header">
     <strong>Dein Trainingsarchiv</strong>
-    <span>{entries.length} gespeicherte Vorlagen</span>
+    <span>{entries.length} geladene Vorlagen</span>
    </div>
+   <label className="wa-search">Archiv durchsuchen
+    <input type="search" value={search} onChange={e=>setSearch(e.target.value)}
+      placeholder="Name, Gruppe, Trainer …" maxLength={100}/>
+   </label>
    {!loading&&entries.length===0&&<p className="wa-hint">
     Noch keine gespeicherte Vorlage. Übernimm die vorherige ORC-Einheit oder erfasse ein neues Trainertraining.
    </p>}
    <div className="wa-list">
-    {entries.map(record=>{
+    {shown.map(record=>{
      const group=choice[record.id]||
       record.workout.groups[0]?.name||''
      const selected=record.workout.groups.find(g=>g.name===group)
@@ -310,6 +335,8 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
       <div className="wa-record-actions">
        <button type="button" onClick={()=>setExpanded(expanded===record.id?null:record.id)}>
         {expanded===record.id?'Ablauf schließen':'Training ansehen'}</button>
+       <button type="button" onClick={()=>begin(structuredClone(record.workout),'manual')} disabled={busy}>
+        Als neue Version bearbeiten</button>
        <button type="button" className="wa-plan-button" disabled={busy||date<todayBerlin()||!selected}
         onClick={()=>void plan(record,group)}>Für {date.split('-').reverse().join('.')} vormerken</button>
       </div>
@@ -325,7 +352,9 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
      </article>
     })}
    </div>
-   {hasMore&&<p className="wa-hint">Die neuesten 100 Vorlagen werden angezeigt. Eine Archivsuche folgt.</p>}
+   {!loading&&shown.length===0&&entries.length>0&&<p className="wa-hint">Keine passende Vorlage unter den geladenen Trainings.</p>}
+   {hasMore&&<button type="button" className="wa-load-more" disabled={loading}
+    onClick={()=>void loadMore()}>{loading?'Lade …':'Weitere 100 Vorlagen laden'}</button>}
    {success&&<p className="wa-success" role="status">{success}</p>}
    {error&&<p className="wa-error" role="alert">{error}</p>}
    <p className="wa-hint">Einplanen erstellt nur einen privaten Entwurf. Garmin-Workout-Erstellung
