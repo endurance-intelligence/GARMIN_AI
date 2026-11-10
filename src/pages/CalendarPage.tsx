@@ -13,9 +13,10 @@ type GarminWorkout={
 type GarminSnapshot={schedule:GarminWorkout[];checked_at:string;synced_at:string}
 type Plan={
  id:string;training_date:string;title:string;state:string;session_type:string;
- sport:string;garmin_workout_id:number|null;notes:string
+ sport:string;garmin_workout_id:number|null;notes:string;revision:number
 }
 type CalendarEntry={key:string;date:string;title:string;sub:string;note:string;source:'garmin'|'plan';status:string}
+type IntervalsPublication={id:string;revision:number;intervals_published_revision:number|null;intervals_sync_status:string;intervals_event_id:number|null}
 const LOCAL_TZ='Europe/Berlin'
 function todayBerlin(){
  const parts=new Intl.DateTimeFormat('de-DE',{
@@ -47,12 +48,22 @@ function longDate(iso:string){
 function readState(state:string){
  switch(state){
   case 'confirmed':return {text:'Mit Garmin bestätigt',type:'verified'}
-  case 'pending':return {text:'Freigegeben · Garmin ausstehend',type:'waiting'}
+  case 'pending':return {text:'Freigegeben · Intervals.icu ausstehend',type:'waiting'}
   case 'sending':return {text:'Übertragung läuft',type:'waiting'}
   case 'needs_review':return {text:'Prüfung erforderlich',type:'warning'}
   case 'cancelled':return {text:'Abgesagt',type:'muted'}
   default:return {text:'Entwurf · nicht übertragen',type:'draft'}
  }
+}
+async function ownerPost<T>(session:Session,endpoint:string,body:Record<string,unknown>):Promise<T>{
+ const res=await fetch(garminSupabaseUrl+'/functions/v1/'+endpoint,{
+  method:'POST',cache:'no-store',
+  headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey,'content-type':'application/json'},
+  body:JSON.stringify(body)
+ })
+ const payload=await res.json().catch(()=>({})) as Record<string,unknown>
+ if(!res.ok)throw Error(typeof payload.error==='string'?payload.error:'HTTP '+res.status)
+ return payload as T
 }
 async function ownerGet<T>(session:Session,endpoint:string):Promise<T>{
  const res=await fetch(garminSupabaseUrl+'/functions/v1/'+endpoint,{
@@ -69,6 +80,10 @@ export function CalendarPage({active}:{active:boolean}){
  const [week,setWeek]=useState(0)
  const [snapshot,setSnapshot]=useState<GarminSnapshot|null>(null)
  const [plans,setPlans]=useState<Plan[]>([])
+ const [intervalsConnected,setIntervalsConnected]=useState(false)
+ const [eligiblePlanIds,setEligiblePlanIds]=useState<string[]>([])
+ const [published,setPublished]=useState<Record<string,IntervalsPublication>>({})
+ const [acting,setActing]=useState<string|null>(null)
  const [busy,setBusy]=useState(false)
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
@@ -106,11 +121,18 @@ export function CalendarPage({active}:{active:boolean}){
     if(!session)throw Error('Bitte zuerst anmelden')
     const outcomes=await Promise.allSettled([
      ownerGet<{snapshot:GarminSnapshot|null}>(session,'garmin-connect-snapshot'),
-     ownerGet<{entries:Plan[]}>(session,'garmin-training-plan')
+     ownerGet<{entries:Plan[]}>(session,'garmin-training-plan'),
+     ownerGet<{configured:boolean;eligiblePlanIds:string[];publications:IntervalsPublication[]}>(session,'garmin-intervals')
     ])
     if(!mounted)return
     if(outcomes[0].status==='fulfilled')setSnapshot(outcomes[0].value.snapshot)
     if(outcomes[1].status==='fulfilled')setPlans(outcomes[1].value.entries||[])
+    if(outcomes[2].status==='fulfilled'){
+     const status=outcomes[2].value
+     setIntervalsConnected(status.configured===true)
+     setEligiblePlanIds(status.eligiblePlanIds||[])
+     setPublished(Object.fromEntries((status.publications||[]).map(p=>[p.id,p])))
+    }
     if(outcomes.some(outcome=>outcome.status==='rejected')){
      setError('Ein Teil der Kalenderdaten ist gerade nicht erreichbar.')
     }
@@ -122,6 +144,37 @@ export function CalendarPage({active}:{active:boolean}){
   return ()=>{mounted=false}
  },[active,refresh])
 
+ async function approvePlan(plan:Plan){
+  if(acting||!garminSupabase)return
+  setActing(plan.id);setError('');setNotice('')
+  try{
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)throw Error('Bitte zuerst anmelden')
+   const result=await ownerPost<{saved:boolean;revision:number;state:string}>(session,'garmin-training-plan',{
+    action:'approve',id:plan.id,revision:plan.revision
+   })
+   if(!result.saved)throw Error('Freigabe nicht bestätigt')
+   setPlans(old=>old.map(p=>p.id===plan.id?{...p,revision:result.revision,state:result.state}:p))
+   setNotice('Training freigegeben. Jetzt kannst du es an Intervals.icu übertragen.')
+  }catch(e){setError(e instanceof Error?e.message:'Freigabe fehlgeschlagen')}
+  finally{setActing(null)}
+ }
+ async function publishPlan(plan:Plan){
+  if(acting||!garminSupabase||!intervalsConnected)return
+  setActing(plan.id);setError('');setNotice('')
+  try{
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)throw Error('Bitte zuerst anmelden')
+   const result=await ownerPost<{published:boolean;intervalsConfirmed:boolean;intervalsEventId:number}>(session,
+    'garmin-intervals',{action:'publish',planId:plan.id})
+   if(!result.published||!result.intervalsConfirmed)throw Error('Intervals-Bestätigung fehlt')
+   setPublished(old=>({...old,[plan.id]:{
+    id:plan.id,revision:plan.revision,intervals_published_revision:plan.revision,
+    intervals_sync_status:'confirmed',intervals_event_id:result.intervalsEventId}}))
+   setNotice('Intervals.icu hat das Training bestätigt. Prüfe es nach der Synchronisierung in Garmin Connect bzw. auf deiner Uhr.')
+  }catch(e){setError(e instanceof Error?e.message:'Übertragung fehlgeschlagen')}
+  finally{setActing(null)}
+ }
  function changeWeek(delta:number){
   const next=Math.max(-1,Math.min(5,week+delta))
   setWeek(next)
@@ -173,8 +226,14 @@ export function CalendarPage({active}:{active:boolean}){
     {matching.length?
      <div className="hc-entries">
       {matching.map(entry=>{
+       const plan=entry.source==='plan'?plans.find(p=>'p-'+p.id===entry.key):undefined
+       const publication=plan?published[plan.id]:undefined
+       const sent=!!(plan&&publication&&publication.intervals_published_revision===plan.revision&&
+        publication.intervals_sync_status==='confirmed')
+       const eligible=!!plan&&eligiblePlanIds.includes(plan.id)
        const state=entry.source==='garmin'?
-        {text:'Aus Garmin übernommen',type:'verified'}:readState(entry.status)
+        {text:'Aus Garmin übernommen',type:'verified'}:
+        sent?{text:'Intervals.icu bestätigt · Garmin prüfen',type:'verified'}:readState(entry.status)
        return <article className={'hc-entry hc-entry-'+state.type} key={entry.key}>
         <div className="hc-entry-symbol"><Icon name={entry.source==='garmin'?'activity':'calendar-days'}/></div>
         <div className="hc-entry-copy">
@@ -182,6 +241,15 @@ export function CalendarPage({active}:{active:boolean}){
          <small>{entry.sub}</small>
          <span className={'hc-entry-state '+state.type}>{state.text}</span>
          {entry.note&&<details className="hc-plan-notes"><summary>Ablauf ansehen</summary><p>{entry.note}</p></details>}
+         {plan&&eligible&&plan.state==='draft'&&<button type="button" className="hc-intervals-button"
+           disabled={acting!==null} onClick={()=>void approvePlan(plan)}>
+            {acting===plan.id?'Freigabe …':'Training freigeben'}</button>}
+         {plan&&eligible&&plan.state==='pending'&&!sent&&<>
+          <button type="button" className="hc-intervals-button"
+           disabled={!intervalsConnected||acting!==null} onClick={()=>void publishPlan(plan)}>
+            {acting===plan.id?'Übertrage …':'An Intervals.icu senden'}</button>
+          {!intervalsConnected&&<small>Intervals.icu bitte zuerst unter Einstellungen verbinden.</small>}
+         </>}
         </div>
        </article>
       })}
@@ -210,12 +278,12 @@ export function CalendarPage({active}:{active:boolean}){
    <article>
     <div className="hc-source-icon"><Icon name="sparkles"/></div>
     <div><strong>GARMIN_AI Coach</strong><small>{plans.length} lokale Trainingspläne</small>
-     <span>Übertragung nur nach Freigabe und erfolgreichem Garmin-Abgleich</span>
+     <span>Übertragung nur nach Freigabe über Intervals.icu</span>
     </div>
    </article>
   </div>
   {error&&<p className="hc-error" role="alert">{error}</p>}
   {notice&&<p className="hc-notice" role="status">{notice}</p>}
-  <p className="hc-footnote">Die App zeigt bestätigte Garmin-Snapshots und gespeicherte Entwürfe. Ein Entwurf ist kein Garmin-Termin. Kein Schreibzugriff wird durch diese Ansicht ausgelöst.</p>
+  <p className="hc-footnote">Die App zeigt bestätigte Garmin-Snapshots und gespeicherte Entwürfe. Ein Entwurf ist kein Garmin-Termin. Nur ein ausdrücklich freigegebenes und anschließend gesendetes Training wird an Intervals.icu veröffentlicht.</p>
  </section>
 }
