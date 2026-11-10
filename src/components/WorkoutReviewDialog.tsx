@@ -2,7 +2,8 @@ import {useEffect,useRef,useState} from 'react'
 import {createPortal} from 'react-dom'
 import type {ArchiveRecord,TrainerWorkout,TrainerGroup,TrainerStep,WorkoutStepKind} from '../lib/workoutLibrary'
 import {blankStep,formatPace,parsePace,workoutSummary} from '../lib/workoutLibrary'
-import {makeTrackLapGuide,splitClock} from '../lib/trackLapGuide'
+import {splitClock} from '../lib/trackLapGuide'
+import {WorkoutFinishSelector} from './WorkoutFinishSelector'
 import '../styles/workout-review-dialog.css'
 
 const integer=(s:string)=>s.trim()===''?null:Number(s)
@@ -78,8 +79,6 @@ export function WorkoutReviewDialog(props:Props){
  const group=workout?.groups[groupIndex]??null
  const summary=group?workoutSummary(group):null
  const recovering=group?.steps.filter(x=>x.kind==='recovery').length??0
- const cues=workout&&group?makeTrackLapGuide(workout,group.name):[]
- const runningCues=cues.filter(x=>x.type==='run')
  const availableGroups=workout?.groups.length??0
  const headline=editing?'Training prüfen':preview?'Training aus dem Archiv':'Trainingsfoto auslesen'
  const canUseReference=!!photoUrl&&!!ocrRaw&&!ocrWasTemplate
@@ -155,7 +154,7 @@ export function WorkoutReviewDialog(props:Props){
        <button type="button" className={pane==='overview'?'selected':''}
         aria-pressed={pane==='overview'} onClick={()=>setPane('overview')}>Ablauf</button>
        <button type="button" className={pane==='track'?'selected':''}
-        aria-pressed={pane==='track'} onClick={()=>setPane('track')}>Bahn / LAP</button>
+        aria-pressed={pane==='track'} onClick={()=>setPane('track')}>Bahn / Distanz</button>
        {editing&&<button type="button" className={pane==='edit'?'selected':''}
         aria-pressed={pane==='edit'} onClick={()=>setPane('edit')}>Bearbeiten</button>}
       </div>
@@ -183,22 +182,9 @@ export function WorkoutReviewDialog(props:Props){
         {workout.warmup.notes?' · '+workout.warmup.notes:''}
         {' · '}Auslaufen: {workout.cooldown.notes||'nach Gefühl'}</p>
       </>}
-      {pane==='track'&&<>
-       <p className="wr-muted">Bahn-Vorschau: Du beendest jeden Abschnitt an der echten
-        Bahnmarkierung mit LAP. Es wird noch nichts an Garmin übertragen.</p>
-       <div className="wr-lap-grid">
-        {runningCues.map(cue=><div className="wr-lap-card" key={cue.index}>
-         <span>Satz {cue.block}/{cue.blocks} · Intervall {cue.repeat}/{cue.repeats}</span>
-         <strong>{shortDistance(cue.distanceMeters)}</strong>
-         <b>{cue.paceLabel?cue.paceLabel+'/km':'Tempo prüfen'}</b>
-         <small>400-m-Sollzeit: {splitClock(cue.fourHundredSeconds)}
-          {' · '}Gesamt: {splitClock(cue.expectedSeconds)}</small>
-        </div>)}
-       </div>
-       <p className="wr-muted">Jede Belastung und Pause endet in dieser Vorschau per LAP.
-        Eine Wahl zwischen LAP und GPS-Distanz für einzelne Garmin-Schritte
-        wird separat implementiert und geprüft.</p>
-      </>}
+      {pane==='track'&&workout&&<WorkoutFinishSelector
+       workout={workout} groupIndex={groupIndex} editable={!!editing}
+       onChange={onChange} onChangeStep={onChangeStep}/>}
       {pane==='edit'&&editing&&<>
        <div className="wr-edit-meta">
         <label>Training<input maxLength={120} value={editing.title}
