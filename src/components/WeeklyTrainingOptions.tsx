@@ -9,6 +9,8 @@ import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garm
 import {getWeather,hourAt,weatherLabel} from '../lib/weatherIntelligence'
 import type {Forecast,WeatherPlace} from '../lib/weatherIntelligence'
 import '../styles/weekly-training-options.css'
+import {completedWeeklyOption} from '../lib/weeklyOptionCompletion'
+import type {EvidenceActivity} from '../lib/weeklyOptionCompletion'
 
 type TrainingOption={
  code:string;weekday:number;start_time:string;timezone:string;
@@ -58,6 +60,7 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false}:{
 }){
  const [items,setItems]=useState<TrainingOption[]>([])
  const [choices,setChoices]=useState<SavedChoice[]>([])
+ const [actual,setActual]=useState<EvidenceActivity[]>([])
  const [forecast,setForecast]=useState<Record<string,Forecast>>({})
  const [loading,setLoading]=useState(false)
  const [busy,setBusy]=useState<string|null>(null)
@@ -78,6 +81,21 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false}:{
   return ()=>{mounted=false}
  },[active])
  useEffect(()=>{
+  if(!active)return
+  let mounted=true
+  void (async()=>{
+   if(!garminSupabase)return
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)return
+   const response=await fetch(garminSupabaseUrl+'/functions/v1/garmin-week-board?start='+encodeURIComponent(weekStart),{
+    cache:'no-store',headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey}})
+   if(!response.ok)return
+   const result=await response.json() as {activities?:EvidenceActivity[]}
+   if(mounted)setActual(Array.isArray(result.activities)?result.activities:[])
+  })().catch(()=>{if(mounted)setActual([])})
+  return ()=>{mounted=false}
+ },[active,weekStart])
+ useEffect(()=>{
   if(!active||!items.length)return
   let mounted=true
   const places=Array.from(new Map(items.map(item=>[
@@ -97,8 +115,9 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false}:{
   const choice=choices.find(x=>x.option_code===option.code&&x.training_date===date)?.choice||'open'
   const report=forecast[option.location_lat+':'+option.location_lon]
   const hour=report?hourAt(report,date,Number(option.start_time.slice(0,2))):null
-  return {option,date,choice,hour}
- }),[items,weekStart,choices,forecast])
+  const completed=completedWeeklyOption(option,date,actual)!==null
+  return {option,date,choice,hour,completed}
+ }),[items,weekStart,choices,forecast,actual])
  async function setChoice(option:TrainingOption,date:string,choice:Choice){
   if(busy||date<today)return
   setBusy(option.code);setError('');setNotice('')
@@ -124,7 +143,7 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false}:{
   </header>
   {loading&&!items.length&&<p className="wo-info">Trainingsmöglichkeiten werden geladen …</p>}
   <div className="wo-grid">
-   {rows.map(({option,date,choice,hour})=>{
+   {rows.map(({option,date,choice,hour,completed})=>{
     const old=date<today
     const weather=hour?
      weatherLabel(hour.code)+' · '+metric(hour.temperature)+' °C · Regen '+metric(hour.rainProbability)+
@@ -144,9 +163,9 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false}:{
      </div>
      <div className="wo-action">
       <span className="wo-state">
-       {old?'Vergangen':choice==='selected'?'✓ Dabei':choice==='skipped'?'Ausgelassen':'Noch offen'}
+       {completed?'✓ Absolviert (Garmin)':old?'Vergangen':choice==='selected'?'✓ Dabei':choice==='skipped'?'Ausgelassen':'Noch offen'}
       </span>
-      {!old&&<div className="wo-buttons" aria-label={option.title+' Teilnahme'}>
+      {!old&&!completed&&<div className="wo-buttons" aria-label={option.title+' Teilnahme'}>
        <button type="button" aria-pressed={choice==='selected'} disabled={busy!==null}
         className={choice==='selected'?'picked':''} onClick={()=>void setChoice(option,date,'selected')}>Dabei</button>
        <button type="button" aria-pressed={choice==='skipped'} disabled={busy!==null}
