@@ -8,14 +8,14 @@ export type MovementPlan={steps:MovementStep[];exerciseIds:string[];minutes:numb
 export const MOVEMENT_MINUTES=30
 export const CIRCUIT_ROUNDS=3
 export const MOVEMENT_PATTERNS=[
- {id:'squat',alternatives:['bodyweight-squat','goblet-squat']},
- {id:'hinge',alternatives:['glute-bridge','weighted-rdl']},
- {id:'single-leg',alternatives:['reverse-lunge','step-up']},
+ {id:'squat',alternatives:['bodyweight-squat']},
+ {id:'hinge',alternatives:['glute-bridge','single-leg-glute-bridge']},
+ {id:'single-leg',alternatives:['reverse-lunge']},
  {id:'push',alternatives:['push-up']},
- {id:'pull',alternatives:['band-row']},
- {id:'core',alternatives:['dead-bug','pallof-press','forearm-plank']},
+ {id:'pull',alternatives:['reverse-snow-angel','prone-ytw']},
+ {id:'core',alternatives:['dead-bug','forearm-plank','side-plank','bird-dog']},
  {id:'calf',alternatives:['calf-raise','single-leg-calf-raise','tibialis-raise']},
- {id:'shoulder',alternatives:['overhead-press']}
+ {id:'shoulder',alternatives:['pike-push-up']}
 ] as const
 const warmPool=['cat-cow','thoracic-rotation','knee-to-wall','adductor-rockback','short-foot','single-leg-balance','hip-flexor-stretch']
 const coolPool=['child-pose-breathing','hip-flexor-stretch','thoracic-rotation','adductor-rockback']
@@ -29,7 +29,7 @@ function choose(pool:readonly string[],step:number,index:number){
 export function buildMovementPlan(day:string,rotation=0):MovementPlan{
  if(!Number.isInteger(rotation)||rotation<0||rotation>9999)throw Error('Ungültige Trainingsvariation')
  const seed=dateSeed(day)+rotation
- // Spread patterns across the eight strength slots. Any week-to-week
+ // Every exercise requires only body weight and a clear patch of floor.\n // The prone upper-back drills are NOT equivalent to a resisted pulling movement.\n // Spread patterns across the eight strength slots. Any week-to-week
  // variation must preserve the squat/hinge/push/pull/etc. coverage.
  const strengthIds=MOVEMENT_PATTERNS.map((pattern,i)=>
   choose(pattern.alternatives,seed,i))

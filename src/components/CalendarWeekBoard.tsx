@@ -4,6 +4,7 @@
 import {useEffect,useMemo,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import '../styles/calendar-week-board.css'
+import {completedWeeklyOption} from '../lib/weeklyOptionCompletion'
 
 type Activity={activity_id:string;activity_name:string|null;start_time_local:string;
  sport_type:string;distance_m:number|null;duration_s:number|null;
@@ -15,9 +16,8 @@ type WeekResponse={start:string;endExclusive:string;activities:Activity[];health
 type Opportunity={code:string;weekday:number;start_time:string;title:string;location_label:string}
 type Choice={option_code:string;training_date:string;choice:string}
 export type BoardPlan={id:string;training_date:string;title:string;state:string;session_type:string}
-export type BoardGarminPlan={date:string;id:string|null;name:string|null;restDay:boolean;sport:string|null}
 type Props={active:boolean;start:string;selected:string;today:string;
- onSelect:(day:string)=>void;plans:BoardPlan[];garminPlans:BoardGarminPlan[]}
+ onSelect:(day:string)=>void;plans:BoardPlan[]}
 const plusDay=(date:string,n:number)=>
  new Date(Date.parse(date+'T12:00:00Z')+n*86400000).toISOString().slice(0,10)
 function weekNumber(date:string){
@@ -45,7 +45,7 @@ async function read(endpoint:string){
  if(!response.ok)throw Error('Kalenderdaten derzeit nicht erreichbar ('+response.status+')')
  return await response.json() as Record<string,unknown>
 }
-export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,garminPlans}:Props){
+export function CalendarWeekBoard({active,start,selected,today,onSelect,plans}:Props){
  const [data,setData]=useState<WeekResponse|null>(null)
  const [options,setOptions]=useState<Opportunity[]>([])
  const [choices,setChoices]=useState<Choice[]>([])
@@ -87,9 +87,9 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,ga
     .filter(x=>sportKind(x.sport_type)!=='rowing')
   const manual=(data?.manual||[]).filter(x=>x.session_date===day&&x.kind!=='rowing')
   const local=plans.filter(p=>p.training_date===day&&p.state!=='cancelled')
-  const remote=garminPlans.filter(x=>x.date===day)
-  const slot=options.filter(x=>x.weekday===index+1)
-  return {day,index,daily,acts,manual,local,remote,slot}
+  const slot=options.filter(x=>x.weekday===index+1&&
+    !completedWeeklyOption(x,day,acts))
+  return {day,index,daily,acts,manual,local,slot}
  })
  return <section className="hwb-root" aria-label="Wochenübersicht mit echten Garmin-Aktivitäten und Gesundheitsdaten">
   <div className="hwb-title">
@@ -111,7 +111,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,ga
    </aside>
    <div className="hwb-scroll" role="region" aria-label="Sieben Wochentage, horizontal scrollbar" tabIndex={0}>
     <div className="hwb-days">
-     {calendarDays.map(({day,daily,acts,manual,local,remote,slot})=>
+     {calendarDays.map(({day,daily,acts,manual,local,slot})=>
       <section key={day} className={'hwb-day'+(day===selected?' is-selected':'')+(day===today?' is-today':'')}
        aria-label={shortDay(day)+' '+dayLabel(day)}>
        <button type="button" className="hwb-day-header"
@@ -152,13 +152,6 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,ga
          <strong>{plan.title}</strong>
          <small>Details und Freigabe am ausgewählten Tag</small>
         </button>)}
-        {remote.filter(remote=>!local.some(plan=>plan.title===remote.name))
-         .map((event,i)=><button type="button" className="hwb-card is-remote"
-          key={'g-'+(event.id||i)} onClick={()=>onSelect(day)}>
-          <span className="hwb-card-label">◌ GARMIN-KALENDER</span>
-          <strong>{event.name|| (event.restDay?'Ruhetag':'Trainingsvorlage')}</strong>
-          <small>Planung, nicht als absolviert gewertet</small>
-         </button>)}
         {slot.map(option=>{
          const choice=choices.find(x=>x.training_date===day&&x.option_code===option.code)?.choice||'open'
          return <button type="button" key={'o-'+option.code}
@@ -168,7 +161,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,ga
           <span>{option.start_time.slice(0,5)} Uhr · {option.location_label}</span>
          </button>
         })}
-        {!acts.length&&!manual.length&&!local.length&&!remote.length&&!slot.length&&
+        {!acts.length&&!manual.length&&!local.length&&!slot.length&&
          <span className="hwb-empty">Noch nichts eingetragen</span>}
        </div>
       </section>
@@ -178,7 +171,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,ga
   </div>
   {error&&<p className="hwb-error" role="alert">{error}</p>}
   <p className="hwb-foot">Vollflächige Karten = durchgeführte Aktivität ·
-   schmale Umrandung = geplanter Termin oder Option. Tageswerte stammen aus Garmin;
+   schmale Umrandung = eigener Trainingsplan oder Option. Tageswerte stammen aus Garmin;
    leere Werte werden nicht geschätzt. Tag auswählen für Details und Trainingsfreigaben.</p>
  </section>
 }

@@ -16,7 +16,10 @@ const categories=[
  {id:'hips',name:'Hüfte'}, {id:'ankle',name:'Fuß & Wade'},
  {id:'strength',name:'Kraft'}, {id:'back',name:'Rücken'}
 ] as const
-const byId=new Map(EI_EXERCISES.map(x=>[x.id,x]))
+const BODYWEIGHT_EXERCISES=EI_EXERCISES.filter(x=>
+ !x.equipment?.some(item=>!['mat'].includes(item))&&
+ !(x.equipmentAny?.length))
+const byId=new Map(BODYWEIGHT_EXERCISES.map(x=>[x.id,x]))
 const formatClock=(n:number)=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')
 const short=(n:string)=>n.slice(8,10)+'.'+n.slice(5,7)+'.'
 const movementLabel=(part:MovementStep['part'])=>part==='warmup'?'Mobilisieren':part==='strength'?'Kraft & Stabilität':'Auslockern'
@@ -45,7 +48,7 @@ export function StrengthPage({active}:{active:boolean}){
  const idempotency=useRef(crypto.randomUUID())
  const today=DAY()
  const plan=useMemo(()=>buildMovementPlan(date,rotation),[date,rotation])
- const exercises=useMemo(()=>EI_EXERCISES.filter(x=>{
+ const exercises=useMemo(()=>BODYWEIGHT_EXERCISES.filter(x=>{
   if(focus!=='all'&&!x.focusAreas?.includes(focus))return false
   const text=(x.name+' '+x.group+' '+(x.purpose||'')).toLocaleLowerCase('de-DE')
   return text.includes(search.trim().toLocaleLowerCase('de-DE'))
@@ -114,8 +117,8 @@ export function StrengthPage({active}:{active:boolean}){
   <header className="ss-hero ms-hero">
    <div><span className="ss-kicker">GARMIN_AI / MOVEMENT STUDIO</span>
     <h1>Stark laufen.<br/><em>Stabil bleiben.</em></h1>
-    <p>Kraft und Mobility in einer Einheit. Der Coach mischt bewährte Übungen aus Endurance Intelligence
-     nach Bewegungsmustern – ohne künstliche Fitness-Scores.</p></div>
+    <p>Kraft und Mobility in einer Einheit, nur mit deinem Körpergewicht. Der Coach stellt die Übungen
+     nach Bewegungsmustern zusammen – ohne Hanteln, Bänder oder künstliche Fitness-Scores.</p></div>
    <div className="ms-hero-time"><strong>30<span>min</span></strong><small>DEIN STANDARD</small></div>
   </header>
   <section className="ss-session ms-session">
@@ -155,14 +158,15 @@ export function StrengthPage({active}:{active:boolean}){
      Neu zusammenstellen</button>
    </div>
    <p className="ms-caption">Die Mischung ist ein Vorschlag, keine automatische Trainingsfreigabe.
-    Vor harten Bahneinheiten oder nach Fußball empfiehlt der Coach bei Bedarf eine leichtere Variante.</p>
+    Für echten Zugkraftaufbau im oberen Rücken wäre später ein Widerstand nötig – Bodenübungen trainieren hier vor allem die Schulterblätter.
+    Vor harten Einheiten kann der Coach leichtere Varianten empfehlen.</p>
   </section>
   <section className="ss-library">
    <div className="ss-section-title"><div>
     <span>DEINE ÜBUNGSBIBLIOTHEK</span><h2>Alle Übungen, ein Studio.</h2>
     <p>Technik, häufige Fehler und leichtere/schwerere Varianten aus Endurance Intelligence.
-     Für den Coach sind die wichtigsten Bewegungsmuster fest hinterlegt.</p></div>
-    <span className="ss-count">{EI_EXERCISES.length} Übungen</span></div>
+     Nur Körpergewichtsübungen – keine vorausgesetzten Hanteln, Bänder oder Geräte.</p></div>
+    <span className="ss-count">{BODYWEIGHT_EXERCISES.length} Übungen ohne Geräte</span></div>
    <div className="ss-filters">
     <input type="search" value={search} onChange={e=>setSearch(e.target.value)}
      placeholder="Übung suchen …" aria-label="Übungen suchen"/>
@@ -219,13 +223,13 @@ export function StrengthPage({active}:{active:boolean}){
     <span className="ss-kicker">{detail.group} / COACH-GEPRÜFTE ÜBUNGEN</span>
     <h2>{detail.name}</h2><p>{detail.quickStart||detail.instruction}</p>
     <div className="ss-detail-meta"><span>{detail.seconds||60} Sekunden</span>
-     <span>{detail.equipment?.length?'Material: '+detail.equipment.join(', '):'Ohne Material'}</span></div>
+     <span>Ohne Geräte · ggf. weiche Unterlage</span></div>
     <h3>So geht's</h3><ol>{(detail.steps||[]).map((s,i)=><li key={i}>{s}</li>)}</ol>
     <div className="ss-guide-grid">
      <div><h3>Darauf achten</h3><ul>{(detail.cues||[]).map((s,i)=><li key={i}>{s}</li>)}</ul></div>
      <div><h3>Typische Fehler</h3><ul>{(detail.mistakes||[]).map((s,i)=><li key={i}>{s}</li>)}</ul></div></div>
-    <div className="ss-easier"><p><b>Leichter:</b> {detail.easier||'Weniger Widerstand.'}</p>
-     <p><b>Schwieriger:</b> {detail.harder||'Widerstand schrittweise erhöhen.'}</p></div>
+    <div className="ss-easier"><p><b>Leichter:</b> {detail.easier||'Bewegung leichter ausführen.'}</p>
+     <p><b>Schwieriger:</b> {detail.harder||'Bewegung kontrollierter oder einbeinig ausführen.'}</p></div>
     <a href={'https://www.youtube.com/results?search_query='+encodeURIComponent(detail.name+' Übung Anleitung')}
      target="_blank" rel="noreferrer">Video zur Bewegung suchen</a>
     <button className="ss-main-action" type="button" onClick={()=>setDetail(null)}>Zurück zum Training</button>

@@ -17,7 +17,7 @@ test('production app remains owner-gated and adds calendar as a real main tab',(
 
 test('calendar reads only verified owner APIs with publishable keys',()=>{
  const cal=read('src/pages/CalendarPage.tsx')
- assert.match(cal,/garmin-connect-snapshot/)
+ assert.doesNotMatch(cal,/garmin-connect-snapshot/)
  assert.match(cal,/garmin-training-plan/)
  assert.match(cal,/client.auth.getSession\(\)/)
  assert.match(cal,/session.access_token/)
@@ -28,12 +28,12 @@ test('calendar reads only verified owner APIs with publishable keys',()=>{
 
 test('calendar distinguishes Garmin entries, drafts, pending and errors',()=>{
  const cal=read('src/pages/CalendarPage.tsx')
- for(const label of ['Aus Garmin übernommen','Entwurf · nicht übertragen',
+ for(const label of ['Entwurf · nicht übertragen',
   'Freigegeben · Intervals.icu ausstehend','Prüfung erforderlich','Mit Garmin bestätigt']){
   assert.ok(cal.includes(label),label)
  }
- assert.match(cal,/Noch kein bestätigter Garmin-Abruf/)
- assert.match(cal,/Ein Entwurf ist kein Garmin-Termin/)
+ assert.doesNotMatch(cal,/Noch kein bestätigter Garmin-Abruf/)
+ assert.match(cal,/Garmin-Kalendervorlagen werden ausgeblendet/)
 })
 
 test('iPhone week selection fits seven days and iPad two columns without overflow',()=>{

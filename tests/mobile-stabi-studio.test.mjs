@@ -13,9 +13,9 @@ const more=read('src/pages/MorePage.tsx')
 const migration=read('supabase/migrations/20261110180000_cross_training_studio_v0927.sql')
 
 test('Endurance Intelligence guides plus missing push/pull are preserved',()=>{
- for(const id of ['dead-bug','bird-dog','pallof-press','forearm-plank',
+ for(const id of ['dead-bug','bird-dog','forearm-plank',
  'glute-bridge','side-plank','calf-raise','knee-to-wall','hip-flexor-stretch',
- 'weighted-rdl','band-row','overhead-press']){
+ 'reverse-snow-angel','prone-ytw','pike-push-up','single-leg-glute-bridge']){
   assert.ok(library.includes('id: "'+id+'"'),id)
  }
  for(const part of ['detail.steps','detail.mistakes','detail.easier','detail.harder','detail.cues'])
@@ -33,9 +33,10 @@ test('workout is exactly thirty minutes, all movement patterns are covered',()=>
  assert.equal(MOVEMENT_PATTERNS.length,8)
  for(const id of ['squat','hinge','single-leg','push','pull','core','calf','shoulder'])
   assert.ok(MOVEMENT_PATTERNS.some(x=>x.id===id),id)
- assert.ok(p.strengthIds.includes('band-row'))
+ assert.ok(['reverse-snow-angel','prone-ytw'].includes(p.strengthIds[4]))
  assert.ok(p.strengthIds.includes('push-up'))
- assert.ok(p.strengthIds.includes('overhead-press'))
+ assert.ok(p.strengthIds.includes('pike-push-up'))
+ assert.doesNotMatch(p.strengthIds.join(','),/overhead-press|band-row|weighted-rdl|goblet-squat|pallof-press/)
 })
 test('balanced mixing is reproducible; variation stays inside a movement pattern',()=>{
  const a=buildMovementPlan('2026-11-11',0)
