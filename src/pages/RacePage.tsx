@@ -23,7 +23,7 @@ export function RacePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
   <RaceGoalsPanel active={active} onPrimaryChange={()=>{
    setGoalRefresh(x=>x+1);setRaceForecast(null)
   }}/>
-  <RaceEventResearch active={active} refreshKey={researchRefresh+goalRefresh} onLogoChange={setEventLogo}/>
+  <RaceEventResearch active={active} refreshKey={researchRefresh+goalRefresh} onLogoChange={setEventLogo} onEventSaved={()=>setResearchRefresh(n=>n+1)}/>
   <RaceForecastCompact active={active} refreshKey={researchRefresh+goalRefresh} onForecast={setRaceForecast}/>
   <RaceRouteViewer active={active} refreshKey={researchRefresh+goalRefresh} forecast={raceForecast}/>
   <div className="sub-grid">
