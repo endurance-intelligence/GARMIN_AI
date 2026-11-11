@@ -17,7 +17,7 @@ type SavedResearch={id:string;event_url:string;event_title:string;race_date:stri
  details:Details;evidence:Evidence[];reviewed_at:string}
 type ArchiveEvent={id:string;canonical_url:string;event_name:string;
  template_details:Details;evidence:Evidence[];last_race_date:string|null;updated_at:string}
-type GoalStatus={goal:{raceDate:string;raceName:string};saved:SavedResearch[];archive:ArchiveEvent[]}
+type GoalStatus={goal:{raceDate:string;raceName:string;raceLocation:string};saved:SavedResearch[];archive:ArchiveEvent[]}
 const labels:Record<Field,string>={
  eventName:'Veranstaltung',eventDate:'Veranstaltungsdatum',
  startTime:'Frühester Start',endTime:'Zielschluss',
@@ -71,6 +71,7 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange}:{
   if(!active)return
   let mounted=true
   setGoal(null);setSaved([]);setArchive([]);setScan(null);setDetails(null);setEdited([]);setFromArchive(null)
+  onLogoChange?.(null)
   setError('')
   void request().then(value=>{
    if(!mounted)return
@@ -248,7 +249,7 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange}:{
      return <label className={'rer-field'+(isLong?' rer-wide':'')} key={field}>
       <span>{labels[field]}</span>
       {field==='venueAddress'?<VenueAutocomplete
-        value={addressInput} city={String(chosen.city||goal?.raceName||'')} disabled={!!busy}
+        value={addressInput} city={String(chosen.city||goal?.raceLocation||'')} disabled={!!busy}
         request={suggest} onPick={pickVenue}
         onChange={v=>update('venueAddress',v)}/>:
        isLong?<textarea value={value===null?'':String(value)} rows={2}
