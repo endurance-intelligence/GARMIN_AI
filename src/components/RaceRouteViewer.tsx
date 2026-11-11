@@ -70,8 +70,8 @@ export function RaceRouteViewer({active,refreshKey=0,forecast}:{active:boolean;r
   const y=96-(alt-altMin)/Math.max(1,altMax-altMin)*73
   return (i?'L':'M')+x.toFixed(1)+','+y.toFixed(1)
  }).join(' '):null
- const weather:WeatherHour|null=forecast?.hours.find(x=>x.date===loaded?.raceDate&&
-  x.hour===Number((loaded?.raceStartTime||'').slice(0,2)))||null
+ const weather:WeatherHour|null=loaded?.raceStartTime?
+  forecast?.hours.find(x=>x.date===loaded.raceDate&&x.hour===Number(loaded.raceStartTime!.slice(0,2)))||null:null
  const wind=weather?.windDirection!==undefined?
   windSegments(points,weather.windDirection,weather.wind):[]
  return <section className="rrv-root" aria-label="Streckenkarte und Streckenwetter">
