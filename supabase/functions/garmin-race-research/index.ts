@@ -54,46 +54,46 @@ function reviewed(data:unknown){
  return fields
 }
 async function htmlPage(target:string){
- // Never allow fetch to auto-follow to internal/cloud-metadata addresses.
+ // The request and streamed HTML body have one shared timeout.
+ // Redirects are resolved manually and each destination is validated.
  let current=safeWebsiteUrl(target)
  for(let i=0;i<3;i++){
-  const control=new AbortController(),timer=setTimeout(()=>control.abort(),6500)
-  let res:Response
+  const control=new AbortController(),timer=setTimeout(()=>control.abort(),8000)
   try{
-   res=await fetch(current,{redirect:'manual',cache:'no-store',
+   const res=await fetch(current,{redirect:'manual',cache:'no-store',
     signal:control.signal,headers:{Accept:'text/html,application/xhtml+xml;q=0.9'}})
-  }finally{clearTimeout(timer)}
-  if([301,302,303,307,308].includes(res.status)){
-   const location=res.headers.get('location')
-   if(!location)throw Error('Redirect ohne Ziel')
-   current=safeWebsiteUrl(new URL(location,current).href)
-   continue
-  }
-  if(!res.ok)throw Error('Website HTTP '+res.status)
-  if(!/text\/html|application\/xhtml/i.test(res.headers.get('content-type')||''))
-   throw Error('Seite enthält kein lesbares HTML')
-  const advertised=Number(res.headers.get('content-length')||0)
-  if(advertised>380000)throw Error('Webseite ist zu groß')
-  const reader=res.body?.getReader()
-  if(!reader)throw Error('Seite konnte nicht gelesen werden')
-  const chunks:Uint8Array[]=[]
-  let total=0
-  try{
-   while(true){
-    const {done,value}=await reader.read()
-    if(done)break
-    total+=value.length
-    if(total>380000)throw Error('Website ist zu groß')
-    chunks.push(value)
+   if([301,302,303,307,308].includes(res.status)){
+    const location=res.headers.get('location')
+    if(!location)throw Error('Redirect ohne Ziel')
+    current=safeWebsiteUrl(new URL(location,current).href)
+    continue
    }
-  }finally{reader.releaseLock()}
-  const bytes=new Uint8Array(total),offsets={offset:0}
-  for(const chunk of chunks){bytes.set(chunk,offsets.offset);offsets.offset+=chunk.length}
-  return {url:current,html:new TextDecoder().decode(bytes)}
+   if(!res.ok)throw Error('Website HTTP '+res.status)
+   if(!/text\/html|application\/xhtml/i.test(res.headers.get('content-type')||''))
+    throw Error('Seite enthält kein lesbares HTML')
+   const advertised=Number(res.headers.get('content-length')||0)
+   if(advertised>750000)throw Error('Webseite ist zu groß')
+   const reader=res.body?.getReader()
+   if(!reader)throw Error('Seite konnte nicht gelesen werden')
+   const chunks:Uint8Array[]=[]
+   let total=0
+   try{
+    while(true){
+     const {done,value}=await reader.read()
+     if(done)break
+     total+=value.length
+     if(total>750000){await reader.cancel();throw Error('Webseite ist zu groß')}
+     chunks.push(value)
+    }
+   }finally{reader.releaseLock()}
+   const bytes=new Uint8Array(total)
+   let offset=0
+   for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length}
+   return {url:current,html:new TextDecoder().decode(bytes)}
+  }finally{clearTimeout(timer)}
  }
  throw Error('Zu viele Weiterleitungen')
 }
-const isoToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
 Deno.serve(async req=>{
  const origin=req.headers.get('origin'),h=headers(origin)
  if(origin&&!h['Access-Control-Allow-Origin'])return reply(403,{error:'Origin not allowed'},h)
