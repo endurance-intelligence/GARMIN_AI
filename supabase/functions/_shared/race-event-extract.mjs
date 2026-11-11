@@ -239,7 +239,7 @@ export function discoverEventLogo(pages){
    const rel=attr(tag,'rel').toLowerCase(),alt=attr(tag,'alt').toLowerCase();
    const prop=(attr(tag,'property')||attr(tag,'name')).toLowerCase();
    const uri=type==='img'?
-    attr(tag,'src')||attr(tag,'data-src')||attr(tag,'data-image'):
+    attr(tag,'data-src')||attr(tag,'data-image')||attr(tag,'src'):
     type==='link'?attr(tag,'href'):attr(tag,'content');
    if(!uri||uri.startsWith('data:'))continue;
    let url;
