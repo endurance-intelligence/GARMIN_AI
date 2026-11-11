@@ -34,11 +34,6 @@ function monday(iso:string){
  const d=new Date(iso+'T12:00:00Z').getUTCDay()
  return moveDay(iso,-((d+6)%7))
 }
-function shortDay(iso:string){
- return new Intl.DateTimeFormat('de-DE',{timeZone:'UTC',weekday:'short'}).format(
-  new Date(iso+'T12:00:00Z')).replace('.','')
-}
-function dayNumber(iso:string){return iso.slice(8,10).replace(/^0/,'')}
 function monthTitle(iso:string){
  return new Intl.DateTimeFormat('de-DE',{timeZone:'UTC',month:'long',year:'numeric'}).format(
   new Date(iso+'T12:00:00Z'))
