@@ -80,7 +80,7 @@ test('Coach considers rowing but does not feature it as separate training card',
  assert.match(coach,/loadCrossTraining\(/)
  assert.match(coach,/rowing\.length/)
  assert.match(coach,/playedRecently/)
- assert.match(coach,/Keine 1:1-Umrechnung in Laufkilometer/)
+ assert.match(coach,/ohne Laufkilometer-Umrechnung/)
  assert.doesNotMatch(coach,/<small>Rudern · 7 Tage<\/small>/)
 })
 test('iPhone navigation still exposes movement studio',()=>{
