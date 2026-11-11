@@ -49,3 +49,7 @@
 .rer-error{color:#ffb0a7;font-size:12px}.rer-notice{color:#9ce5b9;font-size:12px}
 @media(max-width:640px){.rer-root{padding:15px}.rer-grid{grid-template-columns:1fr}
 .rer-url-row{flex-direction:column}.rer-url-row button{width:100%}.rer-flag{font-size:8px;padding:5px 8px}}
+
+.rer-auto-address{font-size:10px;line-height:1.4;color:#9aebc7;font-weight:750}
+.rer-geocode-note{font-size:10px;line-height:1.55;color:#a4b9d1;margin:12px 0}
+.rer-geocode-note a{color:#b0c8ff;text-decoration:underline;text-underline-offset:2px}

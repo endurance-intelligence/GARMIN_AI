@@ -4,6 +4,7 @@
  */
 import {createClient} from 'npm:@supabase/supabase-js@2'
 import {safeWebsiteUrl,parseEventPages,rankEventPages} from '../_shared/race-event-extract.mjs'
+import {venueAddressMatch,photonLookupURL} from '../_shared/race-venue-geocode.mjs'
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
 const isDev=(s:string)=>/^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(s)
@@ -94,6 +95,36 @@ async function htmlPage(target:string){
  }
  throw Error('Zu viele Weiterleitungen')
 }
+/** Single on-demand geocode per website scan. Results are cached 30 days.
+ * There is no retry or autocomplete. Missing / ambiguous matches stay blank.
+ * Photon is a shared public demonstration API; provider can be replaced here.
+ */
+async function resolveVenueAddress(db:any,userId:string,venue:string,city:string){
+ const queryKey=(venue.trim()+'|'+city.trim()).toLocaleLowerCase('de-DE').slice(0,300)
+ const {data:cached,error:cacheError}=await db.from('garmin_race_venue_geocode_cache')
+  .select('result,checked_at').eq('user_id',userId).eq('query_key',queryKey).maybeSingle()
+ if(cacheError)throw Error('Der Adresscache ist derzeit nicht verfügbar.')
+ if(cached&&Date.now()-Date.parse(cached.checked_at)<30*86400000)
+  return {match:cached.result,status:cached.result?'cached':'not_found'}
+ const control=new AbortController(),timer=setTimeout(()=>control.abort(),6000)
+ let result:any=null
+ try{
+  const response=await fetch(photonLookupURL(venue,city),{redirect:'error',cache:'no-store',
+   signal:control.signal,headers:{
+    Accept:'application/json', 'User-Agent':'GARMIN_AI Race Event Scout (https://github.com/endurance-intelligence/GARMIN_AI)'
+   }})
+  if(!response.ok)throw Error('Photon HTTP '+response.status)
+  const raw=await response.text()
+  if(raw.length>130000)throw Error('Antwort des Kartendienstes zu groß')
+  const data=JSON.parse(raw)
+  result=venueAddressMatch(venue,city,data.features||[])
+ }finally{clearTimeout(timer)}
+ const {error:saveError}=await db.from('garmin_race_venue_geocode_cache').upsert({
+  user_id:userId,query_key:queryKey,result,checked_at:new Date().toISOString()
+ },{onConflict:'user_id,query_key'})
+ if(saveError)throw Error('Adresscache konnte nicht gespeichert werden.')
+ return {match:result,status:result?'matched':'not_found'}
+}
 Deno.serve(async req=>{
  const origin=req.headers.get('origin'),h=headers(origin)
  if(origin&&!h['Access-Control-Allow-Origin'])return reply(403,{error:'Origin not allowed'},h)
@@ -111,7 +142,7 @@ Deno.serve(async req=>{
    return reply(403,{error:'Not authorized'},h)
   const db=createClient(project,key('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
   const {data:goal,error:goalError}=await db.from('garmin_coach_goals')
-   .select('race_name,race_date').eq('user_id',user.id).maybeSingle()
+   .select('race_name,race_date,race_location').eq('user_id',user.id).maybeSingle()
   if(goalError)return reply(503,{error:'Race goal unavailable'},h)
   if(!goal)return reply(409,{error:'Bitte zuerst dein Wettkampfziel in Race Prep speichern.'},h)
   if(req.method==='GET'){
@@ -149,11 +180,40 @@ Deno.serve(async req=>{
      catch{warnings.push('Unterseite nicht lesbar: '+page.url)}
     }
     const result=parseEventPages(pages,{raceDateHint:goal.race_date,raceNameHint:goal.race_name})
+    // Reuse the extracted venue and city (or the user's goal location as a
+    // search hint, not as website evidence). Never guess a street number.
+    let addressResolution='not_required'
+    if(!result.details.venueAddress&&result.details.venue){
+     const city=String(result.details.city||goal.race_location||'').trim()
+     if(city){
+      try{
+       const geo=await resolveVenueAddress(db,user.id,String(result.details.venue),city)
+       addressResolution=geo.status
+       if(geo.match){
+        result.details.venueAddress=geo.match.address
+        result.sources.push({field:'venueAddress',url:geo.match.source,
+         evidence:'OpenStreetMap/Photon: '+geo.match.matchedVenue+' · '+geo.match.address})
+        if(!result.details.city){
+         result.details.city=geo.match.matchedCity
+         result.sources.push({field:'city',url:geo.match.source,
+          evidence:'OpenStreetMap/Photon: '+geo.match.matchedCity})
+        }
+       }else{
+        warnings.push('Keine eindeutige Straßenadresse zum Veranstaltungsort gefunden.')
+       }
+      }catch(e){
+       addressResolution='unavailable'
+       warnings.push('Adresssuche nicht verfügbar: '+
+        (e instanceof Error?e.message:'Kartendienst nicht erreichbar'))
+      }
+     }else addressResolution='missing_city'
+    }
     if(result.details.eventDate&&result.details.eventDate!==goal.race_date)
      warnings.push('Gefundener Termin weicht vom aktiven Ziel ab. Bitte prüfen.')
     return reply(200,{sourceUrl:root.url,...result,warnings,
      complete:result.missing.length===0,needsReview:true,saved:false,
-     routeMetadataStatus:result.details.routeUrl?'route_link_found_not_gpx_verified':'not_found'},h)
+     routeMetadataStatus:result.details.routeUrl?'route_link_found_not_gpx_verified':'not_found',
+     addressResolution},h)
    }catch(e){return reply(422,{error:'Webseite konnte nicht vollständig geprüft werden: '+
       (e instanceof Error?e.message:'Abruf fehlgeschlagen')},h)}
   }

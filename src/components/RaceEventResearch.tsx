@@ -9,7 +9,7 @@ type Evidence={field:string;url:string;evidence:string}
 type ScanResult={
  sourceUrl:string;details:Details;sources:Evidence[];missing:string[];
  discoveredPages:string[];warnings:string[];needsReview:boolean;saved:boolean;
- routeMetadataStatus:string
+ routeMetadataStatus:string;addressResolution?:string
 }
 type SavedResearch={id:string;event_url:string;event_title:string;race_date:string;
  details:Details;evidence:Evidence[];reviewed_at:string}
@@ -151,6 +151,9 @@ export function RaceEventResearch({active,refreshKey=0}:{active:boolean;refreshK
         value={value===null?'':String(value)}
         onChange={e=>update(field,e.target.value)}
         placeholder="Nicht gefunden"/>}
+      {field==='venueAddress'&&value&&!edited.includes(field)&&
+       (scan.addressResolution==='matched'||scan.addressResolution==='cached')&&
+       <small className="rer-auto-address">✓ Automatisch anhand von Veranstaltungsort und Stadt gefunden · bitte prüfen</small>}
       {edited.includes(field)?<small className="rer-manual">Manuell bearbeitet</small>:
        evidence?<small className="rer-evidence">
         <a href={evidence.url} target="_blank" rel="noreferrer">Quelle öffnen</a>
@@ -159,6 +162,13 @@ export function RaceEventResearch({active,refreshKey=0}:{active:boolean;refreshK
      </label>
     })}
    </div>
+   {['matched','cached','not_found','unavailable'].includes(scan.addressResolution||'')&&
+    <p className="rer-geocode-note">
+     {scan.addressResolution==='matched'||scan.addressResolution==='cached'?
+      'Adressabgleich aus OpenStreetMap-Daten (Photon). Quelle verlinkt; Angaben vor dem Speichern kontrollieren.':
+      'Keine eindeutig passende Straßenadresse gefunden. Du kannst die Adresse selbst ergänzen.'}
+     {' '}Kartendaten © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap-Mitwirkende</a> (ODbL).
+    </p>}
    {scan.warnings.length>0&&<div className="rer-warnings">
     {scan.warnings.map((w,i)=><p key={i}>{w}</p>)}</div>}
    <p className="rer-disclaimer">
