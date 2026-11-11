@@ -1,0 +1,62 @@
+/* GARMIN_AI v0.9.28 – weekly board, evidence-first, compact horizontal swipe on phones. */
+.hwb-root{margin:18px 0 22px;min-width:0}
+.hwb-title{display:flex;align-items:end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:13px}
+.hwb-eyebrow{font-size:10px;font-weight:840;letter-spacing:.14em;color:#aba6ff}
+.hwb-title h3{font-size:clamp(22px,3.6vw,29px);margin:7px 0 0;letter-spacing:-.045em;color:#f4f5ff}
+.hwb-period{font-size:11px;color:#adbad4;border:1px solid rgba(164,174,228,.2);padding:8px 10px;border-radius:10px}
+.hwb-layout{display:grid;grid-template-columns:189px minmax(0,1fr);gap:10px;min-width:0;
+ border:1px solid rgba(144,168,229,.16);border-radius:19px;
+ background:linear-gradient(150deg,#101a2d,#0d1525);padding:10px}
+.hwb-summary{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:18px 13px;
+ background:radial-gradient(ellipse at 20% 0%,rgba(118,99,221,.2),transparent 75%),#182238;
+ border:1px solid rgba(154,172,238,.19);border-radius:14px;min-width:0}
+.hwb-summary>strong{font-size:clamp(24px,3vw,33px);font-weight:860;letter-spacing:-.045em;color:#fff}
+.hwb-summary>p{font-size:10px;color:#bdc8de;margin:-6px 0 8px}
+.hwb-summary-metrics{display:flex;flex-direction:column;border-top:1px solid rgba(158,174,226,.18)}
+.hwb-summary-metrics>div{display:flex;justify-content:space-between;gap:6px;padding:9px 0;
+ border-bottom:1px solid rgba(158,174,226,.13)}
+.hwb-summary-metrics span{font-size:10px;color:#a4b3ce}.hwb-summary-metrics b{font-size:11px;color:#e8ebff}
+.hwb-summary>small{margin-top:auto;font-size:10px;color:#8f9fbe;line-height:1.5}
+.hwb-scroll{overflow-x:auto;overflow-y:hidden;scrollbar-color:rgba(147,150,208,.35) transparent;
+ border-radius:12px;min-width:0;scroll-snap-type:x proximity}
+.hwb-days{display:grid;grid-template-columns:repeat(7,minmax(138px,1fr));min-width:966px;gap:6px;min-height:325px}
+.hwb-day{min-width:0;display:flex;flex-direction:column;border:1px solid rgba(142,164,223,.13);
+ border-radius:13px;background:#141e31;scroll-snap-align:start;overflow:hidden}
+.hwb-day.is-selected{border-color:rgba(155,139,255,.6);box-shadow:inset 0 0 0 1px rgba(155,139,255,.2)}
+.hwb-day.is-today .hwb-day-header{background:linear-gradient(135deg,rgba(131,114,238,.28),rgba(64,113,156,.16))}
+.hwb-day-header{display:flex;flex-direction:column;gap:8px;text-align:left;width:100%;padding:10px 9px;
+ background:#192641;border:0;color:#e8eafd;min-height:109px}
+.hwb-day-header>span:first-child{font-size:11px;font-weight:800}
+.hwb-day-header>span:first-child b{font-size:10px;color:#a6b9d6;font-weight:640}
+.hwb-health{display:flex;flex-direction:column;gap:3px}
+.hwb-health small{font-size:10px;line-height:1.35;color:#a5b7d9}
+.hwb-health small:first-child{color:#bdc2ff}
+.hwb-day-cards{display:flex;flex-direction:column;gap:7px;padding:7px;min-height:190px}
+.hwb-card{width:100%;padding:10px 9px;min-width:0;display:flex;flex-direction:column;gap:5px;
+ border-radius:10px;border:1px solid rgba(139,151,207,.18);background:#1d2d49;text-align:left;
+ color:#f2f4ff;min-height:75px;touch-action:manipulation}
+.hwb-card:hover{border-color:rgba(168,160,255,.5)}
+.hwb-card-label{font-size:8px;font-weight:880;letter-spacing:.08em;color:#a3bff0}
+.hwb-card strong{font-size:11px;font-weight:810;line-height:1.34;overflow-wrap:anywhere}
+.hwb-card>span:not(.hwb-card-label),.hwb-card small{font-size:10px;color:#b7c8df;line-height:1.35}
+.hwb-card.is-actual{border-left:3px solid #89c4fc;background:linear-gradient(140deg,rgba(71,120,169,.22),#1b2a43)}
+.hwb-card.is-actual.type-football{border-left-color:#e5b178}
+.hwb-card.is-actual.type-strength,.hwb-card.is-manual{border-left-color:#b99dff}
+.hwb-card.is-planned{background:rgba(112,106,202,.11);border:1px solid rgba(154,142,244,.37)}
+.hwb-card.is-remote{background:rgba(92,132,165,.07);border:1px dashed rgba(120,164,197,.4)}
+.hwb-card.is-option{background:transparent;border:1px dashed rgba(155,171,216,.3)}
+.hwb-card.is-option .hwb-card-label{color:#9fbbba}
+.hwb-card.is-muted{opacity:.53}
+.hwb-empty{margin:auto;text-align:center;font-size:10px;color:#6d7c99;padding:17px 8px}
+.hwb-foot{font-size:11px;line-height:1.6;color:#94a3be;margin:11px 0 0}
+.hwb-error{color:#ffaba5;font-size:12px}
+@media(max-width:1120px){.hwb-days{grid-template-columns:repeat(7,146px);min-width:1050px}}
+@media(max-width:740px){.hwb-layout{grid-template-columns:1fr;gap:9px}
+.hwb-summary{padding:11px 14px;gap:5px}.hwb-summary>strong{font-size:24px}
+.hwb-summary>p{margin:-2px 0 4px}
+.hwb-summary-metrics{flex-direction:row;gap:15px;flex-wrap:wrap;border-top:0}
+.hwb-summary-metrics>div{padding:4px 0;gap:6px;white-space:nowrap;border-bottom:0}
+.hwb-summary>small{display:none}
+.hwb-days{grid-template-columns:repeat(7,175px);min-width:1260px}
+.hwb-day-header{min-height:103px}.hwb-day-cards{min-height:180px}
+.hwb-scroll{margin:0 -1px}.hwb-foot{font-size:10px}}
