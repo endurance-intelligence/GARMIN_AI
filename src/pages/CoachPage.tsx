@@ -6,6 +6,7 @@ import {WeatherPanel} from '../components/WeatherPanel'
 import {CoachGlance} from '../components/CoachGlance'
 import {WeeklyTrainingOptions,berlinToday,mondayOf} from '../components/WeeklyTrainingOptions'
 import {CrossTrainingCoachCard} from '../components/CrossTrainingCoachCard'
+import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import '../styles/coach-glance.css'
 import type {Page} from '../navigation'
 
@@ -51,6 +52,7 @@ export function CoachPage({active,onGo}: {active:boolean; onGo:(page:Page)=>void
  <CoachGlance active={active} onCalendar={()=>onGo('calendar')}>
   <WeatherPanel active={active} mode="training" compact/>
  </CoachGlance>
+ <CoachGoalPanel active={active} compact onEdit={()=>onGo('race')}/>
  <WeeklyTrainingOptions active={active} weekStart={mondayOf(berlinToday())} compact/>
  <CrossTrainingCoachCard active={active} onOpen={()=>onGo('strength')}/>
  <details className="co-extra co-demo" onToggle={event=>setDemoOpen(event.currentTarget.open)}>
