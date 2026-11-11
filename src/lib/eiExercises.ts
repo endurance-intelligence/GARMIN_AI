@@ -537,4 +537,66 @@ export const EI_EXERCISES:EIExercise[]=[
     easier: "Leichtere Hanteln oder einarmig im Sitzen mit Rückenstütze.",
     harder: "Gewicht nur bei stabiler Form schrittweise erhöhen."
   }),
+
+  exercise({
+    id: "reverse-snow-angel",
+    name: "Reverse Snow Angels (Bauchlage)",
+    group: "Rücken / Schulterblatt",
+    seconds: 40,
+    equipment: [],
+    focusAreas: ["back", "strength"],
+    purpose: "Stärkt kontrollierte Schulterblattführung und Rückenstrecker ohne Geräte. Kein Ersatz für belastetes Rudern.",
+    quickStart: "In Bauchlage Arme leicht vom Boden heben und langsam seitlich vom Körper über Kopf und zurück führen.",
+    steps: ["Bauchlage einnehmen, Stirn knapp über dem Boden oder sanft ablegen.", "Arme seitlich anheben, in weitem Bogen über Kopf führen.", "Kontrolliert zurück, Nacken bleibt lang."],
+    cues: ["Kleine schmerzfreie Bewegung", "Ohne Schwung", "Schultern nicht hochziehen"],
+    mistakes: ["Ins Hohlkreuz drücken", "Kopf ruckartig heben", "Mit Schwung arbeiten"],
+    easier: "Arme nur wenige Zentimeter anheben und Bewegungsradius verkürzen.",
+    harder: "Arme langsamer führen oder die Endposition kurz halten."
+  }),
+  exercise({
+    id: "prone-ytw",
+    name: "Y-T-W Schulterblattheben",
+    group: "Rücken / Schulterblatt",
+    seconds: 40,
+    equipment: [],
+    focusAreas: ["back", "strength"],
+    purpose: "Schulterblattkontrolle und oberer Rücken in Bauchlage; ohne belasteten Zugwiderstand.",
+    quickStart: "In Bauchlage Arme nacheinander in Y-, T- und W-Position leicht anheben.",
+    steps: ["Bauchlage, Kopf neutral, Bauch sanft anspannen.", "Arme in Y-Position langsam anheben und senken.", "Arme zu T, anschließend W formen und kontrolliert wiederholen."],
+    cues: ["Schulterblätter bewusst führen", "Kleine, saubere Bewegungen", "Nacken bleibt entspannt"],
+    mistakes: ["Kopf zu hoch halten", "Zu große Schwungbewegungen", "Ins Hohlkreuz drücken"],
+    easier: "Nur T- und W-Position langsam ausführen.",
+    harder: "Positionen jeweils zwei bis drei Sekunden kontrolliert halten."
+  }),
+  exercise({
+    id: "pike-push-up",
+    name: "Pike Push-up (Schulter-Liegestütz)",
+    group: "Oberkörper / Schulter",
+    seconds: 40,
+    equipment: [],
+    focusAreas: ["strength", "core"],
+    purpose: "Schulterdrückbewegung mit dem eigenen Körpergewicht.",
+    quickStart: "Aus einer V-Position mit gestreckten Hüften die Ellenbogen beugen und den Kopf kontrolliert Richtung Boden führen.",
+    steps: ["Hände schulterbreit aufstellen, Becken nach oben schieben.", "Ellenbogen langsam beugen, Kopf Richtung Boden zwischen die Hände.", "Ohne Schwung wieder nach oben drücken."],
+    cues: ["Nicht in den Nacken fallen", "Hände fest in den Boden drücken", "Bei Bedarf Knie leicht beugen"],
+    mistakes: ["Ellenbogen stark nach außen drücken", "Unkontrolliert absinken", "Schmerzen in der Schulter ignorieren"],
+    easier: "V-Position halten oder mit kürzerem Bewegungsweg arbeiten.",
+    harder: "Bewegungsweg schrittweise erweitern und langsam absenken."
+  }),
+  exercise({
+    id: "single-leg-glute-bridge",
+    name: "Glute Bridge einbeinig",
+    group: "Gesäß & Hüfte",
+    seconds: 40,
+    equipment: [],
+    focusAreas: ["hips", "strength"],
+    purpose: "Einbeinige Hüftstreckung und Gesäßkraft ohne Geräte.",
+    quickStart: "Rückenlage, einen Fuß aufstellen. Becken anheben und stabil halten, dann Seite wechseln.",
+    steps: ["Auf den Rücken legen, Knie beugen, einen Fuß aufstellen.", "Gesäß anspannen und Becken kontrolliert anheben.", "Becken nicht seitlich kippen lassen, dann Bein wechseln."],
+    cues: ["Becken bleibt waagerecht", "Druck aus der Ferse", "Ruhig atmen"],
+    mistakes: ["Im unteren Rücken überstrecken", "Becken verdrehen", "Zu schnell wieder absenken"],
+    easier: "Beidbeinige Glute Bridge.",
+    harder: "Absenken auf vier Sekunden verlängern."
+  }),
+
 ]
