@@ -155,7 +155,7 @@ Deno.serve(async req=>{
     .select('id,canonical_url,event_name,template_details,evidence,last_race_date,updated_at')
     .eq('user_id',user.id).order('updated_at',{ascending:false}).limit(30)
    if(archiveError)return reply(503,{error:'Wettkampfarchiv nicht verfügbar'},h)
-   return reply(200,{goal:{raceName:goal.race_name,raceDate:goal.race_date},
+   return reply(200,{goal:{raceName:goal.race_name,raceDate:goal.race_date,raceLocation:goal.race_location},
     saved:data||[],archive:archive||[],autoSaved:false},h)
   }
   const raw=await req.text()
@@ -286,7 +286,7 @@ Deno.serve(async req=>{
      .upsert({user_id:user.id,canonical_url:canonicalUrl,event_name:title,
        template_details:template,evidence,last_race_date:goal.race_date,
        updated_at:new Date().toISOString()},{onConflict:'user_id,canonical_url'})
-     .select('id,canonical_url,event_name,template_details,last_race_date,updated_at')
+     .select('id,canonical_url,event_name,template_details,evidence,last_race_date,updated_at')
      .single()
     return reply(200,{saved:true,record:data,archiveSaved:!archiveError&&!!archived,
      archive:archived||null,archiveWarning:archiveError?
