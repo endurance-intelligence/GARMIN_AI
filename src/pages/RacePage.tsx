@@ -1,9 +1,11 @@
+import {useState} from 'react'
 import {Icon} from '../components/Icon'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {RaceEventResearch} from '../components/RaceEventResearch'
 import {WeatherPanel} from '../components/WeatherPanel'
 import type {Page} from '../navigation'
 export function RacePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
+ const [researchRefresh,setResearchRefresh]=useState(0)
  return <section className={active?'page active':'page'}>
   <div className="page-intro">
    <div><div className="eyebrow">RACE INTELLIGENCE / DEIN NÄCHSTES ZIEL</div>
@@ -11,8 +13,8 @@ export function RacePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
     <p>Hier legst du fest, worauf dich dein Coach vorbereiten soll.
      Das Ziel wird gespeichert und die Vorbereitungsphase automatisch aus dem Datum abgeleitet.</p></div>
   </div>
-  <CoachGoalPanel active={active}/>
-  <RaceEventResearch active={active}/>
+  <CoachGoalPanel active={active} onSaved={()=>setResearchRefresh(n=>n+1)}/>
+  <RaceEventResearch active={active} refreshKey={researchRefresh}/>
   <WeatherPanel active={active} mode="race"/>
   <div className="sub-grid">
    <article><small>WIE DER COACH PLANEN SOLL</small>
