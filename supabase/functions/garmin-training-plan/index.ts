@@ -36,7 +36,7 @@ const uuid=(v:unknown):v is string=>typeof v==='string'&&
 const date=(v:unknown):v is string=>typeof v==='string'&&
  /^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T12:00:00Z'))&&
  new Date(v+'T12:00:00Z').toISOString().slice(0,10)===v
-const fields='id,training_date,title,session_type,sport,garmin_workout_id,notes,state,revision,approved_at,confirmed_at,garmin_remote_id,intervals_event_id,intervals_published_revision,created_at,updated_at'
+const fields='id,training_date,title,session_type,sport,garmin_workout_id,notes,state,revision,approved_at,confirmed_at,garmin_remote_id,intervals_event_id,intervals_published_revision,intervals_sync_status,created_at,updated_at'
 
 Deno.serve(async req=>{
  const origin=req.headers.get('origin'),h=headers(origin)
