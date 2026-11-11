@@ -224,7 +224,7 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange}:{
   {chosen&&<div className="rer-result">
    <div className="rer-result-title"><div>
     <strong>Gefunden und zur Prüfung vorbereitet</strong>
-    <p>{scan.discoveredPages.length} geprüfte Seite(n) ·
+    <p>{fromArchive?'Aus gespeicherten Veranstaltungsdaten':scan.discoveredPages.length+' geprüfte Seite(n)'} ·
      {scan.missing.length? ' '+scan.missing.length+' wesentliche Angabe(n) fehlen':' Basisangaben vorhanden'}</p>
    </div><span>NOCH NICHT GESPEICHERT</span></div>
    {fromArchive&&<div className="rer-reuse-note">
