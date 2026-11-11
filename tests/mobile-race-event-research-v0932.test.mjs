@@ -96,7 +96,7 @@ test('scanner never silently publishes any data; user explicitly confirms a save
  assert.match(code,/auth\.auth\.getUser/)
  assert.match(code,/user.email_confirmed_at/)
  assert.match(code,/redirect:'manual'/)
- assert.match(code,/total>380000/)
+ assert.match(code,/total>750000/)
  assert.match(code,/slice\(0,3\)/)
  assert.match(code,/trainingGoalChanged:false,garminChanged:false,intervalsChanged:false/)
  assert.match(ui,/Website analysieren/)
