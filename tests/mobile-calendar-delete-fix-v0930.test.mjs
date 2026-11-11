@@ -13,7 +13,7 @@ const styles=src('src/styles/horizon-calendar.css')
 test('expired ORC/football options disappear, real past Garmin activities stay',()=>{
  assert.match(board,/x\.weekday===index\+1&&day>=today&&/)
  assert.match(board,/\{acts\.map\(activity=>/)
- assert.match(options,/rows\.filter\(row=>row\.date>=today\)/)
+ assert.match(options,/rows\.filter\(row=>row\.date>=today&&/)
  assert.match(board,/completedWeeklyOption\(x,day,acts\)/)
 })
 test('failed remote delete never strands user in the GARMIN_AI calendar',()=>{
@@ -39,11 +39,11 @@ test('one confirmation panel at a time and owner approves all remote changes',()
  assert.match(remote,/user\.email_confirmed_at/)
  assert.match(remote,/input\.acknowledge!==true/)
 })
-test('calendar weather is distinct from the calendar and past dates do not show expired forecasts',()=>{
- assert.match(calendar,/className="hc-weather-space"/)
- assert.match(calendar,/selected>=today\?<WeatherPanel/)
- assert.match(styles,/\.hc-weather-space\{margin:14px 0 30px/)
- assert.match(styles,/@media\(max-width:760px\)\{\.hc-weather-space/)
+test('weather is now inside fixed-time cards and selected day, not a generic best-slot banner',()=>{
+ assert.doesNotMatch(calendar,/<WeatherPanel/)
+ assert.match(calendar,/selectedDate=\{selected\}/)
+ assert.match(board,/<FixedTrainingWeather active=\{active\}/)
+ assert.match(options,/hourAt\(report,date,Number\(option\.start_time\.slice\(0,2\)\)\)/)
 })
 test('movement studio chooses variants per calendar day and stable manual rotation',()=>{
  const a=buildMovementPlan('2026-11-11',0),repeat=buildMovementPlan('2026-11-11',0)
