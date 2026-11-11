@@ -187,6 +187,27 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange}:{
    <p>Nur die offizielle Webseite einfügen: Event Scout prüft diese und bis zu drei relevante Unterseiten.
     Alles Gefundene kannst du vor dem Speichern bearbeiten.</p>
   </div><span className="rer-flag">MIT QUELLEN</span></div>
+  <div className="rer-archive">
+   <div className="rer-archive-head"><div><span className="rer-kicker">WETTKAMPFARCHIV</span>
+    <h3>Schon einmal gelaufen? Einfach übernehmen.</h3>
+    <p>Veranstaltung, Strecke und Logo wiederverwenden. Datum und Startzeit für die neue Austragung prüfen.</p></div>
+    <span className="rer-archive-count">{archive.length} Event{archive.length===1?'':'s'}</span>
+   </div>
+   {archive.length>0?<div className="rer-archive-cards">
+    {archive.map(item=><article key={item.id}>
+     {typeof item.template_details?.logoUrl==='string'&&
+      <img src={item.template_details.logoUrl} alt={'Logo '+item.event_name}
+       referrerPolicy="no-referrer" loading="lazy"/>}
+     <div><strong>{item.event_name}</strong>
+      <small>Zuletzt {item.last_race_date?item.last_race_date.split('-').reverse().join('.'): 'ohne Datum'}
+       {item.template_details?.officialLoopKm?' · Runde '+item.template_details.officialLoopKm+' km':''}</small>
+      <span>{item.template_details?.venue||item.template_details?.city||'Startort nicht hinterlegt'}</span></div>
+     <button type="button" disabled={!goal||!!busy} onClick={()=>useArchived(item)}>
+      Für aktuelles Ziel übernehmen
+     </button>
+    </article>)}
+   </div>:<p className="rer-empty-archive">Noch kein archiviertes Event. Nach dem ersten bestätigten Speichern erscheint es hier – auch für die nächste Austragung.</p>}
+  </div>
   <div className="rer-entry">
    <label htmlFor="rer-url">Veranstalter-Webseite (HTTPS)</label>
    <div className="rer-url-row">
@@ -205,27 +226,44 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange}:{
     <p>{scan.discoveredPages.length} geprüfte Seite(n) ·
      {scan.missing.length? ' '+scan.missing.length+' wesentliche Angabe(n) fehlen':' Basisangaben vorhanden'}</p>
    </div><span>NOCH NICHT GESPEICHERT</span></div>
+   {fromArchive&&<div className="rer-reuse-note">
+    <strong>Aus dem Archiv: {fromArchive}</strong>
+    <span>Strecke und Veranstaltungsort übernommen. Datum aus deinem aktuellen Ziel. Bitte Startzeiten und Streckenstand prüfen.</span>
+    <button type="button" onClick={()=>setRouteEdit(x=>!x)}>
+     {routeEdit?'Strecke beibehalten':'Strecke für diese Austragung ändern'}</button>
+   </div>}
+   {typeof chosen.logoUrl==='string'&&<div className="rer-logo-preview">
+    <img src={chosen.logoUrl} loading="lazy" referrerPolicy="no-referrer" alt={'Veranstalterlogo '+(chosen.eventName||'')}/>
+    <div><strong>Veranstalterlogo gefunden</strong><small>Originaldatei der Veranstalterseite, kein KI-generiertes Logo.
+      Du kannst die URL unten korrigieren.</small></div>
+   </div>}
    <div className="rer-grid">
     {fields.map(field=>{
      const value=chosen[field]
-     const evidence=!edited.includes(field)?scan.sources.find(s=>s.field===field):null
+     const evidence=selectedSources.find(s=>s.field===field)||(!edited.includes(field)?scan.sources.find(s=>s.field===field):null)
      const isLong=field==='routeNotes'
      const input=field==='eventDate'?'date':
       field==='startTime'||field==='endTime'?'time':
       field==='officialLoopKm'||field==='maximumDistanceKm'?'number':'text'
      return <label className={'rer-field'+(isLong?' rer-wide':'')} key={field}>
       <span>{labels[field]}</span>
-      {isLong?<textarea value={value===null?'':String(value)} rows={2}
-       onChange={e=>update(field,e.target.value)}/>:
+      {field==='venueAddress'?<VenueAutocomplete
+        value={addressInput} city={String(chosen.city||goal?.raceName||'')} disabled={!!busy}
+        request={suggest} onPick={pickVenue}
+        onChange={v=>update('venueAddress',v)}/>:
+       isLong?<textarea value={value===null?'':String(value)} rows={2}
+        onChange={e=>update(field,e.target.value)}/>:
        <input type={input} min={input==='number'?'0.1':undefined}
         step={input==='number'?'0.1':undefined}
         value={value===null?'':String(value)}
         onChange={e=>update(field,e.target.value)}
         placeholder="Nicht gefunden"/>}
+      {fromArchive&&['routeUrl','gpxUrl','officialLoopKm'].includes(field)&&routeEdit&&
+        <small className="rer-manual">Streckenstand neu prüfen – gespeicherter Archivwert bleibt erhalten, bis du speicherst.</small>}
       {field==='venueAddress'&&value&&!edited.includes(field)&&
        (scan.addressResolution==='matched'||scan.addressResolution==='cached')&&
        <small className="rer-auto-address">✓ Automatisch anhand von Veranstaltungsort und Stadt gefunden · bitte prüfen</small>}
-      {edited.includes(field)?<small className="rer-manual">Manuell bearbeitet</small>:
+      {edited.includes(field)&&!selectedSources.some(s=>s.field===field)?<small className="rer-manual">Manuell bearbeitet</small>:
        evidence?<small className="rer-evidence">
         <a href={evidence.url} target="_blank" rel="noreferrer">Quelle öffnen</a>
         <span>{evidence.evidence}</span>
