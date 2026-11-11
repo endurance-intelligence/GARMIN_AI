@@ -66,7 +66,7 @@ test('track editions keep previous geometry when route reused; owner verifies ev
  assert.match(api,/input\.confirm!==true/)
  assert.match(api,/input\.routeUrl!==routeUrl/)
  assert.match(api,/garminChanged:false,intervalsChanged:false/)
- assert.match(api,/coordinates.*length>1800/)
+ assert.match(api,/raw\.length>1800/)
 })
 test('Race Prep uses compact goal-bound weather, not a large independent manual forecast',()=>{
  const race=read('src/pages/RacePage.tsx')
