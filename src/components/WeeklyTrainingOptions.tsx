@@ -184,7 +184,7 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDa
   {!loading&&visibleRows.length===0&&!error&&<p className="wo-info">
    {selectedDate?'Kein fester Gruppentermin. Der Coach kann hier einen eigenen Lauf, Stabi/Mobility oder Erholung vorschlagen.':
     'Keine wiederkehrenden Trainingsangebote in dieser Woche vorhanden.'}
-  </p>
+  </p>}
   <p className="wo-foot">Wetter: Open-Meteo zur tatsächlichen Startzeit am Ort ·
    Daten nur innerhalb des Vorhersagezeitraums. Fußball, Bahnintervalle und Laufgruppe sind
    Belastungsoptionen – keine automatischen Trainingsvorgaben. Der Coach berücksichtigt
