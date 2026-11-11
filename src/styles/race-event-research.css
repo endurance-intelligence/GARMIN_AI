@@ -1,0 +1,51 @@
+/* GARMIN_AI Event Scout: reviewed research with evidence, not automated guesswork */
+.rer-root{padding:21px;margin:16px 0 24px;border:1px solid rgba(149,174,235,.25);
+ border-radius:20px;background:linear-gradient(145deg,#18233c,#111a2e);min-width:0;color:#eaf0ff}
+.rer-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.rer-kicker{font-size:10px;font-weight:830;letter-spacing:.12em;color:#bdb1ff}
+.rer-head h2{font-size:clamp(21px,3vw,28px);letter-spacing:-.04em;margin:8px 0}
+.rer-head p{font-size:12px;line-height:1.65;color:#a7b8d5;margin:0;max-width:630px}
+.rer-flag{padding:6px 10px;border:1px solid rgba(155,170,248,.32);border-radius:100px;
+ font-size:10px;font-weight:800;letter-spacing:.04em;color:#bfc8ff;white-space:nowrap}
+.rer-entry{margin:19px 0 8px}
+.rer-entry>label{display:block;font-size:12px;font-weight:750;color:#d4d9ef;margin-bottom:8px}
+.rer-url-row{display:flex;gap:9px;align-items:stretch;min-width:0}
+.rer-url-row input{flex:1;min-width:0;min-height:45px;border:1px solid rgba(169,180,235,.3);
+ border-radius:12px;background:#0d182d;padding:12px;color:#f2f5ff;font:inherit;font-size:13px}
+.rer-url-row button,.rer-save{min-height:45px;border-radius:12px;border:1px solid rgba(166,158,244,.34);
+ background:#5756ae;color:#fff;font:inherit;font-size:12px;font-weight:800;padding:12px 16px;cursor:pointer}
+.rer-url-row button:disabled,.rer-save:disabled{opacity:.5;cursor:default}
+.rer-entry p{font-size:11px;color:#a1b1ce;margin:9px 0}
+.rer-result{margin:18px 0 10px;border:1px solid rgba(117,174,173,.27);border-radius:15px;
+ background:rgba(15,27,44,.78);padding:17px}
+.rer-result-title{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:9px;margin-bottom:15px}
+.rer-result-title strong{font-size:15px}
+.rer-result-title p{font-size:11px;color:#b7c6d9;margin:5px 0 0}
+.rer-result-title>span{color:#f4c58d;font-size:9px;font-weight:850;letter-spacing:.08em}
+.rer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.rer-field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.rer-field>span{font-size:11px;font-weight:750;color:#c4d2e7}
+.rer-field input,.rer-field textarea{min-width:0;box-sizing:border-box;width:100%;
+ color:#f3f5ff;background:#14213a;border:1px solid rgba(160,176,218,.26);
+ border-radius:11px;padding:11px;font-size:12px;line-height:1.45;font-family:inherit}
+.rer-field input:focus,.rer-field textarea:focus{outline:2px solid #9e9cef;outline-offset:2px}
+.rer-wide{grid-column:1/-1}
+.rer-evidence{display:flex;flex-wrap:wrap;gap:5px;font-size:10px;line-height:1.35;color:#9bb0cd;overflow-wrap:anywhere}
+.rer-evidence a,.rer-links a{color:#a5c0ff;text-decoration:underline;text-underline-offset:3px}
+.rer-evidence span{overflow-wrap:anywhere}
+.rer-manual{color:#ddc19c;font-size:10px}
+.rer-missing{color:#8797b0;font-size:10px}
+.rer-disclaimer{font-size:11px;line-height:1.6;color:#a4b4cb;margin:15px 0}
+.rer-warnings{margin:10px 0;padding:10px;border-radius:10px;background:rgba(191,116,76,.09);color:#ecc3a5}
+.rer-warnings p{font-size:11px;line-height:1.5;margin:4px 0}
+.rer-saved{margin:17px 0 0;border-top:1px solid rgba(144,173,233,.2);padding-top:15px}
+.rer-saved>strong{font-size:13px}
+.rer-saved article{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+ padding:12px;margin-top:9px;border:1px solid rgba(160,181,229,.15);border-radius:12px;background:rgba(19,30,52,.6)}
+.rer-saved article b{font-size:13px}
+.rer-saved article p{font-size:11px;margin:5px 0 0;color:#aec1d9}
+.rer-saved article .rer-muted{font-size:10px;color:#8196b3}
+.rer-links{display:flex;gap:13px;flex-wrap:wrap;font-size:11px}
+.rer-error{color:#ffb0a7;font-size:12px}.rer-notice{color:#9ce5b9;font-size:12px}
+@media(max-width:640px){.rer-root{padding:15px}.rer-grid{grid-template-columns:1fr}
+.rer-url-row{flex-direction:column}.rer-url-row button{width:100%}.rer-flag{font-size:8px;padding:5px 8px}}
