@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {findPlaces,getWeather,raceSegments,weatherLabel} from '../lib/weatherIntelligence'
 import type {Forecast,WeatherHour} from '../lib/weatherIntelligence'
+import {explainRaceGust} from '../lib/raceWindExplain.mjs'
 import '../styles/race-forecast-compact.css'
 type Race={race_name:string;race_date:string;race_start_time:string|null;race_location:string;target_hours:number|null}
 async function raceGoal(){
@@ -70,6 +71,7 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity}:{
  const complete=hours.length===duration&&
   hours.every((x,i)=>x.epoch===hours[0].epoch+i*3600)
  const info=complete?summary(hours):null
+ const windAssessment=info?explainRaceGust(info.gust,info.temp?.[0]??null):null
  return <section className="rfc-root" aria-label="Wetter für dein aktuelles Hauptziel">
   <div className="rfc-head"><div><small>RACE INTELLIGENCE / RENNWETTER</small>
    <h2>Wetter am Renntag.</h2>
@@ -85,8 +87,10 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity}:{
   {info&&<div className="rfc-summary">
     <div><strong>{info.temp?.[0]}–{info.temp?.[1]}°C</strong><small>Temperaturverlauf</small></div>
     <div><strong>{info.rain} %</strong><small>Max. Regenwahrscheinlichkeit</small></div>
-    <div><strong>{Math.round(info.gust)} km/h</strong><small>Max. Böen</small></div>
+    <div><strong>{Math.round(info.gust)} km/h</strong><small>Max. Böen</small>
+     {windAssessment&&<span className={'rfc-wind-label '+windAssessment.tone}>{windAssessment.label}</span>}</div>
    </div>}
+  {windAssessment&&<p className="rfc-wind-explanation"><strong>Wind beim Laufen:</strong> {windAssessment.guidance}</p>}
   {info&&<p className="rfc-hints">{info.changes.length?info.changes.join(' · '):'Keine markanten Wetteränderungen in der aktuellen Prognose.'}</p>}
   {info&&full&&<details className="rfc-details">
     <summary>Wetterverlauf über {duration} Stunden ansehen</summary>
