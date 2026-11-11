@@ -11,11 +11,11 @@ export const MOVEMENT_PATTERNS=[
  {id:'squat',alternatives:['bodyweight-squat','goblet-squat']},
  {id:'hinge',alternatives:['glute-bridge','weighted-rdl']},
  {id:'single-leg',alternatives:['reverse-lunge','step-up']},
- {id:'push',alternatives:['push-up','overhead-press']},
+ {id:'push',alternatives:['push-up']},
  {id:'pull',alternatives:['band-row']},
  {id:'core',alternatives:['dead-bug','pallof-press','forearm-plank']},
  {id:'calf',alternatives:['calf-raise','single-leg-calf-raise','tibialis-raise']},
- {id:'stability',alternatives:['bird-dog','suitcase-carry','side-plank']}
+ {id:'shoulder',alternatives:['overhead-press']}
 ] as const
 const warmPool=['cat-cow','thoracic-rotation','knee-to-wall','adductor-rockback','short-foot','single-leg-balance','hip-flexor-stretch']
 const coolPool=['child-pose-breathing','hip-flexor-stretch','thoracic-rotation','adductor-rockback']
