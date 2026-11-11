@@ -2,7 +2,6 @@ import {useEffect,useMemo,useState} from 'react'
 import type {Session} from '@supabase/supabase-js'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {Icon} from '../components/Icon'
-import {WeatherPanel} from '../components/WeatherPanel'
 import {WorkoutArchivePanel} from '../components/WorkoutArchivePanel'
 import {WeeklyTrainingOptions} from '../components/WeeklyTrainingOptions'
 import {CalendarWeekBoard} from '../components/CalendarWeekBoard'
@@ -242,10 +241,6 @@ export function CalendarPage({active}:{active:boolean}){
     <Icon name="refresh-cw"/>{busy?'Prüfe …':'Aktualisieren'}
    </button>
   </div>
-  <div className="hc-weather-space">
-   {selected>=today?<WeatherPanel active={active} mode="training" date={selected} compact/>:
-    <p className="hc-past-weather">Wetterprognosen werden nur für aktuelle oder kommende Trainingstage angezeigt.</p>}
-  </div>
   {cleanupPending.length>0&&<div className="hc-remote-pending" role="status">
    <div><strong>Intervals.icu · {cleanupPending.length} offene Bereinigung{cleanupPending.length===1?'':'en'}</strong>
     <p>Diese Trainings sind aus GARMIN_AI ausgeblendet. Ob die externen Kalendereinträge gelöscht wurden, ist noch nicht bestätigt. Keine automatische Wiederholung.</p>
@@ -335,14 +330,14 @@ export function CalendarPage({active}:{active:boolean}){
      </div>:
      <div className="hc-empty">
       <div className="hc-empty-icon"><Icon name="calendar-days"/></div>
-      <strong>Hier ist noch nichts geplant.</strong>
-      <span>Ein freier Tag bleibt frei – wir erfinden keine Trainingseinheit.</span>
+      <strong>Noch kein eigener Trainingsplan.</strong>
+      <span>Feste ORC-/Fußballangebote und deren Wetter stehen direkt darunter. An freien Tagen kann der Coach später eine Empfehlung vorschlagen.</span>
      </div>}
    </div>
+   <WeeklyTrainingOptions active={active} weekStart={start} selectedDate={selected} compact/>
    <WorkoutArchivePanel active={active} date={selected}
     onPlanned={()=>setRefresh(n=>n+1)}/>
   </div>
-  <WeeklyTrainingOptions active={active} weekStart={start}/>
   <div className="hc-source-grid">
    <article><div className="hc-source-icon"><Icon name="check"/></div>
     <div><strong>Garmin-Aktivitäten</strong>
@@ -357,6 +352,6 @@ export function CalendarPage({active}:{active:boolean}){
   </div>
   {error&&<p className="hc-error" role="alert">{error}</p>}
   {notice&&<p className="hc-notice" role="status">{notice}</p>}
-  <p className="hc-footnote">Absolvierte Garmin-Aktivitäten sind die Datenbasis. Garmin-Kalendervorlagen werden ausgeblendet. Eigene Trainings kannst du freigeben oder nach Bestätigung entfernen; echte Aktivitäten werden nicht gelöscht.</p>
+  <p className="hc-footnote">Absolvierte Garmin-Aktivitäten sind die Datenbasis. Garmin-Kalendervorlagen werden ausgeblendet. Das Wetter steht direkt am Trainingstermin. Eigene Trainings kannst du freigeben oder nach Bestätigung entfernen; echte Aktivitäten werden nicht gelöscht.</p>
  </section>
 }

@@ -1,0 +1,57 @@
+/* GARMIN_AI Race Objective – dark Horizon, iPhone first, no fake readiness */
+.cg-root{margin:16px 0 24px;padding:22px;border:1px solid rgba(146,161,231,.25);
+ border-radius:21px;background:linear-gradient(145deg,#18223b,#10192e);min-width:0;color:#eaf0ff}
+.cg-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.cg-kicker{font-size:10px;font-weight:820;letter-spacing:.14em;color:#bcb2ff}
+.cg-state{border:1px solid rgba(237,194,127,.3);padding:6px 9px;border-radius:100px;font-size:9px;font-weight:800;color:#e7ba81;letter-spacing:.05em}
+.cg-state.is-active{color:#9ce8c3;border-color:rgba(123,223,163,.32)}
+.cg-summary{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:17px 0 12px}
+.cg-summary>div:first-child{min-width:0}
+.cg-summary h2{font-size:clamp(21px,3vw,32px);line-height:1.1;letter-spacing:-.05em;margin:0 0 10px}
+.cg-summary p{margin:0;color:#a8b9d9;font-size:12px;line-height:1.6}
+.cg-tags{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0 11px}
+.cg-tags span{padding:7px 10px;border-radius:10px;border:1px solid rgba(150,164,221,.24);background:#222e4b;font-size:11px;font-weight:750}
+.cg-summary .cg-guidance{font-size:12px;color:#c0c9e3}
+.cg-countdown{flex:0 0 118px;display:flex;align-items:center;justify-content:center;flex-direction:column;
+ min-height:118px;border:1px solid rgba(171,148,255,.3);border-radius:19px;background:rgba(103,98,190,.14)}
+.cg-countdown strong{font-size:51px;line-height:1;font-weight:900;letter-spacing:-.07em;color:#e1d8ff}
+.cg-countdown small{font-size:9px;text-align:center;color:#b6b8ee;margin-top:8px}
+.cg-disclaimer{font-size:11px;color:#9cabca;line-height:1.5;margin:10px 0 14px}
+.cg-edit{border-top:1px solid rgba(150,164,221,.2);padding-top:20px}
+.cg-edit-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline;margin-bottom:13px}
+.cg-edit-head strong{font-size:16px}.cg-edit-head small{font-size:11px;color:#a3b5d2}
+.cg-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.cg-fields label{display:flex;flex-direction:column;gap:7px;min-width:0;font-size:11px;font-weight:700;color:#b5c2df}
+.cg-fields input,.cg-fields textarea{box-sizing:border-box;max-width:100%;min-width:0;width:100%;font:inherit;color:#f1f5ff;
+ background:#0e192e;border:1px solid rgba(158,179,222,.29);border-radius:12px;padding:12px}
+.cg-fields input{min-height:44px}.cg-fields textarea{resize:vertical;min-height:78px}
+.cg-fields input:focus,.cg-fields textarea:focus{outline:2px solid #9b9ef5;outline-offset:2px}
+.cg-wide{grid-column:1/-1}
+.cg-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:17px}
+.cg-actions button,.cg-link{min-height:44px;border-radius:12px;border:1px solid rgba(186,176,248,.4);
+ color:#f6f5ff;background:#5557b4;padding:11px 16px;font:inherit;font-weight:780;cursor:pointer}
+.cg-actions button:disabled{opacity:.5;cursor:not-allowed}
+.cg-actions small{font-size:10px;color:#99abc9;max-width:350px}
+.cg-error{color:#fcb6b5;font-size:12px}.cg-notice{color:#93edb9;font-size:12px}
+.cg-info{font-size:12px;color:#aab9d4}
+.cg-compact{margin:12px 0;padding:16px 18px}
+.cg-compact .cg-summary{margin:10px 0}
+.cg-compact .cg-summary h2{font-size:22px}
+.cg-compact .cg-countdown{flex-basis:89px;min-height:89px}
+.cg-compact .cg-countdown strong{font-size:35px}.cg-compact .cg-countdown small{font-size:7px}
+.cg-compact .cg-link{background:rgba(101,93,187,.15);margin-top:6px}
+@media(max-width:610px){.cg-root{padding:15px}.cg-fields{grid-template-columns:minmax(0,1fr)}
+.cg-summary{gap:8px}.cg-countdown{flex-basis:84px;min-height:90px;border-radius:14px}
+.cg-countdown strong{font-size:39px}.cg-countdown small{font-size:8px}
+.cg-summary h2{font-size:23px}.cg-tags{gap:5px}.cg-tags span{font-size:10px;padding:6px 7px}
+.cg-compact .cg-countdown{flex-basis:72px;min-height:76px}
+.cg-compact .cg-countdown strong{font-size:30px}}
+
+
+/* Fixed-session weather in CoachGlance */
+.co-fixed-weather{display:flex;flex-direction:column;gap:8px;padding:12px 14px;margin:10px 0;
+ border:1px solid rgba(126,175,198,.27);border-radius:14px;
+ background:linear-gradient(135deg,rgba(38,91,121,.25),rgba(37,43,73,.5))}
+.co-fixed-slot{display:flex;gap:4px;flex-direction:column;min-width:0}
+.co-fixed-slot strong{font-size:12px;color:#e6f3ff;line-height:1.45}
+.co-fixed-weather>small{font-size:10px;color:#8eacc6}

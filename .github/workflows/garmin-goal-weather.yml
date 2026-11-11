@@ -1,0 +1,45 @@
+name: GARMIN_AI Goal and Fixed Training Weather
+on:
+  push:
+    paths:
+      - 'src/lib/coachGoal.ts'
+      - 'src/components/CoachGoalPanel.tsx'
+      - 'src/components/CoachTodayWeather.tsx'
+      - 'src/components/FixedTrainingWeather.tsx'
+      - 'src/pages/CoachPage.tsx'
+      - 'src/pages/RacePage.tsx'
+      - 'src/pages/CalendarPage.tsx'
+      - 'src/components/CalendarWeekBoard.tsx'
+      - 'src/components/WeeklyTrainingOptions.tsx'
+      - 'src/components/CoachGlance.tsx'
+      - 'supabase/functions/garmin-coach-goal/**'
+      - 'tests/mobile-coach-goal-weather-v0931.test.mjs'
+      - '.github/workflows/garmin-goal-weather.yml'
+  pull_request:
+    paths:
+      - 'src/lib/coachGoal.ts'
+      - 'src/components/CoachGoalPanel.tsx'
+      - 'src/components/CoachTodayWeather.tsx'
+      - 'src/components/FixedTrainingWeather.tsx'
+      - 'src/pages/CoachPage.tsx'
+      - 'src/pages/RacePage.tsx'
+      - 'src/pages/CalendarPage.tsx'
+      - 'src/components/CalendarWeekBoard.tsx'
+      - 'src/components/WeeklyTrainingOptions.tsx'
+      - 'src/components/CoachGlance.tsx'
+      - 'supabase/functions/garmin-coach-goal/**'
+      - 'tests/mobile-coach-goal-weather-v0931.test.mjs'
+      - '.github/workflows/garmin-goal-weather.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-coach-goal-weather-v0931.test.mjs tests/mobile-calendar-delete-fix-v0930.test.mjs tests/mobile-calendar-completion-bodyweight.test.mjs tests/mobile-calendar-week-board.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weekly-training-options.test.mjs tests/mobile-stabi-studio.test.mjs
+      - run: npm run build

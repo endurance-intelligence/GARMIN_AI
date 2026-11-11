@@ -7,9 +7,10 @@ import {interpretRecovery,formatSleep,differenceLabel,recoveryNarrative} from '.
 import {RecoverySparkline} from './RecoverySparkline'
 import '../styles/coach-glance.css'
 
-type CalendarWorkout={date:string;name:string|null;restDay:boolean;sport:string|null}
+type CalendarWorkout={weekday:number;code:string;title:string;start_time:string;location_label:string}
 type CoachPlan={training_date:string;title:string;state:string;session_type:string}
 type HealthDay={metric_date:string;hrv_ms:number|null;resting_heart_rate:number|null;sleep_seconds:number|null;stress_avg?:number|null;body_battery_max?:number|null}
+type WeeklyChoice={option_code:string;training_date:string;choice:string}
 type Overview={
   workout:CalendarWorkout|null;plan:CoachPlan|null;health:HealthDay|null;healthHistory:HealthDay[];
   calendarOk:boolean;healthOk:boolean
@@ -50,33 +51,37 @@ export function CoachGlance({active,onCalendar,children}:{
    const token=data.session?.access_token
    if(!token)throw Error('Session required')
    const results=await Promise.allSettled([
-    get('garmin-connect-snapshot',token),get('garmin-training-plan',token),
+    get('garmin-weekly-options',token),get('garmin-training-plan',token),
     get('read-garmin-health',token)
    ])
    if(!mounted)return
-   const snapshot=results[0].status==='fulfilled'?results[0].value:null
+   const week=results[0].status==='fulfilled'?results[0].value:null
    const plans=results[1].status==='fulfilled'?results[1].value:null
    const health=results[2].status==='fulfilled'?results[2].value:null
-   const rows=(snapshot?.snapshot as {schedule?:CalendarWorkout[]}|null)?.schedule
+   const rows=week?.options as CalendarWorkout[]|undefined
+   const choices=week?.choices as WeeklyChoice[]|undefined
    const planRows=plans?.entries as CoachPlan[]|undefined
    const healthRows=health?.metrics as HealthDay[]|undefined
-   const todayWorkout=Array.isArray(rows)?rows.find(w=>w.date===date)||null:null
+   const weekday=new Date(date+'T12:00:00Z').getUTCDay()||7
+   const todayWorkout=Array.isArray(rows)?rows.find(w=>
+    w.weekday===weekday&&!choices?.some(c=>c.training_date===date&&c.option_code===w.code&&c.choice==='skipped'))||null:null
    const todayPlan=Array.isArray(planRows)?
     planRows.find(p=>p.training_date===date&&!['cancelled','confirmed'].includes(p.state))||null:null
    const latestHealth=Array.isArray(healthRows)?
     [...healthRows].filter(h=>h.metric_date<=date).sort((a,b)=>b.metric_date.localeCompare(a.metric_date))[0]||null:null
    setView({workout:todayWorkout,plan:todayPlan,health:latestHealth,
     healthHistory:Array.isArray(healthRows)?healthRows:[],
-    calendarOk:!!snapshot||!!plans,healthOk:!!health})
+    calendarOk:!!week||!!plans,healthOk:!!health})
    setError(results.every(x=>x.status==='rejected'))
   }).catch(()=>{if(mounted)setError(true)})
     .finally(()=>{if(mounted)setLoading(false)})
   return ()=>{mounted=false;abort.abort()}
  },[active,date])
- const event=view?.workout||view?.plan
- const title=view?.workout?.name||(view?.workout?.restDay?'Ruhetag':null)||view?.plan?.title||
-  'Noch keine Einheit im Kalender'
- const category=view?.workout?'Garmin Connect':view?.plan?'GARMIN_AI-Entwurf':'Keine feste Startzeit'
+ const event=view?.plan||view?.workout
+ const title=view?.plan?.title||view?.workout?.title||'Noch kein fester Termin'
+ const category=view?.plan?'GARMIN_AI-Trainingsplan':
+  view?.workout?'Wochenoption · '+view.workout.start_time.slice(0,5)+' Uhr · '+view.workout.location_label:
+  'Kein fester Starttermin'
  const health=view?.health
  const comparison=health?interpretRecovery(view?.healthHistory||[],health.metric_date):null
  const [sleep,hrv,rhr]=comparison?.metrics||[]
@@ -85,8 +90,8 @@ export function CoachGlance({active,onCalendar,children}:{
    <div className="co-section-head">
     <div><span className="co-eyebrow">HEUTE · TRAINING</span>
      <h2>{loading&&!view?'Lade deinen Tag …':title}</h2>
-     <p>{event?category+(view?.plan?' · nicht in Garmin':' · keine Uhrzeit bekannt'):
-       'Dein Kalender enthält für heute keine bestätigte Einheit.'}</p>
+     <p>{event?category:
+       'Der Coach kann an freien Tagen ein eigenes Training oder Erholung empfehlen.'}</p>
     </div>
     <button type="button" className="co-link" onClick={onCalendar}>Kalender <Icon name="arrow-up-right"/></button>
    </div>
