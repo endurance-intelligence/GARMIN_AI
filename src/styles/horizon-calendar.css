@@ -135,3 +135,24 @@
 .hc-delete-cancel{background:#26324d;color:#e9edfa;border:1px solid rgba(173,194,246,.23)}
 .hc-delete-warning{width:100%;font-size:12px;line-height:1.55;color:#ffcbac}
 @media(max-width:500px){.hc-delete-area button{flex:1 1 125px}}
+
+/* The forecast is a separate content module, not visually glued to the week board. */
+.hc-weather-space{margin:14px 0 30px;min-width:0}
+.hc-weekpanel{margin-top:0}
+.hc-delete-warning{font-size:12px;line-height:1.55}
+.hc-remote-pending{padding:16px;margin:12px 0 22px;border:1px solid rgba(245,173,107,.35);border-radius:16px;background:rgba(156,97,44,.11);display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.hc-remote-pending>div{flex:1 1 210px}
+.hc-remote-pending strong{color:#f7cd9e;font-size:13px}
+.hc-remote-pending p{font-size:12px;line-height:1.55;color:#c0bac4;margin:6px 0 0}
+.hc-remote-pending button{min-height:42px;border-radius:11px;padding:10px 13px;background:#303b5c;border:1px solid rgba(195,183,249,.28);color:#f3f2ff;font-weight:750}
+@media(max-width:760px){.hc-weather-space{margin:12px 0 25px}}
+
+
+.hc-past-weather{margin:0;border:1px solid rgba(164,176,224,.16);padding:12px 16px;
+ border-radius:13px;background:rgba(34,45,67,.33);font-size:12px;color:#96a6bf}
+.hc-remote-pending>div{display:flex;flex-direction:column;gap:8px}
+.hc-remote-pending-item{display:flex;justify-content:space-between;flex-wrap:wrap;align-items:center;gap:10px;
+ padding-top:10px;border-top:1px solid rgba(237,173,117,.2)}
+.hc-remote-pending-item>strong{font-size:12px}
+.hc-remote-actions{display:flex;gap:8px;flex-wrap:wrap}
+.hc-remote-actions button{flex:1 1 auto}

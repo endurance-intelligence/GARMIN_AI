@@ -65,7 +65,7 @@ test('deletion requires owner identity and explicit confirmation, never deletes 
  assert.match(calendar,/action:'delete_published'/)
  assert.match(calendar,/action:'cancel'/)
  assert.match(intervals,/input\.acknowledge!==true/)
- assert.match(intervals,/existing\.external_id!==externalId/)
+ assert.match(intervals,/existing\.external_id!=='garmin-ai:'\+plan\.id/)
  assert.match(intervals,/\'garmin-ai:\'\+plan\.id/)
  assert.match(intervals,/intervals\('DELETE','\/athlete\/0\/events\/'/)
  assert.match(intervals,/user\.email_confirmed_at/)

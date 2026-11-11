@@ -1,6 +1,6 @@
 /** A balanced, reproducible 30-minute circuit – varied, never a random grab-bag.
  * No fictitious workout readiness score. Day and rotation index only pick
- * alternatives within predefined movement patterns.
+ * alternatives within predefined movement patterns. Each date has a stable\n * variation; the Remix button shifts the selection without changing coverage.
  */
 export type MovementPart='warmup'|'strength'|'cooldown'
 export type MovementStep={exerciseId:string;part:MovementPart;round:number;workSeconds:number;restSeconds:number;pattern:string}
@@ -21,7 +21,7 @@ const warmPool=['cat-cow','thoracic-rotation','knee-to-wall','adductor-rockback'
 const coolPool=['child-pose-breathing','hip-flexor-stretch','thoracic-rotation','adductor-rockback']
 function dateSeed(day:string){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error('Ungültiges Trainingsdatum')
- return Math.floor(Date.parse(day+'T12:00:00Z')/86400000/7)
+ return Math.floor(Date.parse(day+'T12:00:00Z')/86400000)
 }
 function choose(pool:readonly string[],step:number,index:number){
  return pool[(step+index)%pool.length]
