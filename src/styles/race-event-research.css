@@ -102,3 +102,25 @@
 @media(max-width:620px){.rer-archive{padding:12px}.rer-archive-cards{grid-template-columns:minmax(0,1fr)}
 .rer-archive-cards button{width:100%}.rer-logo-preview img{width:58px;height:58px}
 .rer-reuse-note button{width:100%}}
+
+
+/* Event-scoped briefing: one edition owns course, profile and weather. */
+.rer-event-dossier{width:100%;margin:18px 0 0;padding:15px;border:1px solid rgba(151,183,235,.22);
+ background:linear-gradient(135deg,rgba(38,52,86,.38),rgba(17,27,49,.45));
+ border-radius:15px;box-sizing:border-box;min-width:0}
+.rer-event-dossier-head{margin:1px 2px 13px}
+.rer-event-dossier-head h3{font-size:17px;line-height:1.35;letter-spacing:-.035em;margin:7px 0 4px}
+.rer-event-dossier-head p{font-size:11px;color:#acbed8;line-height:1.55;margin:0}
+.rer-event-dossier .rfc-root,.rer-event-dossier .rrv-root{margin:12px 0 0}
+.rer-route-editor{flex:1 1 100%;box-sizing:border-box;padding:13px;border:1px solid rgba(159,169,241,.22);
+ background:#101b33;border-radius:11px;min-width:0}
+.rer-route-editor label{display:block;font-size:11px;font-weight:800;margin-bottom:9px;color:#cbd7f4}
+.rer-route-editor>div{display:flex;gap:9px;align-items:stretch}
+.rer-route-editor input{box-sizing:border-box;background:#1c2947;border:1px solid rgba(160,176,221,.35);
+ border-radius:9px;padding:11px;color:#eff3ff;flex:1;min-width:0;font-size:12px}
+.rer-route-editor button,.rer-links button{background:#3c447e;border:1px solid rgba(166,158,239,.36);
+ border-radius:9px;color:#f0efff;font:inherit;font-size:11px;font-weight:800;padding:9px 12px;cursor:pointer}
+.rer-route-editor button:disabled{opacity:.5;cursor:default}
+.rer-route-editor small{font-size:10px;color:#9db1cf;line-height:1.55;display:block;margin-top:8px}
+@media(max-width:640px){.rer-event-dossier{padding:10px}.rer-route-editor>div{flex-direction:column}
+.rer-route-editor button{min-height:42px}.rer-event-dossier .rfc-root,.rer-event-dossier .rrv-root{padding:12px}}
