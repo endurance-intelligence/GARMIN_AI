@@ -24,7 +24,7 @@ export function safeWebsiteUrl(value){
    !/^[a-z0-9.-]+$/.test(host)||host.startsWith("-")||
    /(?:^|\.)(localhost|local|internal|test|invalid|example|home|lan)$/.test(host)||
    /^\d+$/.test(host)||/^\d+\.\d+\.\d+\.\d+$/.test(host)||
-   host.includes("..")||host.endsWith(".localhost"))
+   host.includes("..")||host.endsWith(".")||host.endsWith(".localhost"))
    throw Error("Nur öffentlich erreichbare Veranstalter-Webseiten sind erlaubt.");
  url.hash="";return url.href;
 }
@@ -114,7 +114,7 @@ function eventBlocks(page){
  const data=jsonLdBlocks(page.html);
  return data.filter(x=>{
   const type=x["@type"];
-  return (Array.isArray(type)?type:[type]).some(t=>typeof t==="string"&&/(?:^|:)Event$/.test(t));
+  return (Array.isArray(type)?type:[type]).some(t=>typeof t==="string"&&/Event$/i.test(t));
  });
 }
 export function parseEventPages(pages,{raceDateHint=null,raceNameHint=""}={}){
