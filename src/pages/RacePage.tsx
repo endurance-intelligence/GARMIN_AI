@@ -5,7 +5,7 @@ export function RacePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
  return <section className={active?'page active':'page'}>
   <div className="page-intro">
    <div><div className="eyebrow">RACE INTELLIGENCE / DEIN NÄCHSTES ZIEL</div>
-    <h1>Ein Ziel.<br/>Ein klarer Weg<span style={{color:'var(--a)'}}>.</h1>
+    <h1>Ein Ziel. Ein klarer Weg<span style={{color:'var(--a)'}}>.</span></h1>
     <p>Hier legst du fest, worauf dich dein Coach vorbereiten soll.
      Das Ziel wird gespeichert und die Vorbereitungsphase automatisch aus dem Datum abgeleitet.</p></div>
   </div>
