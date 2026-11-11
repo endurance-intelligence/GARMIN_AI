@@ -55,8 +55,8 @@ async function requestOptions(body?:Record<string,unknown>):Promise<Record<strin
 const dayLabels=['','Mo','Di','Mi','Do','Fr','Sa','So']
 const fullDate=(s:string)=>s.slice(8,10)+'.'+s.slice(5,7)+'.'
 const metric=(n:number)=>Number.isFinite(n)?Math.round(n).toLocaleString('de-DE'):'–'
-export function WeeklyTrainingOptions({active,weekStart,compact=false}:{
- active:boolean;weekStart:string;compact?:boolean
+export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDate}:{
+ active:boolean;weekStart:string;compact?:boolean;selectedDate?:string
 }){
  const [items,setItems]=useState<TrainingOption[]>([])
  const [choices,setChoices]=useState<SavedChoice[]>([])
@@ -134,16 +134,18 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false}:{
   finally{setBusy(null)}
  }
  if(!active)return null
+ const visibleRows=rows.filter(row=>row.date>=today&&(!selectedDate||row.date===selectedDate))
  return <section className={'wo-root'+(compact?' wo-compact':'')} aria-label="Regelmäßige Trainingsoptionen">
   <header className="wo-head">
    <div><span className="wo-kicker">COACH / DEINE WOCHENOPTIONEN</span>
-    <h3>{compact?'Diese Woche möglich':'Deine festen Trainingsangebote'}</h3>
-    <p>Feste Uhrzeit und Ort, aber keine Pflichttermine. Du entscheidest jede Woche neu.</p></div>
-   <span className="wo-pill">4 Optionen</span>
+    <h3>{selectedDate?'Trainingsoption für diesen Tag':compact?'Diese Woche möglich':'Deine festen Trainingsangebote'}</h3>
+    <p>{selectedDate?'Fester Termin und Wetter direkt zur Startzeit – keine Pflicht zur Teilnahme.':
+     'Feste Uhrzeit und Ort, aber keine Pflichttermine. Du entscheidest jede Woche neu.'}</p></div>
+   <span className="wo-pill">{selectedDate?visibleRows.length+' Option'+(visibleRows.length===1?'':'en'):'4 Optionen'}</span>
   </header>
   {loading&&!items.length&&<p className="wo-info">Trainingsmöglichkeiten werden geladen …</p>}
   <div className="wo-grid">
-   {rows.filter(row=>row.date>=today).map(({option,date,choice,hour,completed})=>{
+   {visibleRows.map(({option,date,choice,hour,completed})=>{
     const old=date<today
     const weather=hour?
      weatherLabel(hour.code)+' · '+metric(hour.temperature)+' °C · Regen '+metric(hour.rainProbability)+
@@ -179,7 +181,10 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false}:{
   </div>
   {error&&<p className="wo-error" role="alert">{error}</p>}
   {notice&&<p className="wo-notice" role="status">{notice}</p>}
-  {!loading&&items.length===0&&!error&&<p className="wo-info">Noch keine wiederkehrenden Trainingsangebote vorhanden.</p>}
+  {!loading&&visibleRows.length===0&&!error&&<p className="wo-info">
+   {selectedDate?'Kein fester Gruppentermin. Der Coach kann hier einen eigenen Lauf, Stabi/Mobility oder Erholung vorschlagen.':
+    'Keine wiederkehrenden Trainingsangebote in dieser Woche vorhanden.'}
+  </p>
   <p className="wo-foot">Wetter: Open-Meteo zur tatsächlichen Startzeit am Ort ·
    Daten nur innerhalb des Vorhersagezeitraums. Fußball, Bahnintervalle und Laufgruppe sind
    Belastungsoptionen – keine automatischen Trainingsvorgaben. Der Coach berücksichtigt
