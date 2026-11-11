@@ -37,8 +37,8 @@ export function CrossTrainingCoachCard({active,onOpen}:{active:boolean;onOpen:()
   const note=playedRecently?
    'Fußball liegt erst kurz zurück. Der Coach sollte vor der nächsten harten Bahneinheit Beine, Schlaf und Erholung prüfen – nicht automatisch Intervalle draufpacken.':
    strength.length===0?
-   'Diese Woche ist noch keine Stabi-/Mobility-Einheit erfasst. Als ergänzende Option anbieten, nicht automatisch verpflichtend einplanen.':
-   'Stabi und Mobility sind bereits im Wochenkontext berücksichtigt. Keine 1:1-Umrechnung in Laufkilometer.'
+   'Diese Woche ist noch keine kombinierte Stabi- & Mobility-Einheit erfasst. Als 30-Minuten-Option anbieten, sofern die Erholung dafür spricht.':
+   'Kraft und Mobility sind im Wochenkontext berücksichtigt. Zusätzliche Ausdauerbelastungen fließen ebenfalls ein – ohne Laufkilometer-Umrechnung.'
   return {football:football.length,rowing:rowing.length,strength:strength.length,note}
  },[data])
  if(!active)return null
@@ -46,12 +46,12 @@ export function CrossTrainingCoachCard({active,onOpen}:{active:boolean;onOpen:()
   <div className="cx-head">
    <div><span className="cx-kicker">COACH / GANZHEITLICHE BELASTUNG</span>
     <h3>Mehr als Laufkilometer.</h3>
-    <p>Fußball, Rudern, Stabi und Mobility fließen in deinen Wochenkontext ein.</p></div>
+    <p>Fußball, ergänzende Ausdauer und dein Stabi-&-Mobility-Mix fließen in die Wochenbetrachtung ein.</p></div>
    <button type="button" onClick={onOpen}><Icon name="arrow-up-right"/> Stabi Studio</button>
   </div>
   {context?<><div className="cx-stats">
    <div><span>⚽</span><strong>{context.football}</strong><small>Fußball · 7 Tage</small></div>
-   <div><span>🚣</span><strong>{context.rowing}</strong><small>Rudern · 7 Tage</small></div>
+   
    <div><span>🧘</span><strong>{context.strength}</strong><small>Stabi & Mobility · 7 Tage</small></div>
   </div>
    <p className="cx-evidence"><Icon name="info"/>{context.note}</p>
