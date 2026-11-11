@@ -7,7 +7,10 @@ export function formatVenueSuggestions(features,cityHint=''){
  const seen=new Set(),out=[];
  for(const feature of features.slice(0,14)){
   const p=feature?.properties||{},name=clean(p.name),city=clean(p.city||p.town||p.village);
-  if(!name||(!city&&!cityHint))continue;
+  // Never assign the requested city to a POI in another or unknown city.
+  const normalizeCity=v=>clean(v).toLocaleLowerCase('de-DE').normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g,'');
+  if(!name||!city||(cityHint&&normalizeCity(city)!==normalizeCity(cityHint)))continue;
   const street=clean(p.street),number=clean(p.housenumber),postcode=clean(p.postcode);
   const complete=!!street&&!!number&&!!postcode&&!!city;
   const address=complete?street+' '+number+', '+postcode+' '+city:null;
