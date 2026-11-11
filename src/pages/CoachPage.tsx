@@ -2,7 +2,7 @@ import {useEffect,useRef,useState} from 'react'
 import {createPortal} from 'react-dom'
 import {Icon} from '../components/Icon'
 import {SyncCenter} from '../components/SyncCenter'
-import {WeatherPanel} from '../components/WeatherPanel'
+import {CoachTodayWeather} from '../components/CoachTodayWeather'
 import {CoachGlance} from '../components/CoachGlance'
 import {WeeklyTrainingOptions,berlinToday,mondayOf} from '../components/WeeklyTrainingOptions'
 import {CrossTrainingCoachCard} from '../components/CrossTrainingCoachCard'
@@ -50,7 +50,7 @@ export function CoachPage({active,onGo}: {active:boolean; onGo:(page:Page)=>void
   {savedWeight.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})} kg gespeichert · Garmin-Übertragung noch ausstehend
  </p>}
  <CoachGlance active={active} onCalendar={()=>onGo('calendar')}>
-  <WeatherPanel active={active} mode="training" compact/>
+  <CoachTodayWeather active={active}/>
  </CoachGlance>
  <CoachGoalPanel active={active} compact onEdit={()=>onGo('race')}/>
  <WeeklyTrainingOptions active={active} weekStart={mondayOf(berlinToday())} compact/>
