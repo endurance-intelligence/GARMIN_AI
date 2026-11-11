@@ -188,7 +188,7 @@ export function CalendarPage({active}:{active:boolean}){
     await ownerPost<{saved:boolean;remoteRemoved:boolean;remoteRemovalPending?:boolean;remoteProblem?:string|null}>(session,'garmin-intervals',{
      action:'delete_published',planId:plan.id,revision:plan.revision,acknowledge:true
     }):
-    await ownerPost<{saved:boolean}>(session,'garmin-training-plan',{
+    await ownerPost<{saved:boolean;remoteRemoved?:boolean}>(session,'garmin-training-plan',{
      action:'cancel',id:plan.id,revision:plan.revision
     })
    if(result.saved!==true)throw Error('Trainingslöschung nicht bestätigt.')
@@ -246,6 +246,20 @@ export function CalendarPage({active}:{active:boolean}){
    {selected>=today?<WeatherPanel active={active} mode="training" date={selected} compact/>:
     <p className="hc-past-weather">Wetterprognosen werden nur für aktuelle oder kommende Trainingstage angezeigt.</p>}
   </div>
+  {cleanupPending.length>0&&<div className="hc-remote-pending" role="status">
+   <div><strong>Intervals.icu · {cleanupPending.length} offene Bereinigung{cleanupPending.length===1?'':'en'}</strong>
+    <p>Diese Trainings sind aus GARMIN_AI ausgeblendet. Ob die externen Kalendereinträge gelöscht wurden, ist noch nicht bestätigt. Keine automatische Wiederholung.</p>
+    {cleanupPending.map(plan=><div key={plan.id} className="hc-remote-pending-item">
+     <strong>{plan.title} · {plan.training_date}</strong>
+     {cleanupArmed===plan.id?<div className="hc-remote-actions">
+      <button type="button" disabled={acting!==null} onClick={()=>void cleanupRemote(plan)}>
+       {acting===plan.id?'Prüfe …':'Jetzt bei Intervals.icu entfernen'}</button>
+      <button type="button" disabled={acting!==null} onClick={()=>setCleanupArmed(null)}>Abbrechen</button>
+     </div>:<button type="button" disabled={acting!==null}
+      onClick={()=>setCleanupArmed(plan.id)}>Externe Löschung erneut prüfen</button>}
+    </div>)}
+   </div>
+  </div>}
   <div className="hc-weekpanel">
    <div className="hc-toolbar">
     <div><small>DEIN TRAININGSKALENDER</small><h2>Wochenansicht</h2></div>
@@ -329,20 +343,6 @@ export function CalendarPage({active}:{active:boolean}){
     onPlanned={()=>setRefresh(n=>n+1)}/>
   </div>
   <WeeklyTrainingOptions active={active} weekStart={start}/>
-  {cleanupPending.length>0&&<div className="hc-remote-pending" role="status">
-   <div><strong>Intervals.icu · {cleanupPending.length} offene Bereinigung{cleanupPending.length===1?'':'en'}</strong>
-    <p>Diese Trainings sind aus GARMIN_AI ausgeblendet. Ob die externen Kalendereinträge gelöscht wurden, ist noch nicht bestätigt. Keine automatische Wiederholung.</p>
-    {cleanupPending.map(plan=><div key={plan.id} className="hc-remote-pending-item">
-     <strong>{plan.title} · {plan.training_date}</strong>
-     {cleanupArmed===plan.id?<div className="hc-remote-actions">
-      <button type="button" disabled={acting!==null} onClick={()=>void cleanupRemote(plan)}>
-       {acting===plan.id?'Prüfe …':'Jetzt bei Intervals.icu entfernen'}</button>
-      <button type="button" disabled={acting!==null} onClick={()=>setCleanupArmed(null)}>Abbrechen</button>
-     </div>:<button type="button" disabled={acting!==null}
-      onClick={()=>setCleanupArmed(plan.id)}>Externe Löschung erneut prüfen</button>}
-    </div>)}
-   </div>
-  </div>}
   <div className="hc-source-grid">
    <article><div className="hc-source-icon"><Icon name="check"/></div>
     <div><strong>Garmin-Aktivitäten</strong>
