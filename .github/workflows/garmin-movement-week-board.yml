@@ -1,0 +1,43 @@
+name: GARMIN_AI Movement & Week Board
+on:
+  push:
+    paths:
+      - 'src/lib/movementSession.ts'
+      - 'src/lib/eiExercises.ts'
+      - 'src/pages/StrengthPage.tsx'
+      - 'src/pages/CalendarPage.tsx'
+      - 'src/components/CalendarWeekBoard.tsx'
+      - 'src/components/CrossTrainingCoachCard.tsx'
+      - 'src/styles/movement-studio-v2.css'
+      - 'src/styles/calendar-week-board.css'
+      - 'supabase/functions/garmin-week-board/**'
+      - 'tests/mobile-stabi-studio.test.mjs'
+      - 'tests/mobile-calendar-week-board.test.mjs'
+      - '.github/workflows/garmin-movement-week-board.yml'
+  pull_request:
+    paths:
+      - 'src/lib/movementSession.ts'
+      - 'src/lib/eiExercises.ts'
+      - 'src/pages/StrengthPage.tsx'
+      - 'src/pages/CalendarPage.tsx'
+      - 'src/components/CalendarWeekBoard.tsx'
+      - 'src/components/CrossTrainingCoachCard.tsx'
+      - 'src/styles/movement-studio-v2.css'
+      - 'src/styles/calendar-week-board.css'
+      - 'supabase/functions/garmin-week-board/**'
+      - 'tests/mobile-stabi-studio.test.mjs'
+      - 'tests/mobile-calendar-week-board.test.mjs'
+      - '.github/workflows/garmin-movement-week-board.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-stabi-studio.test.mjs tests/mobile-calendar-week-board.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weekly-training-options.test.mjs
+      - run: npm run build

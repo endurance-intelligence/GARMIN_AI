@@ -1,0 +1,48 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+const file=(p)=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
+const api=file('supabase/functions/garmin-week-board/index.ts')
+const board=file('src/components/CalendarWeekBoard.tsx')
+const calendar=file('src/pages/CalendarPage.tsx')
+const styles=file('src/styles/calendar-week-board.css')
+
+test('weekly activity API is owner-only and read-only',()=>{
+ assert.match(api,/req\.method!=='GET'/)
+ assert.match(api,/auth\.getUser\(/)
+ assert.match(api,/user\.email_confirmed_at/)
+ assert.match(api,/user\.email\?\.trim\(\)\.toLowerCase\(\)!==owner/)
+ assert.doesNotMatch(api,/\.insert\(|\.upsert\(|\.delete\(|\.update\(|garmin-cloud-worker/)
+ assert.match(api,/garmin_activities/)
+ assert.match(api,/garmin_daily_metrics/)
+ assert.doesNotMatch(api,/raw_activity/)
+})
+test('calendar weekly board shows all seven days and real recovery evidence',()=>{
+ assert.match(calendar,/CalendarWeekBoard active=\{active\}/)
+ assert.match(board,/Array\.from\(\{length:7\}/)
+ assert.match(board,/metric\(daily\.hrv_ms/)
+ assert.match(board,/metric\(daily\.resting_heart_rate/)
+ assert.match(board,/daily\.sleep_seconds/)
+ assert.match(board,/start_time_local/)
+ assert.match(board,/actual/i)
+ assert.match(styles,/grid-template-columns:repeat\(7/)
+ assert.match(styles,/overflow-x:auto/)
+ assert.match(styles,/scroll-snap-type:x/)
+})
+test('actual, planned and optional activities remain distinct',()=>{
+ assert.match(board,/is-actual/)
+ assert.match(board,/is-planned/)
+ assert.match(board,/is-option/)
+ assert.match(board,/is-remote/)
+ assert.match(board,/is-manual/)
+ assert.match(board,/Garmin-Aktivitäten und Tageswerte/)
+ assert.match(board,/Planung, nicht als absolviert gewertet/)
+ assert.match(board,/sportKind\(x\.sport_type\)!=='rowing'/)
+})
+test('no invented TSS, readiness or score appears in calendar week summary',()=>{
+ assert.doesNotMatch(board,/fitnessScore|acuteTrainingLoad|trainingStressScore|readinessScore|fakeScore/)
+ assert.match(board,/Wochenbilanz|Wochen-RHYTHMUS|BILANZ/i)
+ assert.match(board,/Trainingszeit/)
+ assert.match(board,/runningDistance/)
+ assert.match(board,/Keine künstlichen Belastungs-/)
+})

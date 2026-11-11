@@ -5,6 +5,7 @@ import {Icon} from '../components/Icon'
 import {WeatherPanel} from '../components/WeatherPanel'
 import {WorkoutArchivePanel} from '../components/WorkoutArchivePanel'
 import {WeeklyTrainingOptions} from '../components/WeeklyTrainingOptions'
+import {CalendarWeekBoard} from '../components/CalendarWeekBoard'
 import '../styles/horizon-calendar.css'
 
 type GarminWorkout={
@@ -33,11 +34,6 @@ function monday(iso:string){
  const d=new Date(iso+'T12:00:00Z').getUTCDay()
  return moveDay(iso,-((d+6)%7))
 }
-function shortDay(iso:string){
- return new Intl.DateTimeFormat('de-DE',{timeZone:'UTC',weekday:'short'}).format(
-  new Date(iso+'T12:00:00Z')).replace('.','')
-}
-function dayNumber(iso:string){return iso.slice(8,10).replace(/^0/,'')}
 function monthTitle(iso:string){
  return new Intl.DateTimeFormat('de-DE',{timeZone:'UTC',month:'long',year:'numeric'}).format(
   new Date(iso+'T12:00:00Z'))
@@ -227,18 +223,8 @@ export function CalendarPage({active}:{active:boolean}){
      <button type="button" aria-label="Nächste Woche" onClick={()=>changeWeek(1)} disabled={week>=5}>›</button>
     </div>
    </div>
-   <div className="hc-days" role="group" aria-label="Wochentag auswählen">
-    {days.map(day=>{
-     const count=entries.filter(e=>e.date===day).length
-     return <button type="button" key={day}
-      className={'hc-day'+(day===selected?' selected':'')+(day===today?' today':'')}
-      aria-pressed={day===selected} aria-label={longDate(day)}
-      onClick={()=>setSelected(day)}>
-      <span>{shortDay(day)}</span><strong>{dayNumber(day)}</strong>
-      <i className={count?'has-entry':''}/>
-     </button>
-    })}
-   </div>
+   <CalendarWeekBoard active={active} start={start} selected={selected}
+    today={today} onSelect={setSelected} plans={plans} garminPlans={snapshot?.schedule||[]}/>
    <div className="hc-day-content">
     <div className="hc-day-heading">
      <div><span>AUSGEWÄHLTER TAG</span><h3>{longDate(selected)}</h3></div>

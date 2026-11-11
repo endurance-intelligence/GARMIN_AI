@@ -17,7 +17,7 @@ export function MorePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
    </button>
    <button type="button" className="hc-more-link" onClick={()=>onGo('strength')}>
     <span className="hc-more-symbol"><Icon name="dumbbell"/></span>
-    <span><strong>Stabi Studio</strong><small>26 Übungen aus Endurance Intelligence · Mobility · Rudertraining</small></span>
+    <span><strong>Stabi Studio</strong><small>30-Minuten-Mix aus Kraft und Mobility · Übungsbibliothek</small></span>
     <span className="hc-more-chevron">›</span>
    </button>
    <button type="button" className="hc-more-link" onClick={()=>onGo('settings')}>
