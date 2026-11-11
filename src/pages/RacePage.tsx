@@ -1,5 +1,6 @@
 import {Icon} from '../components/Icon'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
+import {WeatherPanel} from '../components/WeatherPanel'
 import type {Page} from '../navigation'
 export function RacePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
  return <section className={active?'page active':'page'}>
@@ -10,6 +11,7 @@ export function RacePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
      Das Ziel wird gespeichert und die Vorbereitungsphase automatisch aus dem Datum abgeleitet.</p></div>
   </div>
   <CoachGoalPanel active={active}/>
+  <WeatherPanel active={active} mode="race"/>
   <div className="sub-grid">
    <article><small>WIE DER COACH PLANEN SOLL</small>
     <h3>Alle sieben Tage sinnvoll nutzen.</h3>
