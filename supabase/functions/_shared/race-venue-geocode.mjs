@@ -34,7 +34,7 @@ export function venueAddressMatch(venue,city,features){
   const street=String(p.street||'').trim(),number=String(p.housenumber||'').trim()
   const zip=String(p.postcode||'').trim()
   const coords=f.geometry?.coordinates
-  if(!street||!number||!zip||!/^[a-z0-9\s\-\/]{2,15}$/i.test(number))continue
+  if(!street||!number||!zip||!/^[a-z0-9\s\-\/]{1,15}$/i.test(number))continue
   if(!/^[0-9a-z][0-9a-z\s-]{2,11}$/i.test(zip))continue
   if(!Array.isArray(coords)||coords.length<2||
    !Number.isFinite(coords[0])||!Number.isFinite(coords[1]))continue
