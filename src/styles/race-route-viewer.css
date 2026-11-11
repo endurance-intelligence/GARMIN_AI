@@ -1,0 +1,29 @@
+.rrv-root{margin:15px 0;padding:19px;border:1px solid rgba(148,184,221,.24);background:linear-gradient(130deg,#172139,#101a2e);border-radius:18px;color:#e9f2ff}
+.rrv-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.rrv-head small{font-size:9px;font-weight:830;letter-spacing:.12em;color:#b4b0f3}
+.rrv-head h2{font-size:21px;letter-spacing:-.04em;margin:6px 0}
+.rrv-head p{font-size:11px;color:#aabbd4;margin:0;line-height:1.5}
+.rrv-head a{border:1px solid rgba(162,178,243,.4);border-radius:10px;padding:10px 13px;font-size:11px;color:#c4d6ff}
+.rrv-tools{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:17px 0}
+.rrv-file{cursor:pointer;background:#343b70;color:#e8eaff;border-radius:10px;border:1px solid rgba(172,167,239,.36);font-size:11px;padding:11px;font-weight:780}
+.rrv-file input{display:none}
+.rrv-tools button{border:1px solid rgba(144,206,189,.35);background:#235b5c;color:#e0fff1;font-size:11px;font-weight:790;padding:12px;border-radius:10px;min-height:43px}
+.rrv-tools span{font-size:11px;color:#a7bed4}
+.rrv-canvas{margin-top:8px}
+.rrv-map{border-radius:16px;border:1px solid rgba(159,178,212,.2);overflow:hidden;background:#101e32}
+.rrv-map svg{width:100%;height:auto;max-height:370px;display:block}
+.rrv-map small{display:block;padding:8px 12px;color:#94aac2;font-size:10px;line-height:1.5}
+.rrv-info-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}
+.rrv-info-grid span{display:flex;flex-direction:column;gap:5px;border:1px solid rgba(154,175,218,.15);background:#1d2a46;padding:10px;border-radius:11px;font-size:10px;color:#a9bad4}
+.rrv-info-grid b{font-size:17px;color:#f4f6ff}
+.rrv-scrub{display:flex;flex-direction:column;gap:8px;font-size:11px;color:#bdcae6;margin:13px 0}
+.rrv-scrub input{width:100%;accent-color:#b0b4ff}
+.rrv-elevation{background:#111f35;border:1px solid rgba(140,169,218,.16);border-radius:12px;margin:12px 0;padding:10px}
+.rrv-elevation strong{font-size:11px;color:#cbd8ed}
+.rrv-elevation svg{width:100%;display:block;height:auto;max-height:122px}
+.rrv-weather{border-left:3px solid #90acd9;margin-top:12px;padding:9px 13px;background:rgba(61,79,124,.12)}
+.rrv-weather strong{font-size:12px}.rrv-weather p{font-size:11px;color:#c2d3e3;margin:8px 0}
+.rrv-weather small{font-size:10px;color:#a6b5c9;line-height:1.5}
+.rrv-info,.rrv-error,.rrv-ok{font-size:11px;line-height:1.6;color:#a9bad3;margin:14px 0}
+.rrv-error{color:#ffb2a6}.rrv-ok{color:#9de3bd}
+@media(max-width:560px){.rrv-root{padding:13px}.rrv-info-grid{gap:6px}.rrv-info-grid span{padding:8px}.rrv-info-grid b{font-size:14px}}
