@@ -25,7 +25,7 @@ const asDraft=(x:Omit<CoachGoal,'updated_at'>):Draft=>({
  raceLocation:x.race_location,raceStartTime:x.race_start_time||'',
  coachNote:x.coach_note
 })
-export function CoachGoalPanel({active,compact=false,onEdit,onSaved}:{active:boolean;compact?:boolean;onEdit?:()=>void;onSaved?:()=>void}){
+export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl}:{active:boolean;compact?:boolean;onEdit?:()=>void;onSaved?:()=>void;logoUrl?:string|null}){
  const [goal,setGoal]=useState<CoachGoal|null>(null)
  const [draft,setDraft]=useState<Draft>(()=>asDraft(suggestedGoal))
  const [loading,setLoading]=useState(false)
@@ -78,7 +78,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved}:{active:boo
    <span className={'cg-state'+(goal?' is-active':'')}>{goal?'AKTIVES ZIEL':'VORSCHLAG · NOCH NICHT GESPEICHERT'}</span>
   </div>
   <div className="cg-summary">
-   <div><h2>{current.race_name}</h2>
+   <div><div className="cg-title-row">{logoUrl&&<img src={logoUrl} alt={'Logo '+current.race_name} referrerPolicy="no-referrer" loading="lazy"/>}<h2>{current.race_name}</h2></div>
     <p>{current.race_date.split('-').reverse().join('.')} · {current.race_location||'Ort nicht festgelegt'}</p>
     <div className="cg-tags"><span>{distanceText} km</span>
      {current.target_hours&&<span>Ziel {Number(current.target_hours).toLocaleString('de-DE')} h</span>}
