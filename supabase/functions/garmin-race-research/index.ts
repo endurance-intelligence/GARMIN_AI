@@ -3,7 +3,8 @@
  * No LLM speculation and NO Garmin/Intervals writes.
  */
 import {createClient} from 'npm:@supabase/supabase-js@2'
-import {safeWebsiteUrl,parseEventPages,rankEventPages} from '../_shared/race-event-extract.mjs'
+import {safeWebsiteUrl,parseEventPages,rankEventPages,discoverEventLogo} from '../_shared/race-event-extract.mjs'
+import {formatVenueSuggestions,archiveCanonicalUrl} from '../_shared/race-event-archive.mjs'
 import {venueAddressMatch,photonLookupURL} from '../_shared/race-venue-geocode.mjs'
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
@@ -41,7 +42,7 @@ function reviewed(data:unknown){
  const value=data as Record<string,unknown>,fields:Record<string,unknown>={}
  for(const name of ['eventName','venue','venueAddress','city','routeNotes'] as const)
   fields[name]=cleanString(value[name],name==='routeNotes'?240:190)
- for(const name of ['routeUrl','gpxUrl'] as const)
+ for(const name of ['routeUrl','gpxUrl','logoUrl'] as const)
   fields[name]=value[name]?safeWebsiteUrl(String(value[name])):null
  fields.eventDate=value.eventDate===null?null:
   (dateValid(value.eventDate)?value.eventDate:(()=>{throw Error('Invalid event date')})())
@@ -150,8 +151,12 @@ Deno.serve(async req=>{
     .select('id,race_date,event_url,event_title,details,evidence,reviewed_at,checked_at')
     .eq('user_id',user.id).eq('race_date',goal.race_date).order('reviewed_at',{ascending:false}).limit(5)
    if(error)return reply(503,{error:'Gespeicherte Recherchen nicht verfügbar'},h)
-   return reply(200,{goal:{raceName:goal.race_name,raceDate:goal.race_date},
-    saved:data||[],autoSaved:false},h)
+   const {data:archive,error:archiveError}=await db.from('garmin_race_event_archive')
+    .select('id,canonical_url,event_name,template_details,evidence,last_race_date,updated_at')
+    .eq('user_id',user.id).order('updated_at',{ascending:false}).limit(30)
+   if(archiveError)return reply(503,{error:'Wettkampfarchiv nicht verfügbar'},h)
+   return reply(200,{goal:{raceName:goal.race_name,raceDate:goal.race_date,raceLocation:goal.race_location},
+    saved:data||[],archive:archive||[],autoSaved:false},h)
   }
   const raw=await req.text()
   if(raw.length>22000)return reply(413,{error:'Anfrage zu groß'},h)
@@ -163,6 +168,38 @@ Deno.serve(async req=>{
   }catch{return reply(422,{error:'Ungültige Eingabe'},h)}
   if(input.raceDate!==goal.race_date)
    return reply(409,{error:'Wettkampfziel hat sich geändert. Bitte Race Prep aktualisieren.'},h)
+  if(input.action==='suggest_venues'){
+   const query=String(input.query||'').trim(),city=String(input.city||goal.race_location||'').trim()
+   if(query.length<4||query.length>80||city.length>100)
+    return reply(422,{error:'Bitte mindestens vier Zeichen und einen Ort eingeben.'},h)
+   const cacheKey=('suggest|'+query.toLocaleLowerCase('de-DE')+'|'+city.toLocaleLowerCase('de-DE')).slice(0,300)
+   const {data:cached,error:cacheError}=await db.from('garmin_race_venue_geocode_cache')
+    .select('result,checked_at').eq('user_id',user.id).eq('query_key',cacheKey).maybeSingle()
+   if(cacheError)return reply(503,{error:'Adresssuche gerade nicht verfügbar'},h)
+   if(cached&&Date.now()-Date.parse(cached.checked_at)<30*86400000)
+    return reply(200,{suggestions:Array.isArray(cached.result)?cached.result:[],cached:true},h)
+   const {data:last,error:lastError}=await db.from('garmin_race_venue_geocode_cache')
+    .select('checked_at').eq('user_id',user.id).like('query_key','suggest|%')
+    .order('checked_at',{ascending:false}).limit(1)
+   if(lastError)return reply(503,{error:'Adresssuche gerade nicht verfügbar'},h)
+   if(last?.length&&Date.now()-Date.parse(last[0].checked_at)<1100)
+    return reply(429,{error:'Bitte einen Moment warten und weitertippen.'},h)
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6500)
+   try{
+    const endpoint=photonLookupURL(query,city)
+    const upstream=await fetch(endpoint,{redirect:'error',signal:controller.signal,
+     headers:{Accept:'application/json','User-Agent':'GARMIN_AI Event Scout (https://github.com/endurance-intelligence/GARMIN_AI)'}})
+    if(!upstream.ok)throw Error('Kartendienst HTTP '+upstream.status)
+    const raw=await upstream.text()
+    if(raw.length>125000)throw Error('Suchantwort zu groß')
+    const suggestions=formatVenueSuggestions(JSON.parse(raw).features,city)
+    await db.from('garmin_race_venue_geocode_cache')
+     .upsert({user_id:user.id,query_key:cacheKey,result:suggestions,checked_at:new Date().toISOString()},
+      {onConflict:'user_id,query_key'})
+    return reply(200,{suggestions,cached:false},h)
+   }catch{return reply(503,{error:'Ortsvorschläge gerade nicht erreichbar. Adresse kann manuell eingegeben werden.'},h)}
+   finally{clearTimeout(timer)}
+  }
   if(input.action==='scan'){
    let url:string
    try{url=safeWebsiteUrl(String(input.url||''))}catch(e){
@@ -180,6 +217,12 @@ Deno.serve(async req=>{
      catch{warnings.push('Unterseite nicht lesbar: '+page.url)}
     }
     const result=parseEventPages(pages,{raceDateHint:goal.race_date,raceNameHint:goal.race_name})
+    const logo=discoverEventLogo(pages)
+    if(logo){
+     result.details.logoUrl=logo.url
+     result.sources.push({field:'logoUrl',url:logo.source,
+      evidence:logo.kind==='site_logo'?'Logo von Veranstalter-Webseite':'Website-Icon vom Veranstalter'})
+    }
     // Reuse the extracted venue and city (or the user's goal location as a
     // search hint, not as website evidence). Never guess a street number.
     let addressResolution='not_required'
@@ -237,7 +280,17 @@ Deno.serve(async req=>{
      onConflict:'user_id,race_date,event_url'
     }).select('id,race_date,event_url,event_title,details,evidence,reviewed_at,checked_at').single()
     if(error||!data)return reply(503,{error:'Recherche konnte nicht gespeichert werden.'},h)
-    return reply(200,{saved:true,record:data,
+    const template={...details,eventDate:null}
+    const canonicalUrl=archiveCanonicalUrl(eventUrl)
+    const {data:archived,error:archiveError}=await db.from('garmin_race_event_archive')
+     .upsert({user_id:user.id,canonical_url:canonicalUrl,event_name:title,
+       template_details:template,evidence,last_race_date:goal.race_date,
+       updated_at:new Date().toISOString()},{onConflict:'user_id,canonical_url'})
+     .select('id,canonical_url,event_name,template_details,evidence,last_race_date,updated_at')
+     .single()
+    return reply(200,{saved:true,record:data,archiveSaved:!archiveError&&!!archived,
+     archive:archived||null,archiveWarning:archiveError?
+      'Veranstaltung gespeichert, aber das Archiv konnte nicht aktualisiert werden.':null,
      trainingGoalChanged:false,garminChanged:false,intervalsChanged:false},h)
    }catch(e){return reply(422,{error:e instanceof Error?e.message:'Daten ungültig'},h)}
   }

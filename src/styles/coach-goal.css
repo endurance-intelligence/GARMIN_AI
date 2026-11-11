@@ -55,3 +55,10 @@
 .co-fixed-slot{display:flex;gap:4px;flex-direction:column;min-width:0}
 .co-fixed-slot strong{font-size:12px;color:#e6f3ff;line-height:1.45}
 .co-fixed-weather>small{font-size:10px;color:#8eacc6}
+
+/* Original event identity is linked, never re-created. */
+.cg-title-row{display:flex;gap:12px;align-items:center;min-width:0;margin-bottom:9px}
+.cg-title-row img{height:55px;width:55px;border-radius:12px;object-fit:contain;background:#f6f5f4;flex-shrink:0;padding:4px;box-sizing:border-box}
+.cg-title-row h2{margin:0!important;min-width:0;overflow-wrap:anywhere}
+.cg-compact .cg-title-row img{height:43px;width:43px}
+@media(max-width:480px){.cg-title-row img{height:44px;width:44px}.cg-title-row{gap:8px}}

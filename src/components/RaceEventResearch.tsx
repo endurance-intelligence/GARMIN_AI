@@ -1,9 +1,11 @@
-import {useEffect,useState} from 'react'
+import {useCallback,useEffect,useState} from 'react'
+import {VenueAutocomplete} from './VenueAutocomplete'
+import type {VenueSuggestion} from './VenueAutocomplete'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import '../styles/race-event-research.css'
 
 type Field='eventName'|'eventDate'|'startTime'|'endTime'|'venue'|'venueAddress'|'city'|
- 'officialLoopKm'|'maximumDistanceKm'|'routeNotes'|'routeUrl'|'gpxUrl'
+ 'officialLoopKm'|'maximumDistanceKm'|'routeNotes'|'routeUrl'|'gpxUrl'|'logoUrl'
 type Details=Record<Field,string|number|null>
 type Evidence={field:string;url:string;evidence:string}
 type ScanResult={
@@ -13,7 +15,9 @@ type ScanResult={
 }
 type SavedResearch={id:string;event_url:string;event_title:string;race_date:string;
  details:Details;evidence:Evidence[];reviewed_at:string}
-type GoalStatus={goal:{raceDate:string;raceName:string};saved:SavedResearch[]}
+type ArchiveEvent={id:string;canonical_url:string;event_name:string;
+ template_details:Details;evidence:Evidence[];last_race_date:string|null;updated_at:string}
+type GoalStatus={goal:{raceDate:string;raceName:string;raceLocation:string};saved:SavedResearch[];archive:ArchiveEvent[]}
 const labels:Record<Field,string>={
  eventName:'Veranstaltung',eventDate:'Veranstaltungsdatum',
  startTime:'Frühester Start',endTime:'Zielschluss',
@@ -21,7 +25,7 @@ const labels:Record<Field,string>={
  city:'Veranstaltungsstadt',officialLoopKm:'Offizielle Rundendistanz (km)',
  maximumDistanceKm:'Offiziell maximal mögliche Distanz (km)',
  routeNotes:'Streckenbeschreibung',routeUrl:'Karten-/Komoot-Link',
- gpxUrl:'Öffentlicher GPX-Link'
+ gpxUrl:'Öffentlicher GPX-Link',logoUrl:'Offizielles Logo (Bild-URL)'
 }
 const fields=Object.keys(labels) as Field[]
 async function request(body?:Record<string,unknown>):Promise<Record<string,unknown>>{
@@ -46,26 +50,38 @@ function formatField(field:Field,value:string|number|null){
   return Number(value).toLocaleString('de-DE',{maximumFractionDigits:2})+' km'
  return String(value)
 }
-export function RaceEventResearch({active,refreshKey=0}:{active:boolean;refreshKey?:number}){
+export function RaceEventResearch({active,refreshKey=0,onLogoChange}:{
+ active:boolean;refreshKey?:number;onLogoChange?:(url:string|null)=>void
+}){
  const [goal,setGoal]=useState<GoalStatus['goal']|null>(null)
  const [url,setUrl]=useState('')
  const [scan,setScan]=useState<ScanResult|null>(null)
  const [details,setDetails]=useState<Details|null>(null)
  const [edited,setEdited]=useState<string[]>([])
  const [saved,setSaved]=useState<SavedResearch[]>([])
+ const [archive,setArchive]=useState<ArchiveEvent[]>([])
+ const [fromArchive,setFromArchive]=useState<string|null>(null)
+ const [selectedSources,setSelectedSources]=useState<Evidence[]>([])
+ const [routeEdit,setRouteEdit]=useState(false)
+ const [addressInput,setAddressInput]=useState('')
  const [busy,setBusy]=useState<'scan'|'save'|null>(null)
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
  useEffect(()=>{
   if(!active)return
   let mounted=true
-  setGoal(null);setSaved([]);setScan(null);setDetails(null);setEdited([])
+  setGoal(null);setSaved([]);setArchive([]);setScan(null);setDetails(null);setEdited([]);setFromArchive(null)
+  onLogoChange?.(null)
   setError('')
   void request().then(value=>{
    if(!mounted)return
    const result=value as unknown as GoalStatus
    setGoal(result.goal)
    setSaved(result.saved||[])
+   setArchive(result.archive||[])
+   const matchingSaved=(result.saved||[])[0]
+   const matchingArchive=(result.archive||[]).find(x=>x.canonical_url===matchingSaved?.event_url)
+   onLogoChange?.(String(matchingSaved?.details?.logoUrl||matchingArchive?.template_details?.logoUrl||'')||null)
    if(result.saved?.length){
     setUrl(result.saved[0].event_url)
     setScan(null);setDetails(null)
@@ -80,8 +96,10 @@ export function RaceEventResearch({active,refreshKey=0}:{active:boolean;refreshK
   setBusy('scan');setError('');setNotice('');setScan(null);setDetails(null);setEdited([])
   try{
    const result=await request({action:'scan',raceDate:goal.raceDate,url}) as unknown as ScanResult
-   setScan(result);setDetails(result.details)
+   setScan(result);setDetails(result.details);setAddressInput(String(result.details.venueAddress||''))
+   setFromArchive(null);setSelectedSources([]);setRouteEdit(false)
    setUrl(result.sourceUrl)
+   onLogoChange?.(typeof result.details.logoUrl==='string'?result.details.logoUrl:null)
   }catch(e){setError(e instanceof Error?e.message:'Website konnte nicht überprüft werden.')}
   finally{setBusy(null)}
  }
@@ -90,22 +108,76 @@ export function RaceEventResearch({active,refreshKey=0}:{active:boolean;refreshK
   const parsed=field==='officialLoopKm'||field==='maximumDistanceKm'?
    (value===''?null:Number(value.replace(',','.'))):value===''?null:value
   setDetails({...details,[field]:parsed})
+  if(field==='venueAddress')setAddressInput(value)
+  if(field==='logoUrl')onLogoChange?.(typeof parsed==='string'?parsed:null)
   setEdited(prev=>prev.includes(field)?prev:[...prev,field])
  }
  async function save(){
   if(!goal||!scan||!details||busy)return
   setBusy('save');setError('');setNotice('')
   try{
-   const sources=scan.sources.filter(s=>!edited.includes(s.field))
+   const sources=[...scan.sources.filter(s=>!edited.includes(s.field)),...selectedSources]
+   // An unselected search query is not a verified street address.
+   if(details.venueAddress&&
+     !/\b\d+[a-z]?\s*,?\s*\d{4,6}\s+\S/i.test(String(details.venueAddress))&&
+     !selectedSources.some(x=>x.field==='venueAddress')&&
+     edited.includes('venueAddress'))
+    throw Error('Bitte eine vollständige Adresse wählen oder Straße, Hausnummer und PLZ eingeben.')
    const result=await request({action:'save',confirm:true,raceDate:goal.raceDate,
     sourceUrl:scan.sourceUrl,details,sources})
    if(result.saved!==true)throw Error('Die Speicherung wurde nicht bestätigt.')
    const record=result.record as SavedResearch
    setSaved(old=>[record,...old.filter(x=>x.id!==record.id)])
-   setNotice('Veranstaltungsdaten gespeichert – inklusive Quellen. Dein persönliches Trainingsziel bleibt unverändert.')
-   setScan(null);setDetails(null);setEdited([])
+   if(result.archive){
+    const item=result.archive as ArchiveEvent
+    setArchive(old=>[item,...old.filter(x=>x.id!==item.id)])
+   }
+   onLogoChange?.(typeof record.details?.logoUrl==='string'?record.details.logoUrl:null)
+   setNotice(result.archiveSaved===false?
+    'Austragung gespeichert; Archiv konnte nicht aktualisiert werden. Bitte später erneut speichern.':
+    'Veranstaltung und ihre Strecke im Archiv gespeichert. Dein persönliches Trainingsziel bleibt unverändert.')
+   setScan(null);setDetails(null);setEdited([]);setSelectedSources([]);setFromArchive(null)
   }catch(e){setError(e instanceof Error?e.message:'Recherche konnte nicht gespeichert werden.')}
   finally{setBusy(null)}
+ }
+ const suggest=useCallback(async(query:string,city:string):Promise<VenueSuggestion[]>=>{
+  const data=await request({action:'suggest_venues',raceDate:goal?.raceDate,query,city})
+  return (Array.isArray(data.suggestions)?data.suggestions:[]) as VenueSuggestion[]
+ },[goal?.raceDate])
+ function pickVenue(item:VenueSuggestion){
+  if(!details)return
+  const address=item.address
+  setDetails({...details,venue:item.name,city:item.city,venueAddress:address})
+  setAddressInput(address||item.name)
+  setEdited(old=>[...new Set([...old,'venue','city','venueAddress'])])
+  const sources:Evidence[]=[
+   {field:'venue',url:item.source,evidence:'Aus Ortsauswahl: '+item.name},
+   {field:'city',url:item.source,evidence:'Aus Ortsauswahl: '+item.city},
+   ...(address?[{field:'venueAddress',url:item.source,evidence:'Ortsauswahl: '+address}]:[])
+  ]
+  setSelectedSources(sources)
+  setNotice(address?'Adresse aus Ortsauswahl übernommen.':'Ort gefunden – genaue Straße und Hausnummer fehlen beim Kartendienst.')
+ }
+ function useArchived(item:ArchiveEvent){
+  if(!goal)return
+  const reused={...item.template_details,eventDate:goal.raceDate} as Details
+  const preserved=item.evidence.filter(x=>!['eventDate','startTime','endTime'].includes(x.field))
+  setScan({sourceUrl:item.canonical_url,details:reused,sources:preserved,
+   missing:[],discoveredPages:[],warnings:[
+    'Archivdaten stammen aus einer früheren Austragung ('+(item.last_race_date||'Datum unbekannt')+
+    '). Datum, Startzeit und Strecke für dieses Jahr bitte prüfen.'],
+   saved:false,needsReview:true,routeMetadataStatus:'archive_route_not_reverified',
+   addressResolution:'not_required'})
+  setDetails(reused)
+  setAddressInput(String(reused.venueAddress||''))
+  setSelectedSources([])
+  setEdited(['eventDate','startTime','endTime'])
+  setFromArchive(item.event_name)
+  setRouteEdit(false)
+  setUrl(item.canonical_url)
+  onLogoChange?.(typeof reused.logoUrl==='string'?reused.logoUrl:null)
+  setNotice('Aus Archiv übernommen. Die Strecke kann unverändert bleiben oder für diese Austragung geändert werden.')
+  setError('')
  }
  if(!active)return null
  const chosen=scan&&details?details:null
@@ -116,6 +188,27 @@ export function RaceEventResearch({active,refreshKey=0}:{active:boolean;refreshK
    <p>Nur die offizielle Webseite einfügen: Event Scout prüft diese und bis zu drei relevante Unterseiten.
     Alles Gefundene kannst du vor dem Speichern bearbeiten.</p>
   </div><span className="rer-flag">MIT QUELLEN</span></div>
+  <div className="rer-archive">
+   <div className="rer-archive-head"><div><span className="rer-kicker">WETTKAMPFARCHIV</span>
+    <h3>Schon einmal gelaufen? Einfach übernehmen.</h3>
+    <p>Veranstaltung, Strecke und Logo wiederverwenden. Datum und Startzeit für die neue Austragung prüfen.</p></div>
+    <span className="rer-archive-count">{archive.length} Event{archive.length===1?'':'s'}</span>
+   </div>
+   {archive.length>0?<div className="rer-archive-cards">
+    {archive.map(item=><article key={item.id}>
+     {typeof item.template_details?.logoUrl==='string'&&
+      <img src={item.template_details.logoUrl} alt={'Logo '+item.event_name}
+       referrerPolicy="no-referrer" loading="lazy"/>}
+     <div><strong>{item.event_name}</strong>
+      <small>Zuletzt {item.last_race_date?item.last_race_date.split('-').reverse().join('.'): 'ohne Datum'}
+       {item.template_details?.officialLoopKm?' · Runde '+item.template_details.officialLoopKm+' km':''}</small>
+      <span>{item.template_details?.venue||item.template_details?.city||'Startort nicht hinterlegt'}</span></div>
+     <button type="button" disabled={!goal||!!busy} onClick={()=>useArchived(item)}>
+      Für aktuelles Ziel übernehmen
+     </button>
+    </article>)}
+   </div>:<p className="rer-empty-archive">Noch kein archiviertes Event. Nach dem ersten bestätigten Speichern erscheint es hier – auch für die nächste Austragung.</p>}
+  </div>
   <div className="rer-entry">
    <label htmlFor="rer-url">Veranstalter-Webseite (HTTPS)</label>
    <div className="rer-url-row">
@@ -131,30 +224,47 @@ export function RaceEventResearch({active,refreshKey=0}:{active:boolean;refreshK
   {chosen&&<div className="rer-result">
    <div className="rer-result-title"><div>
     <strong>Gefunden und zur Prüfung vorbereitet</strong>
-    <p>{scan.discoveredPages.length} geprüfte Seite(n) ·
+    <p>{fromArchive?'Aus gespeicherten Veranstaltungsdaten':scan.discoveredPages.length+' geprüfte Seite(n)'} ·
      {scan.missing.length? ' '+scan.missing.length+' wesentliche Angabe(n) fehlen':' Basisangaben vorhanden'}</p>
    </div><span>NOCH NICHT GESPEICHERT</span></div>
+   {fromArchive&&<div className="rer-reuse-note">
+    <strong>Aus dem Archiv: {fromArchive}</strong>
+    <span>Strecke und Veranstaltungsort übernommen. Datum aus deinem aktuellen Ziel. Bitte Startzeiten und Streckenstand prüfen.</span>
+    <button type="button" onClick={()=>setRouteEdit(x=>!x)}>
+     {routeEdit?'Strecke beibehalten':'Strecke für diese Austragung ändern'}</button>
+   </div>}
+   {typeof chosen.logoUrl==='string'&&<div className="rer-logo-preview">
+    <img src={chosen.logoUrl} loading="lazy" referrerPolicy="no-referrer" alt={'Veranstalterlogo '+(chosen.eventName||'')}/>
+    <div><strong>Veranstalterlogo gefunden</strong><small>Originaldatei der Veranstalterseite, kein KI-generiertes Logo.
+      Du kannst die URL unten korrigieren.</small></div>
+   </div>}
    <div className="rer-grid">
     {fields.map(field=>{
      const value=chosen[field]
-     const evidence=!edited.includes(field)?scan.sources.find(s=>s.field===field):null
+     const evidence=selectedSources.find(s=>s.field===field)||(!edited.includes(field)?scan.sources.find(s=>s.field===field):null)
      const isLong=field==='routeNotes'
      const input=field==='eventDate'?'date':
       field==='startTime'||field==='endTime'?'time':
       field==='officialLoopKm'||field==='maximumDistanceKm'?'number':'text'
      return <label className={'rer-field'+(isLong?' rer-wide':'')} key={field}>
       <span>{labels[field]}</span>
-      {isLong?<textarea value={value===null?'':String(value)} rows={2}
-       onChange={e=>update(field,e.target.value)}/>:
+      {field==='venueAddress'?<VenueAutocomplete
+        value={addressInput} city={String(chosen.city||goal?.raceLocation||'')} disabled={!!busy}
+        request={suggest} onPick={pickVenue}
+        onChange={v=>update('venueAddress',v)}/>:
+       isLong?<textarea value={value===null?'':String(value)} rows={2}
+        onChange={e=>update(field,e.target.value)}/>:
        <input type={input} min={input==='number'?'0.1':undefined}
         step={input==='number'?'0.1':undefined}
         value={value===null?'':String(value)}
         onChange={e=>update(field,e.target.value)}
         placeholder="Nicht gefunden"/>}
+      {fromArchive&&['routeUrl','gpxUrl','officialLoopKm'].includes(field)&&routeEdit&&
+        <small className="rer-manual">Streckenstand neu prüfen – gespeicherter Archivwert bleibt erhalten, bis du speicherst.</small>}
       {field==='venueAddress'&&value&&!edited.includes(field)&&
        (scan.addressResolution==='matched'||scan.addressResolution==='cached')&&
        <small className="rer-auto-address">✓ Automatisch anhand von Veranstaltungsort und Stadt gefunden · bitte prüfen</small>}
-      {edited.includes(field)?<small className="rer-manual">Manuell bearbeitet</small>:
+      {edited.includes(field)&&!selectedSources.some(s=>s.field===field)?<small className="rer-manual">Manuell bearbeitet</small>:
        evidence?<small className="rer-evidence">
         <a href={evidence.url} target="_blank" rel="noreferrer">Quelle öffnen</a>
         <span>{evidence.evidence}</span>

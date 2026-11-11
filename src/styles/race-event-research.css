@@ -53,3 +53,52 @@
 .rer-auto-address{font-size:10px;line-height:1.4;color:#9aebc7;font-weight:750}
 .rer-geocode-note{font-size:10px;line-height:1.55;color:#a4b9d1;margin:12px 0}
 .rer-geocode-note a{color:#b0c8ff;text-decoration:underline;text-underline-offset:2px}
+
+
+/* Reusable race archive – premium cards, compact touch controls */
+.rer-archive{margin:17px 0;padding:17px;border:1px solid rgba(156,174,239,.18);border-radius:16px;
+ background:linear-gradient(135deg,rgba(100,91,188,.11),rgba(17,30,48,.4))}
+.rer-archive-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.rer-archive-head h3{font-size:18px;letter-spacing:-.03em;margin:7px 0}
+.rer-archive-head p,.rer-empty-archive{font-size:11px;line-height:1.6;color:#a9b9d3;margin:0}
+.rer-archive-count{font-size:10px;color:#c3bafe;border:1px solid rgba(186,172,252,.3);
+ border-radius:100px;padding:6px 10px;white-space:nowrap}
+.rer-archive-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:14px}
+.rer-archive-cards article{display:flex;flex-wrap:wrap;align-items:center;gap:10px;min-width:0;padding:12px;
+ border:1px solid rgba(168,183,235,.2);border-radius:14px;background:#182540}
+.rer-archive-cards img{width:47px;height:47px;object-fit:contain;background:white;border-radius:10px;padding:4px;box-sizing:border-box}
+.rer-archive-cards article>div{display:flex;flex-direction:column;gap:4px;flex:1 1 120px;min-width:0}
+.rer-archive-cards strong{font-size:12px}
+.rer-archive-cards small,.rer-archive-cards span{font-size:10px;color:#adbed8;line-height:1.35}
+.rer-archive-cards button{min-height:39px;padding:9px 10px;font-size:11px;border-radius:10px;
+ border:1px solid rgba(178,164,255,.4);background:#383b73;color:#e5e6ff;font-weight:770;cursor:pointer}
+.rer-empty-archive{margin-top:12px}
+.rer-reuse-note{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-bottom:14px;
+ border:1px solid rgba(149,210,186,.25);background:rgba(45,104,84,.14);padding:12px;border-radius:12px}
+.rer-reuse-note strong{font-size:12px;color:#b9ead5}
+.rer-reuse-note span{font-size:11px;line-height:1.5;color:#afc8c5;flex:1 1 190px}
+.rer-reuse-note button{border:1px solid rgba(145,220,184,.34);border-radius:9px;
+ background:rgba(23,84,76,.55);color:#d4f9e9;padding:10px;font-size:11px;font-weight:770}
+.rer-logo-preview{display:flex;align-items:center;gap:13px;border:1px solid rgba(153,170,219,.23);
+ border-radius:12px;padding:10px;margin-bottom:14px;background:rgba(38,49,83,.25)}
+.rer-logo-preview img{width:76px;height:66px;object-fit:contain;background:#f4f3ef;border-radius:10px;padding:7px;box-sizing:border-box}
+.rer-logo-preview>div{display:flex;flex-direction:column;gap:6px}
+.rer-logo-preview strong{font-size:12px;color:#f0f2ff}
+.rer-logo-preview small{font-size:11px;color:#9badc9;line-height:1.5}
+.rer-autocomplete{position:relative;min-width:0}
+.rer-autocomplete>input{box-sizing:border-box;width:100%}
+.rer-suggest-list{position:absolute;top:calc(100% - 14px);left:0;right:0;z-index:20;
+ padding:5px;border:1px solid rgba(151,178,239,.55);border-radius:12px;
+ background:#1a2948;box-shadow:0 18px 36px rgba(0,0,0,.44);max-height:260px;overflow-y:auto}
+.rer-suggest-list button{display:flex;align-items:center;justify-content:space-between;gap:10px;
+ width:100%;min-height:45px;border:0;border-radius:8px;background:transparent;color:#eaf0ff;
+ text-align:left;padding:10px;font-family:inherit;cursor:pointer}
+.rer-suggest-list button:hover,.rer-suggest-list button:focus{background:#31436a;outline:none}
+.rer-suggest-list button>span:first-child{display:flex;flex-direction:column;gap:5px;min-width:0}
+.rer-suggest-list b{font-size:12px}.rer-suggest-list small{font-size:10px;color:#a7bcd9}
+.rer-suggest-origin{font-size:10px;color:#a3e6c2;flex-shrink:0}
+.rer-suggest-status{padding:12px;font-size:11px;color:#b2c2dd}
+.rer-suggest-help{display:block;margin:6px 0 0;font-size:10px;color:#92a9ca;line-height:1.45}
+@media(max-width:620px){.rer-archive{padding:12px}.rer-archive-cards{grid-template-columns:minmax(0,1fr)}
+.rer-archive-cards button{width:100%}.rer-logo-preview img{width:58px;height:58px}
+.rer-reuse-note button{width:100%}}
