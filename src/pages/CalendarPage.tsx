@@ -352,6 +352,6 @@ export function CalendarPage({active}:{active:boolean}){
   </div>
   {error&&<p className="hc-error" role="alert">{error}</p>}
   {notice&&<p className="hc-notice" role="status">{notice}</p>}
-  <p className="hc-footnote">Absolvierte Garmin-Aktivitäten sind die Datenbasis. Das Wetter steht direkt am Trainingstermin. Eigene Trainings kannst du freigeben oder nach Bestätigung entfernen; echte Aktivitäten werden nicht gelöscht.</p>
+  <p className="hc-footnote">Absolvierte Garmin-Aktivitäten sind die Datenbasis. Garmin-Kalendervorlagen werden ausgeblendet. Das Wetter steht direkt am Trainingstermin. Eigene Trainings kannst du freigeben oder nach Bestätigung entfernen; echte Aktivitäten werden nicht gelöscht.</p>
  </section>
 }
