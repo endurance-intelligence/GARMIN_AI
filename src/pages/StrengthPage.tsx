@@ -2,280 +2,253 @@ import {useEffect,useMemo,useRef,useState} from 'react'
 import {Icon} from '../components/Icon'
 import {EI_EXERCISES} from '../lib/eiExercises'
 import type {EIExercise} from '../lib/eiExercises'
+import {buildMovementPlan,MOVEMENT_MINUTES,MOVEMENT_PATTERNS} from '../lib/movementSession'
+import type {MovementPlan,MovementStep} from '../lib/movementSession'
 import {berlinDate,crossKind,loadCrossTraining,saveCrossTraining} from '../lib/crossTrainingClient'
-import type {CrossResponse,CrossKind} from '../lib/crossTrainingClient'
+import type {CrossResponse} from '../lib/crossTrainingClient'
 import '../styles/strength-studio.css'
+import '../styles/movement-studio-v2.css'
 
-type Topic='stabi'|'mobility'|'rowing'
-type Phase='work'|'rest'
-type Player={index:number;round:number;phase:Phase;remaining:number;running:boolean;done:boolean}
-const STABI=['dead-bug','bird-dog','pallof-press','forearm-plank','glute-bridge','side-plank','calf-raise']
-const MOBILITY=['cat-cow','hip-flexor-stretch','thoracic-rotation','knee-to-wall','adductor-rockback']
-const mobilityIds=new Set(['cat-cow','adductor-rockback','hip-flexor-stretch','thoracic-rotation',
- 'knee-to-wall','child-pose-breathing','short-foot'])
+type Player={index:number;rest:boolean;remaining:number;running:boolean;done:boolean}
+const DAY=berlinDate
 const categories=[
- {id:'all',name:'Alle'}, {id:'core',name:'Core'}, {id:'hips',name:'Hüfte'},
- {id:'ankle',name:'Fuß & Wade'}, {id:'strength',name:'Kraft'}
+ {id:'all',name:'Alle'}, {id:'core',name:'Core'},
+ {id:'hips',name:'Hüfte'}, {id:'ankle',name:'Fuß & Wade'},
+ {id:'strength',name:'Kraft'}, {id:'back',name:'Rücken'}
 ] as const
-const iconFor=(exercise:EIExercise)=>
- exercise.focusAreas?.includes('core')?'shield-check':
- exercise.focusAreas?.includes('ankle')?'footprints':
- exercise.focusAreas?.includes('hips')?'activity':'move'
+const byId=new Map(EI_EXERCISES.map(x=>[x.id,x]))
 const formatClock=(n:number)=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')
-const fmtDate=(date:string)=>date.slice(8,10)+'.'+date.slice(5,7)+'.'
+const short=(n:string)=>n.slice(8,10)+'.'+n.slice(5,7)+'.'
+const movementLabel=(part:MovementStep['part'])=>part==='warmup'?'Mobilisieren':part==='strength'?'Kraft & Stabilität':'Auslockern'
+function advance(p:Player,plan:MovementPlan):Player{
+ const step=plan.steps[p.index]
+ if(!step)return {...p,running:false,done:true,remaining:0}
+ if(!p.rest&&step.restSeconds>0)return {...p,rest:true,remaining:step.restSeconds}
+ const index=p.index+1
+ if(index>=plan.steps.length)return {...p,running:false,done:true,remaining:0}
+ return {...p,index,rest:false,remaining:plan.steps[index].workSeconds}
+}
 export function StrengthPage({active}:{active:boolean}){
- const [topic,setTopic]=useState<Topic>('stabi')
+ const [date,setDate]=useState(DAY)
+ const [rotation,setRotation]=useState(0)
  const [focus,setFocus]=useState('all')
- const [query,setQuery]=useState('')
- const [selected,setSelected]=useState<string[]>(STABI)
+ const [search,setSearch]=useState('')
  const [detail,setDetail]=useState<EIExercise|null>(null)
  const [player,setPlayer]=useState<Player|null>(null)
+ const [rpe,setRpe]=useState('')
  const [history,setHistory]=useState<CrossResponse|null>(null)
  const [loading,setLoading]=useState(false)
- const [saveBusy,setSaveBusy]=useState(false)
- const [date,setDate]=useState(berlinDate)
- const [duration,setDuration]=useState(25)
- const [distance,setDistance]=useState(5000)
- const [rpe,setRpe]=useState('')
+ const [saving,setSaving]=useState(false)
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
  const [additional,setAdditional]=useState(false)
- const requestId=useRef(crypto.randomUUID())
- const today=berlinDate()
+ const idempotency=useRef(crypto.randomUUID())
+ const today=DAY()
+ const plan=useMemo(()=>buildMovementPlan(date,rotation),[date,rotation])
+ const exercises=useMemo(()=>EI_EXERCISES.filter(x=>{
+  if(focus!=='all'&&!x.focusAreas?.includes(focus))return false
+  const text=(x.name+' '+x.group+' '+(x.purpose||'')).toLocaleLowerCase('de-DE')
+  return text.includes(search.trim().toLocaleLowerCase('de-DE'))
+ }),[focus,search])
  useEffect(()=>{
   if(!active)return
   let mounted=true
   setLoading(true);setError('')
-  void loadCrossTraining().then(r=>{if(mounted)setHistory(r)})
-   .catch(e=>{if(mounted)setError(e instanceof Error?e.message:'Trainingsdaten nicht geladen')})
+  void loadCrossTraining().then(x=>{if(mounted)setHistory(x)})
+   .catch(e=>{if(mounted)setError(e instanceof Error?e.message:'Verlauf nicht erreichbar')})
    .finally(()=>{if(mounted)setLoading(false)})
   return ()=>{mounted=false}
  },[active])
  useEffect(()=>{
   if(!active||!player?.running||player.done)return
-  const timer=setInterval(()=>setPlayer(p=>{
+  const interval=setInterval(()=>setPlayer(p=>{
    if(!p||!p.running||p.done)return p
-   if(p.remaining>1)return {...p,remaining:p.remaining-1}
-   if(p.phase==='work')return {...p,phase:'rest',remaining:20}
-   if(p.index<selected.length-1)return {...p,index:p.index+1,phase:'work',remaining:40}
-   if(p.round<3)return {...p,index:0,round:p.round+1,phase:'work',remaining:40}
-   return {...p,running:false,done:true,remaining:0}
+   return p.remaining>1?{...p,remaining:p.remaining-1}:advance(p,plan)
   }),1000)
-  return ()=>clearInterval(timer)
- },[active,player?.running,player?.done,selected.length])
- useEffect(()=>{
-  if(!active)setPlayer(p=>p?{...p,running:false}:p)
- },[active])
- const exercises=useMemo(()=>EI_EXERCISES.filter(e=>{
-  if(topic==='rowing')return false
-  if(topic==='mobility'&&!mobilityIds.has(e.id)&&!e.focusAreas?.includes('mobility'))return false
-  if(topic==='stabi'&&mobilityIds.has(e.id))return false
-  if(focus!=='all'&&!e.focusAreas?.includes(focus))return false
-  const search=query.trim().toLocaleLowerCase('de-DE')
-  return !search||(e.name+' '+e.group+' '+(e.purpose||'')).toLocaleLowerCase('de-DE').includes(search)
- }),[topic,focus,query])
- const chosen=selected.map(id=>EI_EXERCISES.find(e=>e.id===id)).filter((x):x is EIExercise=>!!x)
- const prescribed=chosen.length*3 // 40s activity + 20s transition, 3 rounds
- const recordings=useMemo(()=>{
-  if(!history)return []
-  const g=history.garmin.map(a=>({
-   id:'g-'+a.activity_id,day:a.start_time_local.slice(0,10),
-   title:a.activity_name||a.sport_type,source:'Garmin',
-   kind:crossKind(a.sport_type),duration:Math.round((a.duration_s||0)/60),
-   distance:a.distance_m
-  })).filter(x=>x.kind!==null)
-  const m=history.manual.map(a=>({
-   id:'m-'+a.id,day:a.session_date,title:a.kind==='rowing'?'Rudern':a.kind==='mobility'?'Mobility':'Stabi',
-   source:'Manuell',kind:a.kind,duration:a.duration_minutes,
-   distance:a.rowing_distance_m
-  }))
-  return [...g,...m].sort((a,b)=>b.day.localeCompare(a.day)).slice(0,12)
- },[history])
- function chooseTopic(next:Topic){
-  setTopic(next);setQuery('');setFocus('all');setError('');setNotice('')
-  if(next!=='rowing'){setSelected(next==='stabi'?[...STABI]:[...MOBILITY]);setDuration(next==='stabi'?25:15)}
-  else setDuration(30)
-  setPlayer(null)
+  return ()=>clearInterval(interval)
+ },[active,player?.running,player?.done,plan])
+ useEffect(()=>{if(!active)setPlayer(p=>p?{...p,running:false}:p)},[active])
+ function mixAgain(){
+  if(player?.running)return
+  setRotation(x=>x+1);setPlayer(null);setNotice('')
  }
- function toggleExercise(id:string){
-  setSelected(prev=>prev.includes(id)?prev.filter(x=>x!==id):prev.length>=12?prev:[...prev,id])
- }
- function startPlayer(){
-  if(!chosen.length)return
-  setPlayer({index:0,round:1,phase:'work',remaining:40,running:true,done:false})
-  setDuration(prescribed)
-  setDetail(null)
+ function begin(){
+  if(player?.running)return
+  setPlayer({index:0,rest:false,remaining:plan.steps[0].workSeconds,running:true,done:false})
+  setError('');setNotice('')
  }
  async function save(){
-  if(saveBusy)return
-  setSaveBusy(true);setError('');setNotice('')
-  const kind:CrossKind=topic==='stabi'?'strength':topic
+  if(saving||date>today)return
+  setSaving(true);setNotice('');setError('')
   try{
-   const response=await saveCrossTraining({
-    clientRequestId:requestId.current,kind,date,durationMinutes:duration,
-    distanceMeters:kind==='rowing'?distance:null,rpe:rpe?Number(rpe):null,
-    exerciseIds:kind==='rowing'?[]:selected,note:'',confirmAdditional:additional
-   })
-   if(!response.saved)throw Error('Speichern nicht bestätigt')
-   setNotice('Einheit dokumentiert. Der Coach sieht sie im Wochenkontext; kein Garmin-Schreibzugriff.')
-   setAdditional(false)
-   requestId.current=crypto.randomUUID()
+   const res=await saveCrossTraining({clientRequestId:idempotency.current,
+    kind:'strength',date,durationMinutes:MOVEMENT_MINUTES,
+    distanceMeters:null,rpe:rpe?Number(rpe):null,exerciseIds:plan.exerciseIds,
+    note:'Stabi & Mobility · 30 Min. · 4 Min. Mobility, 24 Min. Kraft/Stabi, 2 Min. Lockerung',
+    confirmAdditional:additional})
+   if(!res.saved)throw Error('Einheit nicht bestätigt')
+   setNotice('30 Minuten Stabi & Mobility gespeichert. Coach berücksichtigt die Belastung.')
+   setAdditional(false);idempotency.current=crypto.randomUUID()
    setHistory(await loadCrossTraining())
   }catch(e){
-   const issue=e as Error&{duplicateGarmin?:boolean}
-   if(issue.duplicateGarmin)setAdditional(true)
-   setError(e instanceof Error?e.message:'Einheit konnte nicht gespeichert werden')
-  }finally{setSaveBusy(false)}
+   const err=e as Error&{duplicateGarmin?:boolean}
+   if(err.duplicateGarmin)setAdditional(true)
+   setError(e instanceof Error?e.message:'Speichern fehlgeschlagen')
+  }finally{setSaving(false)}
  }
+ const records=useMemo(()=>{
+  if(!history)return []
+  const g=history.garmin.map(a=>({id:'g-'+a.activity_id,
+   date:a.start_time_local.slice(0,10),name:a.activity_name||a.sport_type,
+   kind:crossKind(a.sport_type),minutes:Math.round((a.duration_s||0)/60),source:'Garmin'}))
+  const m=history.manual.map(a=>({id:'m-'+a.id,date:a.session_date,
+   name:a.kind==='strength'?'Stabi & Mobility':a.kind==='mobility'?'Mobility':'Rudern',
+   kind:a.kind,minutes:a.duration_minutes,source:'Manuell'}))
+  return [...g,...m].filter(x=>x.kind==='strength'||x.kind==='mobility')
+   .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6)
+ },[history])
  if(!active)return null
- return <section className="ss-root page active" aria-label="Stabi und Cross Training">
-  <header className="ss-hero">
+ const current=player?plan.steps[player.index]:null
+ const currentExercise=current?byId.get(current.exerciseId):null
+ return <section className="ss-root page active ms-root" aria-label="Stabi und Mobility Studio">
+  <header className="ss-hero ms-hero">
    <div><span className="ss-kicker">GARMIN_AI / MOVEMENT STUDIO</span>
     <h1>Stark laufen.<br/><em>Stabil bleiben.</em></h1>
-    <p>Stabi, Mobility und Rudern. Die bewährten Übungen aus Endurance Intelligence,
-     mit deinen echten Garmin-Daten verbunden.</p></div>
-   <div className="ss-hero-badge"><Icon name="activity"/><strong>MOVE</strong><small>SMARTER</small></div>
+    <p>Kraft und Mobility in einer Einheit. Der Coach mischt bewährte Übungen aus Endurance Intelligence
+     nach Bewegungsmustern – ohne künstliche Fitness-Scores.</p></div>
+   <div className="ms-hero-time"><strong>30<span>min</span></strong><small>DEIN STANDARD</small></div>
   </header>
-  <nav className="ss-tabs" aria-label="Trainingsart">
-   {([{id:'stabi',title:'Stabi & Kraft',icon:'shield-check'},{id:'mobility',title:'Mobility',icon:'move'},
-      {id:'rowing',title:'Rudern',icon:'waves'}] as const).map(x=>
-    <button type="button" key={x.id} aria-pressed={topic===x.id}
-      className={topic===x.id?'is-active':''} onClick={()=>chooseTopic(x.id)}>
-      <Icon name={x.icon}/>{x.title}</button>)}
-  </nav>
-  {topic!=='rowing'?<>
-   <section className="ss-session">
-    <div className="ss-section-title"><div><span>DEINE SESSION</span>
-     <h2>{topic==='stabi'?'Laufstabi · 3 Runden':'Mobility · freie Auswahl'}</h2>
-     <p>{chosen.length} Übungen · 40 s Belastung / 20 s Wechsel
-      {topic==='stabi'?' · 3 Runden':' · flexibel anpassbar'}</p></div>
-     <div className="ss-session-stat"><strong>{prescribed}</strong><small>Min. Vorschlag</small></div>
-    </div>
-    <div className="ss-chosen">
-     {chosen.length?chosen.map(e=><button type="button" className="ss-chip" key={e.id}
-      onClick={()=>toggleExercise(e.id)} title="Übung aus Auswahl entfernen">{e.name}<span>×</span></button>):
-      <span>Wähle unten Übungen für deine Session aus.</span>}
-    </div>
-    <div className="ss-actions">
-     <button type="button" className="ss-main-action" disabled={!chosen.length}
-      onClick={startPlayer}><Icon name="play"/> Training starten</button>
-     <button type="button" className="ss-alt-action" onClick={()=>{
-      setSelected(topic==='stabi'?[...STABI]:[...MOBILITY]);setPlayer(null)
-     }}>Vorlage zurücksetzen</button>
-    </div>
-   </section>
-   <section className="ss-library">
-    <div className="ss-section-title"><div><span>ENDURANCE INTELLIGENCE / BIBLIOTHEK</span>
-     <h2>{topic==='stabi'?'Deine Stabi-Übungen':'Beweglichkeit & Regeneration'}</h2>
-     <p>Technik, häufige Fehler und Varianten aus der bewährten Übungsbibliothek.</p></div>
-     <span className="ss-count">{exercises.length} Übungen</span></div>
-    <div className="ss-filters">
-     <input type="search" value={query} onChange={e=>setQuery(e.target.value)}
-      aria-label="Übungen durchsuchen" placeholder="Übung suchen …"/>
-     <div>{categories.map(x=><button type="button" key={x.id}
-      className={focus===x.id?'active':''} aria-pressed={focus===x.id}
-      onClick={()=>setFocus(x.id)}>{x.name}</button>)}</div>
-    </div>
-    <div className="ss-exercises">{exercises.map(e=>
-     <article className="ss-exercise" key={e.id}>
-      <div className="ss-exercise-icon"><Icon name={iconFor(e)}/></div>
-      <div className="ss-exercise-info"><span>{e.group} · {e.seconds||60} s</span>
-       <h3>{e.name}</h3><p>{e.purpose||e.instruction||'Kontrollierte Ausführung.'}</p></div>
-      <div className="ss-exercise-buttons">
-       <button type="button" onClick={()=>setDetail(e)}>Anleitung</button>
-       <button type="button" className={selected.includes(e.id)?'in-session':''}
-        onClick={()=>toggleExercise(e.id)}
-        aria-pressed={selected.includes(e.id)}>
-        {selected.includes(e.id)?'✓ Gewählt':'+ Hinzufügen'}</button>
-      </div>
-     </article>)}</div>
-   </section>
-  </>:<section className="ss-rowing">
-   <div className="ss-section-title"><div><span>RUDERN / ERGOMETER</span>
-    <h2>Kilometer auf dem Rudergerät.</h2>
-    <p>Rudern ergänzt dein Lauftraining. Echte Garmin-Einheiten erscheinen unten automatisch.</p></div>
-    <div className="ss-row-icon"><Icon name="waves"/></div>
+  <section className="ss-session ms-session">
+   <div className="ss-section-title">
+    <div><span>DEIN MIX / AUSGEWOGEN STATT BELIEBIG</span>
+     <h2>Stabi + Mobility</h2>
+     <p>8 Kraftbewegungen, 3 Runden · Mobilität am Anfang und Ende.
+      Die Reihenfolge ist bewusst gewählt; die Varianten wechseln.</p></div>
+    <div className="ss-session-stat"><strong>{MOVEMENT_MINUTES}</strong><small>Minuten</small></div>
    </div>
-   <div className="ss-row-guide">
-    <div><b>5 km</b><span>Deine häufige Ruderdistanz – nur als Eingabevorschlag</span></div>
-    <div><b>30–35 min</b><span>Orientierung, kein vorgeschriebenes Tempo</span></div>
-    <div><b>HF & RPE</b><span>Belastung im Coach berücksichtigen</span></div>
+   <div className="ms-structure" aria-label="Aufteilung der 30 Minuten">
+    <div style={{flex:4}}><b>4'</b><small>Warm-up</small></div>
+    <div style={{flex:24}}><b>24'</b><small>Kraft / Stabi</small></div>
+    <div style={{flex:2}}><b>2'</b><small>Mobility</small></div>
    </div>
-  </section>}
+   <div className="ms-plan-preview">
+    {(['warmup','strength','cooldown'] as const).map(part=>{
+     const steps=plan.steps.filter(x=>x.part===part)
+     const unique=part==='strength'?steps.slice(0,8):steps
+     return <div className="ms-plan-section" key={part}>
+      <div className="ms-plan-heading"><strong>{movementLabel(part)}</strong>
+       <span>{part==='warmup'?'4 × 60 Sek.':part==='strength'?'3 × 8 × (40 + 20 Sek.)':'2 × 60 Sek.'}</span></div>
+      <div className="ms-plan-exercises">{unique.map((s,i)=>{
+       const e=byId.get(s.exerciseId)
+       return <button type="button" key={s.exerciseId+'-'+i}
+        onClick={()=>e&&setDetail(e)} title="Übungsanleitung öffnen">
+        <span>{e?.name||s.exerciseId}</span><small>{part==='strength'?MOVEMENT_PATTERNS[i].id.replace('-',' '):'Mobility'}</small>
+       </button>
+      })}</div>
+     </div>
+    })}
+   </div>
+   <div className="ss-actions">
+    <button className="ss-main-action" type="button" onClick={begin}>
+     <Icon name="play"/> 30-Minuten-Einheit starten</button>
+    <button className="ss-alt-action" type="button" onClick={mixAgain} disabled={!!player?.running}>
+     Neu zusammenstellen</button>
+   </div>
+   <p className="ms-caption">Die Mischung ist ein Vorschlag, keine automatische Trainingsfreigabe.
+    Vor harten Bahneinheiten oder nach Fußball empfiehlt der Coach bei Bedarf eine leichtere Variante.</p>
+  </section>
+  <section className="ss-library">
+   <div className="ss-section-title"><div>
+    <span>DEINE ÜBUNGSBIBLIOTHEK</span><h2>Alle Übungen, ein Studio.</h2>
+    <p>Technik, häufige Fehler und leichtere/schwerere Varianten aus Endurance Intelligence.
+     Für den Coach sind die wichtigsten Bewegungsmuster fest hinterlegt.</p></div>
+    <span className="ss-count">{EI_EXERCISES.length} Übungen</span></div>
+   <div className="ss-filters">
+    <input type="search" value={search} onChange={e=>setSearch(e.target.value)}
+     placeholder="Übung suchen …" aria-label="Übungen suchen"/>
+    <div>{categories.map(cat=><button type="button" key={cat.id}
+     className={focus===cat.id?'active':''} aria-pressed={focus===cat.id}
+     onClick={()=>setFocus(cat.id)}>{cat.name}</button>)}</div>
+   </div>
+   <div className="ss-exercises">{exercises.map(exercise=>
+    <article className="ss-exercise" key={exercise.id}>
+     <div className="ss-exercise-icon"><Icon name={exercise.focusAreas?.includes('core')?'shield-check':exercise.focusAreas?.includes('ankle')?'footprints':'activity'}/></div>
+     <div className="ss-exercise-info">
+      <span>{exercise.group} · {exercise.seconds||60} Sek.</span>
+      <h3>{exercise.name}</h3><p>{exercise.purpose||exercise.instruction}</p></div>
+     <div className="ss-exercise-buttons">
+      <button type="button" onClick={()=>setDetail(exercise)}>Anleitung öffnen</button>
+      <button type="button" disabled={!plan.exerciseIds.includes(exercise.id)}
+       className={plan.exerciseIds.includes(exercise.id)?'in-session':''}>
+       {plan.exerciseIds.includes(exercise.id)?'✓ Im heutigen Mix':'Weitere Übung'}</button>
+     </div>
+    </article>)}</div>
+  </section>
   <section className="ss-log">
-   <div className="ss-section-title"><div><span>TRAINING DOKUMENTIEREN</span>
-    <h2>{topic==='rowing'?'Rudereinheit':'Stabi/Mobility-Einheit'} erfassen</h2>
-    <p>Nur für tatsächliche Einheiten, die Garmin nicht bereits erfasst hat.</p></div></div>
-   <div className="ss-log-fields">
-    <label>Datum<input type="date" max={today} value={date} onChange={e=>{setDate(e.target.value);setAdditional(false)}}/></label>
-    <label>Dauer (Min.)<input type="number" min={5} max={240} value={duration}
-      onChange={e=>setDuration(Number(e.target.value))}/></label>
-    {topic==='rowing'&&<label>Distanz (m)<input type="number" min={500} max={100000} step={100}
-      value={distance} onChange={e=>setDistance(Number(e.target.value))}/></label>}
-    <label>Empfundene Belastung
-     <select value={rpe} onChange={e=>setRpe(e.target.value)}>
-      <option value="">Nicht angegeben</option>
-      {Array.from({length:10},(_,i)=>i+1).map(n=><option key={n} value={n}>RPE {n}/10</option>)}
-     </select></label>
+   <div className="ss-section-title"><div><span>ABGESCHLOSSENES TRAINING</span>
+    <h2>Einheit dokumentieren</h2>
+    <p>Nur speichern, wenn du die Einheit wirklich durchgeführt hast.
+     Garmin-Aufzeichnungen werden nicht doppelt übernommen.</p></div></div>
+   <div className="ss-log-fields ms-log-fields">
+    <label>Datum<input type="date" max={today} value={date}
+     onChange={e=>{setDate(e.target.value);setRotation(0);setPlayer(null);setAdditional(false)}}/></label>
+    <label>Umfang<input value="30 Minuten · Stabi & Mobility" readOnly/></label>
+    <label>Empfundene Anstrengung<select value={rpe} onChange={e=>setRpe(e.target.value)}>
+     <option value="">Nicht angegeben</option>
+     {Array.from({length:10},(_,i)=>i+1).map(i=><option key={i} value={i}>RPE {i}/10</option>)}
+    </select></label>
    </div>
-   <button type="button" className="ss-main-action"
-    disabled={saveBusy||(topic!=='rowing'&&!chosen.length)||!date||date>today}
-    onClick={()=>void save()}>{saveBusy?'Speichere …':additional?'Zusätzliche Einheit trotz Garmin-Eintrag speichern':'Durchgeführte Einheit speichern'}</button>
+   <button type="button" className="ss-main-action" disabled={saving||date>today}
+    onClick={()=>void save()}>{saving?'Speichere …':additional?'Trotz Garmin-Eintrag zusätzlich speichern':'Absolvierte Einheit speichern'}</button>
    {error&&<p className="ss-error" role="alert">{error}</p>}
    {notice&&<p className="ss-notice" role="status">{notice}</p>}
   </section>
   <section className="ss-history">
-   <div className="ss-section-title"><div><span>DEIN ECHTER TRAININGSVERLAUF</span>
-    <h2>Auch abseits der Laufstrecke.</h2>
-    <p>Garmin-Import und manuell erfasste ergänzende Einheiten, keine künstlichen Punkte.</p></div></div>
-   {loading&&<p>Lade Garmin-Aktivitäten …</p>}
-   <div className="ss-history-list">{recordings.slice(0,8).map(x=><div className="ss-history-item" key={x.id}>
-    <span>{x.kind==='rowing'?'🚣':x.kind==='strength'?'🏋️':x.kind==='football'?'⚽':'🧘'}</span>
-    <div><strong>{x.title}</strong><small>{fmtDate(x.day)} · {x.source}</small></div>
-    <b>{x.kind==='rowing'&&x.distance?Math.round(x.distance/100)/10+' km · ':''}{x.duration} Min.</b>
-   </div>)}</div>
-   {!loading&&!recordings.length&&<p className="ss-info">Noch keine ergänzenden Einheiten in diesem Zeitraum.</p>}
+   <div className="ss-section-title"><div><span>DEINE LETZTEN EINHEITEN</span>
+    <h2>Konstanz statt Punktesammeln.</h2><p>Garmin und bestätigte, manuelle Stabi-/Mobility-Einheiten.</p></div></div>
+   {loading&&<p>Lade Verlauf …</p>}
+   <div className="ss-history-list">{records.map(r=><div className="ss-history-item" key={r.id}>
+    <span>🧘</span><div><strong>{r.name}</strong><small>{short(r.date)} · {r.source}</small></div>
+    <b>{r.minutes} Min.</b></div>)}</div>
+   {!loading&&!records.length&&<p className="ss-info">Noch keine Einträge vorhanden.</p>}
+   <p className="ms-caption">Rudern wird weiterhin aus Garmin importiert und vom Coach als ergänzende Belastung berücksichtigt,
+    aber nicht als separates Trainingsstudio angezeigt.</p>
   </section>
   {detail&&<div className="ss-overlay" role="presentation" onPointerDown={e=>{
-   if(e.target===e.currentTarget)setDetail(null)
-  }}><section className="ss-detail" role="dialog" aria-modal="true" aria-label={'Anleitung '+detail.name}>
-   <button className="ss-close" type="button" aria-label="Schließen" onClick={()=>setDetail(null)}>×</button>
-   <span className="ss-kicker">{detail.group} / ENDURANCE INTELLIGENCE</span>
-   <h2>{detail.name}</h2><p>{detail.quickStart||detail.instruction}</p>
-   <div className="ss-detail-meta"><span>{detail.seconds||60} Sekunden</span>
-    <span>{detail.equipment?.length?'Equipment: '+detail.equipment.join(', '):'Ohne Zusatzmaterial'}</span></div>
-   <h3>So geht's</h3><ol>{(detail.steps||[]).map((s,i)=><li key={i}>{s}</li>)}</ol>
-   <div className="ss-guide-grid"><div><h3>Darauf achten</h3>
-    <ul>{(detail.cues||[]).map((s,i)=><li key={i}>{s}</li>)}</ul></div>
-    <div><h3>Häufige Fehler</h3><ul>{(detail.mistakes||[]).map((s,i)=><li key={i}>{s}</li>)}</ul></div></div>
-   <div className="ss-easier"><p><b>Leichter:</b> {detail.easier||'Kontrolliert und ohne Schmerz.'}</p>
-    <p><b>Schwerer:</b> {detail.harder||'Belastung nur bei stabiler Technik erhöhen.'}</p></div>
-   <a href={'https://www.youtube.com/results?search_query='+encodeURIComponent(detail.name+' Übung Anleitung')}
-    target="_blank" rel="noreferrer">Bewegung in einem Video ansehen</a>
-   <button className="ss-main-action" type="button" onClick={()=>{toggleExercise(detail.id);setDetail(null)}}>
-    {selected.includes(detail.id)?'Aus Session entfernen':'Zur Session hinzufügen'}</button>
-  </section></div>}
-  {player&&<div className="ss-overlay" role="presentation"><section className="ss-player" role="dialog"
-    aria-modal="true" aria-label="Stabi Session">
-    <span className="ss-kicker">WORKOUT PLAYER / {topic==='stabi'?'STABI':'MOBILITY'}</span>
-    <h2>{player.done?'Session geschafft.':chosen[player.index]?.name||'Übung'}</h2>
-    <p>Runde {player.round} von 3 · Übung {Math.min(player.index+1,chosen.length)} von {chosen.length}
-      · {player.phase==='work'?'Belastung':'Wechselpause'}</p>
+   if(e.target===e.currentTarget)setDetail(null)}}>
+   <section className="ss-detail" role="dialog" aria-modal="true" aria-label={'Anleitung '+detail.name}>
+    <button type="button" className="ss-close" onClick={()=>setDetail(null)} aria-label="Schließen">×</button>
+    <span className="ss-kicker">{detail.group} / COACH-GEPRÜFTE ÜBUNGEN</span>
+    <h2>{detail.name}</h2><p>{detail.quickStart||detail.instruction}</p>
+    <div className="ss-detail-meta"><span>{detail.seconds||60} Sekunden</span>
+     <span>{detail.equipment?.length?'Material: '+detail.equipment.join(', '):'Ohne Material'}</span></div>
+    <h3>So geht's</h3><ol>{(detail.steps||[]).map((s,i)=><li key={i}>{s}</li>)}</ol>
+    <div className="ss-guide-grid">
+     <div><h3>Darauf achten</h3><ul>{(detail.cues||[]).map((s,i)=><li key={i}>{s}</li>)}</ul></div>
+     <div><h3>Typische Fehler</h3><ul>{(detail.mistakes||[]).map((s,i)=><li key={i}>{s}</li>)}</ul></div></div>
+    <div className="ss-easier"><p><b>Leichter:</b> {detail.easier||'Weniger Widerstand.'}</p>
+     <p><b>Schwieriger:</b> {detail.harder||'Widerstand schrittweise erhöhen.'}</p></div>
+    <a href={'https://www.youtube.com/results?search_query='+encodeURIComponent(detail.name+' Übung Anleitung')}
+     target="_blank" rel="noreferrer">Video zur Bewegung suchen</a>
+    <button className="ss-main-action" type="button" onClick={()=>setDetail(null)}>Zurück zum Training</button>
+   </section></div>}
+  {player&&<div className="ss-overlay" role="presentation">
+   <section className="ss-player" role="dialog" aria-modal="true" aria-label="30-Minuten-Kraft-und-Mobility-Training">
+    <span className="ss-kicker">WORKOUT PLAYER / {current?movementLabel(current.part).toUpperCase():'FERTIG'}</span>
+    <h2>{player.done?'30 Minuten geschafft.':player.rest?'Wechselpause':currentExercise?.name||'Übung'}</h2>
+    <p>{player.done?'Training dokumentieren, wenn es tatsächlich absolviert wurde.':
+     (current?.part==='strength'?'Runde '+current.round+' von 3 · ':'')+
+     'Schritt '+(player.index+1)+' von '+plan.steps.length+
+     (player.rest?' · Nächste Übung vorbereiten':' · Kontrolliert ausführen')}</p>
     <div className="ss-timer" aria-live="off">{formatClock(player.remaining)}</div>
+    {!player.done&&currentExercise&&<p>{currentExercise.quickStart||currentExercise.instruction}</p>}
     <div className="ss-player-actions">
      {!player.done&&<button type="button" onClick={()=>setPlayer(p=>p?{...p,running:!p.running}:p)}>
       {player.running?'Pause':'Fortsetzen'}</button>}
-     <button type="button" onClick={()=>setPlayer(p=>{
-      if(!p||p.done)return p
-      if(p.phase==='work')return {...p,phase:'rest',remaining:20}
-      if(p.index<chosen.length-1)return {...p,index:p.index+1,phase:'work',remaining:40}
-      if(p.round<3)return {...p,round:p.round+1,index:0,phase:'work',remaining:40}
-      return {...p,done:true,running:false,remaining:0}
-     })}>Nächster Schritt</button>
+     {!player.done&&<button type="button" onClick={()=>setPlayer(p=>p?advance(p,plan):p)}>Nächster Abschnitt</button>}
      <button type="button" onClick={()=>setPlayer(null)}>Schließen</button>
     </div>
-    <p>Timer ist eine Orientierung, nicht automatisch bei Garmin gespeichert.
-     Nach der Einheit kannst du sie dokumentieren.</p>
-  </section></div>}
+    <p>40 Sekunden Arbeit / 20 Sekunden Wechsel im Kraftteil. Kein Garmin-Schreibzugriff.</p>
+   </section></div>}
  </section>
 }
