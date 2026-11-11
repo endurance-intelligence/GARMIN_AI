@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import type {Forecast,WeatherHour} from '../lib/weatherIntelligence'
 import {parseGpxTrack,routeSvg,windSegments} from '../lib/gpxRaceRoute.mjs'
+import {komootEmbedFromTour} from '../lib/komootEmbed.mjs'
 import type {Point} from '../lib/gpxRaceRoute.mjs'
 import '../styles/race-route-viewer.css'
 type Saved={race_date:string;route_url:string;coordinates:Point[];distance_m:number;
@@ -59,6 +60,7 @@ export function RaceRouteViewer({active,refreshKey=0,forecast}:{active:boolean;r
   finally{setBusy(false)}
  }
  if(!active)return null
+ const komoot=komootEmbedFromTour(loaded?.routeUrl||null)
  const points=draft?.points||loaded?.route?.coordinates||[]
  const model=routeSvg(points)
  const selected=model?Math.round(position/100*(model.positions.length-1)):0
@@ -81,9 +83,18 @@ export function RaceRouteViewer({active,refreshKey=0,forecast}:{active:boolean;r
   </div>{loaded?.routeUrl&&<a href={loaded.routeUrl} target="_blank" rel="noreferrer">
    Originalkarte öffnen</a>}</div>
   {!loaded&&!error&&<p className="rrv-info">Lade deine gespeicherte Wettkampfstrecke …</p>}
+  {komoot&&<div className="rrv-komoot">
+   <div className="rrv-komoot-top"><strong>Komoot · Interaktive Karte & Höhenprofil</strong>
+    <span>Direkt aus der gespeicherten Event-Strecke</span></div>
+   <iframe title={'Komoot-Karte und Höhenprofil der Tour '+komoot.id}
+    src={komoot.url} loading="lazy" referrerPolicy="strict-origin-when-cross-origin"
+    allowFullScreen/>
+   <p>Offizielle Komoot-Einbettung. Bei privaten oder entfernten Touren kann die Karte
+    eingeschränkt sein. Über „Originalkarte öffnen“ gelangst du immer direkt zur Quelle.</p>
+  </div>}
   {loaded?.reason==='no_saved_route_link'&&
    <p className="rrv-info">Bitte zuerst die Veranstaltungsdaten mit dem Streckenlink im Event Scout speichern.</p>}
-  {loaded?.routeUrl&&<div className="rrv-tools">
+  {loaded?.routeUrl&&<details className="rrv-gpx-advanced"><summary>Optionale GPX-Analyse für Gegenwindabschnitte</summary><div className="rrv-tools">
    <label className="rrv-file">GPX-Strecke auswählen
     <input type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml"
      onChange={e=>{void openFile(e.target.files?.[0]);e.target.value=''}}/></label>
@@ -91,10 +102,12 @@ export function RaceRouteViewer({active,refreshKey=0,forecast}:{active:boolean;r
      {busy?'Speichere …':'Diese Strecke speichern'}</button>}
    <span>{loaded.reusedFrom?'Strecke aus '+loaded.reusedFrom.split('-').reverse().join('.')+' übernommen':
     loaded.route?'Strecke für diese Austragung gespeichert':'Noch keine GPX-Geometrie gespeichert'}</span>
-  </div>}
-  {loaded?.routeUrl&&!model&&<p className="rrv-info">Ein Komoot-Link allein liefert noch keine GPS-Geometrie.
-   GPX-Datei auswählen, um Strecke und Höhenprofil zu sehen. Die Originalkarte kannst du direkt öffnen.</p>}
-  {model&&<div className="rrv-canvas">
+  </div><p>Für unsere eigene richtungsabhängige Windanalyse braucht GARMIN_AI
+   die GPS-Punkte. Die Komoot-Karte mit Höhenprofil funktioniert bereits ohne GPX.</p>
+   </details>}
+  {loaded?.routeUrl&&!model&&!komoot&&<p className="rrv-info">Dieser Link kann nicht direkt
+   als Komoot-Tour eingebettet werden. Nutze die Originalkarte oder lade optional eine GPX-Datei für eigene Streckenanalysen.</p>}
+  {model&&<details className="rrv-own-analysis"><summary>Eigene GPX-Streckenanalyse & Gegenwind anzeigen</summary><div className="rrv-canvas">
    <div className="rrv-map">
     <svg viewBox="0 0 640 300" role="img" aria-label="Geometrischer Streckenverlauf mit ausgewähltem Punkt">
      <defs><linearGradient id="rrv-line" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#80a6ff"/><stop offset="1" stopColor="#9ae6cb"/></linearGradient></defs>
@@ -127,7 +140,7 @@ export function RaceRouteViewer({active,refreshKey=0,forecast}:{active:boolean;r
     <small>Nur Laufrichtung und Windrichtung berechnet: keine Aussage über Abschirmung durch Bäume oder Gebäude,
      Streckenschatten oder den Wind zu jeder späteren Rennrunde.</small>
    </div>:<p className="rrv-info">Abschnittsbezogenes Wetter erst möglich, sobald GPX und Windrichtungsprognose vorliegen.</p>}
-  </div>}
+  </div></details>}
   {notice&&<p className="rrv-ok" role="status">{notice}</p>}
   {error&&<p className="rrv-error" role="alert">{error}</p>}
  </section>
