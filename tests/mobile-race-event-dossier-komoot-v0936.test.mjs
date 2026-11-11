@@ -46,7 +46,7 @@ test('the original Komoot tour embed works without a GPX import',()=>{
  const viewer=read('src/components/RaceRouteViewer.tsx')
  assert.match(viewer,/<iframe title=/)
  assert.match(viewer,/src=\{komoot\.url\}/)
- assert.match(viewer,/profile/)
+ assert.match(read('src/lib/komootEmbed.mjs'),/embed\.searchParams\.set\('profile','1'\)/)
  assert.match(viewer,/Komoot · Interaktive Karte & Höhenprofil/)
  assert.match(viewer,/Optionale GPX-Analyse für Gegenwindabschnitte/)
  assert.match(viewer,/Für unsere eigene richtungsabhängige Windanalyse/)
