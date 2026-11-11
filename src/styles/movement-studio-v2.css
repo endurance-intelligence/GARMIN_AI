@@ -1,0 +1,38 @@
+/* GARMIN_AI v0.9.28 – one premium Stabi + Mobility session, iPhone/iPad first. */
+.ms-hero{position:relative}
+.ms-hero-time{width:144px;flex:0 0 144px;aspect-ratio:1;display:flex;flex-direction:column;
+ justify-content:center;align-items:center;border:1px solid rgba(170,176,248,.28);border-radius:24px;
+ background:radial-gradient(circle at 30% 20%,rgba(120,113,254,.34),rgba(16,28,47,.82));
+ box-shadow:inset 0 1px 0 rgba(235,227,255,.06),0 10px 42px rgba(66,82,157,.12)}
+.ms-hero-time strong{font-size:53px;line-height:1;letter-spacing:-.075em;
+ background:linear-gradient(100deg,#cfc2ff,#8fd9ed);color:transparent;background-clip:text;-webkit-background-clip:text}
+.ms-hero-time strong span{font-size:17px;letter-spacing:-.03em;margin-left:3px}
+.ms-hero-time small{font-size:9px;letter-spacing:.15em;color:#b8c9e8;margin-top:9px}
+.ms-structure{display:flex;gap:3px;width:100%;border-radius:14px;overflow:hidden;margin:15px 0 21px;
+ background:#0c1423;min-height:68px}
+.ms-structure>div{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;min-width:0}
+.ms-structure>div:nth-child(1){background:linear-gradient(120deg,#1c736b,#1d5d65)}
+.ms-structure>div:nth-child(2){background:linear-gradient(120deg,#564895,#514fa1,#4565a0)}
+.ms-structure>div:nth-child(3){background:linear-gradient(120deg,#2b7798,#275d85)}
+.ms-structure b{font-size:21px;font-weight:850;color:white}.ms-structure small{font-size:10px;color:#d5def7;font-weight:650}
+.ms-plan-preview{display:grid;gap:12px;margin:6px 0 20px}
+.ms-plan-section{border:1px solid rgba(161,174,225,.16);border-radius:14px;background:#14213a;padding:13px}
+.ms-plan-heading{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:7px;margin-bottom:10px}
+.ms-plan-heading strong{font-size:13px;color:#f3f5ff}.ms-plan-heading span{font-size:10px;color:#acbddd}
+.ms-plan-exercises{display:flex;flex-wrap:wrap;gap:7px}
+.ms-plan-exercises button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:3px;
+ min-width:112px;flex:1 1 135px;max-width:235px;padding:10px;border:1px solid rgba(151,174,246,.2);
+ border-radius:11px;background:linear-gradient(135deg,#263554,#1d2a44);color:#e9edff}
+.ms-plan-exercises button span{font-size:12px;font-weight:760;line-height:1.3}
+.ms-plan-exercises button small{font-size:9px;color:#9cb7d6;text-transform:uppercase;letter-spacing:.04em}
+.ms-caption{margin:12px 0 0;font-size:11px;line-height:1.65;color:#a3b3ce}
+.ms-log-fields{grid-template-columns:repeat(3,minmax(0,1fr))}
+.ss-exercise-buttons button:disabled{opacity:.6;cursor:default}
+@media(max-width:760px){.ms-hero-time{flex-basis:105px;width:105px;border-radius:18px}
+.ms-hero-time strong{font-size:41px}.ms-hero-time strong span{font-size:13px}
+.ms-log-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:490px){.ms-hero-time{flex-basis:80px;width:80px;border-radius:14px}
+.ms-hero-time strong{font-size:33px}.ms-hero-time strong span{font-size:11px}
+.ms-hero-time small{font-size:7px;letter-spacing:0}.ms-structure small{font-size:9px}
+.ms-structure>div:first-child{min-width:65px}.ms-structure>div:last-child{min-width:60px}
+.ms-plan-exercises button{flex:1 1 115px;min-width:105px}}
