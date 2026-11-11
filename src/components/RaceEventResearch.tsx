@@ -46,7 +46,7 @@ function formatField(field:Field,value:string|number|null){
   return Number(value).toLocaleString('de-DE',{maximumFractionDigits:2})+' km'
  return String(value)
 }
-export function RaceEventResearch({active}:{active:boolean}){
+export function RaceEventResearch({active,refreshKey=0}:{active:boolean;refreshKey?:number}){
  const [goal,setGoal]=useState<GoalStatus['goal']|null>(null)
  const [url,setUrl]=useState('')
  const [scan,setScan]=useState<ScanResult|null>(null)
@@ -59,6 +59,7 @@ export function RaceEventResearch({active}:{active:boolean}){
  useEffect(()=>{
   if(!active)return
   let mounted=true
+  setGoal(null);setSaved([]);setScan(null);setDetails(null);setEdited([])
   setError('')
   void request().then(value=>{
    if(!mounted)return
@@ -68,12 +69,12 @@ export function RaceEventResearch({active}:{active:boolean}){
    if(result.saved?.length){
     setUrl(result.saved[0].event_url)
     setScan(null);setDetails(null)
-   }else if(/heartbeat ultra/i.test(result.goal.raceName)){
-    setUrl('https://www.heartbeat-ultra.de/')
+   }else{
+    setUrl(/heartbeat ultra/i.test(result.goal.raceName)?'https://www.heartbeat-ultra.de/':'')
    }
   }).catch(e=>{if(mounted)setError(e instanceof Error?e.message:'Daten nicht abrufbar')})
   return ()=>{mounted=false}
- },[active])
+ },[active,refreshKey])
  async function runScan(){
   if(!goal||busy)return
   setBusy('scan');setError('');setNotice('');setScan(null);setDetails(null);setEdited([])
