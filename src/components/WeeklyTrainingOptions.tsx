@@ -143,7 +143,7 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false}:{
   </header>
   {loading&&!items.length&&<p className="wo-info">Trainingsmöglichkeiten werden geladen …</p>}
   <div className="wo-grid">
-   {rows.map(({option,date,choice,hour,completed})=>{
+   {rows.filter(row=>row.date>=today).map(({option,date,choice,hour,completed})=>{
     const old=date<today
     const weather=hour?
      weatherLabel(hour.code)+' · '+metric(hour.temperature)+' °C · Regen '+metric(hour.rainProbability)+
