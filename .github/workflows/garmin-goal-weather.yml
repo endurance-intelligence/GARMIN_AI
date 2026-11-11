@@ -41,5 +41,5 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: node --test tests/mobile-coach-goal-weather-v0931.test.mjs tests/mobile-calendar-delete-fix-v0930.test.mjs tests/mobile-calendar-completion-bodyweight.test.mjs tests/mobile-calendar-week-board.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weekly-training-options.test.mjs tests/mobile-stabi-studio.test.mjs
+      - run: node --test tests/mobile-coach-goal-weather-v0931.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-recovery-context.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-calendar-delete-fix-v0930.test.mjs tests/mobile-calendar-completion-bodyweight.test.mjs tests/mobile-calendar-week-board.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-weekly-training-options.test.mjs tests/mobile-stabi-studio.test.mjs
       - run: npm run build
