@@ -94,7 +94,8 @@ function jsonLdBlocks(html){
 }
 const safeText=(s,max=140)=>strip(s).slice(0,max);
 function time(value){
- const m=/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/.exec(String(value||""));
+ const input=String(value||"");
+ const m=/T([01]?\d|2[0-3])[:.]([0-5]\d)\b/.exec(input)||/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/.exec(input);
  return m?String(+m[1]).padStart(2,"0")+":"+m[2]:null;
 }
 function routeFrom(links){
@@ -173,7 +174,7 @@ export function parseEventPages(pages,{raceDateHint=null,raceNameHint=""}={}){
   if(end)set("endTime",String(+end[1]).padStart(2,"0")+":"+end[2],page,end[0]);
   if(/\bSportpark Johannisau\b/i.test(text))set("venue","Sportpark Johannisau",page,"Sportpark Johannisau");
   for(const line of lines){
-   const venue=/^(?:Start(?:\/Ziel)?|WO|Ort|Location|Venue)\s*:\s*(.{5,155})$/i.exec(line);
+   const venue=/^(?:Start\/Ziel|WO|Ort|Location|Venue)\s*:\s*(.{5,155})$/i.exec(line);
    if(venue&&!details.venue&&!/^\d/.test(venue[1]))
     set("venue",safeText(venue[1].replace(/\s*\(.*$/,""),130),page,line);
    const city=/\b(?:in|bei)\s+(Fulda|Berlin|Hamburg|München|Köln|Bielefeld|Frankfurt|Hannover|Kassel|Dresden|Leipzig)\b/i.exec(line);
