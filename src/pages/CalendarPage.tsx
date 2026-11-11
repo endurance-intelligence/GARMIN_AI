@@ -11,7 +11,7 @@ import '../styles/horizon-calendar.css'
 type Plan={
  id:string;training_date:string;title:string;state:string;session_type:string;
  sport:string;garmin_workout_id:number|null;notes:string;revision:number;
- intervals_event_id:number|null;intervals_published_revision:number|null
+ intervals_event_id:number|null;intervals_published_revision:number|null;intervals_sync_status:string
 }
 type CalendarEntry={key:string;date:string;title:string;sub:string;note:string;source:'plan';status:string}
 type IntervalsPublication={id:string;revision:number;intervals_published_revision:number|null;intervals_sync_status:string;intervals_event_id:number|null;intervals_export_version:number|null}
@@ -78,6 +78,7 @@ export function CalendarPage({active}:{active:boolean}){
  const [acting,setActing]=useState<string|null>(null)
  const [repairArmed,setRepairArmed]=useState<string|null>(null)
  const [deleteArmed,setDeleteArmed]=useState<string|null>(null)
+ const [cleanupArmed,setCleanupArmed]=useState<string|null>(null)
  const [busy,setBusy]=useState(false)
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
@@ -90,6 +91,7 @@ export function CalendarPage({active}:{active:boolean}){
   note:p.notes||'',source:'plan' as const,status:p.state
  })),[plans])
  const matching=entries.filter(e=>e.date===selected)
+ const cleanupPending=plans.filter(p=>p.state==='cancelled'&&p.intervals_event_id&&p.intervals_sync_status==='needs_review')
  const countInWeek=entries.filter(e=>e.date>=start&&e.date<=days[6]).length
 
  useEffect(()=>{
@@ -183,20 +185,43 @@ export function CalendarPage({active}:{active:boolean}){
    // Published workouts must be removed from Intervals.icu before local cancel.
    const remote=Number.isSafeInteger(plan.intervals_event_id)&&Number(plan.intervals_event_id)>0
    const result=remote?
-    await ownerPost<{saved:boolean;remoteRemoved:boolean}>(session,'garmin-intervals',{
+    await ownerPost<{saved:boolean;remoteRemoved:boolean;remoteRemovalPending?:boolean;remoteProblem?:string|null}>(session,'garmin-intervals',{
      action:'delete_published',planId:plan.id,revision:plan.revision,acknowledge:true
     }):
     await ownerPost<{saved:boolean}>(session,'garmin-training-plan',{
      action:'cancel',id:plan.id,revision:plan.revision
     })
    if(result.saved!==true)throw Error('Trainingslöschung nicht bestätigt.')
-   setPlans(old=>old.map(p=>p.id===plan.id?{...p,state:'cancelled',revision:p.revision+1}:p))
+   setPlans(old=>old.map(p=>p.id===plan.id?{...p,state:'cancelled',revision:p.revision+1,
+    intervals_event_id:remote&&result.remoteRemoved?null:p.intervals_event_id,
+    intervals_sync_status:remote&&!result.remoteRemoved?'needs_review':'not_published'}:p))
    setPublished(old=>{const next={...old};delete next[plan.id];return next})
    setDeleteArmed(null);setRepairArmed(null)
-   setNotice(remote?
-    'Training aus GARMIN_AI und Intervals.icu entfernt. Eventuell bereits in Garmin Connect gespeicherte Kopien dort separat prüfen.':
-    'Trainingsentwurf aus GARMIN_AI entfernt. Abgeschlossene Garmin-Aktivitäten bleiben erhalten.')
+   setNotice(remote&&!result.remoteRemoved?
+    'Training aus GARMIN_AI entfernt. Die Löschung bei Intervals.icu konnte nicht bestätigt werden – unten als offene Bereinigung sichtbar.':
+    remote?
+    'Training aus GARMIN_AI und Intervals.icu entfernt. Bereits übertragene Garmin-Kopien separat prüfen.':
+    'Trainingsentwurf aus GARMIN_AI entfernt. Garmin-Aktivitäten bleiben erhalten.')
   }catch(e){setError(e instanceof Error?e.message:'Training konnte nicht gelöscht werden.')}
+  finally{setActing(null)}
+ }
+ async function cleanupRemote(plan:Plan){
+  if(acting||!garminSupabase||cleanupArmed!==plan.id)return
+  setActing(plan.id);setError('');setNotice('')
+  try{
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)throw Error('Bitte anmelden.')
+   const result=await ownerPost<{saved:boolean;remoteRemoved:boolean;remoteProblem?:string|null}>(session,
+    'garmin-intervals',{action:'cleanup_published',planId:plan.id,revision:plan.revision,acknowledge:true})
+   if(!result.saved)throw Error('Bereinigung nicht gespeichert.')
+   setPlans(old=>old.map(p=>p.id===plan.id?{...p,revision:p.revision+1,
+    intervals_event_id:result.remoteRemoved?null:p.intervals_event_id,
+    intervals_sync_status:result.remoteRemoved?'not_published':'needs_review'}:p))
+   setCleanupArmed(null)
+   setNotice(result.remoteRemoved?
+    'Intervals.icu hat die Entfernung bestätigt. Garmin Connect gegebenenfalls separat prüfen.':
+    'Intervals.icu konnte erneut nicht bestätigt werden. Der Eintrag bleibt als offene Bereinigung sichtbar.')
+  }catch(e){setError(e instanceof Error?e.message:'Bereinigung fehlgeschlagen.')}
   finally{setActing(null)}
  }
  function changeWeek(delta:number){
@@ -217,7 +242,10 @@ export function CalendarPage({active}:{active:boolean}){
     <Icon name="refresh-cw"/>{busy?'Prüfe …':'Aktualisieren'}
    </button>
   </div>
-  <WeatherPanel active={active} mode="training" date={selected} compact/>
+  <div className="hc-weather-space">
+   {selected>=today?<WeatherPanel active={active} mode="training" date={selected} compact/>:
+    <p className="hc-past-weather">Wetterprognosen werden nur für aktuelle oder kommende Trainingstage angezeigt.</p>}
+  </div>
   <div className="hc-weekpanel">
    <div className="hc-toolbar">
     <div><small>DEIN TRAININGSKALENDER</small><h2>Wochenansicht</h2></div>
@@ -261,17 +289,17 @@ export function CalendarPage({active}:{active:boolean}){
             <button type="button" disabled={acting!==null} className="hc-delete-cancel"
              onClick={()=>setDeleteArmed(null)}>Abbrechen</button>
            </>:<button type="button" className="hc-delete-trigger"
-             disabled={acting!==null} onClick={()=>setDeleteArmed(plan.id)}>
+             disabled={acting!==null} onClick={()=>{setDeleteArmed(plan.id);setRepairArmed(null)}}>
              <Icon name="trash-2"/> Training löschen</button>}
          </div>}
-         {plan&&eligible&&plan.state==='draft'&&<button type="button" className="hc-intervals-button"
+         {plan&&eligible&&plan.state==='draft'&&deleteArmed!==plan.id&&<button type="button" className="hc-intervals-button"
            disabled={acting!==null} onClick={()=>void approvePlan(plan)}>
             {acting===plan.id?'Freigabe …':'Training freigeben'}</button>}
-         {plan&&eligible&&plan.state==='pending'&&needsRepair&&<>
+         {plan&&eligible&&plan.state==='pending'&&needsRepair&&deleteArmed!==plan.id&&<>
           <p className="hc-error">Der bisherige Intervals-Export hatte ungültige Zeit-/Distanzwerte. Nicht auf Garmin starten.</p>
           {repairArmed!==plan.id?
            <button type="button" className="hc-intervals-button" disabled={acting!==null||!intervalsConnected}
-             onClick={()=>setRepairArmed(plan.id)}>Korrigierten Export vorbereiten</button>:
+             onClick={()=>{setRepairArmed(plan.id);setDeleteArmed(null)}}>Korrigierten Export vorbereiten</button>:
            <div className="hc-repair-confirm">
             <small>Das bestehende Training bei Intervals.icu wird am selben Termin überschrieben. Kein neues Training wird angelegt.</small>
             <button type="button" disabled={acting!==null} className="hc-intervals-button"
@@ -281,7 +309,7 @@ export function CalendarPage({active}:{active:boolean}){
              onClick={()=>setRepairArmed(null)}>Abbrechen</button>
            </div>}
          </>}
-         {plan&&eligible&&plan.state==='pending'&&!sent&&!needsRepair&&<>
+         {plan&&eligible&&plan.state==='pending'&&!sent&&!needsRepair&&deleteArmed!==plan.id&&<>
           <button type="button" className="hc-intervals-button"
            disabled={!intervalsConnected||acting!==null} onClick={()=>void publishPlan(plan)}>
             {acting===plan.id?'Übertrage …':'An Intervals.icu senden'}</button>
@@ -301,6 +329,20 @@ export function CalendarPage({active}:{active:boolean}){
     onPlanned={()=>setRefresh(n=>n+1)}/>
   </div>
   <WeeklyTrainingOptions active={active} weekStart={start}/>
+  {cleanupPending.length>0&&<div className="hc-remote-pending" role="status">
+   <div><strong>Intervals.icu · {cleanupPending.length} offene Bereinigung{cleanupPending.length===1?'':'en'}</strong>
+    <p>Diese Trainings sind aus GARMIN_AI ausgeblendet. Ob die externen Kalendereinträge gelöscht wurden, ist noch nicht bestätigt. Keine automatische Wiederholung.</p>
+    {cleanupPending.map(plan=><div key={plan.id} className="hc-remote-pending-item">
+     <strong>{plan.title} · {plan.training_date}</strong>
+     {cleanupArmed===plan.id?<div className="hc-remote-actions">
+      <button type="button" disabled={acting!==null} onClick={()=>void cleanupRemote(plan)}>
+       {acting===plan.id?'Prüfe …':'Jetzt bei Intervals.icu entfernen'}</button>
+      <button type="button" disabled={acting!==null} onClick={()=>setCleanupArmed(null)}>Abbrechen</button>
+     </div>:<button type="button" disabled={acting!==null}
+      onClick={()=>setCleanupArmed(plan.id)}>Externe Löschung erneut prüfen</button>}
+    </div>)}
+   </div>
+  </div>}
   <div className="hc-source-grid">
    <article><div className="hc-source-icon"><Icon name="check"/></div>
     <div><strong>Garmin-Aktivitäten</strong>
