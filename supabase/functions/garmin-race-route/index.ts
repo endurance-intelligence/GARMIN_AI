@@ -68,7 +68,7 @@ Deno.serve(async req=>{
   if(!user.email_confirmed_at||user.email?.trim().toLowerCase()!==owner)
    return reply(403,{error:'Nicht autorisiert'},h)
   const db=createClient(project,key('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
-  const {data:goal}=await db.from('garmin_coach_goals').select('race_date')
+  const {data:goal}=await db.from('garmin_coach_goals').select('race_date,race_start_time')
    .eq('user_id',user.id).maybeSingle()
   if(!goal)return reply(409,{error:'Bitte erst ein Hauptziel speichern.'},h)
   const {data:event,error:eventError}=await db.from('garmin_race_event_research')
@@ -76,7 +76,7 @@ Deno.serve(async req=>{
    .order('reviewed_at',{ascending:false}).limit(1).maybeSingle()
   if(eventError)return reply(503,{error:'Streckenzuordnung nicht verfügbar'},h)
   const routeUrl=typeof event?.details?.routeUrl==='string'?event.details.routeUrl:null
-  if(!routeUrl)return reply(200,{route:null,reason:'no_saved_route_link'},h)
+  if(!routeUrl)return reply(200,{route:null,reason:'no_saved_route_link',raceDate:goal.race_date,raceStartTime:goal.race_start_time},h)
   if(req.method==='GET'){
    const {data,error}=await db.from('garmin_race_tracks')
     .select('race_date,route_url,coordinates,distance_m,ascent_m,descent_m,saved_at')
@@ -86,7 +86,7 @@ Deno.serve(async req=>{
    const rows=data||[]
    const chosen=rows.find(x=>x.race_date===goal.race_date)||rows[0]||null
    return reply(200,{route:chosen,reusedFrom:chosen&&chosen.race_date!==goal.race_date?chosen.race_date:null,
-    eventUrl:event.event_url,routeUrl},h)
+    eventUrl:event.event_url,routeUrl,raceDate:goal.race_date,raceStartTime:goal.race_start_time},h)
   }
   const raw=await req.text()
   if(raw.length>220000)return reply(413,{error:'GPX-Geometrie zu groß'},h)
