@@ -178,9 +178,8 @@ export function StrengthPage({active}:{active:boolean}){
       <h3>{exercise.name}</h3><p>{exercise.purpose||exercise.instruction}</p></div>
      <div className="ss-exercise-buttons">
       <button type="button" onClick={()=>setDetail(exercise)}>Anleitung öffnen</button>
-      <button type="button" disabled={!plan.exerciseIds.includes(exercise.id)}
-       className={plan.exerciseIds.includes(exercise.id)?'in-session':''}>
-       {plan.exerciseIds.includes(exercise.id)?'✓ Im heutigen Mix':'Weitere Übung'}</button>
+      {plan.exerciseIds.includes(exercise.id)&&
+       <span className="ms-in-session">✓ Im heutigen Mix</span>}
      </div>
     </article>)}</div>
   </section>
@@ -211,8 +210,7 @@ export function StrengthPage({active}:{active:boolean}){
     <span>🧘</span><div><strong>{r.name}</strong><small>{short(r.date)} · {r.source}</small></div>
     <b>{r.minutes} Min.</b></div>)}</div>
    {!loading&&!records.length&&<p className="ss-info">Noch keine Einträge vorhanden.</p>}
-   <p className="ms-caption">Rudern wird weiterhin aus Garmin importiert und vom Coach als ergänzende Belastung berücksichtigt,
-    aber nicht als separates Trainingsstudio angezeigt.</p>
+   <p className="ms-caption">Weitere Ausdauerbelastungen fließen über Garmin in den Coach ein – ohne künstliche Umrechnung in Laufkilometer.</p>
   </section>
   {detail&&<div className="ss-overlay" role="presentation" onPointerDown={e=>{
    if(e.target===e.currentTarget)setDetail(null)}}>
