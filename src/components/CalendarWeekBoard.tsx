@@ -87,7 +87,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans}:P
     .filter(x=>sportKind(x.sport_type)!=='rowing')
   const manual=(data?.manual||[]).filter(x=>x.session_date===day&&x.kind!=='rowing')
   const local=plans.filter(p=>p.training_date===day&&p.state!=='cancelled')
-  const slot=options.filter(x=>x.weekday===index+1&&
+  const slot=options.filter(x=>x.weekday===index+1&&day>=today&&
     !completedWeeklyOption(x,day,acts))
   return {day,index,daily,acts,manual,local,slot}
  })
