@@ -1,0 +1,39 @@
+name: GARMIN_AI Event Dossier + Komoot Embed
+on:
+  push:
+    paths:
+      - 'src/components/RaceEventResearch.tsx'
+      - 'src/components/RaceRouteViewer.tsx'
+      - 'src/components/RaceForecastCompact.tsx'
+      - 'src/pages/RacePage.tsx'
+      - 'src/lib/komootEmbed.mjs'
+      - 'src/lib/komootEmbed.d.mts'
+      - 'src/styles/race-route-viewer.css'
+      - 'src/styles/race-event-research.css'
+      - 'tests/mobile-race-event-dossier-komoot-v0936.test.mjs'
+      - '.github/workflows/garmin-race-event-dossier-v0936.yml'
+  pull_request:
+    paths:
+      - 'src/components/RaceEventResearch.tsx'
+      - 'src/components/RaceRouteViewer.tsx'
+      - 'src/components/RaceForecastCompact.tsx'
+      - 'src/pages/RacePage.tsx'
+      - 'src/lib/komootEmbed.mjs'
+      - 'src/lib/komootEmbed.d.mts'
+      - 'src/styles/race-route-viewer.css'
+      - 'src/styles/race-event-research.css'
+      - 'tests/mobile-race-event-dossier-komoot-v0936.test.mjs'
+      - '.github/workflows/garmin-race-event-dossier-v0936.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-race-event-dossier-komoot-v0936.test.mjs tests/mobile-race-goals-weather-gpx-v0935.test.mjs tests/mobile-race-event-research-v0932.test.mjs tests/mobile-event-archive-logo-autocomplete-v0934.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs
+      - run: npm run build

@@ -28,8 +28,8 @@ const summary=(hours:WeatherHour[])=>{
  if(hours.some(x=>!x.isDay))changes.push('Dunkelheit')
  return {temp,rain,gust,changes}
 }
-export function RaceForecastCompact({active,refreshKey=0,onForecast}:{
- active:boolean;refreshKey?:number;onForecast?:(report:Forecast|null)=>void
+export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity}:{
+ active:boolean;refreshKey?:number;onForecast?:(report:Forecast|null)=>void;eventCity?:string|null
 }){
  const [race,setRace]=useState<Race|null>(null)
  const [report,setReport]=useState<Forecast|null>(null)
@@ -45,9 +45,10 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast}:{
     const goal=await raceGoal()
     if(cancelled)return
     setRace(goal)
-    if(!goal?.race_location)return
-    const choices=await findPlaces(goal.race_location)
-    const exact=choices.find(x=>x.name.toLocaleLowerCase('de-DE')===goal.race_location.toLocaleLowerCase('de-DE'))||choices[0]
+    const location=(eventCity||goal?.race_location||'').trim()
+    if(!location)return
+    const choices=await findPlaces(location)
+    const exact=choices.find(x=>x.name.toLocaleLowerCase('de-DE')===location.toLocaleLowerCase('de-DE'))||choices[0]
     if(!exact)throw Error('Wetterort nicht gefunden.')
     const data=await getWeather(exact)
     if(cancelled)return
@@ -56,7 +57,7 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast}:{
    finally{if(!cancelled)setLoading(false)}
   })()
   return ()=>{cancelled=true}
- },[active,refreshKey])
+ },[active,refreshKey,eventCity])
  if(!active)return null
  const start=race?.race_start_time?Number(race.race_start_time.slice(0,2)):null
  const duration=race?.target_hours?Math.max(1,Math.ceil(race.target_hours)):null

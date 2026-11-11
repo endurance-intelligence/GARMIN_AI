@@ -12,6 +12,7 @@ export function RacePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
  const [eventLogo,setEventLogo]=useState<string|null>(null)
  const [goalRefresh,setGoalRefresh]=useState(0)
  const [raceForecast,setRaceForecast]=useState<Forecast|null>(null)
+ const [eventCity,setEventCity]=useState<string|null>(null)
  return <section className={active?'page active':'page'}>
   <div className="page-intro">
    <div><div className="eyebrow">RACE INTELLIGENCE / DEIN NÄCHSTES ZIEL</div>
@@ -23,9 +24,14 @@ export function RacePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
   <RaceGoalsPanel active={active} onPrimaryChange={()=>{
    setGoalRefresh(x=>x+1);setRaceForecast(null)
   }}/>
-  <RaceEventResearch active={active} refreshKey={researchRefresh+goalRefresh} onLogoChange={setEventLogo} onEventSaved={()=>setResearchRefresh(n=>n+1)}/>
-  <RaceForecastCompact active={active} refreshKey={researchRefresh+goalRefresh} onForecast={setRaceForecast}/>
-  <RaceRouteViewer active={active} refreshKey={researchRefresh+goalRefresh} forecast={raceForecast}/>
+  <RaceEventResearch active={active} refreshKey={researchRefresh+goalRefresh}
+   onLogoChange={setEventLogo} onEventSaved={()=>setResearchRefresh(n=>n+1)}
+   onEventCityChange={setEventCity}>
+   <RaceForecastCompact active={active} eventCity={eventCity}
+    refreshKey={researchRefresh+goalRefresh} onForecast={setRaceForecast}/>
+   <RaceRouteViewer active={active} refreshKey={researchRefresh+goalRefresh}
+    forecast={raceForecast}/>
+  </RaceEventResearch>
   <div className="sub-grid">
    <article><small>WIE DER COACH PLANEN SOLL</small>
     <h3>Alle sieben Tage sinnvoll nutzen.</h3>

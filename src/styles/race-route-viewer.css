@@ -27,3 +27,19 @@
 .rrv-info,.rrv-error,.rrv-ok{font-size:11px;line-height:1.6;color:#a9bad3;margin:14px 0}
 .rrv-error{color:#ffb2a6}.rrv-ok{color:#9de3bd}
 @media(max-width:560px){.rrv-root{padding:13px}.rrv-info-grid{gap:6px}.rrv-info-grid span{padding:8px}.rrv-info-grid b{font-size:14px}}
+
+
+/* Official responsive tour embed has a real map plus real height profile. */
+.rrv-komoot{border:1px solid rgba(162,183,231,.23);border-radius:13px;background:#0f1a30;overflow:hidden;margin:13px 0}
+.rrv-komoot-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:7px;
+ padding:11px 13px}
+.rrv-komoot-top strong{font-size:12px;color:#e9f2ff}
+.rrv-komoot-top span{font-size:10px;color:#a5b9d8}
+.rrv-komoot iframe{display:block;border:0;width:100%;height:min(680px,72vh);min-height:430px;background:#17243a}
+.rrv-komoot>p{margin:0;padding:10px 13px;font-size:10px;line-height:1.5;color:#94aacb}
+.rrv-gpx-advanced{border-top:1px solid rgba(151,178,220,.2);padding-top:9px;margin-top:12px}
+.rrv-gpx-advanced>summary,.rrv-own-analysis>summary{padding:10px 0;cursor:pointer;
+ font-size:11px;font-weight:780;color:#b9c8ec}
+.rrv-gpx-advanced>p{font-size:10px;color:#97aecf;line-height:1.5}
+.rrv-own-analysis{margin-top:12px;border-top:1px solid rgba(151,178,220,.2)}
+@media(max-width:560px){.rrv-komoot iframe{height:460px;min-height:370px}}

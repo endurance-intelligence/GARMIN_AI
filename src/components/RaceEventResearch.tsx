@@ -1,4 +1,6 @@
 import {useCallback,useEffect,useState} from 'react'
+import type {ReactNode} from 'react'
+import {komootEmbedFromTour} from '../lib/komootEmbed.mjs'
 import {VenueAutocomplete} from './VenueAutocomplete'
 import type {VenueSuggestion} from './VenueAutocomplete'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
@@ -50,8 +52,9 @@ function formatField(field:Field,value:string|number|null){
   return Number(value).toLocaleString('de-DE',{maximumFractionDigits:2})+' km'
  return String(value)
 }
-export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved}:{
- active:boolean;refreshKey?:number;onLogoChange?:(url:string|null)=>void;onEventSaved?:()=>void
+export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved,onEventCityChange,children}:{
+ active:boolean;refreshKey?:number;onLogoChange?:(url:string|null)=>void;onEventSaved?:()=>void;
+ onEventCityChange?:(city:string|null)=>void;children?:ReactNode
 }){
  const [goal,setGoal]=useState<GoalStatus['goal']|null>(null)
  const [url,setUrl]=useState('')
@@ -64,6 +67,8 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
  const [selectedSources,setSelectedSources]=useState<Evidence[]>([])
  const [routeEdit,setRouteEdit]=useState(false)
  const [addressInput,setAddressInput]=useState('')
+ const [routeEditing,setRouteEditing]=useState<string|null>(null)
+ const [routeDraft,setRouteDraft]=useState('')
  const [busy,setBusy]=useState<'scan'|'save'|null>(null)
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
@@ -80,6 +85,7 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
    setSaved(result.saved||[])
    setArchive(result.archive||[])
    const matchingSaved=(result.saved||[])[0]
+   onEventCityChange?.(typeof matchingSaved?.details?.city==='string'?matchingSaved.details.city:null)
    const matchingArchive=(result.archive||[]).find(x=>x.canonical_url===matchingSaved?.event_url)
    onLogoChange?.(String(matchingSaved?.details?.logoUrl||matchingArchive?.template_details?.logoUrl||'')||null)
    if(result.saved?.length){
@@ -133,12 +139,40 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
     setArchive(old=>[item,...old.filter(x=>x.id!==item.id)])
    }
    onLogoChange?.(typeof record.details?.logoUrl==='string'?record.details.logoUrl:null)
+   onEventCityChange?.(typeof record.details?.city==='string'?record.details.city:null)
    onEventSaved?.()
    setNotice(result.archiveSaved===false?
     'Austragung gespeichert; Archiv konnte nicht aktualisiert werden. Bitte später erneut speichern.':
     'Veranstaltung und ihre Strecke im Archiv gespeichert. Dein persönliches Trainingsziel bleibt unverändert.')
    setScan(null);setDetails(null);setEdited([]);setSelectedSources([]);setFromArchive(null)
   }catch(e){setError(e instanceof Error?e.message:'Recherche konnte nicht gespeichert werden.')}
+  finally{setBusy(null)}
+ }
+ async function saveRouteLink(item:SavedResearch){
+  if(!goal||busy)return
+  const route=komootEmbedFromTour(routeDraft)
+  if(!route){setError('Bitte einen gültigen Komoot-Tour-Link verwenden.');return}
+  setBusy('save');setError('');setNotice('')
+  try{
+   const changed={...item.details,routeUrl:routeDraft.trim()}
+   const evidence=item.evidence.filter(x=>x.field!=='routeUrl')
+   evidence.push({field:'routeUrl',url:route.canonicalUrl,
+    evidence:'Komoot-Tour vom Athleten für diese Austragung ausgewählt'})
+   const result=await request({action:'save',confirm:true,raceDate:goal.raceDate,
+    sourceUrl:item.event_url,details:changed,sources:evidence})
+   if(result.saved!==true||!result.record)throw Error('Streckenlink wurde nicht bestätigt.')
+   const record=result.record as SavedResearch
+   setSaved(old=>[record,...old.filter(x=>x.id!==record.id)])
+   if(result.archive){
+    const archived=result.archive as ArchiveEvent
+    setArchive(old=>[archived,...old.filter(x=>x.id!==archived.id)])
+   }
+   setRouteEditing(null);setRouteDraft('')
+   setNotice(result.archiveSaved===false?
+    'Komoot-Link für dieses Jahr gespeichert. Archivvorlage konnte nicht aktualisiert werden.':
+    'Komoot-Link mit dieser Austragung und der Archivvorlage verknüpft. Frühere Rennen bleiben unverändert.')
+   onEventSaved?.()
+  }catch(e){setError(e instanceof Error?e.message:'Streckenlink nicht gespeichert.')}
   finally{setBusy(null)}
  }
  const suggest=useCallback(async(query:string,city:string):Promise<VenueSuggestion[]>=>{
@@ -303,8 +337,30 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
      <a href={item.event_url} target="_blank" rel="noreferrer">Eventseite</a>
      {item.details?.routeUrl&&<a href={String(item.details.routeUrl)} target="_blank" rel="noreferrer">Strecke ansehen</a>}
      {item.details?.gpxUrl&&<a href={String(item.details.gpxUrl)} target="_blank" rel="noreferrer">GPX</a>}
+     <button type="button" disabled={!!busy}
+      onClick={()=>{setRouteEditing(routeEditing===item.id?null:item.id);
+       setRouteDraft(String(item.details.routeUrl||''));setError('')}}>
+      {routeEditing===item.id?'Abbrechen':'Komoot-Link ändern'}</button>
     </div>
+    {routeEditing===item.id&&<div className="rer-route-editor">
+     <label htmlFor="rer-route-link">Komoot-Tour-Link für diese Austragung</label>
+     <div><input id="rer-route-link" type="url" autoComplete="url" spellCheck={false}
+       placeholder="https://www.komoot.com/de-de/tour/..."
+       value={routeDraft} onChange={e=>setRouteDraft(e.target.value)}/>
+      <button type="button" disabled={!!busy||!komootEmbedFromTour(routeDraft)}
+       onClick={()=>void saveRouteLink(item)}>Strecke verknüpfen</button>
+     </div>
+     <small>Die neue Tour ersetzt nur den Streckenlink dieser Austragung und aktualisiert die
+      Vorlage im Eventarchiv. Ältere Austragungen behalten ihre Strecke.</small>
+    </div>}
    </article>)}
+   {children&&<div className="rer-event-dossier">
+    <div className="rer-event-dossier-head"><span className="rer-kicker">DEIN EVENT-DOSSIER</span>
+     <h3>{saved[0].event_title} · {saved[0].race_date.split('-').reverse().join('.')}</h3>
+     <p>Rennwetter, offizielle Strecke und Höhenprofil gehören zu dieser Austragung.</p>
+    </div>
+    {children}
+   </div>}
   </div>}
   {notice&&<p className="rer-notice" role="status">{notice}</p>}
   {error&&<p className="rer-error" role="alert">{error}</p>}
