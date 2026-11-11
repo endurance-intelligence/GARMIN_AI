@@ -65,7 +65,7 @@ test('changing route link updates the edition + archival template only on confir
  assert.match(api,/input\.confirm!==true/)
  assert.match(api,/\.from\('garmin_race_event_research'\)/)
  assert.match(api,/\.from\('garmin_race_event_archive'\)/)
- assert.match(scout,/Frühere Austragungen behalten ihre Strecke/)
+ assert.match(scout,/Ältere Austragungen behalten ihre Strecke/)
 })
 test('race forecast location comes from saved event city, with goal as fallback',()=>{
  const viewer=read('src/components/RaceForecastCompact.tsx')
