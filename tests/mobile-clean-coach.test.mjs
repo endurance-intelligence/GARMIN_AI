@@ -67,5 +67,5 @@ test('all current project views keep owner gate and race weather untouched',()=>
  const app=read('src/App.tsx')
  assert.match(app,/<OnlineAccessGate>/)
  const race=read('src/pages/RacePage.tsx')
- assert.match(race,/<WeatherPanel active=\{active\} mode="race"\/>/)
+ assert.match(race,/<RaceForecastCompact active=\{active\}/)
 })

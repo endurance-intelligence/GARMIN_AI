@@ -2,11 +2,16 @@ import {useState} from 'react'
 import {Icon} from '../components/Icon'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {RaceEventResearch} from '../components/RaceEventResearch'
-import {WeatherPanel} from '../components/WeatherPanel'
+import {RaceGoalsPanel} from '../components/RaceGoalsPanel'
+import {RaceForecastCompact} from '../components/RaceForecastCompact'
+import {RaceRouteViewer} from '../components/RaceRouteViewer'
+import type {Forecast} from '../lib/weatherIntelligence'
 import type {Page} from '../navigation'
 export function RacePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
  const [researchRefresh,setResearchRefresh]=useState(0)
  const [eventLogo,setEventLogo]=useState<string|null>(null)
+ const [goalRefresh,setGoalRefresh]=useState(0)
+ const [raceForecast,setRaceForecast]=useState<Forecast|null>(null)
  return <section className={active?'page active':'page'}>
   <div className="page-intro">
    <div><div className="eyebrow">RACE INTELLIGENCE / DEIN NÄCHSTES ZIEL</div>
@@ -14,9 +19,13 @@ export function RacePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
     <p>Hier legst du fest, worauf dich dein Coach vorbereiten soll.
      Das Ziel wird gespeichert und die Vorbereitungsphase automatisch aus dem Datum abgeleitet.</p></div>
   </div>
-  <CoachGoalPanel active={active} logoUrl={eventLogo} onSaved={()=>setResearchRefresh(n=>n+1)}/>
-  <RaceEventResearch active={active} refreshKey={researchRefresh} onLogoChange={setEventLogo}/>
-  <WeatherPanel active={active} mode="race"/>
+  <CoachGoalPanel key={goalRefresh} active={active} logoUrl={eventLogo} onSaved={()=>setResearchRefresh(n=>n+1)}/>
+  <RaceGoalsPanel active={active} onPrimaryChange={()=>{
+   setGoalRefresh(x=>x+1);setRaceForecast(null)
+  }}/>
+  <RaceEventResearch active={active} refreshKey={researchRefresh+goalRefresh} onLogoChange={setEventLogo} onEventSaved={()=>setResearchRefresh(n=>n+1)}/>
+  <RaceForecastCompact active={active} refreshKey={researchRefresh+goalRefresh} onForecast={setRaceForecast}/>
+  <RaceRouteViewer active={active} refreshKey={researchRefresh+goalRefresh} forecast={raceForecast}/>
   <div className="sub-grid">
    <article><small>WIE DER COACH PLANEN SOLL</small>
     <h3>Alle sieben Tage sinnvoll nutzen.</h3>

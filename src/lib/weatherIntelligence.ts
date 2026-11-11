@@ -10,7 +10,8 @@ export type WeatherHour={
  epoch:number;date:string;hour:number;
  temperature:number;feelsLike:number;rainProbability:number;
  precipitation:number;wind:number;gust:number;code:number;
- isDay:boolean;humidity:number
+ isDay:boolean;humidity:number;
+ windDirection?:number;uvIndex?:number;cloudCover?:number
 }
 export type Forecast={place:WeatherPlace;timezone:string;fetchedAt:number;hours:WeatherHour[]}
 export type TrainingSlot={
@@ -67,6 +68,9 @@ export function parseForecast(raw:unknown,place:WeatherPlace,at=Date.now()):Fore
   const code=valueAt(hourly.weather_code,i)
   const day=valueAt(hourly.is_day,i)
   const humidity=valueAt(hourly.relative_humidity_2m,i)
+  const windDirection=valueAt(hourly.wind_direction_10m,i)
+  const uvIndex=valueAt(hourly.uv_index,i)
+  const cloudCover=valueAt(hourly.cloud_cover,i)
   if(epoch===null||temp===null||feel===null||rain===null||
     precipitation===null||wind===null||gust===null||code===null||
     day===null||humidity===null||
@@ -77,7 +81,10 @@ export function parseForecast(raw:unknown,place:WeatherPlace,at=Date.now()):Fore
   hours.push({
    epoch,date:parts.date,hour:parts.hour,
    temperature:temp,feelsLike:feel,rainProbability:rain,
-   precipitation,wind,gust,code,isDay:day===1,humidity
+   precipitation,wind,gust,code,isDay:day===1,humidity,
+   ...(windDirection!==null&&windDirection>=0&&windDirection<=360?{windDirection}:{}),
+   ...(uvIndex!==null&&uvIndex>=0&&uvIndex<=30?{uvIndex}:{}),
+   ...(cloudCover!==null&&cloudCover>=0&&cloudCover<=100?{cloudCover}:{})
   })
  }
  if(hours.length<1)throw Error('Keine vollständigen Wetterstunden')
@@ -93,7 +100,7 @@ export async function getWeather(place:WeatherPlace,force=false,now=Date.now()):
  const url=new URL('https://api.open-meteo.com/v1/forecast')
  url.searchParams.set('latitude',String(place.latitude))
  url.searchParams.set('longitude',String(place.longitude))
- url.searchParams.set('hourly','temperature_2m,apparent_temperature,precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m,weather_code,is_day,relative_humidity_2m')
+ url.searchParams.set('hourly','temperature_2m,apparent_temperature,precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m,weather_code,is_day,relative_humidity_2m,wind_direction_10m,uv_index,cloud_cover')
  url.searchParams.set('timezone','auto')
  url.searchParams.set('timeformat','unixtime')
  url.searchParams.set('forecast_days',String(FORECAST_MAX_DAYS))

@@ -1,0 +1,23 @@
+.rgp-root{border:1px solid rgba(160,177,229,.22);border-radius:19px;padding:19px;background:linear-gradient(135deg,#17223c,#101a2f);margin:14px 0;color:#e8edff}
+.rgp-head{display:flex;justify-content:space-between;align-items:start;gap:12px;flex-wrap:wrap}
+.rgp-head small{font-size:10px;letter-spacing:.12em;font-weight:850;color:#b6abf5}
+.rgp-head h2{font-size:21px;letter-spacing:-.04em;margin:6px 0}
+.rgp-head p{font-size:11px;color:#aabbd8;line-height:1.6;max-width:580px;margin:0}
+.rgp-root button{border:1px solid rgba(175,173,245,.32);border-radius:11px;background:#494b98;color:#f5f6ff;padding:11px 12px;min-height:42px;font:inherit;font-size:11px;font-weight:760;cursor:pointer}
+.rgp-root button:disabled{opacity:.55;cursor:default}
+.rgp-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:rgba(82,77,164,.18);border:1px solid rgba(151,140,240,.28);border-radius:13px;margin:17px 0 10px;padding:12px}
+.rgp-main span{font-size:9px;font-weight:800;letter-spacing:.05em;color:#aeb0ff}
+.rgp-main strong{font-size:13px}.rgp-main small{font-size:11px;color:#a9b8d0}
+.rgp-items{display:flex;flex-direction:column;gap:8px}
+.rgp-item{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;padding:13px;border-radius:12px;border:1px solid rgba(160,180,227,.15)}
+.rgp-item>div:first-child{display:flex;flex-direction:column;gap:5px;min-width:0}
+.rgp-item strong{font-size:13px}.rgp-item span{font-size:11px;color:#a5b9d1}
+.rgp-actions{display:flex;gap:7px;flex-wrap:wrap}
+.rgp-actions button{background:#293653}
+.rgp-form{margin-top:15px;padding:15px;border-radius:14px;background:#101a31;border:1px solid rgba(151,170,222,.22)}
+.rgp-form>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:15px}
+.rgp-form label{font-size:11px;display:flex;flex-direction:column;gap:7px;color:#afbedb;min-width:0}
+.rgp-form input,.rgp-form textarea{box-sizing:border-box;min-width:0;width:100%;border:1px solid rgba(157,173,213,.33);border-radius:10px;background:#19243f;color:#f6f6ff;padding:10px;min-height:43px;font:inherit}
+.rgp-form .rgp-note{grid-column:1/-1}
+.rgp-ok{color:#93e3b8;font-size:12px}.rgp-error{color:#ffc0ae;font-size:12px}
+@media(max-width:600px){.rgp-root{padding:14px}.rgp-form>div{grid-template-columns:1fr}.rgp-actions{width:100%}.rgp-actions button{flex:1}}

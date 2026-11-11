@@ -50,8 +50,8 @@ function formatField(field:Field,value:string|number|null){
   return Number(value).toLocaleString('de-DE',{maximumFractionDigits:2})+' km'
  return String(value)
 }
-export function RaceEventResearch({active,refreshKey=0,onLogoChange}:{
- active:boolean;refreshKey?:number;onLogoChange?:(url:string|null)=>void
+export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved}:{
+ active:boolean;refreshKey?:number;onLogoChange?:(url:string|null)=>void;onEventSaved?:()=>void
 }){
  const [goal,setGoal]=useState<GoalStatus['goal']|null>(null)
  const [url,setUrl]=useState('')
@@ -133,6 +133,7 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange}:{
     setArchive(old=>[item,...old.filter(x=>x.id!==item.id)])
    }
    onLogoChange?.(typeof record.details?.logoUrl==='string'?record.details.logoUrl:null)
+   onEventSaved?.()
    setNotice(result.archiveSaved===false?
     'Austragung gespeichert; Archiv konnte nicht aktualisiert werden. Bitte später erneut speichern.':
     'Veranstaltung und ihre Strecke im Archiv gespeichert. Dein persönliches Trainingsziel bleibt unverändert.')

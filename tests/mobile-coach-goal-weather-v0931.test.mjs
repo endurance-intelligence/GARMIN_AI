@@ -22,7 +22,7 @@ test('previously known Fulda 112km, 15h is an UNSAVED proposal until confirmed',
  assert.equal(suggestedGoal.target_hours,15)
  assert.match(goal,/NOCH NICHT GESPEICHERT/)
  assert.match(goal,/confirm:true/)
- assert.match(race,/<CoachGoalPanel active=\{active\}/)
+ assert.match(race,/<CoachGoalPanel key=\{goalRefresh\} active=\{active\}/)
  assert.match(coach,/<CoachGoalPanel active=\{active\} compact/)
 })
 test('phase is transparent and exact, including recovery and after-race state',()=>{
