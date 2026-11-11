@@ -7,7 +7,7 @@ test('Coach uses a small header and glance, no default oversized cards',()=>{
  const c=read('src/pages/CoachPage.tsx')
  assert.match(c,/Dein Tag im Blick/)
  assert.match(c,/<CoachGlance active=\{active\}/)
- assert.match(c,/<WeatherPanel active=\{active\} mode="training" compact\/>/)
+ assert.match(c,/<CoachTodayWeather active=\{active\}\/>/)
  assert.match(read('src/components/CoachGlance.tsx'),/<details className="co-recovery-details">/)
  assert.match(c,/<details className="co-extra co-demo"/)
  assert.match(c,/\{demoOpen&&<div className="co-extra-content">/)
@@ -41,14 +41,14 @@ test('Coach preview is clearly marked demo and available only on demand',()=>{
 
 test('overview is backed by existing authenticated Garmin services',()=>{
  const c=read('src/components/CoachGlance.tsx')
- for(const endpoint of ['garmin-connect-snapshot','garmin-training-plan','read-garmin-health']){
+ for(const endpoint of ['garmin-weekly-options','garmin-training-plan','read-garmin-health']){
   assert.ok(c.includes(endpoint),endpoint)
  }
  assert.match(c,/garminSupabase.auth.getSession\(\)/)
  assert.match(c,/authorization:'Bearer '\+token/)
  assert.match(c,/cache:'no-store'/)
- assert.match(c,/Noch keine Einheit im Kalender/)
- assert.match(c,/Keine feste Startzeit/)
+ assert.match(c,/Noch kein fester Termin/)
+ assert.match(c,/Kein fester Starttermin/)
  assert.doesNotMatch(c,/service_role|SUPABASE_SECRET|scheduleWorkout\(/)
 })
 
