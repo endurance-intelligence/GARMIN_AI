@@ -25,7 +25,7 @@ const asDraft=(x:Omit<CoachGoal,'updated_at'>):Draft=>({
  raceLocation:x.race_location,raceStartTime:x.race_start_time||'',
  coachNote:x.coach_note
 })
-export function CoachGoalPanel({active,compact=false,onEdit}:{active:boolean;compact?:boolean;onEdit?:()=>void}){
+export function CoachGoalPanel({active,compact=false,onEdit,onSaved}:{active:boolean;compact?:boolean;onEdit?:()=>void;onSaved?:()=>void}){
  const [goal,setGoal]=useState<CoachGoal|null>(null)
  const [draft,setDraft]=useState<Draft>(()=>asDraft(suggestedGoal))
  const [loading,setLoading]=useState(false)
@@ -63,6 +63,7 @@ export function CoachGoalPanel({active,compact=false,onEdit}:{active:boolean;com
    setGoal(response.goal)
    setDraft(asDraft(response.goal))
    setNotice('Dein aktives Wettkampfziel ist gespeichert. Garmin-Workouts bleiben unverändert.')
+   onSaved?.()
   }catch(e){setError(e instanceof Error?e.message:'Ziel konnte nicht gespeichert werden.')}
   finally{setSaving(false)}
  }
