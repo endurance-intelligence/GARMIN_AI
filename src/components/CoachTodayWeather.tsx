@@ -26,12 +26,12 @@ export function CoachTodayWeather({active}:{active:boolean}){
   return ()=>{mounted=false}
  },[active])
  const weekday=new Date(today+'T12:00:00Z').getUTCDay()||7
- const today's=slots.filter(x=>x.weekday===weekday)
+ const todaySlots=slots.filter(x=>x.weekday===weekday)
  if(!active)return null
  if(!loaded)return <p className="co-data-note">Lade Trainingswetter …</p>
- if(!today's.length)return <WeatherPanel active={active} mode="training" compact/>
+ if(!todaySlots.length)return <WeatherPanel active={active} mode="training" compact/>
  return <div className="co-fixed-weather">
-  {today's.map(slot=><div key={slot.code} className="co-fixed-slot">
+  {todaySlots.map(slot=><div key={slot.code} className="co-fixed-slot">
    <strong>{slot.title} · {slot.start_time.slice(0,5)} Uhr · {slot.location_label}</strong>
    <FixedTrainingWeather active={active} date={today} time={slot.start_time}
     location={slot.location_label} latitude={slot.location_lat}
