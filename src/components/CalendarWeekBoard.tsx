@@ -5,6 +5,7 @@ import {useEffect,useMemo,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import '../styles/calendar-week-board.css'
 import {completedWeeklyOption} from '../lib/weeklyOptionCompletion'
+import {FixedTrainingWeather} from './FixedTrainingWeather'
 
 type Activity={activity_id:string;activity_name:string|null;start_time_local:string;
  sport_type:string;distance_m:number|null;duration_s:number|null;
@@ -13,7 +14,7 @@ type Daily={metric_date:string;hrv_ms:number|null;resting_heart_rate:number|null
  sleep_seconds:number|null;stress_avg:number|null;body_battery_max:number|null}
 type Manual={id:string;session_date:string;kind:string;duration_minutes:number;rowing_distance_m:number|null;rpe:number|null}
 type WeekResponse={start:string;endExclusive:string;activities:Activity[];health:Daily[];manual:Manual[]}
-type Opportunity={code:string;weekday:number;start_time:string;title:string;location_label:string}
+type Opportunity={code:string;weekday:number;start_time:string;title:string;location_label:string;location_lat:number;location_lon:number}
 type Choice={option_code:string;training_date:string;choice:string}
 export type BoardPlan={id:string;training_date:string;title:string;state:string;session_type:string}
 type Props={active:boolean;start:string;selected:string;today:string;
@@ -159,6 +160,8 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans}:P
           <span className="hwb-card-label">◇ OPTION / {choice==='selected'?'DABEI':choice==='skipped'?'AUSLASSEN':'OFFEN'}</span>
           <strong>{option.title}</strong>
           <span>{option.start_time.slice(0,5)} Uhr · {option.location_label}</span>
+          <FixedTrainingWeather active={active} compact date={day} time={option.start_time}
+           location={option.location_label} latitude={option.location_lat} longitude={option.location_lon}/>
          </button>
         })}
         {!acts.length&&!manual.length&&!local.length&&!slot.length&&
