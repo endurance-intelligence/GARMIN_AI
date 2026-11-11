@@ -223,3 +223,41 @@ export function rankEventPages(rootUrl,html){
  return candidates.filter(x=>{if(used.has(x.url))return false;used.add(x.url);return score(x)>0})
  .sort((a,b)=>score(b)-score(a)).slice(0,4);
 }
+
+
+/** Extract actual publisher-supplied image URLs. Not an AI-generated logo. */
+export function discoverEventLogo(pages){
+ const picks=[];
+ const attr=(tag,name)=>{
+  const expression=new RegExp('(?:^|\\s)'+name+'\\s*=\\s*(?:"([^"]+)"|\\x27([^\\x27]+)\\x27|([^\\s>]+))','i');
+  const found=expression.exec(tag);return found?decodeEntities(found[1]||found[2]||found[3]):'';
+ };
+ for(const page of pages){
+  const html=String(page.html||'');
+  for(const tag of html.match(/<(?:img|link|meta)\b[^>]{1,3000}>/gi)||[]){
+   const type=/^<img\b/i.test(tag)?'img':/^<link\b/i.test(tag)?'link':'meta';
+   const rel=attr(tag,'rel').toLowerCase(),alt=attr(tag,'alt').toLowerCase();
+   const prop=(attr(tag,'property')||attr(tag,'name')).toLowerCase();
+   const uri=type==='img'?
+    attr(tag,'src')||attr(tag,'data-src')||attr(tag,'data-image'):
+    type==='link'?attr(tag,'href'):attr(tag,'content');
+   if(!uri||uri.startsWith('data:'))continue;
+   let url;
+   try{url=new URL(uri,page.url)}catch{continue}
+   if(url.protocol!=='https:'||url.username||url.password||url.port||
+      !/\.(?:svg|png|jpe?g|webp|ico)(?:$|[?#])/i.test(url.href)&&
+      !/images\.squarespace-cdn\.com/i.test(url.hostname))continue;
+   url.hash='';
+   if(url.href.length>1500)continue;
+   let score=-1;
+   const path=url.pathname.toLowerCase();
+   if(type==='img'&&/logo|emblem|brand|mark/.test(alt))score=100;
+   else if(type==='img'&&/(?:logo|emblem|brand)[_-]/.test(path))score=95;
+   else if(type==='link'&&/\b(?:apple-touch-icon|icon)\b/.test(rel))score=80;
+   else if(type==='meta'&&/^(og:image|twitter:image)$/.test(prop)&&/logo|emblem|brand/.test(path))score=60;
+   if(score>=0)picks.push({url:url.href,source:page.url,score});
+  }
+ }
+ picks.sort((a,b)=>b.score-a.score);
+ return picks.length?{url:picks[0].url,source:picks[0].source,kind:picks[0].score>=95?'site_logo':'site_icon'}:null;
+}
