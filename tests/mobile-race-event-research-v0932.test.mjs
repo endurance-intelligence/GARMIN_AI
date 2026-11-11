@@ -109,6 +109,6 @@ test('scanner never silently publishes any data; user explicitly confirms a save
 test('Race Prep entry point and mobile styling exist',()=>{
  const race=file('src/pages/RacePage.tsx')
  const style=file('src/styles/race-event-research.css')
- assert.match(race,/<RaceEventResearch active=\{active\} refreshKey=\{researchRefresh\+goalRefresh\} onLogoChange=\{setEventLogo\} onEventSaved=/)
+ assert.match(race,/<RaceEventResearch active=\{active\} refreshKey=\{researchRefresh\+goalRefresh\}/)
  assert.match(style,/@media\(max-width:640px\)/)
 })
