@@ -39,7 +39,7 @@ test('sync center distinguishes optional Garmin snapshot from confirmed Interval
  assert.match(view,/Coach → Intervals\.icu → Garmin-Uhr/)
  assert.match(view,/garmin-intervals/)
  assert.match(view,/intervals_sync_status==='confirmed'/)
- assert.match(view,/keine direkt übertragbaren strukturierten Workouts/)
+ assert.match(view,/Der 7-Tage-Coach kann lockere Läufe als zeitgesteuerte Workouts vorbereiten/)
  assert.match(view,/Ankunft bei Garmin oder auf der Uhr/)
  assert.match(view,/Intervall|Intervals\.icu-Brücke/)
 })
