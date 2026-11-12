@@ -26,6 +26,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:()=
  const [contextBusy,setContextBusy]=useState(false)
  const [reload,setReload]=useState(0)
  const [review,setReview]=useState<string|null>(null)
+ const [startTime,setStartTime]=useState('18:00')
  const [saving,setSaving]=useState<string|null>(null)
  const ids=useRef<Record<string,string>>({})
  const requested=useRef<string|null>(null)
@@ -105,34 +106,46 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:()=
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)throw Error('Bitte erneut anmelden.')
    const requestId=ids.current[day.date]||(ids.current[day.date]=crypto.randomUUID())
+   const structured=day.sport==='running'&&
+    ['easy','long','return_easy'].includes(day.kind)&&Number.isSafeInteger(day.minutes)
+   const payload=structured?{
+    action:'create_coach_workout',clientRequestId:requestId,date:day.date,
+    title:day.title,kind:day.kind,minutes:day.minutes,startTime
+   }:{
+    action:'create',clientRequestId:requestId,date:day.date,
+    title:day.title,sessionType:'event',sport:day.sport,
+    notes:'Coach Intelligence · '+day.minutes+
+      ' Min. · Nur Kalendereintrag. Keine automatische Garmin-Übertragung.'
+   }
    const res=await fetch(garminSupabaseUrl+'/functions/v1/garmin-training-plan',{
     method:'POST',cache:'no-store',
     headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey,
      'content-type':'application/json'},
-    body:JSON.stringify({
-     action:'create',clientRequestId:requestId,date:day.date,
-     title:day.title,sessionType:'event',sport:day.sport,
-     notes:'Coach Intelligence v1.1 · '+day.minutes+
-      ' Min. · Entwurf nach ausdrücklicher Bestätigung. Keine automatische Garmin-Übertragung.'
-    })
+    body:JSON.stringify(payload)
    })
    const json=await res.json().catch(()=>({})) as SubmitResponse
    if(!res.ok||!json.saved)throw Error(json.error||'Entwurf nicht gespeichert.')
    setSnapshot(prev=>prev?{
     ...prev,plans:{entries:[...prev.plans.entries,{
      id:json.id,training_date:day.date,title:day.title,sport:day.sport,
-     state:'draft',session_type:'event',revision:json.revision||1
+     state:'draft',session_type:'event',revision:json.revision||1,
+     notes:structured?'Coach · '+day.minutes+' Min. ab '+startTime+
+      ' · 3 zeitgesteuerte Abschnitte · ohne Pace/HF-Ziel':'Nur Kalendereintrag'
     }]}
    }:prev)
    setReview(null)
-   setNotice('Für '+formatDate(day.date)+' als GARMIN_AI-Entwurf gespeichert. Keine Übertragung an Garmin oder Intervals.icu.')
+   setNotice((structured?
+    'Zeitgesteuertes Lauf-Workout ('+day.minutes+' Min., Start '+startTime+
+    ') als Entwurf gespeichert. Nächster Schritt: im Kalender freigeben und danach bewusst an Intervals.icu senden.':
+    'Kalendereintrag als Entwurf gespeichert; keine strukturierte Garmin-Übertragung.')+
+    ' Es wurde noch nichts an Garmin oder Intervals.icu gesendet.')
   }catch(e){setError(e instanceof Error?e.message:'Speichern fehlgeschlagen.')}
   finally{setSaving(null)}
  }
  if(!active)return null
  return <section className="c7-root" aria-label="Coach Intelligence mit sieben Tagen Trainingsvorschlägen">
   <div className="c7-top">
-   <div><span className="c7-eyebrow"><Icon name="sparkles"/> COACH INTELLIGENCE / V1.1</span>
+   <div><span className="c7-eyebrow"><Icon name="sparkles"/> COACH INTELLIGENCE / V1.2</span>
     <h2>Deine nächsten 7 Tage.</h2>
     <p>Garmin-Daten, Erholung, Hauptziel und freiwillige Gruppentermine – erklärt statt bewertet.</p>
    </div>
@@ -168,19 +181,36 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:()=
      {day.approvable&&!contextBusy&&<div className="c7-actions">
       {review===day.date?<div className="c7-confirm">
        <span>Nur diesen Vorschlag als Entwurf speichern?</span>
+       {day.sport==='running'&&['easy','long','return_easy'].includes(day.kind)&&
+        <div className="c7-structured-preview">
+         <span>Garmin-Workout: {day.minutes} Min. · Einlaufen, lockerer Lauf, Auslaufen.
+          Automatisch zeitgesteuert, ohne Pace- oder HF-Ziel.</span>
+         <label>Startzeit in Intervals.icu
+          <select value={startTime} onChange={e=>setStartTime(e.target.value)}
+           disabled={saving!==null}>
+           {Array.from({length:31},(_,i)=>{
+            const time=String(6+Math.floor(i/2)).padStart(2,'0')+':'+(i%2?'30':'00')
+            return <option value={time} key={time}>{time} Uhr</option>
+           })}
+          </select>
+         </label>
+         <small>Erst hier speichern, danach im Kalender freigeben und ausdrücklich senden.
+          Intervals.icu muss das Workout korrekt bestätigen, bevor du es auf Garmin verwendest.</small>
+        </div>}
        <div><button type="button" disabled={saving!==null} onClick={()=>void accept(day)}>
         {saving===day.date?'Speichere …':'Ja, Entwurf speichern'}</button>
         <button type="button" className="c7-secondary" disabled={saving!==null}
          onClick={()=>setReview(null)}>Abbrechen</button></div>
       </div>:
-       <button type="button" disabled={saving!==null} onClick={()=>setReview(day.date)}>
+       <button type="button" disabled={saving!==null} onClick={()=>{setReview(day.date);setStartTime('18:00')}}>
         Vorschlag prüfen</button>}
      </div>}
     </article>)}
    </div>
    {notice&&<p className="c7-ok" role="status">{notice}</p>}
    <div className="c7-footer">
-    <p>Nur Vorschläge: Keine Garmin-Schreibzugriffe, kein automatisches Intervals-Publishing.
+    <p>Nur Vorschläge: Keine direkten Garmin-Schreibzugriffe, kein automatisches Intervals-Publishing.
+     Zeitgesteuerte Lauf-Workouts benötigen drei separate Schritte: Entwurf, Kalenderfreigabe, Intervals-Versand.
      Jeder Kalendereintrag entsteht erst nach deiner Bestätigung.
      Deine Krankheits- und Verfügbarkeitsangaben haben Vorrang vor den Messwerten.</p>
     <button type="button" className="c7-secondary" onClick={onCalendar}>
