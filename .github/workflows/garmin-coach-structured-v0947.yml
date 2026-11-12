@@ -11,6 +11,7 @@ on:
       - 'src/components/SyncCenter.tsx'
       - 'src/styles/coach-seven-day.css'
       - 'tests/coach-structured-intervals-v0947.test.mjs'
+      - 'tests/mobile-aerobic-cors-and-sync-clarity-v0942.test.mjs'
       - '.github/workflows/garmin-coach-structured-v0947.yml'
   pull_request:
     paths:
@@ -23,6 +24,7 @@ on:
       - 'src/components/SyncCenter.tsx'
       - 'src/styles/coach-seven-day.css'
       - 'tests/coach-structured-intervals-v0947.test.mjs'
+      - 'tests/mobile-aerobic-cors-and-sync-clarity-v0942.test.mjs'
       - '.github/workflows/garmin-coach-structured-v0947.yml'
 jobs:
   verify:
