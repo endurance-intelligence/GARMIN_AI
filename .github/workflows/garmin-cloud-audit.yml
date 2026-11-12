@@ -2,10 +2,19 @@ name: GARMIN_AI Cloud Read-Only Audit
 
 on:
   workflow_dispatch:
-  # Scheduled runs are disabled until explicitly enabled via repository
-  # variable GARMIN_CLOUD_AUDIT_ENABLED=true after a successful manual audit.
+    inputs:
+      task:
+        description: 'One-time safe gear sync or historic read-only audit'
+        required: true
+        type: choice
+        default: gear-sync
+        options:
+          - gear-sync
+          - full-audit
+  # Scheduled incremental shoe associations, every 3h. Only authenticated,
+  # bounded reads via the trusted main-branch OIDC worker. No Garmin writes.
   schedule:
-    - cron: '37 5 * * *'
+    - cron: '37 */3 * * *'
 
 permissions:
   contents: read
@@ -17,12 +26,9 @@ concurrency:
 
 jobs:
   audit:
-    name: Read-only Garmin gear and calendar verification
-    # Never run as a pull request. Runs on main only, and only after opt-in.
-    if: >-
-      github.ref == 'refs/heads/main' &&
-      (github.event_name == 'workflow_dispatch' ||
-       vars.GARMIN_CLOUD_AUDIT_ENABLED == 'true')
+    name: Verified Garmin gear read (no remote writes)
+    # A scheduled event requires main. Manual runs can choose the full audit.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -35,7 +41,11 @@ jobs:
           cache: 'npm'
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Test cloud audit guards
-        run: node --test tests/garmin-cloud-data-audit.test.mjs tests/garmin-worker-claims.test.mjs
-      - name: Read Garmin from GitHub-hosted Node via verified OIDC
+      - name: Test cloud authorization and gear merge guards
+        run: node --test tests/garmin-incremental-gear-v0945.test.mjs tests/garmin-gear-cloud-guards-v0945.test.mjs tests/garmin-cloud-data-audit.test.mjs tests/garmin-worker-claims.test.mjs
+      - name: Sync recent Garmin running gear without Garmin writes
+        if: github.event_name == 'schedule' || inputs.task == 'gear-sync'
+        run: node scripts/cloud/sync-garmin-gear.mjs
+      - name: Optional full read-only Garmin audit
+        if: github.event_name == 'workflow_dispatch' && inputs.task == 'full-audit'
         run: node scripts/cloud/audit-garmin-connect.mjs
