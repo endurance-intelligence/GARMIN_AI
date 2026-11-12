@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {findPlaces,getWeather,localToday,raceSegments,weatherLabel} from '../lib/weatherIntelligence'
 import type {Forecast,WeatherHour} from '../lib/weatherIntelligence'
@@ -47,8 +47,13 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity,co
  const [stages,setStages]=useState<RaceStage[]>([])
  const [stageLoading,setStageLoading]=useState(false)
  const [stageError,setStageError]=useState('')
+ const loadedWeatherKey=useRef<string|null>(null)
+ const loadedStage=useRef<{refreshKey:number;report:Forecast;race:Race;
+  finishCity:string|null;routePoints:Point[]|null}|null>(null)
  useEffect(()=>{
-  if(!active)return
+  const key=refreshKey+'|'+(eventCity||'')
+  // A navigation change must not clear the previously fetched weather report.
+  if(!active||loadedWeatherKey.current===key)return
   let cancelled=false
   setLoading(true);setReport(null);setError('');setStages([]);setStageError('');onForecast?.(null)
   void (async()=>{
@@ -63,7 +68,7 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity,co
     if(!exact)throw Error('Wetterort nicht gefunden.')
     const data=await getWeather(exact)
     if(cancelled)return
-    setReport(data);setPlaceName(exact.name);onForecast?.(data)
+    setReport(data);setPlaceName(exact.name);loadedWeatherKey.current=key;onForecast?.(data)
    }catch(e){if(!cancelled)setError(e instanceof Error?e.message:'Wetterdaten nicht verfügbar')}
    finally{if(!cancelled)setLoading(false)}
   })()
@@ -71,6 +76,10 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity,co
  },[active,refreshKey,eventCity])
  useEffect(()=>{
   if(!active||course?.courseType!=='point_to_point'||!report||!race)return
+  const existing=loadedStage.current
+  if(existing&&existing.refreshKey===refreshKey&&existing.report===report&&
+   existing.race===race&&existing.finishCity===course.finishCity&&
+   existing.routePoints===routePoints)return
   let cancelled=false
   setStageLoading(true);setStages([]);setStageError('')
   void (async()=>{
@@ -105,7 +114,10 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity,co
       {label:'Ziel',fraction:1,where:end.name,weather:finishHour}
      ]
     }
-    if(!cancelled)setStages(results)
+    if(!cancelled){
+     setStages(results)
+     loadedStage.current={refreshKey,report,race,finishCity:course.finishCity,routePoints:routePoints||null}
+    }
    }catch(e){
     if(!cancelled)setStageError(e instanceof Error?e.message:'Streckenwetter nicht verfügbar.')
    }finally{if(!cancelled)setStageLoading(false)}
