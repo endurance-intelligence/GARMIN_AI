@@ -38,9 +38,12 @@ function render(s){
  if(!s||!kinds.has(s.kind))throw Error('Unsupported workout step kind')
  const dist=s.distanceMeters??null,mode=s.endMode??'lap'
  if(dist!==null&&!integer(dist,20,50000))throw Error('Invalid step distance')
- if(!['lap','distance'].includes(mode))throw Error('Invalid step completion control')
+ if(!['lap','distance','time'].includes(mode))throw Error('Invalid step completion control')
+ if(mode==='time'&&!integer(s.durationSeconds,10,10800))
+  throw Error('Timed workout must carry an explicit duration')
  if(mode==='distance'&&dist===null)throw Error('Distance control requires a real distance')
- const intensity=s.kind==='run'?'interval':s.kind==='recovery'?'recovery':
+ const intensity=s.kind==='run'&&s.intensity==='active'?'active':
+  s.kind==='run'?'interval':s.kind==='recovery'?'recovery':
   s.kind==='warmup'?'warmup':s.kind==='cooldown'?'cooldown':'other'
  // Deliberately avoid labels like 1000M or 200M: M is a MINUTE suffix
  // in the Intervals.icu parser and was causing the 207h/1971km bug.
@@ -50,7 +53,8 @@ function render(s){
  const duration=mode==='distance'?dist+'mtr':timeToken(defaultSeconds(s))
  const target=paceTarget(s.paceSecondsPerKm)
  const line='- '+(mode==='lap'?'Press lap ':'')+[clean(label),duration,target,'intensity='+intensity].filter(Boolean).join(' ')
- return {line,mode,dist,paceSecondsPerKm:s.paceSecondsPerKm??null}
+ return {line,mode,dist,durationSeconds:mode==='time'?s.durationSeconds:null,
+  paceSecondsPerKm:s.paceSecondsPerKm??null}
 }
 export function buildIntervalsWorkout(snapshot,title){
  if(!snapshot||typeof snapshot!=='object'||!snapshot.group||
@@ -85,8 +89,11 @@ export function buildIntervalsEvent(plan){
     !/^\d{4}-\d{2}-\d{2}$/.test(String(plan.training_date)))
   throw Error('Invalid approved plan')
  const w=buildIntervalsWorkout(plan.archive_snapshot,plan.title)
+ const explicitTime=plan.archive_snapshot.startTime
+ const selectedTime=/^(0[5-9]|1[0-9]|2[0-2]):(00|15|30|45)$/.test(String(explicitTime))?
+  explicitTime:workoutLocalTime(plan.training_date)
  return {category:w.category,type:w.type,name:w.name,target:w.target,
-   start_date_local:plan.training_date+'T'+workoutLocalTime(plan.training_date)+':00',
+   start_date_local:plan.training_date+'T'+selectedTime+':00',
    external_id:'garmin-ai:'+plan.id,description:w.description}
 }
 function allSteps(steps){
@@ -101,6 +108,13 @@ export function validateStoredIntervalsWorkout(found,snapshot,event){
  if(found.description!==event.description)
   return {ok:false,reason:'Workout text does not match the published version'}
  const expected=buildIntervalsWorkout(snapshot,event.name)
+ if(snapshot.sourceKind==='coach'){
+  const expectedSecs=expected.steps.reduce((t,s)=>t+(s.durationSeconds||0),0)
+  const actualSecs=Number(found.moving_time??found.workout_doc?.duration)
+  if(expected.steps.some(s=>s.mode!=='time')||
+    !Number.isFinite(actualSecs)||Math.abs(actualSecs-expectedSecs)>5)
+   return {ok:false,reason:'Coach workout duration differs from the approved duration'}
+ }
  const steps=allSteps(found.workout_doc?.steps)
  if(steps.length!==expected.stepCount)
   return {ok:false,reason:'Workout step count or structure not parsed'}
@@ -118,6 +132,12 @@ export function validateStoredIntervalsWorkout(found,snapshot,event){
    const actual=Number(step.distance)
    if(!Number.isFinite(actual)||Math.abs(actual-spec.dist)>2)
     return {ok:false,reason:'Distance completion lost at step '+(i+1)}
+  }
+  if(spec.mode==='time'){
+   // Never mistake a LAP-estimated duration for an automatic timed step.
+   const actual=Number(step.duration)
+   if(!Number.isFinite(actual)||Math.abs(actual-spec.durationSeconds)>2)
+    return {ok:false,reason:'Timed step duration missing or changed at step '+(i+1)}
   }
   if(spec.paceSecondsPerKm!==null){
    const pace=step.pace
