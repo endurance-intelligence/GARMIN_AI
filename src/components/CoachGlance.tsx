@@ -12,7 +12,9 @@ type CoachPlan={training_date:string;title:string;state:string;session_type:stri
 type HealthDay={metric_date:string;hrv_ms:number|null;resting_heart_rate:number|null;sleep_seconds:number|null;stress_avg?:number|null;body_battery_max?:number|null}
 type WeeklyChoice={option_code:string;training_date:string;choice:string}
 type Overview={
-  workout:CalendarWorkout|null;plan:CoachPlan|null;health:HealthDay|null;healthHistory:HealthDay[];
+  workout:CalendarWorkout|null;option:CalendarWorkout|null;plan:CoachPlan|null;
+  blocked:'sick'|'returning'|'vacation'|'unavailable'|null;
+  availabilityOk:boolean;health:HealthDay|null;healthHistory:HealthDay[];
   calendarOk:boolean;healthOk:boolean
 }
 function today(){
@@ -52,36 +54,58 @@ export function CoachGlance({active,onCalendar,children}:{
    if(!token)throw Error('Session required')
    const results=await Promise.allSettled([
     get('garmin-weekly-options',token),get('garmin-training-plan',token),
-    get('read-garmin-health',token)
+    get('read-garmin-health',token),get('garmin-coach-context',token)
    ])
    if(!mounted)return
    const week=results[0].status==='fulfilled'?results[0].value:null
    const plans=results[1].status==='fulfilled'?results[1].value:null
    const health=results[2].status==='fulfilled'?results[2].value:null
+   const life=results[3].status==='fulfilled'?results[3].value:null
    const rows=week?.options as CalendarWorkout[]|undefined
    const choices=week?.choices as WeeklyChoice[]|undefined
    const planRows=plans?.entries as CoachPlan[]|undefined
    const healthRows=health?.metrics as HealthDay[]|undefined
    const weekday=new Date(date+'T12:00:00Z').getUTCDay()||7
-   const todayWorkout=Array.isArray(rows)?rows.find(w=>
-    w.weekday===weekday&&!choices?.some(c=>c.training_date===date&&c.option_code===w.code&&c.choice==='skipped'))||null:null
+   const todayOptions=Array.isArray(rows)?rows.filter(w=>w.weekday===weekday):[]
+   const attendance=(w:CalendarWorkout)=>choices?.find(c=>
+    c.training_date===date&&c.option_code===w.code)?.choice||'open'
+   const todayWorkout=todayOptions.find(w=>attendance(w)==='selected')||null
+   const todayOption=todayOptions.find(w=>attendance(w)==='open')||null
+   const context=life?.context as {illness_state?:string;
+    blocked_periods?:Array<{start:string;end:string;reason:string}>}|undefined
+   const dateBlock=context?.blocked_periods?.find(b=>b.start<=date&&b.end>=date)
+   const blocked=context?.illness_state==='sick'?'sick':
+    context?.illness_state==='returning'?'returning':
+    dateBlock?.reason==='vacation'?'vacation':
+    dateBlock?.reason==='unavailable'?'unavailable':null
    const todayPlan=Array.isArray(planRows)?
     planRows.find(p=>p.training_date===date&&!['cancelled','confirmed'].includes(p.state))||null:null
    const latestHealth=Array.isArray(healthRows)?
     [...healthRows].filter(h=>h.metric_date<=date).sort((a,b)=>b.metric_date.localeCompare(a.metric_date))[0]||null:null
-   setView({workout:todayWorkout,plan:todayPlan,health:latestHealth,
+   setView({workout:todayWorkout,option:todayOption,plan:todayPlan,
+    blocked,availabilityOk:!!life,health:latestHealth,
     healthHistory:Array.isArray(healthRows)?healthRows:[],
-    calendarOk:!!week||!!plans,healthOk:!!health})
+    calendarOk:!!week&&!!plans,healthOk:!!health})
    setError(results.every(x=>x.status==='rejected'))
   }).catch(()=>{if(mounted)setError(true)})
     .finally(()=>{if(mounted)setLoading(false)})
   return ()=>{mounted=false;abort.abort()}
  },[active,date])
- const event=view?.plan||view?.workout
- const title=view?.plan?.title||view?.workout?.title||'Noch kein fester Termin'
- const category=view?.plan?'GARMIN_AI-Trainingsplan':
-  view?.workout?'Wochenoption · '+view.workout.start_time.slice(0,5)+' Uhr · '+view.workout.location_label:
-  'Kein fester Starttermin'
+ const event=view?.plan||view?.workout||view?.option
+ const blockedLabels:Record<string,string>={
+  sick:'Trainingspause · krank / Beschwerden',returning:'Vorsichtiger Wiedereinstieg',
+  vacation:'Urlaub · trainingsfrei',unavailable:'Heute keine Zeit für Training'
+ }
+ const title=view?.blocked?blockedLabels[view.blocked]:
+  !view?.calendarOk?'Trainingskalender nicht vollständig erreichbar':
+  view.plan?.title||view.workout?.title||
+  (view.option?'Freiwillig: '+view.option.title:'Heute kein bestätigter Trainingstermin')
+ const category=view?.blocked?
+  'Dein im Coach gemeldeter Status hat Vorrang. Keine Nachholeinheiten.':
+  view?.plan?'GARMIN_AI-Kalender · geplant':
+  view?.workout?'Zugesagt · '+view.workout.start_time.slice(0,5)+' Uhr · '+view.workout.location_label:
+  view?.option?'Offene Wochenoption · noch nicht zugesagt':
+  'Nur bestätigte GARMIN_AI-Einträge werden als feste Termine angezeigt'
  const health=view?.health
  const comparison=health?interpretRecovery(view?.healthHistory||[],health.metric_date):null
  const [sleep,hrv,rhr]=comparison?.metrics||[]
@@ -90,10 +114,13 @@ export function CoachGlance({active,onCalendar,children}:{
    <div className="co-section-head">
     <div><span className="co-eyebrow">HEUTE · TRAINING</span>
      <h2>{loading&&!view?'Lade deinen Tag …':title}</h2>
-     <p>{event?category:
-       'Der Coach kann an freien Tagen ein eigenes Training oder Erholung empfehlen.'}</p>
+     <p>{category}</p>
+     {view&&!view.availabilityOk&&<p className="co-data-note">
+       Krankheits- und Urlaubsstatus konnte nicht geprüft werden. Keine Trainingsfreigabe.</p>}
+     {!view?.blocked&&view?.calendarOk&&!event&&
+      <p>Den 7-Tage-Vorschlag findest du weiter unten. Er ist noch kein bestätigter Kalendereintrag.</p>}
     </div>
-    <button type="button" className="co-link" onClick={onCalendar}>Kalender <Icon name="arrow-up-right"/></button>
+    <button type="button" className="co-link" style={{whiteSpace:'nowrap',minWidth:'fit-content'}} onClick={onCalendar}>Kalender <Icon name="arrow-up-right"/></button>
    </div>
    {children}
   </section>
