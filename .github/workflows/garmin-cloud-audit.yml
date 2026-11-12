@@ -36,7 +36,7 @@ jobs:
         with:
           # Main hosts only release workflows. Worker sources are pinned to the
           # same fully tested source commit as the Pages release.
-          ref: d03a3b4e3d4d63a9d68bfdc8cd50908cdd6b308f
+          ref: 62dbe49a857e219db8e3fd05a7d45298431fd26c
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
