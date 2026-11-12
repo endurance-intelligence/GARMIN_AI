@@ -9,7 +9,7 @@ const plans={
 }
 export function coachWorkoutAllowed(context,kind,day){
  if(!context||typeof context!=='object'||!plans[kind]||
-  typeof day!=='string'||!/^d{4}-d{2}-d{2}$/.test(day))
+  typeof day!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(day))
   return false
  const blocks=Array.isArray(context.blocked_periods)?context.blocked_periods:[]
  if(blocks.some(b=>typeof b?.start==='string'&&typeof b?.end==='string'&&
