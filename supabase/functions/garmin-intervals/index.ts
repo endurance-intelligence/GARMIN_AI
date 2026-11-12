@@ -6,6 +6,7 @@
  */
 import {createClient} from 'npm:@supabase/supabase-js@2'
 import {buildIntervalsEvent,validateStoredIntervalsWorkout} from '../_shared/intervals-workout.mjs'
+import {confirmedAbsentOnDate} from '../_shared/intervals-cleanup-reconcile.mjs'
 
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
@@ -79,8 +80,7 @@ async function fullEvent(apiKey:string,id:unknown):Promise<Record<string,unknown
  */
 async function missingFromCalendar(apiKey:string,plan:{id:string;training_date:string;intervals_event_id:number}){
  const events=await readEvents(apiKey,plan.training_date)
- return !events.some(e=>Number(e.id)===Number(plan.intervals_event_id)||
-   e.external_id==='garmin-ai:'+plan.id)
+ return confirmedAbsentOnDate(events,plan)
 }
 Deno.serve(async req=>{
  const origin=req.headers.get('origin'),h=headers(origin)
