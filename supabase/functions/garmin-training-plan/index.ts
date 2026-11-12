@@ -105,7 +105,7 @@ Deno.serve(async req=>{
         JSON.stringify(existing.archive_snapshot)===JSON.stringify(row.archive_snapshot)
       // JSONB can reorder keys: compare semantic values instead of raw string.
       const wasCoach=existing.archive_snapshot?.sourceKind==='coach'
-      const compatible=wasCoach&&existing.archive_snapshot?.coachKind===input.kind&&
+      const compatible=wasCoach&&existing.title===row.title&&existing.archive_snapshot?.coachKind===input.kind&&
        existing.archive_snapshot?.startTime===input.startTime&&
        existing.archive_snapshot?.group?.steps?.[0]?.durationSeconds===
         row.archive_snapshot.group.steps[0].durationSeconds
