@@ -301,7 +301,7 @@ export function GarminConnectSnapshot({mode,active=true}:{mode:'gear'|'calendar'
       {mode==='gear'&&<button type="button" className="gcs-data-refresh"
         onClick={()=>setSnapshotRefresh(n=>n+1)} disabled={!session||snapshotLoading}>
         {snapshotLoading?'Lade Daten …':'Anzeige aktualisieren'}
-      </button>
+      </button>}
       {mode==='gear' && import.meta.env.DEV && <div className="gcs-toolbar">
         {snapshot?.activity_gear_scope==='complete' && <button type="button" className="gcs-sync-button"
           onClick={()=>void syncGearLinks()} disabled={!session||busy||syncBusy}>
