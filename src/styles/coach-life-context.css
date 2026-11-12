@@ -1,0 +1,41 @@
+.clc-root{display:grid;gap:11px;margin:0 0 14px;color:#e9f0ff}
+.clc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.clc-head span:first-child{color:#aebcf1;font-size:10px;font-weight:800;letter-spacing:.09em}
+.clc-head h3{font-size:17px;margin:5px 0 3px}
+.clc-head p,.clc-card p{font-size:11px;color:#bfcee4;line-height:1.5;margin:4px 0 10px}
+.clc-mode{padding:6px 10px;font-size:10px;white-space:nowrap;background:#264067;border:1px solid #4e6488;border-radius:20px}
+.clc-mode.clc-sick{color:#ffe0b0;border-color:#a87d45}
+.clc-mode.clc-returning{color:#c9c9ff;border-color:#7775bd}
+.clc-card{border:1px solid rgba(149,180,228,.22);border-radius:12px;background:#162742;padding:12px}
+.clc-card-title{display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:13px}
+.clc-card-title .ic,.clc-periods .ic{width:16px;height:16px}
+.clc-root button{background:#344f85;border:1px solid rgba(151,178,239,.35);border-radius:8px;color:#fff;
+ padding:8px 10px;font-size:11px;font-weight:700;cursor:pointer}
+.clc-root button:hover{background:#44659b}
+.clc-root button:disabled{opacity:.45;cursor:default}
+.clc-root button:focus-visible,.clc-root input:focus-visible,.clc-root select:focus-visible{outline:2px solid #b1c5ff;outline-offset:2px}
+.clc-root .clc-secondary{background:transparent}
+.clc-root .clc-alert-button{background:transparent;border-color:#b87d80;color:#ffd1d1}
+.clc-checkbox{display:flex;gap:8px;align-items:flex-start;margin:10px 0;font-size:11px;color:#c8d4e8;line-height:1.55}
+.clc-checkbox input{flex:0 0 15px;width:15px;height:15px;accent-color:#9b95f5}
+.clc-runs{display:grid;gap:9px;margin:10px 0}
+.clc-runs>strong{font-size:12px}
+.clc-run{border:1px solid rgba(154,180,224,.2);background:#1c3151;padding:10px;border-radius:10px;display:grid;gap:8px}
+.clc-run strong{font-size:12px}.clc-run p{margin:5px 0 2px}
+.clc-run small{font-size:10px;color:#bacbe5}
+.clc-run-actions{display:flex;gap:7px;flex-wrap:wrap}
+.clc-assess{font-size:10px;color:#c5e9d6}.clc-assess.clc-concern{color:#ffc1bd}
+.clc-warning{padding:10px;border-radius:8px;background:rgba(181,87,79,.12);border:1px solid #815a5e}
+.clc-return-actions{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.clc-form{display:flex;gap:9px;align-items:flex-end;flex-wrap:wrap}
+.clc-form label{display:grid;gap:4px;font-size:10px;color:#bccbe1;min-width:100px;flex:1}
+.clc-form input,.clc-form select{max-width:100%;width:100%;min-height:34px;background:#213653;border:1px solid #4b648a;
+ color:#fff;font-size:12px;border-radius:8px;padding:6px}
+.clc-form button{min-height:34px}
+.clc-periods{display:grid;gap:7px;margin-top:12px}
+.clc-periods>div{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px;
+ border:1px solid rgba(151,178,239,.23);border-radius:8px;flex-wrap:wrap;font-size:11px}
+.clc-periods span{display:flex;gap:6px;align-items:center}
+.clc-disclaimer{font-size:10px;line-height:1.5;color:#a9bad4}
+@media(max-width:600px){.clc-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.clc-form label:first-child,.clc-form button{grid-column:1/-1}.clc-card{padding:11px}}
