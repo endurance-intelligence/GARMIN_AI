@@ -90,3 +90,12 @@
  .gcs-image-availability{padding:10px}
  .gcs-image-retry{width:100%}
 }
+
+/* v0.9.45: explicit data refresh does not trigger a Garmin-side sync or modify shoes. */
+.gcs-data-refresh{display:inline-flex;align-items:center;justify-content:center;
+ min-height:42px;flex:0 0 auto;padding:10px 13px;border-radius:10px;
+ background:rgba(131,149,205,.12);border:1px solid rgba(160,185,238,.32);
+ color:#e5edff;font-size:11px;font-weight:740;white-space:nowrap}
+.gcs-data-refresh:hover{background:rgba(131,149,205,.22)}
+.gcs-data-refresh:disabled{opacity:.5;cursor:default}
+@media(max-width:500px){.gcs-data-refresh{min-height:44px;width:100%;margin-top:8px}}
