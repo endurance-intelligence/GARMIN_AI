@@ -26,6 +26,7 @@ const navActive=(page:Page,id:Page)=>page===id||
   (id==='more'&&(page==='gear'||page==='settings'||page==='strength'))
 
 function App() {
+  const [calendarFocus,setCalendarFocus]=useState<{date:string;token:number}|null>(null)
   const [page,setPage]=useState<Page>(()=>{
    try{
     const last=sessionStorage.getItem('garmin-ai:last-page:v1')
@@ -38,6 +39,11 @@ function App() {
     setPage(next)
     try{sessionStorage.setItem('garmin-ai:last-page:v1',next)}catch{}
     window.scrollTo({top:0,behavior:'instant'})
+  }
+  function openCalendar(date?:string){
+    if(date&&/^\d{4}-\d{2}-\d{2}$/.test(date))
+      setCalendarFocus(prev=>({date,token:(prev?.token||0)+1}))
+    go('calendar')
   }
   return <OnlineAccessGate>
   <div className="app">
@@ -53,8 +59,8 @@ function App() {
     </aside>
     <main className="main"><div className="main-in">
       <header className="topbar"><div className="crumbs"><span>WORKSPACE</span><span className="slash">/</span><strong>{(page==='gear'?'Equipment':page==='settings'?'Einstellungen':page==='strength'?'Stabi Studio':navigation.find(n=>n.id===page)?.name)}</strong></div><div className="top-actions"><div className="mobile-brand" style={{display:'none'}}><div className="brand-logo"><Icon name="activity"/></div>GARMIN_AI</div><span className="date">DESIGN CONCEPT / NOV 2026</span><span className="pill"><span className="pulse"/> LIVE DATA · COACH DEMO</span><div className="round-icon"><Icon name="bell"/></div></div></header>
-      <CoachPage active={page==='home'} onGo={go}/>
-      <CalendarPage active={page==='calendar'}/>
+      <CoachPage active={page==='home'} onGo={go} onOpenCalendar={openCalendar}/>
+      <CalendarPage active={page==='calendar'} focus={calendarFocus}/>
       <TrainingPage active={page==='training'} onGo={go}/>
       <StrengthPage active={page==='strength'}/>
       {import.meta.env.DEV && <LiveGarminActivities active={page==='training'}/>}
