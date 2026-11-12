@@ -5,6 +5,6 @@ export function GearPage({active}: {active:boolean; onGo:(page: import('../navig
       <h1>Dein Equipment.<br/>Echte Daten.</h1>
       <p>Garmin Connect bleibt die Quelle für Ausrüstung und Zuordnungen. Hier siehst du den zuletzt freigegebenen Datenstand.</p>
     </div></div>
-    <GarminConnectSnapshot mode="gear"/>
+    <GarminConnectSnapshot mode="gear" active={active}/>
   </section>
 }
