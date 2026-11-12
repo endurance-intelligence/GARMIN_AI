@@ -176,6 +176,56 @@ export function CalendarPage({active,focus}:{
   return ()=>{mounted=false}
  },[active,refresh])
 
+ async function acceptCoach(day:CoachDay){
+  if(!garminSupabase||acting||!day.approvable||coachReview!==day.date||
+   coachPlan?.days.find(d=>d.date===day.date)!==day)return
+  if(plans.some(p=>p.training_date===day.date&&p.state!=='cancelled'))return
+  setActing('coach-'+day.date);setError('');setNotice('')
+  try{
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)throw Error('Bitte anmelden.')
+   const structured=day.sport==='running'&&
+    ['easy','long','return_easy'].includes(day.kind)&&Number.isSafeInteger(day.minutes)
+   const key=[day.date,day.kind,day.minutes,structured?coachStartTime:'event'].join(':')
+   const requestId=coachRequestIds.current[key]||
+    (coachRequestIds.current[key]=crypto.randomUUID())
+   const payload=structured?{
+    action:'create_coach_workout',clientRequestId:requestId,
+    date:day.date,title:day.title,kind:day.kind,minutes:day.minutes,
+    startTime:coachStartTime
+   }:{
+    action:'create',clientRequestId:requestId,date:day.date,
+    title:day.title,sessionType:'event',
+    sport:day.kind==='mobility'?'strength':day.sport,
+    notes:'Coach Intelligence · '+day.minutes+
+     ' Minuten. Nur Kalendereintrag, kein strukturiertes Lauftraining.'
+   }
+   const result=await ownerPost<{saved:boolean;id:string;revision:number;state:string}>(
+    session,'garmin-training-plan',payload)
+   if(!result.saved||!result.id)throw Error('Coach-Entwurf nicht bestätigt.')
+   const newPlan:Plan={
+    id:result.id,training_date:day.date,title:day.title,state:result.state||'draft',
+    session_type:'event',sport:day.kind==='mobility'?'strength':day.sport,
+    garmin_workout_id:null,revision:result.revision||1,
+    intervals_event_id:null,intervals_published_revision:null,
+    intervals_sync_status:'not_published',
+    notes:structured?'Coach-Workout · '+day.minutes+' Min. · Start '+coachStartTime+
+     ' · 3 Zeitabschnitte':'Coach-Kalenderentwurf'
+   }
+   setPlans(old=>old.some(p=>p.id===newPlan.id)?old:[...old,newPlan])
+   setCoachSnapshot(old=>old?{
+    ...old,plans:{entries:[...old.plans.entries.filter(x=>x.id!==newPlan.id),
+     {id:newPlan.id,training_date:day.date,state:newPlan.state,
+      sport:newPlan.sport,title:day.title}]}
+   }:old)
+   setCoachReview(null)
+   setNotice(structured?
+    'Lauf-Workout als Entwurf übernommen. Direkt hier freigeben und anschließend an Intervals.icu senden.':
+    'Coach-Vorschlag als Kalendereintrag übernommen. Keine automatische Übertragung.')
+  }catch(e){
+   setError(e instanceof Error?e.message:'Vorschlag konnte nicht übernommen werden.')
+  }finally{setActing(null)}
+ }
  async function approvePlan(plan:Plan){
   if(acting||!garminSupabase)return
   setActing(plan.id);setError('');setNotice('')
