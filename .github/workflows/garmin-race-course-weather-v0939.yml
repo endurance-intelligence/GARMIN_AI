@@ -14,6 +14,8 @@ on:
       - 'supabase/functions/garmin-race-research/index.ts'
       - 'supabase/functions/_shared/race-event-extract.mjs'
       - 'tests/mobile-race-course-weather-persist-v0939.test.mjs'
+      - 'tests/mobile-no-tab-reload-v0941.test.mjs'
+      - 'tests/mobile-no-tab-reload-v0941.test.mjs'
       - 'tests/mobile-race-forecast-share-v0940.test.mjs'
       - 'tests/mobile-race-forecast-share-v0940.test.mjs'
       - '.github/workflows/garmin-race-course-weather-v0939.yml'
@@ -35,5 +37,5 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: node --test tests/mobile-race-forecast-share-v0940.test.mjs tests/mobile-race-course-weather-persist-v0939.test.mjs tests/mobile-race-event-dossier-komoot-v0936.test.mjs tests/mobile-race-goals-weather-gpx-v0935.test.mjs tests/mobile-race-event-research-v0932.test.mjs tests/mobile-event-archive-logo-autocomplete-v0934.test.mjs tests/mobile-race-wind-explainer-v0937.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs
+      - run: node --test tests/mobile-no-tab-reload-v0941.test.mjs tests/mobile-race-forecast-share-v0940.test.mjs tests/mobile-race-course-weather-persist-v0939.test.mjs tests/mobile-race-event-dossier-komoot-v0936.test.mjs tests/mobile-race-goals-weather-gpx-v0935.test.mjs tests/mobile-race-event-research-v0932.test.mjs tests/mobile-event-archive-logo-autocomplete-v0934.test.mjs tests/mobile-race-wind-explainer-v0937.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs
       - run: npm run build
