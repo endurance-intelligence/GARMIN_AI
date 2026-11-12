@@ -58,3 +58,26 @@
  .rfc-metric>.ic{width:15px;height:15px}.rfc-metric strong{font-size:16px}
  .rfc-metric small{font-size:9px}.rfc-course-points{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:370px){.rfc-course-points{grid-template-columns:1fr}}
+
+/* v0.9.40: forecast confidence and native share stay compact on iPhone. */
+.rfc-head-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;max-width:100%}
+.rfc-status{border:1px solid rgba(162,185,223,.32);border-radius:20px;padding:6px 10px;
+ font-size:10px;font-weight:800;line-height:1.35;color:#d1d9eb;background:#21314b;text-align:center}
+.rfc-status.near{color:#bde9d7;background:rgba(32,111,90,.22);border-color:rgba(123,212,176,.42)}
+.rfc-status.medium{color:#f3d9a2;background:rgba(151,104,28,.2);border-color:rgba(232,174,83,.36)}
+.rfc-status.far{color:#c2c7ff;background:rgba(86,88,162,.25);border-color:rgba(159,160,230,.4)}
+.rfc-status.missing,.rfc-status.past{color:#c5cee0}
+.rfc-share{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+ border:1px solid rgba(162,189,237,.37);background:#23385b;color:#f0f4ff;
+ border-radius:9px;font-size:11px;font-weight:750;padding:7px 11px;cursor:pointer}
+.rfc-share:hover{background:#304a74}
+.rfc-share:focus-visible{outline:2px solid #96c7ff;outline-offset:2px}
+.rfc-share .ic{width:15px;height:15px}
+.rfc-confidence{font-size:10px;line-height:1.5;color:#aabbd2;margin:8px 0 0}
+@media(max-width:540px){.rfc-head{flex-wrap:nowrap;align-items:flex-start}
+ .rfc-head>div:first-child{min-width:0}
+ .rfc-head h2{font-size:18px}
+ .rfc-head-side{min-width:112px;gap:7px}
+ .rfc-status{padding:6px 8px;font-size:9px}
+ .rfc-share{padding:7px 8px;font-size:10px}
+}
