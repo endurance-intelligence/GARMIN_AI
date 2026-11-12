@@ -99,13 +99,13 @@ export function CoachGlance({active,onCalendar,children}:{
  const title=view?.blocked?blockedLabels[view.blocked]:
   !view?.calendarOk?'Trainingskalender nicht vollständig erreichbar':
   view.plan?.title||view.workout?.title||
-  (view.option?'Freiwillig: '+view.option.title:'Heute kein bestätigter Trainingstermin')
+  (view.option?'Optional: '+view.option.title:'Heute noch offen')
  const category=view?.blocked?
   'Dein im Coach gemeldeter Status hat Vorrang. Keine Nachholeinheiten.':
-  view?.plan?'GARMIN_AI-Kalender · geplant':
+  view?.plan?(view.plan.state==='draft'?'Entwurf im GARMIN_AI-Kalender · noch nicht freigegeben':'GARMIN_AI-Kalender · geplanter Termin'):
   view?.workout?'Zugesagt · '+view.workout.start_time.slice(0,5)+' Uhr · '+view.workout.location_label:
   view?.option?'Offene Wochenoption · noch nicht zugesagt':
-  'Nur bestätigte GARMIN_AI-Einträge werden als feste Termine angezeigt'
+  'Kein bestätigter Termin · dein nächster Vorschlag steht im 7-Tage-Plan'
  const health=view?.health
  const comparison=health?interpretRecovery(view?.healthHistory||[],health.metric_date):null
  const [sleep,hrv,rhr]=comparison?.metrics||[]
@@ -117,12 +117,10 @@ export function CoachGlance({active,onCalendar,children}:{
      <p>{category}</p>
      {view&&!view.availabilityOk&&<p className="co-data-note">
        Krankheits- und Urlaubsstatus konnte nicht geprüft werden. Keine Trainingsfreigabe.</p>}
-     {!view?.blocked&&view?.calendarOk&&!event&&
-      <p>Den 7-Tage-Vorschlag findest du weiter unten. Er ist noch kein bestätigter Kalendereintrag.</p>}
     </div>
-    <button type="button" className="co-link" style={{whiteSpace:'nowrap',minWidth:'fit-content'}} onClick={onCalendar}>Kalender <Icon name="arrow-up-right"/></button>
+    <button type="button" className="co-link" onClick={onCalendar}>Kalender öffnen <Icon name="arrow-up-right"/></button>
    </div>
-   {children}
+   {!loading&&view?.availabilityOk&&!view.blocked&&children}
   </section>
   <section className="co-recovery-glance" aria-label="Garmin Erholung mit grafischen Trends">
     <div className="co-recovery-heading">
