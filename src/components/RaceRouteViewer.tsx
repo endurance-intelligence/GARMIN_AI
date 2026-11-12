@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import type {Forecast,WeatherHour} from '../lib/weatherIntelligence'
 import {parseGpxTrack,routeSvg,windSegments} from '../lib/gpxRaceRoute.mjs'
@@ -31,10 +31,12 @@ export function RaceRouteViewer({active,refreshKey=0,forecast,onTrack}:{active:b
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
  const [position,setPosition]=useState(0)
+ const loadedRefreshKey=useRef<number|null>(null)
  useEffect(()=>{
-  if(!active)return
+  // Keep the loaded GPX and any unsaved preview while changing app tabs.
+  if(!active||loadedRefreshKey.current===refreshKey)return
   let alive=true;setLoaded(null);setDraft(null);setError('')
-  void request().then(x=>{if(alive)setLoaded(x)}).catch(e=>{if(alive)setError(e instanceof Error?e.message:'Strecke nicht abrufbar')})
+  void request().then(x=>{if(alive){setLoaded(x);loadedRefreshKey.current=refreshKey}}).catch(e=>{if(alive)setError(e instanceof Error?e.message:'Strecke nicht abrufbar')})
   return ()=>{alive=false}
  },[active,refreshKey])
  useEffect(()=>{
