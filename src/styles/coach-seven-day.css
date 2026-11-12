@@ -63,3 +63,15 @@
 @media(max-width:560px){.c7-structured-preview{padding:10px}
 .c7-structured-preview label{align-items:stretch;flex-direction:column}
 .c7-structured-preview select{width:100%}}
+
+
+/* v0.9.48 · clear, date-specific hand-off from Coach to Calendar */
+.c7-saved-next{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+ margin:10px 0;padding:10px 12px;border:1px solid rgba(124,216,171,.23);
+ background:rgba(88,153,132,.065);border-radius:10px}
+.c7-saved-next .c7-ok{margin:0;flex:1 1 230px}
+.c7-root .c7-next-calendar{display:inline-flex;gap:7px;
+ align-items:center;justify-content:center;min-height:44px;
+ border-color:rgba(181,173,246,.52);background:rgba(122,106,221,.24)}
+.c7-next-calendar .ic{width:15px;height:15px}
+@media(max-width:500px){.c7-root .c7-next-calendar{width:100%}}
