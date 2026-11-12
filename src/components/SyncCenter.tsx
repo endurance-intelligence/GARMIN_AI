@@ -335,9 +335,10 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
         }</strong> · Zuletzt: {dateText((intervals.publications||[])
           .filter(x=>x.intervals_sync_status==='confirmed'&&x.intervals_published_at)
           .map(x=>x.intervals_published_at!).sort().at(-1)||null)}</p>}
-        <small>Wichtig: Der 7-Tage-Coach erzeugt derzeit zunächst einfache Kalenderentwürfe,
-          keine direkt übertragbaren strukturierten Workouts. Die Intervals.icu-Brücke akzeptiert
-          aktuell nur ausdrücklich freigegebene Workout-Archiv-Trainings.
+        <small>Der 7-Tage-Coach kann lockere Läufe als zeitgesteuerte Workouts vorbereiten.
+          Du speicherst zuerst den Entwurf, gibst ihn anschließend im Kalender frei und
+          sendest ihn danach ausdrücklich an Intervals.icu. Stabi und andere Termine ohne
+          Laufstruktur bleiben reine Kalendereinträge.
           Eine Intervals-Bestätigung belegt noch nicht die Ankunft bei Garmin oder auf der Uhr.
           Dort „Upload planned workouts“ aktivieren und auf der Forerunner prüfen.</small>
       </div>}
