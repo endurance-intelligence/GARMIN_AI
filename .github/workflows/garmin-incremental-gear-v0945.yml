@@ -6,11 +6,17 @@ on:
       - 'supabase/functions/garmin-cloud-worker/index.ts'
       - 'scripts/cloud/sync-garmin-gear.mjs'
       - '.github/workflows/garmin-cloud-audit.yml'
+      - 'supabase/functions/garmin-connect-snapshot/index.ts'
+      - 'supabase/functions/garmin-sync-center/index.ts'
+      - 'supabase/migrations/20261112153500_garmin_cloud_gear_sync_source.sql'
+      - 'src/components/SyncCenter.tsx'
       - 'src/components/GarminConnectSnapshot.tsx'
       - 'src/pages/GearPage.tsx'
       - 'src/styles/garmin-connect-snapshot.css'
       - 'tests/garmin-incremental-gear-v0945.test.mjs'
       - 'tests/garmin-gear-cloud-guards-v0945.test.mjs'
+      - 'tests/mobile-session-coach-consistency-v0943.test.mjs'
+      - 'tests/mobile-aerobic-cors-and-sync-clarity-v0942.test.mjs'
       - '.github/workflows/garmin-incremental-gear-v0945.yml'
   pull_request:
     paths:
@@ -18,11 +24,17 @@ on:
       - 'supabase/functions/garmin-cloud-worker/index.ts'
       - 'scripts/cloud/sync-garmin-gear.mjs'
       - '.github/workflows/garmin-cloud-audit.yml'
+      - 'supabase/functions/garmin-connect-snapshot/index.ts'
+      - 'supabase/functions/garmin-sync-center/index.ts'
+      - 'supabase/migrations/20261112153500_garmin_cloud_gear_sync_source.sql'
+      - 'src/components/SyncCenter.tsx'
       - 'src/components/GarminConnectSnapshot.tsx'
       - 'src/pages/GearPage.tsx'
       - 'src/styles/garmin-connect-snapshot.css'
       - 'tests/garmin-incremental-gear-v0945.test.mjs'
       - 'tests/garmin-gear-cloud-guards-v0945.test.mjs'
+      - 'tests/mobile-session-coach-consistency-v0943.test.mjs'
+      - 'tests/mobile-aerobic-cors-and-sync-clarity-v0942.test.mjs'
       - '.github/workflows/garmin-incremental-gear-v0945.yml'
 jobs:
   verify:
@@ -35,5 +47,5 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: node --test tests/garmin-incremental-gear-v0945.test.mjs tests/garmin-gear-cloud-guards-v0945.test.mjs tests/garmin-worker-claims.test.mjs tests/garmin-cloud-data-audit.test.mjs tests/garmin-cloud-session.test.mjs tests/mobile-gear-photos-coach-ux-v0944.test.mjs
+      - run: node --test tests/garmin-incremental-gear-v0945.test.mjs tests/garmin-gear-cloud-guards-v0945.test.mjs tests/garmin-worker-claims.test.mjs tests/garmin-cloud-data-audit.test.mjs tests/garmin-cloud-session.test.mjs tests/mobile-gear-photos-coach-ux-v0944.test.mjs tests/mobile-session-coach-consistency-v0943.test.mjs tests/mobile-aerobic-cors-and-sync-clarity-v0942.test.mjs
       - run: npm run build
