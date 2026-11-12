@@ -45,6 +45,8 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
   const [shoeImages,setShoeImages]=useState<Record<string,string>>({})
   const [imageBusy,setImageBusy]=useState<string|null>(null)
   const [imageNotice,setImageNotice]=useState('')
+  const [imageReload,setImageReload]=useState(0)
+  const [imageLoading,setImageLoading]=useState(false)
   const [syncBusy,setSyncBusy]=useState(false)
   const [syncProgress,setSyncProgress]=useState('')
 
@@ -71,13 +73,15 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
   useEffect(()=>{
     if(mode!=='gear' || !session) return
     let mounted=true
+    setImageLoading(true)
     void fetchShoeImages(session).then(images=>{
       if(mounted){setShoeImages(images);setImageNotice('')}
-    }).catch(()=>{
-      if(mounted)setImageNotice('Schuhbilder momentan nicht erreichbar.')
-    })
+    }).catch(err=>{
+      if(mounted)setImageNotice(err instanceof Error?err.message:
+        'Schuhbilder momentan nicht erreichbar. Bereits gespeicherte Fotos bleiben erhalten.')
+    }).finally(()=>{if(mounted)setImageLoading(false)})
     return ()=>{mounted=false}
-  },[mode,session?.access_token])
+  },[mode,session?.access_token,imageReload])
 
   async function uploadPhoto(gear:Gear,file:File) {
     if(!session || imageBusy) return
@@ -230,7 +234,14 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
       return <div className={withPhotos?'gcs-row gcs-visual-card':'gcs-row'} key={g.id}>
         {withPhotos && <div className="gcs-photo">
           {shoeImages[g.id] ?
-            <img src={shoeImages[g.id]} alt={`Foto von ${g.name}`} loading="lazy"/> :
+            <img src={shoeImages[g.id]} alt={`Foto von ${g.name}`} loading="lazy"
+              onError={()=>{
+                setShoeImages(old=>{
+                  if(!old[g.id])return old
+                  const next={...old};delete next[g.id];return next
+                })
+                setImageNotice('Ein Schuhfoto konnte nicht angezeigt werden. Bitte Bilder erneut laden.')
+              }}/> :
             <div className="gcs-photo-empty" aria-label="Noch kein Foto">
               <Icon name="footprints"/><span>DEIN SCHUH</span>
             </div>}
@@ -292,7 +303,15 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
       <p className="gcs-note">{snapshot.gear.length} Ausrüstungsgegenstände · {snapshot.activity_gear.length} bestätigte Aktivitätszuordnungen.{snapshot.gear_links_checked_at?` Schuhzuordnungen geprüft: ${formatDate(snapshot.gear_links_checked_at)}.`:''}</p>
       {syncProgress && <p className="gcs-sync-progress" role="status" aria-live="polite">{syncProgress}</p>}
       <p className="gcs-photo-intro">Für aktive Laufschuhe kannst du eigene Bilder hinterlegen. Fotos bleiben privat und werden deinem Garmin-Schuh dauerhaft zugeordnet.</p>
-      {imageNotice && <p className="gcs-note" role="status">{imageNotice}</p>}
+      <div className="gcs-image-availability" role="status">
+        <span>{imageLoading?'Lade gespeicherte Schuhfotos …':
+          imageNotice||'Private Schuhfotos werden nur dir angezeigt.'}</span>
+        <button className="gcs-image-retry" type="button"
+          disabled={!session||imageLoading||imageBusy!==null}
+          onClick={()=>setImageReload(v=>v+1)}>
+          {imageLoading?'Lädt …':'Bilder neu laden'}
+        </button>
+      </div>
       {activeShoes.length>0 && <div className="gcs-group">
         <h4>Aktive Laufschuhe <span>{activeShoes.length}</span></h4>
         {gearCards(activeShoes,true)}
