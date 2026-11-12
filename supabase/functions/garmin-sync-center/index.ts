@@ -61,7 +61,7 @@ Deno.serve(async req=>{
     if(req.method==='GET'){
       // Source outcome comes from actual Edge Function logs, never inferred
       // solely from the presence of yesterday's Garmin records.
-      const [activityRuns,healthRuns,health,gear,weight,fitCounts,cron,cloudSession,cloudCheck] =
+      const [activityRuns,healthRuns,health,gear,weight,fitCounts,cron,cloudSession,cloudCheck,cloudBackoff] =
         await Promise.all([
           db.from('garmin_sync_runs')
             .select('source,result,finished_at')
@@ -87,7 +87,10 @@ Deno.serve(async req=>{
             })),
           db.rpc('garmin_sync_scheduler_status'),
           db.rpc('garmin_connect_session_state'),
-          db.rpc('garmin_connect_cloud_check_state')
+          db.rpc('garmin_connect_cloud_check_state'),
+          db.from('garmin_cloud_backoff')
+            .select('retry_after,last_limited_at,consecutive_429')
+            .eq('id','garmin').maybeSingle()
         ])
       if(activityRuns.error||healthRuns.error||health.error||gear.error||weight.error ||
          fitCounts.some(r=>r.error))
@@ -155,6 +158,14 @@ Deno.serve(async req=>{
             lastResult:cloudCheck.error||!cloudCheck.data?'unknown':cloudCheck.data.lastResult,
             lastCheckedAt:cloudCheck.error?null:cloudCheck.data?.lastCheckedAt??null,
             lastSuccessAt:cloudCheck.error?null:cloudCheck.data?.lastSuccessAt??null},
+        cloudBackoff:cloudBackoff.error||!cloudBackoff.data?
+          {available:false,active:false,retryAfter:null,attempts:0}:
+          {available:true,
+           active:!!cloudBackoff.data.retry_after&&
+             Date.parse(cloudBackoff.data.retry_after)>Date.now(),
+           retryAfter:cloudBackoff.data.retry_after,
+           lastLimitedAt:cloudBackoff.data.last_limited_at,
+           attempts:cloudBackoff.data.consecutive_429},
         weightEntries:weight.data??[],weightTransferAvailable:false
       },200,headers)
     }
