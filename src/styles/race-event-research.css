@@ -124,3 +124,6 @@
 .rer-route-editor small{font-size:10px;color:#9db1cf;line-height:1.55;display:block;margin-top:8px}
 @media(max-width:640px){.rer-event-dossier{padding:10px}.rer-route-editor>div{flex-direction:column}
 .rer-route-editor button{min-height:42px}.rer-event-dossier .rfc-root,.rer-event-dossier .rrv-root{padding:12px}}
+
+.rer-field select{box-sizing:border-box;width:100%;min-width:0;border:1px solid rgba(160,176,218,.26);border-radius:11px;padding:11px;background:#14213a;color:#f3f5ff;font:inherit;font-size:12px;min-height:44px}
+.rer-field select:focus{outline:2px solid #9e9cef;outline-offset:2px}
