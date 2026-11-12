@@ -86,7 +86,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
     title:day.title,kind:day.kind,minutes:day.minutes,startTime
    }:{
     action:'create',clientRequestId:requestId,date:day.date,
-    title:day.title,sessionType:'event',sport:day.sport,
+    title:day.title,sessionType:'event',sport:day.kind==='mobility'?'strength':day.sport,
     notes:'Coach Intelligence · '+day.minutes+
       ' Min. · Nur Kalendereintrag. Keine automatische Garmin-Übertragung.'
    }
@@ -100,7 +100,8 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
    if(!res.ok||!json.saved)throw Error(json.error||'Entwurf nicht gespeichert.')
    setSnapshot(prev=>prev?{
     ...prev,plans:{entries:[...prev.plans.entries,{
-     id:json.id,training_date:day.date,title:day.title,sport:day.sport,
+     id:json.id,training_date:day.date,title:day.title,
+     sport:day.kind==='mobility'?'strength':day.sport,
      state:'draft',session_type:'event',revision:json.revision||1,
      notes:structured?'Coach · '+day.minutes+' Min. ab '+startTime+
       ' · 3 zeitgesteuerte Abschnitte · ohne Pace/HF-Ziel':'Nur Kalendereintrag'
