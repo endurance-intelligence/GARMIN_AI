@@ -156,3 +156,73 @@
 .hc-remote-pending-item>strong{font-size:12px}
 .hc-remote-actions{display:flex;gap:8px;flex-wrap:wrap}
 .hc-remote-actions button{flex:1 1 auto}
+
+
+/* v0.9.48 · One calendar for Coach suggestions and confirmed training */
+.hc-coach-legend{display:flex;gap:12px;flex-wrap:wrap;align-items:center;
+ margin:0 0 16px;padding:9px 13px;border-radius:11px;
+ background:rgba(123,135,185,.055);border:1px solid rgba(149,170,220,.14)}
+.hc-coach-legend span{display:inline-flex;align-items:center;gap:7px;
+ color:#b6c4dc;font-size:11px;line-height:1.5}
+.hc-coach-legend i{width:10px;height:10px;border-radius:3px;flex:0 0 10px}
+.hc-key-actual{background:#8bc8fc}
+.hc-key-plan{background:#8b85de}
+.hc-key-coach{background:#b8a1ff;border:1px dashed #e9ddff}
+.hc-key-option{background:transparent;border:1px dashed #91b8bc}
+.hc-coach-proposal{margin:0 0 13px;padding:17px 18px 16px;
+ border-radius:15px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;
+ gap:8px;background:linear-gradient(120deg,rgba(125,105,203,.16),rgba(42,65,105,.14));
+ border:1px dashed rgba(183,162,255,.47)}
+.hc-coach-proposal.is-rest{background:rgba(116,133,163,.055);
+ border-color:rgba(141,164,200,.26)}
+.hc-coach-proposal-top{width:100%;display:flex;gap:9px;flex-wrap:wrap;
+ align-items:center;justify-content:space-between}
+.hc-coach-proposal-top>span{color:#cbb6ff;display:flex;align-items:center;
+ gap:7px;font-size:10px;font-weight:820;letter-spacing:.085em}
+.hc-coach-proposal-top .ic{width:15px;height:15px}
+.hc-coach-proposal-top small{font-size:10px;color:#aab7d5;line-height:1.45}
+.hc-coach-proposal h4{margin:1px 0 0;font-size:clamp(15px,2vw,19px);
+ color:#f0efff;letter-spacing:-.02em}
+.hc-coach-proposal>p{margin:0;color:#becae2;line-height:1.55;
+ font-size:12px;max-width:780px}
+.hc-coach-minutes{font-size:11px;color:#e3d5ff;font-weight:710}
+.hc-coach-confirm{width:100%;display:grid;gap:10px;margin-top:6px;padding-top:13px;
+ border-top:1px solid rgba(190,179,251,.16)}
+.hc-coach-confirm strong{font-size:12px;color:#f1edff}
+.hc-coach-confirm>p{margin:0;max-width:670px;font-size:11px;
+ line-height:1.55;color:#afc0dc}
+.hc-coach-confirm label{display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+ font-size:11px;font-weight:740;color:#d7ddf4}
+.hc-coach-confirm select{min-height:44px;min-width:135px;max-width:100%;padding:10px 12px;
+ border:1px solid rgba(175,184,244,.45);border-radius:10px;
+ background:#18243d;color:#fff;font-size:12px}
+.hc-coach-confirm-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hc-coach-accept,.hc-coach-cancel{display:inline-flex;align-items:center;
+ justify-content:center;gap:8px;padding:10px 15px;min-height:44px;
+ border-radius:10px;cursor:pointer;font-size:12px;font-weight:780;
+ touch-action:manipulation}
+.hc-coach-accept{background:#725cc4;border:1px solid rgba(197,177,255,.54);color:#fff}
+.hc-coach-accept:hover{background:#8770da}
+.hc-coach-cancel{background:transparent;border:1px solid rgba(166,178,213,.34);color:#cbd5e8}
+.hc-coach-accept .ic{width:15px;height:15px}
+.hc-coach-accept:disabled,.hc-coach-cancel:disabled{opacity:.5;cursor:default}
+.hc-coach-accept:focus-visible,.hc-coach-cancel:focus-visible,
+.hc-coach-confirm select:focus-visible{outline:2px solid #b4d7ff;outline-offset:3px}
+.hc-publish-steps{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px}
+.hc-publish-steps>span{padding:6px 9px;border-radius:7px;border:1px solid rgba(157,169,204,.18);
+ background:rgba(122,138,187,.055);color:#9eabc4;font-size:10px;font-weight:720}
+.hc-publish-steps>span.is-done{border-color:rgba(132,207,176,.27);
+ color:#b0e3cd;background:rgba(77,154,119,.105)}
+.hc-coach-loading,.hc-coach-unavailable{padding:9px 11px;
+ font-size:11px;line-height:1.55;color:#bac8e2}
+.hc-coach-unavailable{color:#f0cba7;border:1px solid rgba(225,175,113,.22);
+ border-radius:10px}
+@media(max-width:610px){
+ .hc-coach-legend{gap:7px 12px;padding:9px 10px}
+ .hc-coach-legend span{font-size:10px}
+ .hc-coach-proposal{padding:13px;border-radius:12px}
+ .hc-coach-proposal-top small{width:100%}
+ .hc-coach-confirm label{align-items:stretch;flex-direction:column}
+ .hc-coach-confirm select{width:100%}
+ .hc-coach-accept,.hc-coach-cancel{min-width:0;flex:1 1 130px}
+}
