@@ -25,9 +25,10 @@ test('real Garmin recovery appears before simulated coach recommendation',()=>{
 
 test('training data source disclaimer does not falsely describe real sessions as demo',()=>{
   const training=read('src/pages/TrainingPage.tsx')
-  assert.match(training,/DIE SESSION-ANALYSE OBEN VERWENDET ECHTE GARMIN-DATEN/)
-  assert.match(training,/NUR DIE BEISPIELANALYSEN UNTERHALB DER DEMO-TRENNLINIE/)
-  assert.doesNotMatch(training,/ALLE AKTIVITÄTEN UND WERTE AUF DIESER SEITE SIND DEMODATEN/)
+  assert.match(training,/SESSION INTELLIGENCE \/ ECHTE GARMIN-DATEN/)
+  assert.match(training,/Nur echte Garmin-Daten\. Keine künstlichen Trainingsnoten/)
+  assert.doesNotMatch(training,/demoSessions|BEISPIELANALYSEN|DIE BEISPIELANALYSEN/)
+  assert.match(training,/<LiveSessionAnalyst active=\{active\}\/>/)
 })
 
 test('equipment cards, charts and recovery data are touch-sized on iPhone',()=>{
