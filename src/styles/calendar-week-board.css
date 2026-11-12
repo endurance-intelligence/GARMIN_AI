@@ -60,3 +60,17 @@
 .hwb-days{grid-template-columns:repeat(7,175px);min-width:1260px}
 .hwb-day-header{min-height:103px}.hwb-day-cards{min-height:180px}
 .hwb-scroll{margin:0 -1px}.hwb-foot{font-size:10px}}
+
+
+/* v0.9.48 · Coach-only proposals are not scheduled training */
+.hwb-card.is-coach{border:1px dashed rgba(177,154,255,.58);
+ border-left:3px solid #b8a1ff;
+ background:linear-gradient(145deg,rgba(100,81,169,.19),rgba(53,72,116,.10));
+ min-height:72px}
+.hwb-card.is-coach .hwb-card-label{color:#ceb9ff;font-size:9px}
+.hwb-card.is-coach strong{color:#ede8ff}
+.hwb-card.is-coach>small{color:#c4b4ec}
+.hwb-card.is-coach.is-coach-info{border-color:rgba(153,167,191,.28);
+ border-left-color:#9aa7be;background:rgba(123,143,174,.055)}
+.hwb-card.is-coach.is-coach-info .hwb-card-label{color:#a8b6d2}
+.hwb-card.is-coach:focus-visible{outline:2px solid #cab5ff;outline-offset:2px}
