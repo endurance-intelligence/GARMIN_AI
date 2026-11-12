@@ -67,6 +67,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
     throw Error(result.error||'Coach-Kontext konnte nicht gespeichert werden.')
    setSnapshot(prev=>prev?{...prev,life:{context:result.context!,runs:result.runs!}}:prev)
    setReview(null)
+   setSavedDay(null)
    setNotice('Deine Angaben wurden gespeichert und der 7-Tage-Coach neu berechnet. Keine Garmin-Änderung.')
   }catch(e){setError(e instanceof Error?e.message:'Coach-Kontext nicht gespeichert.')}
   finally{setContextBusy(false)}
@@ -125,7 +126,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
     <p>Garmin-Daten, Erholung, Hauptziel und freiwillige Gruppentermine – erklärt statt bewertet.</p>
    </div>
    <button type="button" className="c7-refresh" disabled={loading||saving!==null}
-    onClick={()=>{setReload(x=>x+1);setReview(null)}}><Icon name="refresh-cw"/> Aktualisieren</button>
+    onClick={()=>{setReload(x=>x+1);setReview(null);setSavedDay(null)}}><Icon name="refresh-cw"/> Aktualisieren</button>
   </div>
   {snapshot&&<CoachLifeContext life={snapshot.life} busy={contextBusy||saving!==null} onAction={updateLife}/>} 
   {loading&&!plan&&<p className="c7-alert" role="status">Prüfe aktuelle Garmin- und Kalenderdaten …</p>}
