@@ -204,13 +204,37 @@ export function CalendarPage({active}:{active:boolean}){
   }catch(e){setError(e instanceof Error?e.message:'Training konnte nicht gelöscht werden.')}
   finally{setActing(null)}
  }
+ async function verifyRemoteCleanup(plan:Plan){
+  if(acting||!garminSupabase)return
+  setActing(plan.id);setError('');setNotice('')
+  try{
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)throw Error('Bitte anmelden.')
+   const result=await ownerPost<{checked?:boolean;saved:boolean;remoteRemoved:boolean;
+    remoteAlreadyAbsent?:boolean;remoteStillPresent?:boolean;remoteProblem?:string|null}>(
+    session,'garmin-intervals',{action:'verify_cleanup',planId:plan.id,
+     revision:plan.revision,acknowledge:true})
+   if(result.saved&&result.remoteRemoved){
+    setPlans(old=>old.map(p=>p.id===plan.id?{...p,revision:p.revision+1,
+     intervals_event_id:null,intervals_sync_status:'not_published'}:p))
+    setCleanupArmed(null)
+    setNotice('Bei Intervals.icu geprüft: Das Training war bereits gelöscht. Die offene Bereinigung ist abgeschlossen. Garmin Connect gegebenenfalls separat prüfen.')
+   }else if(result.remoteStillPresent){
+    setCleanupArmed(plan.id)
+    setNotice('Das Training existiert bei Intervals.icu noch. Falls du es entfernen möchtest, bestätige die Löschung unten.')
+   }else{
+    setError(result.remoteProblem||'Der externe Löschstatus ist weiterhin unklar. Bitte später erneut prüfen.')
+   }
+  }catch(e){setError(e instanceof Error?e.message:'Externer Abgleich fehlgeschlagen.')}
+  finally{setActing(null)}
+ }
  async function cleanupRemote(plan:Plan){
   if(acting||!garminSupabase||cleanupArmed!==plan.id)return
   setActing(plan.id);setError('');setNotice('')
   try{
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)throw Error('Bitte anmelden.')
-   const result=await ownerPost<{saved:boolean;remoteRemoved:boolean;remoteProblem?:string|null}>(session,
+   const result=await ownerPost<{saved:boolean;remoteRemoved:boolean;remoteAlreadyAbsent?:boolean;remoteProblem?:string|null}>(session,
     'garmin-intervals',{action:'cleanup_published',planId:plan.id,revision:plan.revision,acknowledge:true})
    if(!result.saved)throw Error('Bereinigung nicht gespeichert.')
    setPlans(old=>old.map(p=>p.id===plan.id?{...p,revision:p.revision+1,
@@ -218,7 +242,9 @@ export function CalendarPage({active}:{active:boolean}){
     intervals_sync_status:result.remoteRemoved?'not_published':'needs_review'}:p))
    setCleanupArmed(null)
    setNotice(result.remoteRemoved?
-    'Intervals.icu hat die Entfernung bestätigt. Garmin Connect gegebenenfalls separat prüfen.':
+    (result.remoteAlreadyAbsent?
+     'Bei Intervals.icu geprüft: Das Training war bereits gelöscht. Offene Bereinigung abgeschlossen. Garmin Connect gegebenenfalls separat prüfen.':
+     'Intervals.icu hat die Entfernung bestätigt. Garmin Connect gegebenenfalls separat prüfen.'):
     'Intervals.icu konnte erneut nicht bestätigt werden. Der Eintrag bleibt als offene Bereinigung sichtbar.')
   }catch(e){setError(e instanceof Error?e.message:'Bereinigung fehlgeschlagen.')}
   finally{setActing(null)}
@@ -243,7 +269,7 @@ export function CalendarPage({active}:{active:boolean}){
   </div>
   {cleanupPending.length>0&&<div className="hc-remote-pending" role="status">
    <div><strong>Intervals.icu · {cleanupPending.length} offene Bereinigung{cleanupPending.length===1?'':'en'}</strong>
-    <p>Diese Trainings sind aus GARMIN_AI ausgeblendet. Ob die externen Kalendereinträge gelöscht wurden, ist noch nicht bestätigt. Keine automatische Wiederholung.</p>
+    <p>Diese Trainings sind aus GARMIN_AI ausgeblendet. Klicke auf „Bei Intervals.icu abgleichen“, um eine manuelle Löschung zu erkennen. Der Abgleich löscht nichts bei Intervals.icu.</p>
     {cleanupPending.map(plan=><div key={plan.id} className="hc-remote-pending-item">
      <strong>{plan.title} · {plan.training_date}</strong>
      {cleanupArmed===plan.id?<div className="hc-remote-actions">
@@ -251,7 +277,8 @@ export function CalendarPage({active}:{active:boolean}){
        {acting===plan.id?'Prüfe …':'Jetzt bei Intervals.icu entfernen'}</button>
       <button type="button" disabled={acting!==null} onClick={()=>setCleanupArmed(null)}>Abbrechen</button>
      </div>:<button type="button" disabled={acting!==null}
-      onClick={()=>setCleanupArmed(plan.id)}>Externe Löschung erneut prüfen</button>}
+      onClick={()=>void verifyRemoteCleanup(plan)}>
+      {acting===plan.id?'Prüfe Intervals.icu …':'Bei Intervals.icu abgleichen'}</button>}
     </div>)}
    </div>
   </div>}

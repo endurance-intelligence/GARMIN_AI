@@ -6,6 +6,7 @@
  */
 import {createClient} from 'npm:@supabase/supabase-js@2'
 import {buildIntervalsEvent,validateStoredIntervalsWorkout} from '../_shared/intervals-workout.mjs'
+import {confirmedAbsentOnDate} from '../_shared/intervals-cleanup-reconcile.mjs'
 
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
@@ -74,6 +75,13 @@ async function fullEvent(apiKey:string,id:unknown):Promise<Record<string,unknown
  if(!isObject(item))throw Error('Invalid Intervals event response')
  return item
 }
+/** 404 only means "already deleted" if its same-day event list also lacks
+ * both the exact saved event ID and this plan's unique GARMIN_AI external ID.
+ */
+async function missingFromCalendar(apiKey:string,plan:{id:string;training_date:string;intervals_event_id:number}){
+ const events=await readEvents(apiKey,plan.training_date)
+ return confirmedAbsentOnDate(events,plan)
+}
 Deno.serve(async req=>{
  const origin=req.headers.get('origin'),h=headers(origin)
  if(origin&&!h['Access-Control-Allow-Origin'])return reply(403,{error:'Origin not allowed'},h)
@@ -124,45 +132,68 @@ Deno.serve(async req=>{
    if(unlinkError)return reply(503,{error:'Trennung fehlgeschlagen'},h)
    return reply(200,{connected:false,remoteEventsRetained:true},h)
   }
-  if(input.action==='delete_published'||input.action==='cleanup_published'){
+  if(input.action==='delete_published'||input.action==='cleanup_published'||input.action==='verify_cleanup'){
    // Owner has explicitly confirmed removing this ONE self-created plan.
    // Always remove it from GARMIN_AI's visible calendar. A failed remote
    // DELETE must not leave the calendar entry stuck for the athlete.
-   const cleanup=input.action==='cleanup_published'
+   const cleanup=input.action==='cleanup_published'||input.action==='verify_cleanup'
+   const verifyOnly=input.action==='verify_cleanup'
    if(!uuid(input.planId)||input.acknowledge!==true||
       !Number.isSafeInteger(input.revision)||Number(input.revision)<1)
     return reply(422,{error:'Löschen muss ausdrücklich bestätigt werden.'},h)
    const {data:plan,error:planError}=await db.from('garmin_training_plan')
-    .select('id,state,revision,intervals_event_id,intervals_published_revision')
+    .select('id,training_date,state,revision,intervals_event_id,intervals_published_revision,intervals_sync_status')
     .eq('id',input.planId).maybeSingle()
    if(planError||!plan)return reply(404,{error:'Training nicht gefunden'},h)
    if(plan.revision!==input.revision||
       (cleanup?plan.state!=='cancelled':
        !['draft','pending','needs_review'].includes(plan.state))||
+      (cleanup&&plan.intervals_sync_status!=='needs_review')||
       !Number.isSafeInteger(Number(plan.intervals_event_id))||
       Number(plan.intervals_event_id)<1)
     return reply(409,{error:'Trainingsstatus oder Veröffentlichungs-ID hat sich geändert.'},h)
    let remoteRemoved=false
+   let remoteAlreadyAbsent=false
+   let remoteStillPresent=false
    let remoteProblem='Intervals.icu-Löschung noch nicht bestätigt.'
    const {data:secret,error:secretError}=await db.rpc('garmin_intervals_key_get',{p_user_id:user.id})
    if(!secretError&&typeof secret==='string'&&secret){
     try{
-     // Prevent deleting a different user's EI/Intervals event or an
-     // unrelated calendar item even if a stale numeric ID was stored.
+     // Prevent deleting another user's EI event or an unrelated calendar item.
      const existing=await fullEvent(secret,plan.intervals_event_id)
      if(existing.external_id!=='garmin-ai:'+plan.id||
         Number(existing.id)!==Number(plan.intervals_event_id)||
         existing.category!=='WORKOUT'){
       remoteProblem='Der Intervals-Termin konnte nicht eindeutig GARMIN_AI zugeordnet werden.'
+     }else if(verifyOnly){
+      // Status check must NEVER issue DELETE.
+      remoteStillPresent=true
+      remoteProblem='Das Training ist bei Intervals.icu noch vorhanden.'
      }else{
       await intervals('DELETE','/athlete/0/events/'+Number(plan.intervals_event_id),secret)
       remoteRemoved=true
      }
     }catch(e){
-     remoteProblem=errorMessage(e)
+     if(e instanceof RemoteError&&e.status===404){
+      try{
+       // Manually deleted event: verify the whole date also contains no
+       // matching ID or external_id; never clear on a transient API failure.
+       if(await missingFromCalendar(secret,plan)){
+        remoteRemoved=true
+        remoteAlreadyAbsent=true
+       }else{
+        remoteProblem='Der alte Termin fehlt, aber im Kalender existiert noch ein zugeordnetes Training. Keine automatische Löschung.'
+       }
+      }catch(verifyError){remoteProblem=errorMessage(verifyError)}
+     }else remoteProblem=errorMessage(e)
     }
    }else{
     remoteProblem='Intervals.icu ist derzeit nicht verbunden.'
+   }
+   if(verifyOnly&&!remoteRemoved){
+    // No local mutation unless an already-deleted remote event was confirmed.
+    return reply(200,{checked:true,saved:false,remoteRemoved:false,
+     remoteStillPresent,remoteProblem,revision:plan.revision},h)
    }
    // A remote failure creates a visible cleanup obligation: retain the
    // exact remote event ID and the needs_review state for explicit retry.
@@ -179,7 +210,7 @@ Deno.serve(async req=>{
     error:'Kalenderstatus konnte nicht gesichert werden. Bitte aktualisieren.',
     remoteRemoved
    },h)
-   return reply(200,{saved:true,remoteRemoved,
+   return reply(200,{saved:true,remoteRemoved,remoteAlreadyAbsent,
     remoteRemovalPending:!remoteRemoved,
     remoteProblem:remoteRemoved?null:remoteProblem,
     garminActivityDeleted:false,garminConnectScheduleDeletionUnverified:true,...saved},h)

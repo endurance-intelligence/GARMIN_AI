@@ -28,7 +28,7 @@ test('failed remote delete never strands user in the GARMIN_AI calendar',()=>{
  assert.match(calendar,/setPlans\(old=>old\.map\(p=>p\.id===plan\.id/)
  assert.match(calendar,/cleanupPending=plans\.filter/)
  assert.match(calendar,/action:'cleanup_published'/)
- assert.match(calendar,/Externe Löschung erneut prüfen/)
+ assert.match(calendar,/Bei Intervals\.icu abgleichen/)
  assert.match(calendar,/Die Löschung bei Intervals\.icu konnte nicht bestätigt werden/)
  assert.doesNotMatch(remote,/\.from\('garmin_activities'\)\.delete\(/)
 })
