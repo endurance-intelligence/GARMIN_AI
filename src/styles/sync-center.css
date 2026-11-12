@@ -272,3 +272,9 @@
 .sync-manual-imports summary{font-size:12px;font-weight:760;line-height:1.45;cursor:pointer}
 .sync-manual-imports p{margin:10px 0 0;font-size:11px;color:#aebed6;line-height:1.55}
 .sync-manual-imports .sync-source-list{margin-top:11px}
+
+/* 0.9.46 · Verified, server-stored Garmin OAuth 429 cooldown */
+.sync-garmin-backoff{border:1px solid rgba(216,163,108,.38);border-radius:12px;
+ padding:12px 14px;margin:12px 0;background:rgba(157,104,58,.085);color:#f2dbbc}
+.sync-garmin-backoff strong{display:block;font-size:12px;line-height:1.4}
+.sync-garmin-backoff p{font-size:11px;line-height:1.65;color:#dec8ae;margin:6px 0 0}
