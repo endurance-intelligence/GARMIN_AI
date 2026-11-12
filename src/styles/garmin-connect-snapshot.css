@@ -70,3 +70,23 @@
 .gcs-sync-button:disabled{opacity:.55;cursor:wait}
 .gcs-sync-progress{color:#cad5ed;font-size:12px;margin:9px 0 0;line-height:1.55}
 @media(max-width:640px){.gcs-toolbar{width:100%;justify-content:flex-start}}
+
+/* v0.9.44: private photo availability feedback and a proper retry target. */
+.gcs-image-availability{display:flex;align-items:center;justify-content:space-between;
+ gap:10px;flex-wrap:wrap;margin:10px 0 2px;padding:9px 12px;
+ border:1px solid rgba(163,183,239,.17);border-radius:10px;
+ background:rgba(124,146,211,.06);color:#b8c6e1;
+ font-size:11px;line-height:1.5}
+.gcs-image-availability>span{min-width:0;flex:1 1 220px;overflow-wrap:anywhere}
+.gcs-image-retry{min-height:40px;flex:0 0 auto;display:inline-flex;
+ align-items:center;justify-content:center;white-space:nowrap;
+ padding:8px 12px;border-radius:9px;font-size:11px;font-weight:770;
+ background:rgba(146,136,233,.17);color:#ece6ff;
+ border:1px solid rgba(165,158,246,.32)}
+.gcs-image-retry:hover{background:rgba(146,136,233,.28)}
+.gcs-image-retry:disabled{opacity:.5;cursor:default}
+.gcs-photo img{background:rgba(12,16,28,.15)}
+@media(max-width:430px){
+ .gcs-image-availability{padding:10px}
+ .gcs-image-retry{width:100%}
+}
