@@ -74,7 +74,7 @@ Deno.serve(async req=>{
             .select('metric_date,synced_at')
             .order('metric_date',{ascending:false}).limit(1),
           db.from('garmin_connect_snapshot')
-            .select('checked_at,synced_at,gear_links_checked_at,activity_gear_scope')
+            .select('checked_at,synced_at,gear_links_checked_at,gear_links_sync_source,activity_gear_scope')
             .eq('snapshot_key','primary').maybeSingle(),
           db.from('garmin_weight_outbox')
             .select('weigh_date,weight_kg,state,updated_at,confirmed_at')
@@ -120,7 +120,12 @@ Deno.serve(async req=>{
         lastSuccessAt:lastSuccess(healthRuns.data),
         lastResult:healthFirst?.result??null,thresholdHours:30
       })
-      const gearState=classifySync({manual:true})
+      const gearSource=gear.data?.gear_links_sync_source==='cloud'?'cloud':'manual'
+      const gearState=gearSource==='cloud'?classifySync({
+        lastAttemptAt:gear.data?.gear_links_checked_at??null,
+        lastSuccessAt:gear.data?.gear_links_checked_at??null,
+        lastResult:'success',thresholdHours:6
+      }):classifySync({manual:true})
       const calendarState=classifySync({manual:true})
       // A successful pg_cron dispatch only proves scheduling, never that an
       // HTTP request reached Garmin or that the data landed in the database.
@@ -139,7 +144,7 @@ Deno.serve(async req=>{
             lastSuccessAt:lastSuccess(healthRuns.data),
             latestDate:latestHealth?.metric_date??null},
           equipment:{...gearState,checkedAt:gear.data?.gear_links_checked_at??null,
-            scope:gear.data?.activity_gear_scope??'unknown'},
+            syncSource:gearSource,scope:gear.data?.activity_gear_scope??'unknown'},
           calendar:{...calendarState,checkedAt:gear.data?.checked_at??null},
           fit:{...fitSummary,counts:fit}
         },
