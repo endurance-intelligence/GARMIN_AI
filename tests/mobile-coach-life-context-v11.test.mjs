@@ -101,3 +101,13 @@ test('frontend must fail closed if protected life context cannot load',()=>{
  assert.match(schema,/enable row level security/)
  assert.match(schema,/revoke all .* from anon, authenticated/)
 })
+
+test('after two good return runs normal mode still starts conservatively, never jumps straight to long run',()=>{
+ const d=fixture()
+ d.life.context.illness_state='well'
+ d.life.context.return_started_on=date(-4)
+ const result=buildSevenDayCoach(d)
+ assert.equal(result.postIllness,true)
+ assert.ok(result.days.every(x=>x.kind!=='long'))
+ assert.ok(result.days.filter(x=>x.approvable).every(x=>x.kind==='easy'&&x.minutes<=35))
+})
