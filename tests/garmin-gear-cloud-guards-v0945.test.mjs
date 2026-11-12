@@ -52,7 +52,7 @@ test('Equipment can re-read confirmed distances without a fake immediate Garmin 
  assert.match(ui,/snapshotRefresh,setSnapshotRefresh/)
  assert.match(ui,/window\.addEventListener\('focus',onFocus\)/)
  assert.match(ui,/5\*60\*1000/)
- assert.match(ui,/Automatischer inkrementeller Garmin-Cloud-Abgleich/)
+ assert.match(ui,/automatische Cloud-Prüfung alle 3 Stunden eingerichtet/)
  assert.match(ui,/Schuhzuordnungen: \$\{formatDate\(snapshot\.gear_links_checked_at\)\}/)
  assert.match(ui,/Anzeige aktualisieren/)
  assert.match(read('src/pages/GearPage.tsx'),/mode="gear" active=\{active\}/)
