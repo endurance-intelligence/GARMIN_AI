@@ -10,6 +10,8 @@ on:
       - 'src/components/SyncCenter.tsx'
       - 'src/styles/sync-center.css'
       - 'tests/mobile-session-coach-consistency-v0943.test.mjs'
+      - 'tests/mobile-clean-coach.test.mjs'
+      - 'tests/mobile-ipad-ux.test.mjs'
       - '.github/workflows/garmin-session-coach-consistency-v0943.yml'
   pull_request:
     paths:
@@ -21,6 +23,8 @@ on:
       - 'src/components/SyncCenter.tsx'
       - 'src/styles/sync-center.css'
       - 'tests/mobile-session-coach-consistency-v0943.test.mjs'
+      - 'tests/mobile-clean-coach.test.mjs'
+      - 'tests/mobile-ipad-ux.test.mjs'
       - '.github/workflows/garmin-session-coach-consistency-v0943.yml'
 jobs:
   verify:
@@ -33,5 +37,5 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: node --test tests/mobile-session-coach-consistency-v0943.test.mjs tests/mobile-coach-life-context-v11.test.mjs tests/mobile-coach-seven-day-v1.test.mjs tests/mobile-calendar-week-board.test.mjs
+      - run: node --test tests/mobile-session-coach-consistency-v0943.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-ipad-ux.test.mjs tests/mobile-coach-life-context-v11.test.mjs tests/mobile-coach-seven-day-v1.test.mjs tests/mobile-calendar-week-board.test.mjs
       - run: npm run build
