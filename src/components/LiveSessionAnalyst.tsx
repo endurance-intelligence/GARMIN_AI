@@ -128,10 +128,16 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
               <path d={path} stroke="#7CCFFF" fill="none" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" />
             </svg> : <p className="lsa-note">HF-Verlauf für diese Einheit noch nicht verfügbar.</p>}
             <div className="lsa-chart-axis"><span>Beginn</span><span>Mitte</span><span>Ende</span></div>
-            <p className="lsa-quality">Status: {details.details.status} · Runden: {details.details.lapCount} · {details.activity.rpeRaw == null ? 'RPE fehlt' : `Garmin-RPE Rohwert ${details.activity.rpeRaw} (noch nicht skaliert)`}</p>
+            <p className="lsa-quality">Status: {details.details.status} · {details.details.lapCount>0?
+              `Runden: ${details.details.lapCount}`:'Runden nicht übermittelt'} · {details.activity.rpeRaw == null ? 'RPE fehlt' : `Garmin-RPE Rohwert ${details.activity.rpeRaw} (noch nicht skaliert)`}</p>
           </article>
           <article className="lsa-findings"><div className="lsa-section-title"><strong>Was zeigen die Daten?</strong><small>Belegbasiert · v0.6.0</small></div>
-            {analysis.signals.map((s,i)=><div className={`lsa-signal ${s.level}`} key={`${i}-${s.title}`}><b>{s.title}</b><p>{s.explanation}</p></div>)}
+            {analysis.signals.filter(signal=>signal.title!=='Trainingsziel noch nicht hinterlegt')
+              .map((signal,i)=><div className={`lsa-signal ${signal.level}`}
+              key={`${i}-${signal.title}`}><b>{signal.title}</b>
+              <p>{signal.explanation}</p></div>)}
+            <p className="lsa-note">Das Trainingsziel dieses konkreten Laufs wird unten
+              separat und nur nach deiner Zuordnung bewertet – nicht aus dem Wettkampfziel geraten.</p>
           </article>
         </div>
         <SessionGoalReview key={details.activity.id} samples={details.details.samples} lapCount={details.details.lapCount} activityDate={details.activity.date}/>
