@@ -93,7 +93,7 @@ Deno.serve(async req=>{
          !Array.isArray(reports)||reports.length<1||reports.length>30)
         return respond(422,{error:'Invalid gear reconciliation'})
       const ids=reports.map((r:Record<string,unknown>)=>r?.activityId)
-      if(ids.some(x=>typeof x!=='string'||!/^\\d{5,20}$/.test(x))||
+      if(ids.some(x=>typeof x!=='string'||!/^\d{5,20}$/.test(x))||
          new Set(ids).size!==ids.length)
         return respond(422,{error:'Invalid activity reconciliation IDs'})
       const [current,activities]=await Promise.all([
