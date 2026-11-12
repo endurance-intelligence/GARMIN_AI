@@ -88,7 +88,7 @@ Deno.serve(async req=>{
     const db=createClient(url,envKey('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
     if(req.method==='GET') {
       const {data,error:readError}=await db.from('garmin_connect_snapshot').select(
-        'gear,schedule,activity_gear,activity_gear_scope,checked_at,synced_at,gear_links_checked_at'
+        'gear,schedule,activity_gear,activity_gear_scope,checked_at,synced_at,gear_links_checked_at,gear_links_sync_source'
       ).eq('snapshot_key','primary').maybeSingle()
       if(readError) throw Error('db-read')
       if (!data || data.activity_gear_scope!=='complete') return reply({snapshot:data,usage:[]},200,h)
