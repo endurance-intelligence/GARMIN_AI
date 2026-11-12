@@ -53,9 +53,10 @@ function formatField(field:Field,value:string|number|null){
   return Number(value).toLocaleString('de-DE',{maximumFractionDigits:2})+' km'
  return String(value)
 }
-export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved,onEventCityChange,children}:{
+export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved,onEventCityChange,onCourseChange,children}:{
  active:boolean;refreshKey?:number;onLogoChange?:(url:string|null)=>void;onEventSaved?:()=>void;
- onEventCityChange?:(city:string|null)=>void;children?:ReactNode
+ onEventCityChange?:(city:string|null)=>void;
+ onCourseChange?:(course:{courseType:string|null;finishCity:string|null}|null)=>void;children?:ReactNode
 }){
  const [goal,setGoal]=useState<GoalStatus['goal']|null>(null)
  const [url,setUrl]=useState('')
@@ -116,6 +117,10 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
    setArchive(result.archive||[])
    const matchingSaved=(result.saved||[])[0]
    onEventCityChange?.(typeof matchingSaved?.details?.city==='string'?matchingSaved.details.city:null)
+   onCourseChange?.(matchingSaved?{
+    courseType:String(matchingSaved.details.courseType||'')||null,
+    finishCity:typeof matchingSaved.details.finishCity==='string'?matchingSaved.details.finishCity:null
+   }:null)
    const matchingArchive=(result.archive||[]).find(x=>x.canonical_url===matchingSaved?.event_url)
    onLogoChange?.(String(matchingSaved?.details?.logoUrl||matchingArchive?.template_details?.logoUrl||'')||null)
    // Existing user draft takes precedence over reloading the saved event.
@@ -183,6 +188,8 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
    }
    onLogoChange?.(typeof record.details?.logoUrl==='string'?record.details.logoUrl:null)
    onEventCityChange?.(typeof record.details?.city==='string'?record.details.city:null)
+   onCourseChange?.({courseType:String(record.details?.courseType||'')||null,
+    finishCity:typeof record.details?.finishCity==='string'?record.details.finishCity:null})
    onEventSaved?.()
    setNotice(result.archiveSaved===false?
     'Austragung gespeichert; Archiv konnte nicht aktualisiert werden. Bitte später erneut speichern.':
