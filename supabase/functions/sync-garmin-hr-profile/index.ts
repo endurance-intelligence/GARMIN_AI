@@ -19,7 +19,12 @@ function key(type: 'publishable'|'secret'): string {
   return Deno.env.get(legacy) ?? ''
 }
 function cors(origin: string | null): Record<string,string> {
-  const allow = !!origin && /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin)
+  // Production GitHub Pages must be allowed, alongside local Vite development.
+  // Keep all other origins rejected; auth.getUser + owner email remain mandatory.
+  const allow = !!origin && (
+    origin === 'https://endurance-intelligence.github.io' ||
+    /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin)
+  )
   return {
     ...(allow ? {'Access-Control-Allow-Origin':origin!,Vary:'Origin'} : {}),
     'Access-Control-Allow-Methods':'GET, POST, OPTIONS',
