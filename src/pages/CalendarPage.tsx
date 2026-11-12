@@ -405,8 +405,55 @@ export function CalendarPage({active,focus}:{
    <div className="hc-day-content">
     <div className="hc-day-heading">
      <div><span>AUSGEWÄHLTER TAG</span><h3>{longDate(selected)}</h3></div>
-     <span className="hc-day-count">{matching.length} {matching.length===1?'Eintrag':'Einträge'}</span>
+     <span className="hc-day-count">{matching.length} {matching.length===1?'gespeicherter Termin':'gespeicherte Termine'}</span>
     </div>
+    {coachLoading&&<p className="hc-coach-loading" role="status">Lade Coach-Empfehlungen …</p>}
+    {coachError&&<p className="hc-coach-unavailable" role="status">
+     Coach-Empfehlungen derzeit nicht erreichbar. Keine Trainingsvorgaben geschätzt.
+    </p>}
+    {error&&<p className="hc-error" role="alert">{error}</p>}
+    {notice&&<p className="hc-notice" role="status">{notice}</p>}
+    {coachPreview&&<article className={'hc-coach-proposal'+(coachPreview.approvable?' is-actionable':' is-rest')}
+      aria-label="Coach-Empfehlung für diesen Kalendertag">
+     <div className="hc-coach-proposal-top">
+      <span><Icon name="sparkles"/> COACH / EMPFEHLUNG</span>
+      <small>{coachPreview.approvable?'Noch nicht gespeichert · freiwillig':
+       'Nur Orientierung · keine automatische Planung'}</small>
+     </div>
+     <h4>{coachPreview.title}</h4>
+     <p>{coachPreview.reason}</p>
+     {coachPreview.minutes!==null&&<span className="hc-coach-minutes">
+      {coachPreview.minutes} Minuten · {coachPreview.kind==='mobility'?'Stabi/Mobility':
+       'Sprechtempo · ohne Pace- oder HF-Zwang'}
+     </span>}
+     {coachPreview.approvable&&selected>=today&&
+      (coachReview===selected?
+       <div className="hc-coach-confirm">
+        <strong>Vorschlag als GARMIN_AI-Entwurf übernehmen?</strong>
+        <p>Erst nach deiner Freigabe im Kalender lässt sich das Workout an Intervals.icu senden.</p>
+        {coachPreview.kind!=='mobility'&&<label>Startzeit des Workouts
+         <select value={coachStartTime} onChange={e=>setCoachStartTime(e.target.value)}
+          disabled={acting!==null}>
+          {Array.from({length:31},(_,i)=>{
+           const time=String(6+Math.floor(i/2)).padStart(2,'0')+':'+(i%2?'30':'00')
+           return <option value={time} key={time}>{time} Uhr</option>
+          })}
+         </select>
+        </label>}
+        <div className="hc-coach-confirm-actions">
+         <button type="button" className="hc-coach-accept"
+          disabled={acting!==null} onClick={()=>void acceptCoach(coachPreview)}>
+          {acting==='coach-'+selected?'Speichere …':'Ja, als Entwurf übernehmen'}
+         </button>
+         <button type="button" className="hc-coach-cancel"
+          disabled={acting!==null} onClick={()=>setCoachReview(null)}>Abbrechen</button>
+        </div>
+       </div>:
+       <button type="button" className="hc-coach-accept"
+        disabled={acting!==null} onClick={()=>{setCoachReview(selected);setCoachStartTime('18:00')}}>
+        <Icon name="check"/> Vorschlag übernehmen
+       </button>)}
+    </article>}
     {matching.length?
      <div className="hc-entries">
       {matching.map(entry=>{
