@@ -35,7 +35,7 @@ test('aerobic report remains only an evidence scan, not physiology threshold or 
 test('sync center distinguishes optional Garmin snapshot from confirmed Intervals exports',()=>{
  const view=read('src/components/SyncCenter.tsx')
  assert.match(view,/Garmin-Kalender · Leseimport/)
- assert.match(view,/Garmin-Ausrüstung · Import/)
+ assert.match(view,/Garmin-Ausrüstung · bisheriger Import/)
  assert.match(view,/Coach → Intervals\.icu → Garmin-Uhr/)
  assert.match(view,/garmin-intervals/)
  assert.match(view,/intervals_sync_status==='confirmed'/)
