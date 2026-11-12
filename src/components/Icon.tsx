@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react'
 
 const iconShapes: Record<string, ReactNode> = {
+"calendar-off": <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M4 4l16 16"/></>,
+"plane": <><path d="M17.5 21.5 12.4 13 4 8.5l-2 2 8.3 5.5 5.7 8.3 2-2-4.5-8.4 8.5-5.1a2.2 2.2 0 0 0 0-3.1 2.2 2.2 0 0 0-3.1 0L13 12"/><path d="M3.5 3.5 9 9"/></>,
+
 "thermometer": <><path d="M14 14.8V5a4 4 0 0 0-8 0v9.8a6 6 0 1 0 8 0Z"/><path d="M10 9v9"/><circle cx="10" cy="18" r="2"/></>,
 "droplets": <><path d="M12 3c-3 5-6 8-6 12a6 6 0 0 0 12 0c0-4-3-7-6-12Z"/><path d="M9 16a3 3 0 0 0 3 3"/></>,
 "wind": <><path d="M3 8h12a3 3 0 1 0-3-3M2 12h17a3 3 0 1 1-3 3M3 17h7a3 3 0 1 1-3 3"/></>,
