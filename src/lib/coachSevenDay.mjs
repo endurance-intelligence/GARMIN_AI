@@ -40,11 +40,11 @@ export function buildSevenDayCoach(input){
  const pulse=latest?checkSignal(metrics,'resting_heart_rate',25,110,latest):null
  const sleep=latest?checkSignal(metrics,'sleep_seconds',3*3600,16*3600,latest):null
  const signals=[]
- if(hrv?.value!==null&&hrv?.median!==null&&hrv.value<hrv.median*.8)
+ if(hrv?.value!=null&&hrv?.median!=null&&hrv.value<hrv.median*.8)
   signals.push('HRV mehr als 20 % unter dem jüngsten 14-Tage-Median')
- if(pulse?.value!==null&&pulse?.median!==null&&pulse.value>=pulse.median+7)
+ if(pulse?.value!=null&&pulse?.median!=null&&pulse.value>=pulse.median+7)
   signals.push('Ruhepuls mindestens 7 Schläge über dem jüngsten Median')
- if(sleep?.value!==null&&sleep?.median!==null&&sleep.value<=sleep.median-3600)
+ if(sleep?.value!=null&&sleep?.median!=null&&sleep.value<=sleep.median-3600)
   signals.push('Schlafdauer mindestens 60 Minuten unter dem jüngsten Median')
  const previous=training?.previousRunKm7,nowKm=training?.runKm7
  const volumeRise=valid(previous)&&previous>=10&&valid(nowKm)&&nowKm>previous*1.4
@@ -52,7 +52,7 @@ export function buildSevenDayCoach(input){
  const dataReady=!!training&&!training.truncated&&metrics.length>0
  const recentHealth=age!==null&&age<=2
  const observationLimited=!recentHealth||!dataReady||
-  training.historyStatus!=='complete'||![hrv,pulse,sleep].some(x=>x?.median!==null)
+  training.historyStatus!=='complete'||![hrv,pulse,sleep].some(x=>x?.median!=null)
  const caution=!!input.symptoms||signals.length>=2||volumeRise
  const goal=input.goal?.goal||null
  const raceDate=goal?.race_date||null
@@ -65,9 +65,9 @@ export function buildSevenDayCoach(input){
  const flags=[
   training?'Garmin: '+quant(training.runKm7,' km Laufumfang in 7 Tagen')+'; Vorwoche '+quant(training.previousRunKm7,' km'):'Trainingsumfang nicht verfügbar',
   latest?'Erholung: letzter Messwert '+latest+(age>2?' (veraltet)':''):'Erholungsdaten fehlen',
-  latest&&hrv?.median!==null?'HRV '+quant(hrv.value,' ms')+'; Median '+quant(hrv.median,' ms')+' (14 Tage davor)':'HRV: kein ausreichender Vergleich',
-  latest&&pulse?.median!==null?'Ruhepuls '+quant(pulse.value,' bpm')+'; Median '+quant(pulse.median,' bpm'):'Ruhepuls: kein ausreichender Vergleich',
-  latest&&sleep?.median!==null?'Schlaf '+quant(sleep.value===null?null:sleep.value/3600,' h')+
+  latest&&hrv?.median!=null?'HRV '+quant(hrv.value,' ms')+'; Median '+quant(hrv.median,' ms')+' (14 Tage davor)':'HRV: kein ausreichender Vergleich',
+  latest&&pulse?.median!=null?'Ruhepuls '+quant(pulse.value,' bpm')+'; Median '+quant(pulse.median,' bpm'):'Ruhepuls: kein ausreichender Vergleich',
+  latest&&sleep?.median!=null?'Schlaf '+quant(sleep.value===null?null:sleep.value/3600,' h')+
    '; Median '+quant(sleep.median/3600,' h'):'Schlaf: kein ausreichender Vergleich',
   raceDate?'Wettkampfziel '+goal.race_name+' am '+raceDate:'Kein Wettkampfziel verfügbar'
  ]
