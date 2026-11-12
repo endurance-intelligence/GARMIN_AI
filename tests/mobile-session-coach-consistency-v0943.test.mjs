@@ -31,7 +31,7 @@ test('Coach overview only treats explicitly selected club option as a fixed work
  const view=read('src/components/CoachGlance.tsx')
  assert.match(view,/attendance\(w\)==='selected'/)
  assert.match(view,/attendance\(w\)==='open'/)
- assert.match(view,/Freiwillig:/)
+ assert.match(view,/Optional:/)
  assert.match(view,/Offene Wochenoption · noch nicht zugesagt/)
 })
 test('Coach respects illness, returning status, vacation blocks and missing source data',()=>{
