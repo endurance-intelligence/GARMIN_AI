@@ -12,7 +12,7 @@ import '../styles/coach-glance.css'
 import type {Page} from '../navigation'
 
 type Decision = 'pending' | 'approved' | 'rejected'
-export function CoachPage({active,onGo}: {active:boolean; onGo:(page:Page)=>void}) {
+export function CoachPage({active,onGo,onOpenCalendar}: {active:boolean; onGo:(page:Page)=>void;onOpenCalendar:(date?:string)=>void}) {
   const [decision,setDecision] = useState<Decision>('pending')
   const [weightOpen,setWeightOpen]=useState(false)
   const [savedWeight,setSavedWeight]=useState<number|null>(null)
@@ -50,11 +50,11 @@ export function CoachPage({active,onGo}: {active:boolean; onGo:(page:Page)=>void
  {savedWeight!==null&&<p role="status" className="co-saved-note">
   {savedWeight.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})} kg gespeichert · Garmin-Übertragung noch ausstehend
  </p>}
- <CoachGlance active={active} onCalendar={()=>onGo('calendar')}>
+ <CoachGlance active={active} onCalendar={()=>onOpenCalendar()}>
   <CoachTodayWeather active={active}/>
  </CoachGlance>
  <CoachGoalPanel active={active} compact onEdit={()=>onGo('race')}/>
- <CoachSevenDay active={active} onCalendar={()=>onGo('calendar')}/>
+ <CoachSevenDay active={active} onCalendar={onOpenCalendar}/>
  <WeeklyTrainingOptions active={active} weekStart={mondayOf(berlinToday())} compact/>
  <CrossTrainingCoachCard active={active} onOpen={()=>onGo('strength')}/>
  <details className="co-extra co-demo" onToggle={event=>setDemoOpen(event.currentTarget.open)}>
