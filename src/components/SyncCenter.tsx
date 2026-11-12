@@ -225,11 +225,13 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
 
   if(!active)return null
   const today=data?.weightEntries.find(v=>v.weigh_date===date)
-  const rows=[
+  const automaticRows=[
     {name:'Aktivitäten',source:data?.sources.activities,
       detail:'Letzter bestätigter Import: '+dateText(data?.sources.activities.lastSuccessAt)},
     {name:'Gesundheitsdaten',source:data?.sources.health,
-      detail:'Letzter Messtag: '+(data?.sources.health.latestDate||'unbekannt')},
+      detail:'Letzter Messtag: '+(data?.sources.health.latestDate||'unbekannt')}
+  ]
+  const manualRows=[
     {name:'Garmin-Ausrüstung · Import',source:data?.sources.equipment,
       detail:'Schuh- und Aktivitätszuordnungen · letzter manueller Stand: '+dateText(data?.sources.equipment.checkedAt)},
     {name:'Garmin-Kalender · Leseimport',source:data?.sources.calendar,
@@ -281,14 +283,30 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
         <p>Echte Zeitstempel der bestehenden Datenquellen – keine künstlichen Scores.</p></div>
         <button type="button" className="secondary" onClick={()=>setRefresh(n=>n+1)}>Prüfen</button>
       </div>
-      {session&&data?<div className="sync-source-list">{rows.map(row=>
-        <div className="sync-source" key={row.name}>
-          <div className="sync-source-head"><strong>{row.name}</strong>
-            <span className={`sync-state sync-state-${row.source?.state||'unknown'}`}>{stateText(row.source?.state)}</span>
-          </div>
-          <span>Letzter Versuch: {dateText(row.source?.checkedAt)}</span>
-          <small>{row.detail}</small>
-        </div>)}</div>:<p className="sync-hint">{session?'Lese Status …':'Bitte zuerst unter Einstellungen anmelden.'}</p>}
+      {session&&data?<>
+        <div className="sync-source-list">{automaticRows.map(row=>
+          <div className="sync-source" key={row.name}>
+            <div className="sync-source-head"><strong>{row.name}</strong>
+              <span className={`sync-state sync-state-${row.source?.state||'unknown'}`}>{stateText(row.source?.state)}</span>
+            </div>
+            <span>Letzter Versuch: {dateText(row.source?.checkedAt)}</span>
+            <small>{row.detail}</small>
+          </div>)}</div>
+        <details className="sync-manual-imports">
+          <summary>Optionale Garmin-Leseimporte · Ausrüstung &amp; alter Kalendersnapshot</summary>
+          <p>Diese beiden Quellen werden zurzeit <strong>nicht automatisch</strong>
+            aktualisiert. Sie gehören nicht zur Übertragung von Coach-Workouts.
+            Für Ausrüstung ist noch ein eigenständiger automatischer Import nötig.</p>
+          <div className="sync-source-list">{manualRows.map(row=>
+            <div className="sync-source" key={row.name}>
+              <div className="sync-source-head"><strong>{row.name}</strong>
+                <span className={`sync-state sync-state-${row.source?.state||'unknown'}`}>{stateText(row.source?.state)}</span>
+              </div>
+              <span>Letzter Stand: {dateText(row.source?.checkedAt)}</span>
+              <small>{row.detail}</small>
+            </div>)}</div>
+        </details>
+      </>:<p className="sync-hint">{session?'Lese Status …':'Bitte zuerst unter Einstellungen anmelden.'}</p>}
       {session&&data&&<div className="sync-intervals" aria-label="Coach-Workouts und Intervals.icu">
         <div className="sync-source-head"><strong>Coach → Intervals.icu → Garmin-Uhr</strong>
           <span className={'sync-state '+(intervals?.configured?'sync-state-ok':'sync-state-unknown')}>
