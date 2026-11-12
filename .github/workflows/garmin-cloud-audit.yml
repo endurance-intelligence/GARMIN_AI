@@ -1,71 +1,54 @@
-# Single-purpose bootstrap workflow on main; does NOT merge the
-# unfinished GARMIN_AI development stack into the default branch.
-# Read-only daily sync; OAuth cooldown prevents repeated Garmin authentication.
 name: GARMIN_AI Cloud Read-Only Audit
 
 on:
   workflow_dispatch:
+    inputs:
+      task:
+        description: 'One-time safe gear sync or historic read-only audit'
+        required: true
+        type: choice
+        default: gear-sync
+        options:
+          - gear-sync
+          - full-audit
+  # Scheduled incremental shoe associations, every 3h. Only authenticated,
+  # bounded reads via the trusted main-branch OIDC worker. No Garmin writes.
   schedule:
-    - cron: '37 9 * * *'
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/garmin-cloud-audit.yml'
+    - cron: '37 */3 * * *'
 
 permissions:
   contents: read
   id-token: write
 
 concurrency:
-  group: garmin-ai-cloud-audit
+  group: garmin-cloud-audit
   cancel-in-progress: false
 
 jobs:
-  verify:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 12
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout exact reviewed source
-        uses: actions/checkout@v7
-        with:
-          ref: db176996e634203ec16548b32603f3ba67667d7e
-          persist-credentials: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-          cache: npm
-      - run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Test OAuth 429 guard and audit safety
-        run: node --test tests/garmin-cloud-429-guard.test.mjs tests/garmin-cloud-data-audit.test.mjs tests/garmin-worker-claims.test.mjs tests/garmin-cloud-session.test.mjs tests/garmin-cloud-audit-diagnostic.test.mjs tests/garmin-cloud-snapshot-auto-sync.test.mjs tests/garmin-cloud-hr-recovery.test.mjs
-      - run: npm run build
-
   audit:
-    name: Sync Garmin gear/calendar (read-only on Garmin)
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+    name: Verified Garmin gear read (no remote writes)
+    # A scheduled event requires main. Manual runs can choose the full audit.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
     steps:
-      - name: Check out exact reviewed cloud audit version
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          ref: db176996e634203ec16548b32603f3ba67667d7e
+          # Main hosts only release workflows. Worker sources are pinned to the
+          # same fully tested source commit as the Pages release.
+          ref: d03a3b4e3d4d63a9d68bfdc8cd50908cdd6b308f
           persist-credentials: false
-
-      - name: Configure Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: npm
-
-      - name: Install locked dependencies without package scripts
+          cache: 'npm'
+      - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
-
-      - name: Test audit and OIDC access guards
-        run: node --test tests/garmin-cloud-data-audit.test.mjs tests/garmin-worker-claims.test.mjs tests/garmin-cloud-session.test.mjs tests/garmin-cloud-audit-diagnostic.test.mjs tests/garmin-cloud-snapshot-auto-sync.test.mjs tests/garmin-cloud-hr-recovery.test.mjs
-
-      - name: Read Garmin Connect and update validated private Supabase snapshot
+      - name: Test cloud authorization and gear merge guards
+        run: node --test tests/garmin-incremental-gear-v0945.test.mjs tests/garmin-gear-cloud-guards-v0945.test.mjs tests/garmin-cloud-data-audit.test.mjs tests/garmin-worker-claims.test.mjs
+      - name: Sync recent Garmin running gear without Garmin writes
+        if: github.event_name == 'schedule' || inputs.task == 'gear-sync'
+        run: node scripts/cloud/sync-garmin-gear.mjs
+      - name: Optional full read-only Garmin audit
+        if: github.event_name == 'workflow_dispatch' && inputs.task == 'full-audit'
         run: node scripts/cloud/audit-garmin-connect.mjs
