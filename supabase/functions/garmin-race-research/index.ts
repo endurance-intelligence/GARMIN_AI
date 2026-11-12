@@ -40,7 +40,7 @@ const numberValue=(v:unknown,min:number,max:number)=>{
 function reviewed(data:unknown){
  if(!data||typeof data!=='object'||Array.isArray(data))throw Error('Missing research')
  const value=data as Record<string,unknown>,fields:Record<string,unknown>={}
- for(const name of ['eventName','venue','venueAddress','city','routeNotes'] as const)
+ for(const name of ['eventName','venue','venueAddress','city','finishVenue','finishCity','finishAddress','routeNotes'] as const)
   fields[name]=cleanString(value[name],name==='routeNotes'?240:190)
  for(const name of ['routeUrl','gpxUrl','logoUrl'] as const)
   fields[name]=value[name]?safeWebsiteUrl(String(value[name])):null
@@ -50,6 +50,17 @@ function reviewed(data:unknown){
   const v=value[name];fields[name]=v===null?null:
    typeof v==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(v)?v:
    (()=>{throw Error('Invalid event time')})()
+ }
+ const allowedCourseTypes=['loop','point_to_point','out_and_back','multi_loop']
+ const type=value.courseType
+ if(type!==undefined&&type!==null&&type!==''&&
+    (typeof type!=='string'||!allowedCourseTypes.includes(type)))
+  throw Error('Ungültiger Streckentyp')
+ fields.courseType=typeof type==='string'&&type?type:null
+ // An unknown finish is NOT silently replaced by the start.
+ // Separate start/finish are only meaningful for a point-to-point course.
+ if(fields.courseType!=='point_to_point'){
+  fields.finishVenue=null;fields.finishCity=null;fields.finishAddress=null
  }
  fields.officialLoopKm=numberValue(value.officialLoopKm,0.1,200)
  fields.maximumDistanceKm=numberValue(value.maximumDistanceKm,0.1,500)

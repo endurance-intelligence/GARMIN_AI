@@ -29,3 +29,32 @@
 .rfc-wind-label.warning{color:#f8aba7}
 .rfc-wind-explanation{font-size:11px;line-height:1.6;color:#bccce2;margin:5px 0 8px}
 .rfc-wind-explanation strong{color:#e1e8fa}
+
+
+/* Horizon weather v0.9.39: three quiet, small and unmistakable metrics. */
+.rfc-root{padding:14px}
+.rfc-summary{margin:10px 0 7px;gap:8px}
+.rfc-summary>.rfc-metric{display:flex;flex-direction:row;align-items:center;gap:11px;
+ min-height:0;padding:9px 12px;border-radius:11px}
+.rfc-metric>.ic{display:block;width:19px;height:19px;flex-shrink:0;color:#a6b9ff;stroke-width:1.8}
+.rfc-metric:nth-child(2)>.ic{color:#8cc8f4}
+.rfc-metric:nth-child(3)>.ic{color:#b6c1e8}
+.rfc-metric>div{min-width:0;display:flex;flex-direction:column;gap:3px}
+.rfc-metric strong{font-size:clamp(16px,2.3vw,21px);line-height:1.15}
+.rfc-metric small{font-size:10px;line-height:1.2}
+.rfc-metric .rfc-wind-label{font-size:9px;padding:3px 5px;margin-top:1px}
+.rfc-course{margin:12px 0 9px;padding:11px;border:1px solid rgba(143,174,226,.18);
+ border-radius:12px;background:rgba(21,36,62,.64)}
+.rfc-course-title{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:9px}
+.rfc-course-title strong{font-size:12px}
+.rfc-course-title small{font-size:10px;color:#9eb4d2}
+.rfc-course-points{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px}
+.rfc-course-point{display:flex;flex-direction:column;gap:5px;border-radius:10px;padding:10px;
+ border:1px solid rgba(150,171,220,.12);background:#1c2a47}
+.rfc-course-point span{font-size:10px;color:#bac8ee}
+.rfc-course-point strong{font-size:12px}
+.rfc-course-point small{font-size:10px;color:#9eb2d0;line-height:1.5}
+@media(max-width:580px){.rfc-summary{gap:5px}.rfc-summary>.rfc-metric{gap:6px;padding:8px;align-items:flex-start}
+ .rfc-metric>.ic{width:15px;height:15px}.rfc-metric strong{font-size:16px}
+ .rfc-metric small{font-size:9px}.rfc-course-points{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:370px){.rfc-course-points{grid-template-columns:1fr}}

@@ -1,0 +1,37 @@
+name: GARMIN_AI Race Course Weather + Session Persistence
+on:
+  push:
+    paths:
+      - 'src/components/RaceEventResearch.tsx'
+      - 'src/components/RaceForecastCompact.tsx'
+      - 'src/components/RaceRouteViewer.tsx'
+      - 'src/pages/RacePage.tsx'
+      - 'src/App.tsx'
+      - 'src/components/Icon.tsx'
+      - 'src/lib/raceCourseWeather.mjs'
+      - 'src/lib/raceCourseWeather.d.mts'
+      - 'src/styles/race-forecast-compact.css'
+      - 'supabase/functions/garmin-race-research/index.ts'
+      - 'supabase/functions/_shared/race-event-extract.mjs'
+      - 'tests/mobile-race-course-weather-persist-v0939.test.mjs'
+      - '.github/workflows/garmin-race-course-weather-v0939.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'supabase/functions/garmin-race-research/index.ts'
+      - 'supabase/functions/_shared/race-event-extract.mjs'
+      - 'tests/mobile-race-course-weather-persist-v0939.test.mjs'
+      - '.github/workflows/garmin-race-course-weather-v0939.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-race-course-weather-persist-v0939.test.mjs tests/mobile-race-event-dossier-komoot-v0936.test.mjs tests/mobile-race-goals-weather-gpx-v0935.test.mjs tests/mobile-race-event-research-v0932.test.mjs tests/mobile-event-archive-logo-autocomplete-v0934.test.mjs tests/mobile-race-wind-explainer-v0937.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs
+      - run: npm run build

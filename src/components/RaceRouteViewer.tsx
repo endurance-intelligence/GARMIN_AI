@@ -24,7 +24,7 @@ async function request(body?:Record<string,unknown>):Promise<Loaded&{saved?:bool
  if(!result.ok)throw Error(json.error||'Streckenservice nicht erreichbar')
  return json
 }
-export function RaceRouteViewer({active,refreshKey=0,forecast}:{active:boolean;refreshKey?:number;forecast:Forecast|null}){
+export function RaceRouteViewer({active,refreshKey=0,forecast,onTrack}:{active:boolean;refreshKey?:number;forecast:Forecast|null;onTrack?:(points:Point[]|null)=>void}){
  const [loaded,setLoaded]=useState<Loaded|null>(null)
  const [draft,setDraft]=useState<Draft|null>(null)
  const [busy,setBusy]=useState(false)
@@ -37,6 +37,10 @@ export function RaceRouteViewer({active,refreshKey=0,forecast}:{active:boolean;r
   void request().then(x=>{if(alive)setLoaded(x)}).catch(e=>{if(alive)setError(e instanceof Error?e.message:'Strecke nicht abrufbar')})
   return ()=>{alive=false}
  },[active,refreshKey])
+ useEffect(()=>{
+  if(!loaded)return
+  onTrack?.(draft?.points||loaded.route?.coordinates||null)
+ },[loaded?.route,draft])
  async function openFile(file:File|undefined){
   if(!file)return
   setError('');setNotice('')

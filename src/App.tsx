@@ -26,8 +26,19 @@ const navActive=(page:Page,id:Page)=>page===id||
   (id==='more'&&(page==='gear'||page==='settings'||page==='strength'))
 
 function App() {
-  const [page,setPage]=useState<Page>('home')
-  function go(next:Page) {setPage(next); window.scrollTo({top:0,behavior:'instant'})}
+  const [page,setPage]=useState<Page>(()=>{
+   try{
+    const last=sessionStorage.getItem('garmin-ai:last-page:v1')
+    if(last&&(['home','calendar','training','race','more','gear','settings','strength'] as string[]).includes(last))
+     return last as Page
+   }catch{/* Private browsing can block session storage. */}
+   return 'home'
+  })
+  function go(next:Page) {
+    setPage(next)
+    try{sessionStorage.setItem('garmin-ai:last-page:v1',next)}catch{}
+    window.scrollTo({top:0,behavior:'instant'})
+  }
   return <OnlineAccessGate>
   <div className="app">
     <aside className="sidebar">

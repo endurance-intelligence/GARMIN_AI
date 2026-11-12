@@ -123,7 +123,7 @@ export function parseEventPages(pages,{raceDateHint=null,raceNameHint=""}={}){
  const allLinks=[],allText=[],sources=[];
  const details={
   eventName:null,eventDate:null,startTime:null,endTime:null,
-  venue:null,venueAddress:null,city:null,officialLoopKm:null,
+  venue:null,venueAddress:null,city:null,courseType:null,finishVenue:null,finishCity:null,finishAddress:null,officialLoopKm:null,
   routeUrl:null,gpxUrl:null,routeNotes:null,maximumDistanceKm:null
  };
  const set=(field,value,page,evidence)=>{
@@ -161,6 +161,16 @@ export function parseEventPages(pages,{raceDateHint=null,raceNameHint=""}={}){
     }
    }
   }
+  // Classify only when the organizer explicitly describes its course.
+  // A map link alone is not evidence that start and finish are identical.
+  if(/\b(?:punkt[\s-]?zu[\s-]?punkt|point[\s-]?to[\s-]?point|start\s*(?:in|bei)\s+.{2,70}?(?:ziel|finish)\s*(?:in|bei))\b/i.test(text))
+   set("courseType","point_to_point",page,"Punkt-zu-Punkt-Strecke laut Veranstalter");
+  else if(/\b(?:wendepunktstrecke|hin[\s-]und[\s-]zur[uü]ck|out[\s-]and[\s-]back)\b/i.test(text))
+   set("courseType","out_and_back",page,"Hin- und Rückweg laut Veranstalter");
+  else if(/\b(?:mehrere\s+runden|rundenlauf|wiederhol(?:te|bare)\s+runden)\b/i.test(text))
+   set("courseType","multi_loop",page,"Mehrere Runden laut Veranstalter");
+  else if(/\b(?:rundkurs|rundstrecke|loop)\b/i.test(text))
+   set("courseType","loop",page,"Rundkurs laut Veranstalter");
   const dates=extractDates(text);
   if(raceDateHint&&dates.includes(raceDateHint))set("eventDate",raceDateHint,page,raceDateHint);
   else if(dates.length===1)set("eventDate",dates[0],page,dates[0]);
@@ -175,6 +185,14 @@ export function parseEventPages(pages,{raceDateHint=null,raceNameHint=""}={}){
   if(/\bSportpark Johannisau\b/i.test(text))set("venue","Sportpark Johannisau",page,"Sportpark Johannisau");
   for(const line of lines){
    const venue=/^(?:Start\/Ziel|WO|Ort|Location|Venue)\s*:\s*(.{5,155})$/i.exec(line);
+   if(details.courseType==='point_to_point'){
+    const startPlace=/^(?:Startort|Startpunkt|Startbereich|Start)\s*:\s*(.{3,130})$/i.exec(line)
+    const finishPlace=/^(?:Zielort|Zielpunkt|Zielbereich|Ziel)\s*:\s*(.{3,130})$/i.exec(line)
+    if(startPlace&& !/^\d{1,2}[:.]\d{2}/.test(startPlace[1]))
+     set("venue",safeText(startPlace[1],130),page,line)
+    if(finishPlace&& !/^\d{1,2}[:.]\d{2}/.test(finishPlace[1]))
+     set("finishVenue",safeText(finishPlace[1],130),page,line)
+   }
    if(venue&&!details.venue&&!/^\d/.test(venue[1]))
     set("venue",safeText(venue[1].replace(/\s*\(.*$/,""),130),page,line);
    const city=/\b(?:in|bei)\s+(Fulda|Berlin|Hamburg|München|Köln|Bielefeld|Frankfurt|Hannover|Kassel|Dresden|Leipzig)\b/i.exec(line);
