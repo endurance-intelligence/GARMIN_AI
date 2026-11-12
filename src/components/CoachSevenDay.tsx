@@ -1,25 +1,22 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {berlinDateToday} from '../lib/coachGoal'
-import {buildSevenDayCoach,coachAddDays,coachMonday} from '../lib/coachSevenDay.mjs'
+import {buildSevenDayCoach} from '../lib/coachSevenDay.mjs'
+import {loadCoachSnapshot} from '../lib/coachSnapshot'
+import type {CoachSnapshot} from '../lib/coachSnapshot'
 import type {CoachDay} from '../lib/coachSevenDay.mjs'
 import {Icon} from './Icon'
 import {CoachLifeContext} from './CoachLifeContext'
 import type {CoachContextPayload} from './CoachLifeContext'
 import '../styles/coach-seven-day.css'
 
-type Snapshot={
- health:Record<string,unknown>;boards:Record<string,unknown>[];
- options:Record<string,unknown>;plans:{entries:Array<Record<string,unknown>>};
- goal:Record<string,unknown>;life:CoachContextPayload
-}
 type SubmitResponse={saved?:boolean;id?:string;state?:string;revision?:number;error?:string}
 const formatDate=(day:string)=>new Intl.DateTimeFormat('de-DE',{
  timeZone:'UTC',weekday:'short',day:'2-digit',month:'2-digit'
 }).format(new Date(day+'T12:00:00Z'))
 
-export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:()=>void}){
- const [snapshot,setSnapshot]=useState<Snapshot|null>(null)
+export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(date?:string)=>void}){
+ const [snapshot,setSnapshot]=useState<CoachSnapshot|null>(null)
  const [loading,setLoading]=useState(false)
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
@@ -28,43 +25,19 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:()=
  const [review,setReview]=useState<string|null>(null)
  const [startTime,setStartTime]=useState('18:00')
  const [saving,setSaving]=useState<string|null>(null)
+ const [savedDay,setSavedDay]=useState<string|null>(null)
  const ids=useRef<Record<string,string>>({})
- const requested=useRef<string|null>(null)
  const today=berlinDateToday()
  useEffect(()=>{
   if(!active||!garminSupabase)return
-  const requestKey=today+'|'+reload
-  if(requested.current===requestKey)return
   let mounted=true
   const controller=new AbortController()
   setLoading(true);setError('');setNotice('')
   void (async()=>{
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)throw Error('Bitte zuerst anmelden.')
-   const get=async(path:string)=>{
-    const res=await fetch(garminSupabaseUrl+'/functions/v1/'+path,{
-     signal:controller.signal,cache:'no-store',
-     headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey}
-    })
-    if(!res.ok)throw Error('Garmin-Daten aktuell nicht vollständig erreichbar ('+res.status+').')
-    return await res.json() as Record<string,unknown>
-   }
-   const first=coachMonday(today),second=coachMonday(coachAddDays(today,6))
-   const weeks=first===second?[first]:[first,second]
-   const [health,options,plans,goal,life,...boards]=await Promise.all([
-    get('read-garmin-health'),get('garmin-weekly-options'),
-    get('garmin-training-plan'),get('garmin-coach-goal'),get('garmin-coach-context'),
-    ...weeks.map(w=>get('garmin-week-board?start='+encodeURIComponent(w)))
-   ])
-   if(!mounted)return
-   if(!life.context||!Array.isArray((life.context as Record<string,unknown>).blocked_periods)||
-    !Array.isArray((life.context as Record<string,unknown>).run_reviews)||!Array.isArray(life.runs)||
-    !Array.isArray(options.options)||!Array.isArray(plans.entries)||
-    !boards.every(b=>Array.isArray(b.activities)&&Array.isArray(b.manual)))
-    throw Error('Einige Kalenderdaten sind unvollständig; keine Planung erstellt.')
-   setSnapshot({health,options,plans:{entries:plans.entries as Array<Record<string,unknown>>},goal,boards,
-    life:life as CoachContextPayload})
-   requested.current=requestKey
+   const data=await loadCoachSnapshot(session,today,controller.signal)
+   if(mounted)setSnapshot(data)
   })().catch(e=>{
    if(mounted&&!(e instanceof Error&&e.name==='AbortError'))
     setError(e instanceof Error?e.message:'Coach-Daten nicht verfügbar.')
@@ -134,6 +107,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:()=
     }]}
    }:prev)
    setReview(null)
+   setSavedDay(day.date)
    setNotice((structured?
     'Zeitgesteuertes Lauf-Workout ('+day.minutes+' Min., Start '+startTime+
     ') als Entwurf gespeichert. Nächster Schritt: im Kalender freigeben und danach bewusst an Intervals.icu senden.':
@@ -145,7 +119,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:()=
  if(!active)return null
  return <section className="c7-root" aria-label="Coach Intelligence mit sieben Tagen Trainingsvorschlägen">
   <div className="c7-top">
-   <div><span className="c7-eyebrow"><Icon name="sparkles"/> COACH INTELLIGENCE / V1.2</span>
+   <div><span className="c7-eyebrow"><Icon name="sparkles"/> COACH INTELLIGENCE / V1.3</span>
     <h2>Deine nächsten 7 Tage.</h2>
     <p>Garmin-Daten, Erholung, Hauptziel und freiwillige Gruppentermine – erklärt statt bewertet.</p>
    </div>
@@ -207,13 +181,18 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:()=
      </div>}
     </article>)}
    </div>
-   {notice&&<p className="c7-ok" role="status">{notice}</p>}
+   {notice&&<div className="c7-saved-next" role="status">
+    <p className="c7-ok">{notice}</p>
+    {savedDay&&<button type="button" className="c7-next-calendar" onClick={()=>onCalendar(savedDay)}>
+     Im Kalender weiter · {formatDate(savedDay)} <Icon name="arrow-up-right"/>
+    </button>}
+   </div>}
    <div className="c7-footer">
     <p>Nur Vorschläge: Keine direkten Garmin-Schreibzugriffe, kein automatisches Intervals-Publishing.
      Zeitgesteuerte Lauf-Workouts benötigen drei separate Schritte: Entwurf, Kalenderfreigabe, Intervals-Versand.
      Jeder Kalendereintrag entsteht erst nach deiner Bestätigung.
      Deine Krankheits- und Verfügbarkeitsangaben haben Vorrang vor den Messwerten.</p>
-    <button type="button" className="c7-secondary" onClick={onCalendar}>
+    <button type="button" className="c7-secondary" onClick={()=>onCalendar()}>
      Kalender ansehen <Icon name="arrow-up-right"/></button>
    </div>
   </>}
