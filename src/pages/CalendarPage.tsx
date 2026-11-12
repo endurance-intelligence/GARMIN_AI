@@ -541,6 +541,6 @@ export function CalendarPage({active,focus}:{
   </div>
   <p className="hc-footnote">Coach-Vorschläge erscheinen nur zur Orientierung – ohne automatische Speicherung.
     Du übernimmst einen Vorschlag, gibst ihn selbst frei und sendest erst danach an Intervals.icu.
-    Garmin-Aktivitäten bleiben unverändert.</p>
+    Garmin-Aktivitäten bleiben unverändert. Garmin-Kalendervorlagen werden ausgeblendet.</p>
  </section>
 }
