@@ -4,12 +4,14 @@ import {berlinDateToday} from '../lib/coachGoal'
 import {buildSevenDayCoach,coachAddDays,coachMonday} from '../lib/coachSevenDay.mjs'
 import type {CoachDay} from '../lib/coachSevenDay.mjs'
 import {Icon} from './Icon'
+import {CoachLifeContext} from './CoachLifeContext'
+import type {CoachContextPayload} from './CoachLifeContext'
 import '../styles/coach-seven-day.css'
 
 type Snapshot={
  health:Record<string,unknown>;boards:Record<string,unknown>[];
  options:Record<string,unknown>;plans:{entries:Array<Record<string,unknown>>};
- goal:Record<string,unknown>
+ goal:Record<string,unknown>;life:CoachContextPayload
 }
 type SubmitResponse={saved?:boolean;id?:string;state?:string;revision?:number;error?:string}
 const formatDate=(day:string)=>new Intl.DateTimeFormat('de-DE',{
@@ -21,7 +23,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:()=
  const [loading,setLoading]=useState(false)
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
- const [symptoms,setSymptoms]=useState(false)
+ const [contextBusy,setContextBusy]=useState(false)
  const [reload,setReload]=useState(0)
  const [review,setReview]=useState<string|null>(null)
  const [saving,setSaving]=useState<string|null>(null)
@@ -48,16 +50,19 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:()=
    }
    const first=coachMonday(today),second=coachMonday(coachAddDays(today,6))
    const weeks=first===second?[first]:[first,second]
-   const [health,options,plans,goal,...boards]=await Promise.all([
+   const [health,options,plans,goal,life,...boards]=await Promise.all([
     get('read-garmin-health'),get('garmin-weekly-options'),
-    get('garmin-training-plan'),get('garmin-coach-goal'),
+    get('garmin-training-plan'),get('garmin-coach-goal'),get('garmin-coach-context'),
     ...weeks.map(w=>get('garmin-week-board?start='+encodeURIComponent(w)))
    ])
    if(!mounted)return
-   if(!Array.isArray(options.options)||!Array.isArray(plans.entries)||
+   if(!life.context||!Array.isArray((life.context as Record<string,unknown>).blocked_periods)||
+    !Array.isArray((life.context as Record<string,unknown>).run_reviews)||!Array.isArray(life.runs)||
+    !Array.isArray(options.options)||!Array.isArray(plans.entries)||
     !boards.every(b=>Array.isArray(b.activities)&&Array.isArray(b.manual)))
     throw Error('Einige Kalenderdaten sind unvollständig; keine Planung erstellt.')
-   setSnapshot({health,options,plans:{entries:plans.entries as Array<Record<string,unknown>>},goal,boards})
+   setSnapshot({health,options,plans:{entries:plans.entries as Array<Record<string,unknown>>},goal,boards,
+    life:life as CoachContextPayload})
    requested.current=requestKey
   })().catch(e=>{
    if(mounted&&!(e instanceof Error&&e.name==='AbortError'))
@@ -67,10 +72,33 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:()=
  },[active,today,reload])
  const plan=useMemo(()=>snapshot?buildSevenDayCoach({
   today,health:snapshot.health,options:snapshot.options,boards:snapshot.boards,
-  plans:snapshot.plans,goal:snapshot.goal,symptoms
- }):null,[snapshot,today,symptoms])
+  plans:snapshot.plans,goal:snapshot.goal,life:snapshot.life
+ }):null,[snapshot,today])
+ async function updateLife(action:{action:string;[key:string]:string|boolean}){
+  if(!garminSupabase||contextBusy||saving!==null)return
+  setContextBusy(true);setError('');setNotice('')
+  try{
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)throw Error('Bitte anmelden.')
+   const response=await fetch(garminSupabaseUrl+'/functions/v1/garmin-coach-context',{
+    method:'POST',cache:'no-store',
+    headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey,
+     'content-type':'application/json'},
+    body:JSON.stringify(action)
+   })
+   const result=await response.json().catch(()=>({})) as {
+    saved?:boolean;context?:CoachContextPayload['context'];runs?:CoachContextPayload['runs'];error?:string
+   }
+   if(!response.ok||result.saved!==true||!result.context||!Array.isArray(result.runs))
+    throw Error(result.error||'Coach-Kontext konnte nicht gespeichert werden.')
+   setSnapshot(prev=>prev?{...prev,life:{context:result.context!,runs:result.runs!}}:prev)
+   setReview(null)
+   setNotice('Deine Angaben wurden gespeichert und der 7-Tage-Coach neu berechnet. Keine Garmin-Änderung.')
+  }catch(e){setError(e instanceof Error?e.message:'Coach-Kontext nicht gespeichert.')}
+  finally{setContextBusy(false)}
+ }
  async function accept(day:CoachDay){
-  if(!garminSupabase||saving||!plan||!day.approvable||symptoms||review!==day.date)return
+  if(!garminSupabase||saving||contextBusy||!plan||!snapshot||!day.approvable||review!==day.date)return
   if(plan.days.find(x=>x.date===day.date)!==day)return
   setSaving(day.date);setError('');setNotice('')
   try{
@@ -84,7 +112,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:()=
     body:JSON.stringify({
      action:'create',clientRequestId:requestId,date:day.date,
      title:day.title,sessionType:'event',sport:day.sport,
-     notes:'Coach Intelligence v1.0 · '+day.minutes+
+     notes:'Coach Intelligence v1.1 · '+day.minutes+
       ' Min. · Entwurf nach ausdrücklicher Bestätigung. Keine automatische Garmin-Übertragung.'
     })
    })
@@ -104,16 +132,14 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:()=
  if(!active)return null
  return <section className="c7-root" aria-label="Coach Intelligence mit sieben Tagen Trainingsvorschlägen">
   <div className="c7-top">
-   <div><span className="c7-eyebrow"><Icon name="sparkles"/> COACH INTELLIGENCE / V1.0</span>
+   <div><span className="c7-eyebrow"><Icon name="sparkles"/> COACH INTELLIGENCE / V1.1</span>
     <h2>Deine nächsten 7 Tage.</h2>
     <p>Garmin-Daten, Erholung, Hauptziel und freiwillige Gruppentermine – erklärt statt bewertet.</p>
    </div>
    <button type="button" className="c7-refresh" disabled={loading||saving!==null}
     onClick={()=>{setReload(x=>x+1);setReview(null)}}><Icon name="refresh-cw"/> Aktualisieren</button>
   </div>
-  <label className="c7-symptom"><input type="checkbox" checked={symptoms}
-   onChange={e=>{setSymptoms(e.target.checked);setReview(null)}}/>
-   <span>Aktuell krank, Schmerzen oder ungewöhnlich erschöpft</span></label>
+  {snapshot&&<CoachLifeContext life={snapshot.life} busy={contextBusy||saving!==null} onAction={updateLife}/>} 
   {loading&&!plan&&<p className="c7-alert" role="status">Prüfe aktuelle Garmin- und Kalenderdaten …</p>}
   {error&&<p className="c7-error" role="alert">{error}</p>}
   {plan&&<>
@@ -139,7 +165,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:()=
         day.kind==='existing'?'Bereits im Kalender':day.kind==='completed'?'Garmin-Aktivität vorhanden':
         'Kein neuer Kalendereintrag'}</small>
       </div></div>
-     {day.approvable&&!symptoms&&<div className="c7-actions">
+     {day.approvable&&!contextBusy&&<div className="c7-actions">
       {review===day.date?<div className="c7-confirm">
        <span>Nur diesen Vorschlag als Entwurf speichern?</span>
        <div><button type="button" disabled={saving!==null} onClick={()=>void accept(day)}>
@@ -156,7 +182,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:()=
    <div className="c7-footer">
     <p>Nur Vorschläge: Keine Garmin-Schreibzugriffe, kein automatisches Intervals-Publishing.
      Jeder Kalendereintrag entsteht erst nach deiner Bestätigung.
-     Krankheit, Schmerzen und dein subjektives Befinden haben Vorrang vor den Messwerten.</p>
+     Deine Krankheits- und Verfügbarkeitsangaben haben Vorrang vor den Messwerten.</p>
     <button type="button" className="c7-secondary" onClick={onCalendar}>
      Kalender ansehen <Icon name="arrow-up-right"/></button>
    </div>
