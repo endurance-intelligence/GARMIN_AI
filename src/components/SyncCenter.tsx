@@ -25,7 +25,8 @@ type SyncPayload={sources:{
   activities:Source;health:Source;equipment:Source;calendar:Source;fit:Source
 };scheduler?:{available:boolean;jobs:CronJob[]};cloudConnect?:{
   connected:boolean;status:string;lastResult?:string;lastCheckedAt?:string|null;lastSuccessAt?:string|null
-};weightEntries:Weight[];weightTransferAvailable:boolean}
+};cloudBackoff?:{available:boolean;active:boolean;retryAfter:string|null;lastLimitedAt?:string|null;attempts:number};
+  weightEntries:Weight[];weightTransferAvailable:boolean}
 function berlinDay(){
   const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
   const item=(type:string)=>parts.find(p=>p.type===type)?.value||''
@@ -287,6 +288,13 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
         <button type="button" className="secondary" onClick={()=>setRefresh(n=>n+1)}>Prüfen</button>
       </div>
       {session&&data?<>
+        {data.cloudBackoff?.active&&<div className="sync-garmin-backoff" role="status">
+          <strong>Garmin-Zugang vorübergehend pausiert (HTTP 429)</strong>
+          <p>Garmin hat den Tokenabruf begrenzt. Der automatische Cloud-Job
+            sendet während der gespeicherten Sperrfrist keine weiteren Garmin-Anfragen.
+            Nächster Versuch frühestens nach {dateText(data.cloudBackoff.retryAfter)}.
+            Die vorhandenen Schuhzuordnungen bleiben erhalten.</p>
+        </div>}
         <div className="sync-source-list">{automaticRows.map(row=>
           <div className="sync-source" key={row.name}>
             <div className="sync-source-head"><strong>{row.name}</strong>
