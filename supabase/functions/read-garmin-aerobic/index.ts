@@ -4,6 +4,7 @@
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { screenRun } from './evidence.ts'
+import { allowedAerobicOrigin } from './corsPolicy.mjs'
 
 const projectUrl = Deno.env.get('SUPABASE_URL') || ''
 const ownerEmail = (Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL') || '').trim().toLowerCase()
@@ -26,7 +27,7 @@ function key(kind: 'publishable'|'secret'):string {
   return Deno.env.get(legacy)||''
 }
 function cors(origin:string|null):Record<string,string> {
-  const allowed=!!origin && /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin)
+  const allowed=allowedAerobicOrigin(origin)
   return {
     ...(allowed?{'Access-Control-Allow-Origin':origin,'Vary':'Origin'}:{}),
     'Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info',
