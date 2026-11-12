@@ -49,6 +49,6 @@ test('sync separates automated Garmin activities/health from optional old manual
  assert.match(view,/const automaticRows=\[/)
  assert.match(view,/const manualRows=\[/)
  assert.match(view,/className="sync-manual-imports"/)
- assert.match(view,/Für Ausrüstung ist noch ein eigenständiger automatischer Import nötig/)
+ assert.match(view,/Der inkrementelle Garmin-Schuhabgleich ist eingerichtet/)
  assert.match(view,/Coach → Intervals\.icu → Garmin-Uhr/)
 })
