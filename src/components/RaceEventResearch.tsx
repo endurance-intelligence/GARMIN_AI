@@ -1,4 +1,4 @@
-import {useCallback,useEffect,useState} from 'react'
+import {useCallback,useEffect,useRef,useState} from 'react'
 import type {ReactNode} from 'react'
 import {komootEmbedFromTour} from '../lib/komootEmbed.mjs'
 import {VenueAutocomplete} from './VenueAutocomplete'
@@ -7,7 +7,7 @@ import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garm
 import '../styles/race-event-research.css'
 
 type Field='eventName'|'eventDate'|'startTime'|'endTime'|'venue'|'venueAddress'|'city'|
- 'officialLoopKm'|'maximumDistanceKm'|'routeNotes'|'routeUrl'|'gpxUrl'|'logoUrl'
+ 'officialLoopKm'|'maximumDistanceKm'|'routeNotes'|'routeUrl'|'gpxUrl'|'logoUrl'|'courseType'|'finishVenue'|'finishCity'|'finishAddress'
 type Details=Record<Field,string|number|null>
 type Evidence={field:string;url:string;evidence:string}
 type ScanResult={
@@ -24,7 +24,8 @@ const labels:Record<Field,string>={
  eventName:'Veranstaltung',eventDate:'Veranstaltungsdatum',
  startTime:'Frühester Start',endTime:'Zielschluss',
  venue:'Start-/Zielbereich',venueAddress:'Adresse',
- city:'Veranstaltungsstadt',officialLoopKm:'Offizielle Rundendistanz (km)',
+ city:'Veranstaltungsstadt',courseType:'Streckentyp',finishVenue:'Zielbereich',finishCity:'Zielstadt',finishAddress:'Zieladresse',
+ officialLoopKm:'Offizielle Rundendistanz (km)',
  maximumDistanceKm:'Offiziell maximal mögliche Distanz (km)',
  routeNotes:'Streckenbeschreibung',routeUrl:'Karten-/Komoot-Link',
  gpxUrl:'Öffentlicher GPX-Link',logoUrl:'Offizielles Logo (Bild-URL)'
@@ -72,15 +73,44 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
  const [busy,setBusy]=useState<'scan'|'save'|null>(null)
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
+ const [finishAddressInput,setFinishAddressInput]=useState('')
+ const initializedGoal=useRef<string|null>(null)
+ const cacheKey=(date:string)=>'garmin-ai:race-scout:draft:v1:'+date
+ const readDraft=(date:string)=>{
+  try{
+   const raw=sessionStorage.getItem(cacheKey(date))
+   if(raw&&raw.length<110000){
+    const data=JSON.parse(raw) as Record<string,unknown>
+    if(data.raceDate===date&&typeof data.url==='string')return data
+   }
+  }catch{}
+  return null
+ }
  useEffect(()=>{
   if(!active)return
   let mounted=true
-  setGoal(null);setSaved([]);setArchive([]);setScan(null);setDetails(null);setEdited([]);setFromArchive(null)
-  onLogoChange?.(null)
+  // Switching app tabs is not a change of the selected race.
+  // Keep unsaved research and restore a draft after a browser tab reload.
   setError('')
   void request().then(value=>{
    if(!mounted)return
    const result=value as unknown as GoalStatus
+   if(initializedGoal.current!==result.goal.raceDate){
+    initializedGoal.current=result.goal.raceDate
+    const draft=readDraft(result.goal.raceDate)
+    setScan((draft?.scan||null) as ScanResult|null)
+    setDetails((draft?.details||null) as Details|null)
+    setEdited(Array.isArray(draft?.edited)?draft.edited as string[]:[])
+    setFromArchive(typeof draft?.fromArchive==='string'?draft.fromArchive:null)
+    setSelectedSources(Array.isArray(draft?.selectedSources)?draft.selectedSources as Evidence[]:[])
+    setAddressInput(typeof draft?.addressInput==='string'?draft.addressInput:'')
+    setFinishAddressInput(typeof draft?.finishAddressInput==='string'?draft.finishAddressInput:'')
+    setRouteDraft(typeof draft?.routeDraft==='string'?draft.routeDraft:'')
+    setRouteEditing(typeof draft?.routeEditing==='string'?draft.routeEditing:null)
+    setRouteEdit(draft?.routeEdit===true)
+    setUrl(typeof draft?.url==='string'?draft.url:
+     /heartbeat ultra/i.test(result.goal.raceName)?'https://www.heartbeat-ultra.de/':'')
+   }
    setGoal(result.goal)
    setSaved(result.saved||[])
    setArchive(result.archive||[])
@@ -88,21 +118,31 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
    onEventCityChange?.(typeof matchingSaved?.details?.city==='string'?matchingSaved.details.city:null)
    const matchingArchive=(result.archive||[]).find(x=>x.canonical_url===matchingSaved?.event_url)
    onLogoChange?.(String(matchingSaved?.details?.logoUrl||matchingArchive?.template_details?.logoUrl||'')||null)
-   if(result.saved?.length){
-    setUrl(result.saved[0].event_url)
-    setScan(null);setDetails(null)
-   }else{
-    setUrl(/heartbeat ultra/i.test(result.goal.raceName)?'https://www.heartbeat-ultra.de/':'')
-   }
+   // Existing user draft takes precedence over reloading the saved event.
+   if(!readDraft(result.goal.raceDate)&&result.saved?.length&&
+      !scan&&!details)setUrl(result.saved[0].event_url)
   }).catch(e=>{if(mounted)setError(e instanceof Error?e.message:'Daten nicht abrufbar')})
   return ()=>{mounted=false}
  },[active,refreshKey])
+ useEffect(()=>{
+  if(!goal||initializedGoal.current!==goal.raceDate)return
+  try{
+   sessionStorage.setItem(cacheKey(goal.raceDate),JSON.stringify({
+    raceDate:goal.raceDate,url,scan,details,edited,fromArchive,selectedSources,
+    addressInput,finishAddressInput,routeDraft,routeEditing,routeEdit
+   }))
+  }catch{/* Session storage may be disabled; keep in-memory state. */}
+ },[goal,url,scan,details,edited,fromArchive,selectedSources,addressInput,finishAddressInput,routeDraft,routeEditing,routeEdit])
+ function clearCurrentDraft(){
+  if(goal)try{sessionStorage.removeItem(cacheKey(goal.raceDate))}catch{}
+ }
  async function runScan(){
   if(!goal||busy)return
   setBusy('scan');setError('');setNotice('');setScan(null);setDetails(null);setEdited([])
   try{
    const result=await request({action:'scan',raceDate:goal.raceDate,url}) as unknown as ScanResult
    setScan(result);setDetails(result.details);setAddressInput(String(result.details.venueAddress||''))
+   setFinishAddressInput(String(result.details.finishAddress||''))
    setFromArchive(null);setSelectedSources([]);setRouteEdit(false)
    setUrl(result.sourceUrl)
    onLogoChange?.(typeof result.details.logoUrl==='string'?result.details.logoUrl:null)
@@ -113,8 +153,11 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
   if(!details)return
   const parsed=field==='officialLoopKm'||field==='maximumDistanceKm'?
    (value===''?null:Number(value.replace(',','.'))):value===''?null:value
-  setDetails({...details,[field]:parsed})
+  setDetails({...details,[field]:parsed,
+   ...(field==='courseType'&&parsed!=='point_to_point'?{finishVenue:null,finishCity:null,finishAddress:null}:{})})
+  if(field==='courseType'&&parsed!=='point_to_point')setFinishAddressInput('')
   if(field==='venueAddress')setAddressInput(value)
+  if(field==='finishAddress')setFinishAddressInput(value)
   if(field==='logoUrl')onLogoChange?.(typeof parsed==='string'?parsed:null)
   setEdited(prev=>prev.includes(field)?prev:[...prev,field])
  }
@@ -144,6 +187,7 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
    setNotice(result.archiveSaved===false?
     'Austragung gespeichert; Archiv konnte nicht aktualisiert werden. Bitte später erneut speichern.':
     'Veranstaltung und ihre Strecke im Archiv gespeichert. Dein persönliches Trainingsziel bleibt unverändert.')
+   clearCurrentDraft()
    setScan(null);setDetails(null);setEdited([]);setSelectedSources([]);setFromArchive(null)
   }catch(e){setError(e instanceof Error?e.message:'Recherche konnte nicht gespeichert werden.')}
   finally{setBusy(null)}
@@ -193,6 +237,16 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
   setSelectedSources(sources)
   setNotice(address?'Adresse aus Ortsauswahl übernommen.':'Ort gefunden – genaue Straße und Hausnummer fehlen beim Kartendienst.')
  }
+ function pickFinish(item:VenueSuggestion){
+  if(!details)return
+  setDetails({...details,finishVenue:item.name,finishCity:item.city,finishAddress:item.address})
+  setFinishAddressInput(item.address||item.name)
+  setEdited(old=>[...new Set([...old,'finishVenue','finishCity','finishAddress'])])
+  setSelectedSources(old=>[...old.filter(s=>!['finishVenue','finishCity','finishAddress'].includes(s.field)),
+   {field:'finishVenue',url:item.source,evidence:'Aus Ortsauswahl: '+item.name},
+   {field:'finishCity',url:item.source,evidence:'Aus Ortsauswahl: '+item.city},
+   ...(item.address?[{field:'finishAddress',url:item.source,evidence:'Aus Ortsauswahl: '+item.address}]:[])])
+ }
  function useArchived(item:ArchiveEvent){
   if(!goal)return
   const reused={...item.template_details,eventDate:goal.raceDate} as Details
@@ -205,6 +259,7 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
    addressResolution:'not_required'})
   setDetails(reused)
   setAddressInput(String(reused.venueAddress||''))
+  setFinishAddressInput(String(reused.finishAddress||''))
   setSelectedSources([])
   setEdited(['eventDate','startTime','endTime'])
   setFromArchive(item.event_name)
@@ -274,7 +329,9 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
       Du kannst die URL unten korrigieren.</small></div>
    </div>}
    <div className="rer-grid">
-    {fields.map(field=>{
+    {fields.filter(field=>chosen.courseType==='point_to_point'?
+       field!=='officialLoopKm':
+       !['finishVenue','finishCity','finishAddress'].includes(field)).map(field=>{
      const value=chosen[field]
      const evidence=selectedSources.find(s=>s.field===field)||(!edited.includes(field)?scan.sources.find(s=>s.field===field):null)
      const isLong=field==='routeNotes'
@@ -282,8 +339,20 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
       field==='startTime'||field==='endTime'?'time':
       field==='officialLoopKm'||field==='maximumDistanceKm'?'number':'text'
      return <label className={'rer-field'+(isLong?' rer-wide':'')} key={field}>
-      <span>{labels[field]}</span>
-      {field==='venueAddress'?<VenueAutocomplete
+      <span>{field==='venue'&&chosen.courseType==='point_to_point'?'Startbereich':
+       field==='city'&&chosen.courseType==='point_to_point'?'Startstadt':
+       field==='venueAddress'&&chosen.courseType==='point_to_point'?'Startadresse':labels[field]}</span>
+      {field==='courseType'?<select value={String(value||'')} onChange={e=>update('courseType',e.target.value)}>
+        <option value="">Nicht bekannt – bitte wählen</option>
+        <option value="loop">Rundkurs (Start = Ziel)</option>
+        <option value="multi_loop">Mehrrundenlauf</option>
+        <option value="point_to_point">Punkt zu Punkt (Start ≠ Ziel)</option>
+        <option value="out_and_back">Hin- und Rückweg</option>
+       </select>:
+       field==='finishAddress'?<VenueAutocomplete value={finishAddressInput}
+        city={String(chosen.finishCity||'')} disabled={!!busy} request={suggest}
+        onPick={pickFinish} onChange={v=>update('finishAddress',v)}/>:
+       field==='venueAddress'?<VenueAutocomplete
         value={addressInput} city={String(chosen.city||goal?.raceLocation||'')} disabled={!!busy}
         request={suggest} onPick={pickVenue}
         onChange={v=>update('venueAddress',v)}/>:
