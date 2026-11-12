@@ -285,7 +285,7 @@ Deno.serve(async req=>{
 
       const {data:saved,error:writeError}=await db.from('garmin_connect_snapshot')
         .update({activity_gear:newLinks,activity_gear_scope:'complete',
-          gear_links_checked_at:check,synced_at:new Date().toISOString()})
+          gear_links_checked_at:check,gear_links_sync_source:'manual',synced_at:new Date().toISOString()})
         .eq('snapshot_key','primary').eq('synced_at',previous.synced_at)
         .select('snapshot_key').maybeSingle()
       if(writeError) throw Error('links-write')
