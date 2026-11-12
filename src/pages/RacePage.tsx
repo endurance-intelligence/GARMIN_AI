@@ -6,6 +6,7 @@ import {RaceGoalsPanel} from '../components/RaceGoalsPanel'
 import {RaceForecastCompact} from '../components/RaceForecastCompact'
 import {RaceRouteViewer} from '../components/RaceRouteViewer'
 import type {Forecast} from '../lib/weatherIntelligence'
+import type {Point} from '../lib/gpxRaceRoute.mjs'
 import type {Page} from '../navigation'
 export function RacePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
  const [researchRefresh,setResearchRefresh]=useState(0)
@@ -13,6 +14,8 @@ export function RacePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
  const [goalRefresh,setGoalRefresh]=useState(0)
  const [raceForecast,setRaceForecast]=useState<Forecast|null>(null)
  const [eventCity,setEventCity]=useState<string|null>(null)
+ const [course,setCourse]=useState<{courseType:string|null;finishCity:string|null}|null>(null)
+ const [routePoints,setRoutePoints]=useState<Point[]|null>(null)
  return <section className={active?'page active':'page'}>
   <div className="page-intro">
    <div><div className="eyebrow">RACE INTELLIGENCE / DEIN NÄCHSTES ZIEL</div>
@@ -22,15 +25,15 @@ export function RacePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
   </div>
   <CoachGoalPanel key={goalRefresh} active={active} logoUrl={eventLogo} onSaved={()=>setResearchRefresh(n=>n+1)}/>
   <RaceGoalsPanel active={active} onPrimaryChange={()=>{
-   setGoalRefresh(x=>x+1);setRaceForecast(null)
+   setGoalRefresh(x=>x+1);setRaceForecast(null);setRoutePoints(null);setCourse(null)
   }}/>
   <RaceEventResearch active={active} refreshKey={researchRefresh+goalRefresh}
    onLogoChange={setEventLogo} onEventSaved={()=>setResearchRefresh(n=>n+1)}
-   onEventCityChange={setEventCity}>
-   <RaceForecastCompact active={active} eventCity={eventCity}
+   onEventCityChange={setEventCity} onCourseChange={setCourse}>
+   <RaceForecastCompact active={active} eventCity={eventCity} course={course} routePoints={routePoints}
     refreshKey={researchRefresh+goalRefresh} onForecast={setRaceForecast}/>
    <RaceRouteViewer active={active} refreshKey={researchRefresh+goalRefresh}
-    forecast={raceForecast}/>
+    forecast={raceForecast} onTrack={setRoutePoints}/>
   </RaceEventResearch>
   <div className="sub-grid">
    <article><small>WIE DER COACH PLANEN SOLL</small>
