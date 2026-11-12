@@ -1,9 +1,10 @@
 import {useEffect,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
-import {findPlaces,getWeather,raceSegments,weatherLabel} from '../lib/weatherIntelligence'
+import {findPlaces,getWeather,localToday,raceSegments,weatherLabel} from '../lib/weatherIntelligence'
 import type {Forecast,WeatherHour} from '../lib/weatherIntelligence'
 import {explainRaceGust} from '../lib/raceWindExplain.mjs'
 import {checkpointsFromTrack,stageWeatherAt} from '../lib/raceCourseWeather.mjs'
+import {raceForecastStatus,formatRaceWeatherShare} from '../lib/raceForecastShare.mjs'
 import type {Point} from '../lib/gpxRaceRoute.mjs'
 import {Icon} from './Icon'
 import '../styles/race-forecast-compact.css'
@@ -49,7 +50,7 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity,co
  useEffect(()=>{
   if(!active)return
   let cancelled=false
-  setLoading(true);setReport(null);setError('');onForecast?.(null)
+  setLoading(true);setReport(null);setError('');setStages([]);setStageError('');onForecast?.(null)
   void (async()=>{
    try{
     const goal=await raceGoal()
@@ -127,11 +128,36 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity,co
  const info=stageComplete?summary(stages.map(s=>s.weather)):
   !pointToPoint&&complete?summary(hours):null
  const windAssessment=info?explainRaceGust(info.gust,info.temp?.[0]??null):null
+ const status=raceForecastStatus(race?.race_date||'',localToday(report?.timezone||'Europe/Berlin'),!!info)
+ function shareWeather(){
+  if(!race||!info||!report)return
+  const message=formatRaceWeatherShare({
+   race,info,status,place:placeName||race.race_location,
+   finish:pointToPoint?course?.finishCity:null,pointToPoint,
+   stages:stageComplete?stages:[],windTip:windAssessment?.guidance||null,
+   fetchedAt:report.fetchedAt
+  })
+  if(typeof navigator.share==='function'){
+   void navigator.share({title:race.race_name+' · Rennwetter',text:message}).catch((err:unknown)=>{
+    if((err as {name?:string}|null)?.name!=='AbortError'){
+     window.location.href='https://wa.me/?text='+encodeURIComponent(message)
+    }
+   })
+  }else{
+   window.open('https://wa.me/?text='+encodeURIComponent(message),'_blank','noopener,noreferrer')
+  }
+ }
  return <section className="rfc-root" aria-label="Wetter für dein aktuelles Hauptziel">
   <div className="rfc-head"><div><small>RACE INTELLIGENCE / RENNWETTER</small>
    <h2>Wetter am Renntag.</h2>
    <p>{race?race.race_date.split('-').reverse().join('.')+' · '+race.race_name:'Dein nächstes Hauptziel'} · {placeName||race?.race_location||'Ort offen'}</p>
-  </div><span>START BIS ZIEL</span></div>
+  </div><div className="rfc-head-side">
+   <span className={'rfc-status '+status.tone} title={status.description} role="status">{status.label}</span>
+   {info&&race&&<button type="button" className="rfc-share" onClick={shareWeather}
+    aria-label="Rennwetter teilen, zum Beispiel per WhatsApp">
+    <Icon name="share-2"/> Wetter teilen</button>}
+  </div></div>
+  {race&&<p className="rfc-confidence">{status.description}</p>}
   {loading&&<p className="rfc-info">Prüfe die verfügbare Stundenprognose …</p>}
   {pointToPoint&&stageLoading&&<p className="rfc-info">Prüfe getrennte Wetterstandorte zur erwarteten Durchgangszeit …</p>}
   {pointToPoint&&stageError&&<p className="rfc-info">{stageError} Keine Stadtprognose als Gesamtstreckenwetter ausgegeben.</p>}
