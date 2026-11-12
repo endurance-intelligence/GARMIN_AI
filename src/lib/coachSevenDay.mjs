@@ -54,6 +54,17 @@ export function buildSevenDayCoach(input){
  const observationLimited=!recentHealth||!dataReady||
   training.historyStatus!=='complete'||![hrv,pulse,sleep].some(x=>x?.median!=null)
  const caution=!!input.symptoms||signals.length>=2||volumeRise
+ const life=input.life?.context||{illness_state:'well',blocked_periods:[],run_reviews:[]}
+ const returning=life.illness_state==='returning'
+ const ill=life.illness_state==='sick'
+ const runs=Array.isArray(input.life?.runs)?input.life.runs:[]
+ const reviews=Array.isArray(life.run_reviews)?life.run_reviews:[]
+ const concern=returning&&reviews.some(x=>x.assessment==='concern')
+ const acknowledged=runs.filter(x=>reviews.some(y=>
+  y.activityId===x.activity_id&&y.assessment==='ok'))
+ const hasUnreviewed=runs.some(x=>!reviews.some(y=>y.activityId===x.activity_id))
+ const blocks=Array.isArray(life.blocked_periods)?life.blocked_periods:[]
+ const isUnavailable=day=>blocks.find(b=>day>=b.start&&day<=b.end)
  const goal=input.goal?.goal||null
  const raceDate=goal?.race_date||null
  const raceOffset=raceDate?Math.round((Date.parse(raceDate+'T12:00:00Z')-Date.parse(today+'T12:00:00Z'))/ONE_DAY):null
@@ -73,21 +84,51 @@ export function buildSevenDayCoach(input){
  ]
  const make=(day,kind,title,minutes,reason,sport='running')=>
   ({date:day,kind,title,minutes,reason,sport,
-   approvable:kind==='easy'||kind==='long'||kind==='mobility'})
+   approvable:['easy','long','mobility','return_easy'].includes(kind)})
+ let comebackCandidateUsed=false
  const items=days.map((day,i)=>{
   const untilRace=raceDate?Math.round((Date.parse(raceDate+'T12:00:00Z')-Date.parse(day+'T12:00:00Z'))/ONE_DAY):null
   const existing=plans.find(p=>p.training_date===day)
+  const done=activities.some(a=>a.start_time_local?.slice(0,10)===day)||
+   manual.some(a=>a.session_date===day)
+  if(ill||input.symptoms)
+   return make(day,'illness','Trainingspause · krank / Beschwerden',null,
+    'Selbst gemeldete Beschwerden: kein Training vorgeschlagen.'+
+    (existing?' Vorhandenen Kalendertermin bitte selbst prüfen.':'')+
+    (done?' Bereits absolvierte Aktivität wird nicht rückwirkend verändert.':''))
+  const block=isUnavailable(day)
+  if(block)
+   return make(day,'blocked',block.reason==='vacation'?'Urlaub · kein Training':'Nicht verfügbar',null,
+    'Von dir geblockter Tag. Keine Nachholeinheit geplant.'+
+    (existing?' Achtung: Bereits geplanter Termin bleibt bestehen – im Kalender prüfen.':''))
   if(existing)return make(day,'existing',existing.title,null,'Bereits in GARMIN_AI geplant. Keine zweite Einheit erzeugen.',existing.sport||'running')
-  if(activities.some(a=>a.start_time_local?.slice(0,10)===day)||manual.some(a=>a.session_date===day))
-   return make(day,'completed','Bereits trainiert',null,'Absolvierte Garmin-/Stabi-Aktivität; keine zusätzliche Planung.')
+  if(done)return make(day,'completed','Bereits trainiert',null,'Absolvierte Garmin-/Stabi-Aktivität; keine zusätzliche Planung.')
+  if(returning){
+   if(concern)return make(day,'illness','Wiedereinstieg unterbrechen',null,
+    'Nach einem Wiedereinstiegslauf wurden Beschwerden gemeldet. Nicht weitertrainieren; medizinisch klären.')
+   if(!dataReady)return make(day,'recovery','Wiedereinstieg pausiert',null,
+    'Trainingsdaten unvollständig. Bitte erst Garmin synchronisieren.')
+   if(hasUnreviewed)return make(day,'recovery','Ersten Lauf am Folgetag prüfen',null,
+    'Wiedereinstiegslauf noch nicht bewertet. Verträglichkeit und Beschwerden nach 24 Stunden prüfen.')
+   if(acknowledged.length>=2)return make(day,'recovery','Wiedereinstieg gemeinsam abschließen',null,
+    'Die ersten zwei Läufe wurden ohne Beschwerden bestätigt. Normales Training nur nach eigener Entscheidung wieder freigeben.')
+   if(!comebackCandidateUsed){
+    const last=runs.length?runs[runs.length-1].start_time_local?.slice(0,10):null
+    if(last&&day<=coachAddDays(last,1))return make(day,'recovery','Ruhe nach Wiedereinstieg',null,
+     'Nach dem letzten Lauf einen ruhigen Folgetag einhalten.')
+    comebackCandidateUsed=true
+    return make(day,'return_easy',runs.length?
+     'Sehr locker · 20–30 Min.':'Kurzer Wiedereinstieg · 10–20 Min.',runs.length?25:15,
+     'Nur falls symptomfrei und keine medizinischen Warnzeichen. Sprechtest, keine Intervalle; bei Beschwerden sofort stoppen. Am Folgetag selbst bewerten.')
+   }
+   return make(day,'recovery','Rückmeldung abwarten',null,
+    'Vor weiterer Belastungssteigerung den nächsten realen Garmin-Lauf und die Verträglichkeit prüfen.')
+  }
   if(untilRace===0)return make(day,'race',goal.race_name,null,'Wettkampftag. Kein zusätzliches Training.')
   if(untilRace!==null&&untilRace<0&&untilRace>=-3)
    return make(day,'recovery','Erholung nach dem Rennen',null,'Nach einem Wettkampf keine automatische Belastungssteigerung.')
   const option=options.find(o=>o.enabled&&o.weekday===weekday(day))
   const choice=option?choices.find(c=>c.training_date===day&&c.option_code===option.code)?.choice:null
-  if(input.symptoms)
-   return make(day,'recovery','Regeneration / Symptome klären',null,
-    'Du hast Krankheit, Schmerzen oder ungewöhnliche Erschöpfung angegeben. Keine Trainingsempfehlung.')
   if(option&&choice==='selected')return make(day,'chosen',option.title,null,
    'Von dir ausgewählter Verein-/Gruppentermin. Keine zusätzliche Einheit.')
   if(untilRace!==null&&untilRace<=2&&untilRace>=1)
@@ -133,10 +174,11 @@ export function buildSevenDayCoach(input){
    'Abstand zwischen Belastungen erhalten, optionale Vereinstrainings bleiben freiwillig.')
  })
  return {today,days:items,signals,flags,
-  attention:!!input.symptoms||caution||observationLimited,
-  attentionText:input.symptoms?'Bei Krankheit oder Schmerzen keine Trainingsfreigabe.':
+  attention:ill||returning||!!input.symptoms||caution||observationLimited,
+  attentionText:ill||input.symptoms?'Krank-Modus aktiv: Trainingsvorschläge sind gesperrt, bis du deine Genesung meldest.':
+   returning?'Wiedereinstieg aktiv: erste Läufe und deine 24-Stunden-Rückmeldungen haben Vorrang. Keine automatische Freigabe.':
    caution?'Belastungs-/Erholungssignale sprechen für Zurückhaltung; keine Diagnostik.':
    observationLimited?'Datenlage ist eingeschränkt. Nur konservative Vorschläge.':
    'Vorschläge sind eine Planungshilfe, keine medizinische Freigabe.',
-  basedOnActual:true,source:'Garmin & bestehender Kalender',raceDate}
+  basedOnActual:true,source:'Garmin & bestehender Kalender',raceDate,returning,ill,concern,acknowledgedRuns:acknowledged.length}
 }
