@@ -6,6 +6,7 @@ import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garm
 import '../styles/calendar-week-board.css'
 import {completedWeeklyOption} from '../lib/weeklyOptionCompletion'
 import {FixedTrainingWeather} from './FixedTrainingWeather'
+import type {CoachDay} from '../lib/coachSevenDay.mjs'
 
 type Activity={activity_id:string;activity_name:string|null;start_time_local:string;
  sport_type:string;distance_m:number|null;duration_s:number|null;
@@ -18,7 +19,7 @@ type Opportunity={code:string;weekday:number;start_time:string;title:string;loca
 type Choice={option_code:string;training_date:string;choice:string}
 export type BoardPlan={id:string;training_date:string;title:string;state:string;session_type:string}
 type Props={active:boolean;start:string;selected:string;today:string;
- onSelect:(day:string)=>void;plans:BoardPlan[]}
+ onSelect:(day:string)=>void;plans:BoardPlan[];coachDays?:CoachDay[]}
 const plusDay=(date:string,n:number)=>
  new Date(Date.parse(date+'T12:00:00Z')+n*86400000).toISOString().slice(0,10)
 function weekNumber(date:string){
@@ -46,7 +47,7 @@ async function read(endpoint:string){
  if(!response.ok)throw Error('Kalenderdaten derzeit nicht erreichbar ('+response.status+')')
  return await response.json() as Record<string,unknown>
 }
-export function CalendarWeekBoard({active,start,selected,today,onSelect,plans}:Props){
+export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,coachDays=[]}:Props){
  const [data,setData]=useState<WeekResponse|null>(null)
  const [options,setOptions]=useState<Opportunity[]>([])
  const [choices,setChoices]=useState<Choice[]>([])
@@ -90,7 +91,11 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans}:P
   const local=plans.filter(p=>p.training_date===day&&p.state!=='cancelled')
   const slot=options.filter(x=>x.weekday===index+1&&day>=today&&
     !completedWeeklyOption(x,day,acts))
-  return {day,index,daily,acts,manual,local,slot}
+  const candidate=coachDays.find(x=>x.date===day)
+  // Show one Coach hint, never a second copy of a real/confirmed entry or club option.
+  const coach=day>=today&&!local.length&&!acts.length&&!manual.length&&candidate&&
+   !['existing','completed','chosen','option'].includes(candidate.kind)?candidate:null
+  return {day,index,daily,acts,manual,local,slot,coach}
  })
  return <section className="hwb-root" aria-label="Wochenübersicht mit echten Garmin-Aktivitäten und Gesundheitsdaten">
   <div className="hwb-title">
@@ -112,7 +117,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans}:P
    </aside>
    <div className="hwb-scroll" role="region" aria-label="Sieben Wochentage, horizontal scrollbar" tabIndex={0}>
     <div className="hwb-days">
-     {calendarDays.map(({day,daily,acts,manual,local,slot})=>
+     {calendarDays.map(({day,daily,acts,manual,local,slot,coach})=>
       <section key={day} className={'hwb-day'+(day===selected?' is-selected':'')+(day===today?' is-today':'')}
        aria-label={shortDay(day)+' '+dayLabel(day)}>
        <button type="button" className="hwb-day-header"
@@ -164,7 +169,17 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans}:P
            location={option.location_label} latitude={option.location_lat} longitude={option.location_lon}/>
          </button>
         })}
-        {!acts.length&&!manual.length&&!local.length&&!slot.length&&
+        {coach&&<button type="button" onClick={()=>onSelect(day)} key={'coach-'+day}
+         className={'hwb-card is-coach'+(coach.approvable?' is-coach-offer':' is-coach-info')}>
+         <span className="hwb-card-label">{coach.approvable?
+          '✦ COACH / VORSCHLAG':'✦ COACH / ORIENTIERUNG'}</span>
+         <strong>{coach.title}</strong>
+         {coach.minutes!==null&&<span>{coach.minutes} Minuten · noch nicht eingetragen</span>}
+         <small>{coach.approvable?'Antippen und im Kalender übernehmen':
+          coach.kind==='blocked'||coach.kind==='illness'?'Kein Training empfohlen':
+          'Keine verbindliche Trainingseinheit'}</small>
+        </button>}
+        {!acts.length&&!manual.length&&!local.length&&!slot.length&&!coach&&
          <span className="hwb-empty">Noch nichts eingetragen</span>}
        </div>
       </section>
@@ -173,8 +188,8 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans}:P
    </div>
   </div>
   {error&&<p className="hwb-error" role="alert">{error}</p>}
-  <p className="hwb-foot">Vollflächige Karten = durchgeführte Aktivität ·
-   schmale Umrandung = eigener Trainingsplan oder Option. Tageswerte stammen aus Garmin;
-   leere Werte werden nicht geschätzt. Tag auswählen für Details und Trainingsfreigaben.</p>
+  <p className="hwb-foot">Garmin = tatsächlich absolviert · GARMIN_AI = gespeicherter Plan ·
+   Coach-Vorschlag = noch nicht übernommen · Option = freiwilliger Gruppentermin.
+   Coach-Hinweise sind weder Kalendereinträge noch Übertragungen. Tag antippen zum Prüfen.</p>
  </section>
 }
