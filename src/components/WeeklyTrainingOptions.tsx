@@ -135,6 +135,9 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDa
  }
  if(!active)return null
  const visibleRows=rows.filter(row=>row.date>=today&&(!selectedDate||row.date===selectedDate))
+ // The Coach proposal now lives on the selected calendar day. An empty option
+ // box only duplicates the "no training" explanation and wastes phone space.
+ if(compact&&selectedDate&&!loading&&!error&&visibleRows.length===0)return null
  return <section className={'wo-root'+(compact?' wo-compact':'')} aria-label="Regelmäßige Trainingsoptionen">
   <header className="wo-head">
    <div><span className="wo-kicker">COACH / DEINE WOCHENOPTIONEN</span>
