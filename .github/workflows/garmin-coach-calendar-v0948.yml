@@ -13,6 +13,7 @@ on:
       - 'src/styles/calendar-week-board.css'
       - 'src/styles/coach-seven-day.css'
       - 'tests/mobile-coach-calendar-v0948.test.mjs'
+      - 'tests/mobile-coach-life-context-v11.test.mjs'
       - '.github/workflows/garmin-coach-calendar-v0948.yml'
   pull_request:
     paths:
@@ -27,6 +28,7 @@ on:
       - 'src/styles/calendar-week-board.css'
       - 'src/styles/coach-seven-day.css'
       - 'tests/mobile-coach-calendar-v0948.test.mjs'
+      - 'tests/mobile-coach-life-context-v11.test.mjs'
       - '.github/workflows/garmin-coach-calendar-v0948.yml'
 jobs:
   verify:
