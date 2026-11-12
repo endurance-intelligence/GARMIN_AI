@@ -122,7 +122,8 @@ Deno.serve(async req=>{
       }
       const when=new Date().toISOString()
       const {data:saved,error:writeError}=await db.from('garmin_connect_snapshot')
-        .update({activity_gear:merged.links,synced_at:when,gear_links_checked_at:when})
+        .update({activity_gear:merged.links,synced_at:when,gear_links_checked_at:when,
+          gear_links_sync_source:'cloud'})
         .eq('snapshot_key','primary').eq('synced_at',expected)
         .select('snapshot_key').maybeSingle()
       if(writeError||!saved)
