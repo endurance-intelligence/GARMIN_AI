@@ -106,9 +106,9 @@ Deno.serve(async req=>{
     return respond(409,{error:'Bestätigung fehlt'},h)
    const runs=await readRuns()
    const firstTwo=runs.slice(0,2)
-   if(firstTwo.length!==2||firstTwo.some(r=>!row.run_reviews.some(
+   if(firstTwo.length!==2||runs.some(r=>!row.run_reviews.some(
     x=>x.activityId===r.activity_id&&x.assessment==='ok')))
-    return respond(409,{error:'Zwei erste Läufe ohne Beschwerden am Folgetag bestätigen'},h)
+    return respond(409,{error:'Die ersten Läufe einschließlich des Folgetags bestätigen (mindestens zwei)'},h)
    if(row.run_reviews.some(x=>x.assessment==='concern'))
     return respond(409,{error:'Beschwerden im Wiedereinstieg: erst fachlich klären'},h)
    row={...row,illness_state:'well'}
