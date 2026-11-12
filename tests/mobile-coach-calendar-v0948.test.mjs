@@ -53,7 +53,7 @@ test('mobile cards and direct navigation focus the exact day for continuation',(
  assert.match(coach,/Im Kalender weiter/)
  assert.match(app,/setCalendarFocus\(prev=>\(\{date,token:/)
  assert.match(app,/focus=\{calendarFocus\}/)
- assert.match(coachPage,/onOpenCalendar=\{onOpenCalendar\}/)
+ assert.match(coachPage,/onCalendar=\{onOpenCalendar\}/)
  assert.match(calendar,/lastFocusToken\.current===focus\.token/)
  assert.match(calendar,/setWeek\(targetWeek\);setSelected\(focus\.date\)/)
  assert.match(style,/\.hc-coach-proposal\{/)
