@@ -1,0 +1,37 @@
+name: GARMIN_AI Session Consistency v0.9.43
+on:
+  push:
+    paths:
+      - 'src/pages/TrainingPage.tsx'
+      - 'src/components/LiveSessionAnalyst.tsx'
+      - 'src/components/AerobicEvidencePanel.tsx'
+      - 'src/styles/aerobic-evidence.css'
+      - 'src/components/CoachGlance.tsx'
+      - 'src/components/SyncCenter.tsx'
+      - 'src/styles/sync-center.css'
+      - 'tests/mobile-session-coach-consistency-v0943.test.mjs'
+      - '.github/workflows/garmin-session-coach-consistency-v0943.yml'
+  pull_request:
+    paths:
+      - 'src/pages/TrainingPage.tsx'
+      - 'src/components/LiveSessionAnalyst.tsx'
+      - 'src/components/AerobicEvidencePanel.tsx'
+      - 'src/styles/aerobic-evidence.css'
+      - 'src/components/CoachGlance.tsx'
+      - 'src/components/SyncCenter.tsx'
+      - 'src/styles/sync-center.css'
+      - 'tests/mobile-session-coach-consistency-v0943.test.mjs'
+      - '.github/workflows/garmin-session-coach-consistency-v0943.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-session-coach-consistency-v0943.test.mjs tests/mobile-coach-life-context-v11.test.mjs tests/mobile-coach-seven-day-v1.test.mjs tests/mobile-calendar-week-board.test.mjs
+      - run: npm run build
