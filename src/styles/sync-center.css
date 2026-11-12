@@ -257,3 +257,11 @@
   .sync-center-weight .sync-weight-top .sync-date-display strong{font-size:11px}
   .sync-center-weight .sync-weight-top .sync-date-action{font-size:9px;padding:5px}
 }
+
+/* v0.9.42 – distinguish verified Intervals exports from optional Garmin reads. */
+.sync-intervals{display:flex;flex-direction:column;gap:8px;margin-top:12px;padding:14px;
+  background:#11192b;border:1px solid rgba(158,177,216,.17);border-radius:12px}
+.sync-intervals strong{font-size:13px}
+.sync-intervals p{font-size:12px;color:#cfdbec;line-height:1.55;margin:0}
+.sync-intervals small{color:#a3b2d0;font-size:11px;line-height:1.65}
+.sync-intervals .sync-intervals-count strong{color:#e2edf9}
