@@ -47,8 +47,9 @@ test('overview is backed by existing authenticated Garmin services',()=>{
  assert.match(c,/garminSupabase.auth.getSession\(\)/)
  assert.match(c,/authorization:'Bearer '\+token/)
  assert.match(c,/cache:'no-store'/)
- assert.match(c,/Noch kein fester Termin/)
- assert.match(c,/Kein fester Starttermin/)
+ assert.match(c,/Heute kein bestätigter Trainingstermin/)
+ assert.match(c,/Trainingskalender nicht vollständig erreichbar/)
+ assert.match(c,/get\('garmin-coach-context',token\)/)
  assert.doesNotMatch(c,/service_role|SUPABASE_SECRET|scheduleWorkout\(/)
 })
 
