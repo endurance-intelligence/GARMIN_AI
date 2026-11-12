@@ -12,6 +12,7 @@ async function checked(response:Response):Promise<void> {
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) throw Error('Keine Berechtigung für Schuhbilder.')
     if (response.status === 413 || response.status === 422) throw Error('Das Bild wurde nicht akzeptiert.')
+    if (response.status === 503 || response.status === 502) throw Error('Bildspeicher vorübergehend nicht erreichbar. Deine Fotos sind weiterhin gespeichert.')
     throw Error('Schuhbilder-Dienst nicht verfügbar (HTTP '+response.status+').')
   }
 }
