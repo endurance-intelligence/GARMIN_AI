@@ -1,0 +1,43 @@
+name: GARMIN_AI Coach Calendar Integration v0.9.48
+on:
+  push:
+    paths:
+      - 'src/lib/coachSnapshot.ts'
+      - 'src/components/CoachSevenDay.tsx'
+      - 'src/pages/CalendarPage.tsx'
+      - 'src/components/CalendarWeekBoard.tsx'
+      - 'src/components/WeeklyTrainingOptions.tsx'
+      - 'src/pages/CoachPage.tsx'
+      - 'src/App.tsx'
+      - 'src/styles/horizon-calendar.css'
+      - 'src/styles/calendar-week-board.css'
+      - 'src/styles/coach-seven-day.css'
+      - 'tests/mobile-coach-calendar-v0948.test.mjs'
+      - '.github/workflows/garmin-coach-calendar-v0948.yml'
+  pull_request:
+    paths:
+      - 'src/lib/coachSnapshot.ts'
+      - 'src/components/CoachSevenDay.tsx'
+      - 'src/pages/CalendarPage.tsx'
+      - 'src/components/CalendarWeekBoard.tsx'
+      - 'src/components/WeeklyTrainingOptions.tsx'
+      - 'src/pages/CoachPage.tsx'
+      - 'src/App.tsx'
+      - 'src/styles/horizon-calendar.css'
+      - 'src/styles/calendar-week-board.css'
+      - 'src/styles/coach-seven-day.css'
+      - 'tests/mobile-coach-calendar-v0948.test.mjs'
+      - '.github/workflows/garmin-coach-calendar-v0948.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-coach-calendar-v0948.test.mjs tests/mobile-coach-seven-day-v1.test.mjs tests/mobile-calendar-week-board.test.mjs tests/mobile-coach-life-context-v11.test.mjs tests/coach-structured-intervals-v0947.test.mjs tests/intervals-bridge.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-ipad-ux.test.mjs
+      - run: npm run build
