@@ -119,3 +119,58 @@
  .co-dialog{max-height:92dvh}
  .co-dialog .weight-inline-control .weight-sheet-track,.co-dialog .weight-inline-control .weight-sheet-scroller,.co-dialog .weight-inline-control .weight-sheet-separator{height:144px}
 }
+
+/* v0.9.44 – Compact, intentional Coach header, not a full-height empty block.
+   Previous .co-link never had a component style and used the tiny browser default. */
+.co-home .co-today{
+  position:relative;isolation:isolate;padding:17px 20px 14px;
+  border:1px solid rgba(163,165,238,.22);border-radius:17px;
+  background:linear-gradient(120deg,#19253d 0%,#131d30 68%,#121a2b 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+  min-height:0;
+}
+.co-home .co-today:before{
+  content:'';position:absolute;top:0;left:20px;width:62px;height:2px;
+  border-radius:2px;background:linear-gradient(90deg,#b5a4ff,#71c9ff);
+}
+.co-home .co-section-head{display:flex;align-items:center;
+  justify-content:space-between;gap:14px;flex-wrap:wrap;min-width:0}
+.co-home .co-section-head>div{min-width:0;flex:1 1 260px}
+.co-home .co-section-head .co-eyebrow{font-size:10px;color:#aca5ff}
+.co-home .co-section-head h2{
+  font-size:clamp(17px,2vw,22px);letter-spacing:-.035em;
+  line-height:1.25;font-weight:820;color:#f3f5ff;margin:7px 0 5px;
+}
+.co-home .co-section-head p{
+  font-size:12px;line-height:1.5;color:#b5c6de;margin:0;
+  max-width:720px;
+}
+.co-home .co-section-head .co-data-note{font-size:11px;margin-top:7px}
+.co-home .co-link{
+  appearance:none;display:inline-flex;justify-content:center;align-items:center;
+  gap:9px;flex:0 0 auto;min-height:44px;min-width:155px;padding:10px 14px;
+  border:1px solid rgba(188,172,255,.39);border-radius:11px;
+  background:linear-gradient(125deg,rgba(142,116,236,.20),rgba(102,144,220,.13));
+  color:#f0ebff;font-weight:770;font-size:12px;line-height:1.2;
+  white-space:nowrap;transition:border-color .2s ease,background .2s ease,transform .2s ease;
+}
+.co-home .co-link .ic{width:15px;height:15px;color:#c6b8ff}
+.co-home .co-link:hover{border-color:rgba(199,188,255,.7);
+  background:rgba(145,122,237,.25);transform:translateY(-1px)}
+.co-home .co-link:focus-visible{outline:2px solid #a5ccff;outline-offset:3px}
+.co-home .co-today>.co-fixed-weather,
+.co-home .co-today>.weather-brief,
+.co-home .co-today>.co-weather-compact{margin-top:12px}
+@media(max-width:600px){
+  .co-home .co-today{padding:14px 13px 12px;border-radius:14px}
+  .co-home .co-section-head{gap:12px;align-items:start}
+  .co-home .co-section-head>div{flex:1 1 160px}
+  .co-home .co-section-head h2{font-size:18px;line-height:1.28}
+  .co-home .co-section-head p{font-size:11px}
+  .co-home .co-link{min-width:0;min-height:44px;padding:10px 11px;
+    font-size:11px;align-self:start}
+}
+@media(max-width:395px){
+ .co-home .co-link{width:100%;justify-content:space-between}
+ .co-home .co-section-head>div{flex-basis:100%}
+}
