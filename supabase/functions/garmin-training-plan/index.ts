@@ -4,6 +4,7 @@
  * No Garmin OAuth tokens or Garmin API calls exist in this Edge function.
  */
 import {createClient} from 'npm:@supabase/supabase-js@2'
+import {buildCoachStructuredSnapshot,coachWorkoutAllowed} from '../_shared/coach-structured-workout.mjs'
 
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
@@ -70,6 +71,56 @@ Deno.serve(async req=>{
   let input:unknown
   try{input=JSON.parse(body)}catch{return response(422,{error:'Invalid JSON'},h)}
   if(!plain(input))return response(422,{error:'Invalid request'},h)
+  if(input.action==='create_coach_workout'){
+    if(!uuid(input.clientRequestId)||!date(input.date))
+      return response(422,{error:'Invalid coach workout request'},h)
+    const snapshot=buildCoachStructuredSnapshot(input)
+    if(!snapshot)return response(422,{error:'Unsupported duration, start time or workout type'},h)
+    const localToday=new Intl.DateTimeFormat('en-CA',{
+      timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'
+    }).format(new Date())
+    const upper=new Date(Date.parse(localToday+'T12:00:00Z')+6*86400000).toISOString().slice(0,10)
+    if(input.date<localToday||input.date>upper)
+      return response(422,{error:'Coach workouts only for the next seven days'},h)
+    const {data:context,error:contextError}=await db.from('garmin_coach_context')
+      .select('illness_state,return_started_on,blocked_periods')
+      .eq('user_id',user.id).maybeSingle()
+    if(contextError||!coachWorkoutAllowed(context,input.kind,input.date))
+      return response(409,{error:'Training aktuell wegen Krankheit, Wiedereinstieg oder Verfügbarkeit nicht freigabefähig'},h)
+    const row={
+      client_request_id:input.clientRequestId,training_date:input.date,
+      title:snapshot.title,session_type:'event',sport:'running',
+      notes:'Coach Intelligence · '+input.minutes+' Min. ab '+input.startTime+
+       '. 3 zeitgesteuerte Abschnitte. Kein Pace-/HF-Ziel. Freigabe und Intervals-Versand separat.',
+      state:'draft',archive_group:snapshot.group.name,archive_snapshot:snapshot
+    }
+    const {data:existing,error:existingError}=await db.from('garmin_training_plan')
+      .select('id,training_date,title,archive_snapshot,state,revision')
+      .eq('client_request_id',input.clientRequestId).maybeSingle()
+    if(existingError)return response(503,{error:'Coach calendar lookup unavailable'},h)
+    if(existing){
+      const same=existing.training_date===row.training_date&&existing.title===row.title&&
+        JSON.stringify(existing.archive_snapshot)===JSON.stringify(row.archive_snapshot)
+      // JSONB can reorder keys: compare semantic values instead of raw string.
+      const wasCoach=existing.archive_snapshot?.sourceKind==='coach'
+      const compatible=wasCoach&&existing.archive_snapshot?.coachKind===input.kind&&
+       existing.archive_snapshot?.startTime===input.startTime&&
+       existing.archive_snapshot?.group?.steps?.[0]?.durationSeconds===
+        row.archive_snapshot.group.steps[0].durationSeconds
+      if(!same&&!compatible)return response(409,{error:'Request ID already used for a different workout'},h)
+      return response(200,{saved:true,created:false,id:existing.id,
+        revision:existing.revision,state:existing.state,structured:true,garminUpdated:false},h)
+    }
+    const {data:other,error:otherError}=await db.from('garmin_training_plan')
+      .select('id').eq('training_date',input.date).neq('state','cancelled').limit(1)
+    if(otherError)return response(503,{error:'Coach day availability unknown'},h)
+    if(other?.length)return response(409,{error:'Dieser Tag hat bereits einen Kalendereintrag'},h)
+    const {data:saved,error:saveError}=await db.from('garmin_training_plan')
+      .insert(row).select('id,revision,state').single()
+    if(saveError||!saved)return response(409,{error:'Coach workout could not be saved'},h)
+    return response(201,{saved:true,created:true,...saved,
+      structured:true,garminUpdated:false,intervalsPublished:false},h)
+  }
   if(input.action==='create'){
     if(!uuid(input.clientRequestId)||!date(input.date)||
        typeof input.title!=='string'||input.title.trim().length<1||
@@ -115,6 +166,20 @@ Deno.serve(async req=>{
       Number(input.revision)<1)
       return response(422,{error:'Invalid training revision'},h)
     const approving=input.action==='approve'
+    if(approving){
+      const {data:current,error:lookupError}=await db.from('garmin_training_plan')
+        .select('training_date,archive_snapshot').eq('id',input.id)
+        .eq('revision',input.revision).eq('state','draft').maybeSingle()
+      if(lookupError||!current)return response(409,{error:'Training draft no longer available'},h)
+      const source=current.archive_snapshot
+      if(source?.sourceKind==='coach'){
+        const {data:context,error:contextError}=await db.from('garmin_coach_context')
+          .select('illness_state,return_started_on,blocked_periods')
+          .eq('user_id',user.id).maybeSingle()
+        if(contextError||!coachWorkoutAllowed(context,source.coachKind,current.training_date))
+          return response(409,{error:'Coach-Freigabe wegen aktueller Erkrankung oder Sperrtag gestoppt'},h)
+      }
+    }
     const changes=approving?
       {state:'pending',approved_at:new Date().toISOString(),
        revision:Number(input.revision)+1,updated_at:new Date().toISOString()}:
