@@ -109,7 +109,7 @@ export function CalendarPage({active,focus}:{
   key:'p-'+p.id,date:p.training_date,title:p.title,
   sub:p.title.startsWith('ORC · ')?'ORC Bahntraining':eligiblePlanIds.includes(p.id)?'Strukturiertes Lauftraining · Intervals.icu bereit':p.session_type==='workout'?'Strukturiertes Training':'GARMIN_AI Planung',
   note:p.notes||'',source:'plan' as const,status:p.state
- })),[plans])
+ })),[plans,eligiblePlanIds])
  const matching=entries.filter(e=>e.date===selected)
  const cleanupPending=plans.filter(p=>p.state==='cancelled'&&p.intervals_event_id&&p.intervals_sync_status==='needs_review')
  const countInWeek=entries.filter(e=>e.date>=start&&e.date<=days[6]).length
@@ -118,7 +118,7 @@ export function CalendarPage({active,focus}:{
 
  useEffect(()=>{
   if(!active||!focus||lastFocusToken.current===focus.token)return
-  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(focus.date))return
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(focus.date))return
   const targetWeek=Math.round((Date.parse(monday(focus.date)+'T12:00:00Z')-
    Date.parse(monday(today)+'T12:00:00Z'))/(7*86400000))
   if(!Number.isFinite(targetWeek)||targetWeek< -1||targetWeek>5)return
@@ -213,6 +213,7 @@ export function CalendarPage({active,focus}:{
      ' · 3 Zeitabschnitte':'Coach-Kalenderentwurf'
    }
    setPlans(old=>old.some(p=>p.id===newPlan.id)?old:[...old,newPlan])
+   if(structured)setEligiblePlanIds(old=>old.includes(newPlan.id)?old:[...old,newPlan.id])
    setCoachSnapshot(old=>old?{
     ...old,plans:{entries:[...old.plans.entries.filter(x=>x.id!==newPlan.id),
      {id:newPlan.id,training_date:day.date,state:newPlan.state,
@@ -360,10 +361,10 @@ export function CalendarPage({active,focus}:{
   <div className="hc-intro">
    <div className="hc-eyebrow"><span className="hc-pulse"/> TRAININGSPLAN / HORIZON</div>
    <h1>Deine Woche.<br/><span>Dein Rhythmus.</span></h1>
-   <p>Absolvierte Aktivitäten aus Garmin, deine eigenen Trainings und Wochenoptionen – ohne alte Garmin-Workout-Vorlagen.</p>
+   <p>Alle Einheiten an einem Ort: Garmin-Läufe, Coach-Vorschläge, deine bestätigten Trainings und ORC-Optionen.</p>
   </div>
   <div className="hc-overview">
-   <div><small>WOCHE</small><strong>{monthTitle(start)}</strong><span>{countInWeek} Einträge in dieser Woche</span></div>
+   <div><small>WOCHE</small><strong>{monthTitle(start)}</strong><span>{countInWeek} gespeicherte Trainings · {suggestionsInWeek} Coach-Vorschläge</span></div>
    <button type="button" className="hc-refresh" onClick={()=>setRefresh(v=>v+1)} disabled={busy}>
     <Icon name="refresh-cw"/>{busy?'Prüfe …':'Aktualisieren'}
    </button>
@@ -392,8 +393,15 @@ export function CalendarPage({active,focus}:{
      <button type="button" aria-label="Nächste Woche" onClick={()=>changeWeek(1)} disabled={week>=5}>›</button>
     </div>
    </div>
+   <div className="hc-coach-legend" aria-label="Kalenderstatus erklärt">
+    <span><i className="hc-key-actual"/> Garmin · gemacht</span>
+    <span><i className="hc-key-plan"/> GARMIN_AI · gespeichert</span>
+    <span><i className="hc-key-coach"/> Coach · Vorschlag</span>
+    <span><i className="hc-key-option"/> ORC · optional</span>
+   </div>
    <CalendarWeekBoard active={active} start={start} selected={selected}
-    today={today} onSelect={setSelected} plans={plans}/>
+    today={today} onSelect={day=>{setSelected(day);setCoachReview(null)}}
+    plans={plans} coachDays={coachPlan?.days||[]}/>
    <div className="hc-day-content">
     <div className="hc-day-heading">
      <div><span>AUSGEWÄHLTER TAG</span><h3>{longDate(selected)}</h3></div>
@@ -478,8 +486,8 @@ export function CalendarPage({active,focus}:{
      <span>Übertragung und Löschen nur nach deiner Freigabe</span>
     </div></article>
   </div>
-  {error&&<p className="hc-error" role="alert">{error}</p>}
-  {notice&&<p className="hc-notice" role="status">{notice}</p>}
-  <p className="hc-footnote">Absolvierte Garmin-Aktivitäten sind die Datenbasis. Garmin-Kalendervorlagen werden ausgeblendet. Das Wetter steht direkt am Trainingstermin. Eigene Trainings kannst du freigeben oder nach Bestätigung entfernen; echte Aktivitäten werden nicht gelöscht.</p>
+  <p className="hc-footnote">Coach-Vorschläge erscheinen nur zur Orientierung – ohne automatische Speicherung.
+    Du übernimmst einen Vorschlag, gibst ihn selbst frei und sendest erst danach an Intervals.icu.
+    Garmin-Aktivitäten bleiben unverändert.</p>
  </section>
 }
