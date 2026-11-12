@@ -1,0 +1,39 @@
+name: GARMIN_AI Coach Structured Intervals v0.9.47
+on:
+  push:
+    paths:
+      - 'supabase/functions/_shared/coach-structured-workout.mjs'
+      - 'supabase/functions/_shared/intervals-workout.mjs'
+      - 'supabase/functions/garmin-training-plan/index.ts'
+      - 'supabase/functions/garmin-intervals/index.ts'
+      - 'src/components/CoachSevenDay.tsx'
+      - 'src/pages/CalendarPage.tsx'
+      - 'src/components/SyncCenter.tsx'
+      - 'src/styles/coach-seven-day.css'
+      - 'tests/coach-structured-intervals-v0947.test.mjs'
+      - '.github/workflows/garmin-coach-structured-v0947.yml'
+  pull_request:
+    paths:
+      - 'supabase/functions/_shared/coach-structured-workout.mjs'
+      - 'supabase/functions/_shared/intervals-workout.mjs'
+      - 'supabase/functions/garmin-training-plan/index.ts'
+      - 'supabase/functions/garmin-intervals/index.ts'
+      - 'src/components/CoachSevenDay.tsx'
+      - 'src/pages/CalendarPage.tsx'
+      - 'src/components/SyncCenter.tsx'
+      - 'src/styles/coach-seven-day.css'
+      - 'tests/coach-structured-intervals-v0947.test.mjs'
+      - '.github/workflows/garmin-coach-structured-v0947.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/coach-structured-intervals-v0947.test.mjs tests/intervals-bridge.test.mjs tests/mobile-coach-seven-day-v1.test.mjs tests/mobile-coach-life-context-v11.test.mjs tests/mobile-session-coach-consistency-v0943.test.mjs tests/mobile-aerobic-cors-and-sync-clarity-v0942.test.mjs tests/mobile-calendar-week-board.test.mjs
+      - run: npm run build
