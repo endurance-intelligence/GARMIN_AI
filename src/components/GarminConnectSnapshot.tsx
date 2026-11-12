@@ -8,7 +8,7 @@ import '../styles/garmin-connect-snapshot.css'
 type Gear = { id:string; name:string; brand:string|null; model:string|null; type:string|null; status?:'active'|'retired'|'unknown' }
 type Workout = { date:string; id:string|null; workoutId:string|null; name:string|null; sport:string|null; restDay:boolean }
 type Link = { activityId:string; gearId:string }
-type Snapshot = {gear:Gear[];schedule:Workout[];activity_gear:Link[];activity_gear_scope:string;checked_at:string;synced_at:string;gear_links_checked_at?:string|null}
+type Snapshot = {gear:Gear[];schedule:Workout[];activity_gear:Link[];activity_gear_scope:string;checked_at:string;synced_at:string;gear_links_checked_at?:string|null;gear_links_sync_source?:'manual'|'cloud'}
 type LocalSnapshot = {source:string;readOnly:true;checkedAt:string;gear:Gear[];schedule:Workout[];activityGear:Link[];completeHistory?:boolean}
 type GearUsage = {gearId:string;linkedActivities:number;missingActivities:number;knownDistanceKm:number}
 type StatusReport = {mode:'gear-status';source:string;readOnly:true;checkedAt:string;gear:{id:string;type:string|null;status:'active'|'retired'|'unknown'}[]}
@@ -321,9 +321,10 @@ export function GarminConnectSnapshot({mode,active=true}:{mode:'gear'|'calendar'
     {notice && <p className="gcs-note" role="status">{notice}</p>}
     {snapshot && mode==='gear' && <>
       <p className="gcs-note">{snapshot.gear.length} Ausrüstungsgegenstände · {snapshot.activity_gear.length} bestätigte Aktivitätszuordnungen.
-        Automatischer inkrementeller Garmin-Cloud-Abgleich ist alle 3 Stunden geplant.
-        Die Kilometersumme ändert sich ausschließlich nach einem erfolgreich bestätigten
-        Schuhabgleich; fehlende Zuordnungen werden niemals geschätzt.</p>
+        {snapshot.gear_links_sync_source==='cloud'?
+          'Letzter Schuhabgleich über den geschützten Garmin-Cloud-Worker bestätigt.':
+          'Letzter Schuhstand stammt noch aus dem manuellen Import; automatische Cloud-Prüfung alle 3 Stunden eingerichtet.'}
+        Die Kilometersumme ändert sich nur bei bestätigten Zuordnungen; fehlende Schuhe werden nicht geraten.</p>
       {syncProgress && <p className="gcs-sync-progress" role="status" aria-live="polite">{syncProgress}</p>}
       <p className="gcs-photo-intro">Für aktive Laufschuhe kannst du eigene Bilder hinterlegen. Fotos bleiben privat und werden deinem Garmin-Schuh dauerhaft zugeordnet.</p>
       <div className="gcs-image-availability" role="status">
