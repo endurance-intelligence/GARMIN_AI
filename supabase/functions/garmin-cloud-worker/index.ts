@@ -10,6 +10,7 @@ import {createRemoteJWKSet,jwtVerify} from 'npm:jose@5.9.6'
 import {isGarminCloudSession} from '../_shared/garmin-connect-tokens.mjs'
 import {trustedGarminWorkerClaims} from '../_shared/garmin-worker-claims.mjs'
 import {mergeActivityGear,selectActivityTargets,runningSport} from '../_shared/garmin-gear-incremental.mjs'
+import {activeGarminCooldown,retryAfterLimit,clearedGarminCooldown} from '../_shared/garmin-cloud-backoff.mjs'
 
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const audience='garmin-ai-cloud-audit:eurgupsebxypjqvyizci'
@@ -51,6 +52,14 @@ Deno.serve(async req=>{
       auth:{autoRefreshToken:false,persistSession:false}
     })
     if(req.method==='GET'){
+      // Fail closed: never hand out Garmin tokens while an OAuth/API 429
+      // cooldown is active or the private guard state cannot be read.
+      const gate=await db.from('garmin_cloud_backoff')
+        .select('retry_after,consecutive_429,last_limited_at').eq('id','garmin').single()
+      if(gate.error||!gate.data)return respond(503,{error:'Rate-limit guard unavailable'})
+      if(activeGarminCooldown(gate.data))
+        return respond(200,{deferred:true,reason:'garmin-rate-limit',
+          retryAfter:gate.data.retry_after,attempts:gate.data.consecutive_429})
       const since=new Date(Date.now()-21*86400000).toISOString().slice(0,10)
       const [session,baseline,activities]=await Promise.all([
         db.rpc('garmin_connect_session_get'),
@@ -84,6 +93,24 @@ Deno.serve(async req=>{
     if(!input||typeof input!=='object'||Array.isArray(input))
       return respond(422,{error:'Invalid request'})
     const value=input as Record<string,unknown>
+    if(value.action==='record-rate-limit'){
+      // No caller-supplied expiry or duration. All options are server-policy.
+      if(!['oauth-refresh','activity-gear','full-audit'].includes(String(value.phase)))
+        return respond(422,{error:'Invalid Garmin rate-limit phase'})
+      const previous=await db.from('garmin_cloud_backoff')
+        .select('retry_after,consecutive_429,last_limited_at')
+        .eq('id','garmin').single()
+      if(previous.error||!previous.data)
+        return respond(503,{error:'Rate-limit guard unavailable'})
+      const entry=retryAfterLimit(previous.data)
+      const {data:updated,error:storeError}=await db.from('garmin_cloud_backoff')
+        .update(entry).eq('id','garmin')
+        .select('retry_after,consecutive_429').single()
+      if(storeError||!updated)
+        return respond(503,{error:'Could not persist rate-limit cooldown'})
+      return respond(200,{saved:true,deferred:true,retryAfter:updated.retry_after,
+        attempts:updated.consecutive_429,garminWritten:false})
+    }
     if(value.action==='incremental-gear'){
       // This action remains available ONLY to GitHub OIDC from the trusted
       // main-branch Cloud Audit workflow. No browser or Supabase anon access.
@@ -128,6 +155,11 @@ Deno.serve(async req=>{
         .select('snapshot_key').maybeSingle()
       if(writeError||!saved)
         return respond(409,{error:'Gear reconciliation conflicted or could not be saved'})
+      // Reset consecutive 429 counter only after a verified Garmin read
+      // has actually been reconciled, not merely after scheduler dispatch.
+      const {error:clearError}=await db.from('garmin_cloud_backoff')
+        .update(clearedGarminCooldown()).eq('id','garmin')
+      if(clearError)return respond(503,{error:'Gear saved but cooldown reset unavailable'})
       return respond(200,{saved:true,verified:merged.verifiedActivities,
         added:merged.added,removed:merged.removed,total:merged.links.length,
         checkedAt:when,garminWritten:false})
