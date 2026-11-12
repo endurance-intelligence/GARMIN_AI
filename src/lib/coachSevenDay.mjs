@@ -57,6 +57,12 @@ export function buildSevenDayCoach(input){
  const life=input.life?.context||{illness_state:'well',blocked_periods:[],run_reviews:[]}
  const returning=life.illness_state==='returning'
  const ill=life.illness_state==='sick'
+ // Even after user confirmation, build volume back gradually rather than
+ // offering a long run immediately after two tolerated short sessions.
+ const returnAge=life.return_started_on?
+  Math.round((Date.parse(today+'T12:00:00Z')-
+   Date.parse(life.return_started_on+'T12:00:00Z'))/ONE_DAY):null
+ const postIllness=life.illness_state==='well'&&returnAge!==null&&returnAge>=0&&returnAge<14
  const runs=Array.isArray(input.life?.runs)?input.life.runs:[]
  const reviews=Array.isArray(life.run_reviews)?life.run_reviews:[]
  const concern=returning&&reviews.some(x=>x.assessment==='concern')
@@ -129,6 +135,15 @@ export function buildSevenDayCoach(input){
    return make(day,'recovery','Erholung nach dem Rennen',null,'Nach einem Wettkampf keine automatische Belastungssteigerung.')
   const option=options.find(o=>o.enabled&&o.weekday===weekday(day))
   const choice=option?choices.find(c=>c.training_date===day&&c.option_code===option.code)?.choice:null
+  if(postIllness){
+   if(option&&choice==='selected')return make(day,'option',option.title+' · nach Krankheit prüfen',null,
+    'Bereits ausgewählter Termin: noch keine harte Belastung. Teilnahme und Intensität bewusst selbst prüfen.')
+   return [2,4,7].includes(weekday(day))&&dataReady?
+    make(day,'easy','Locker bleiben · 20–35 Min.',30,
+     'Die ersten Wiedereinstiegsläufe wurden bestätigt, aber voller Umfang und Tempo werden nicht direkt wiederhergestellt.'):
+    make(day,'recovery','Erholung / Mobility',null,
+     'Zwei verträgliche Läufe bedeuten noch keine automatische Rückkehr zur früheren Trainingsbelastung.')
+  }
   if(option&&choice==='selected')return make(day,'chosen',option.title,null,
    'Von dir ausgewählter Verein-/Gruppentermin. Keine zusätzliche Einheit.')
   if(untilRace!==null&&untilRace<=2&&untilRace>=1)
@@ -174,11 +189,12 @@ export function buildSevenDayCoach(input){
    'Abstand zwischen Belastungen erhalten, optionale Vereinstrainings bleiben freiwillig.')
  })
  return {today,days:items,signals,flags,
-  attention:ill||returning||!!input.symptoms||caution||observationLimited,
+  attention:ill||returning||postIllness||!!input.symptoms||caution||observationLimited,
   attentionText:ill||input.symptoms?'Krank-Modus aktiv: Trainingsvorschläge sind gesperrt, bis du deine Genesung meldest.':
-   returning?'Wiedereinstieg aktiv: erste Läufe und deine 24-Stunden-Rückmeldungen haben Vorrang. Keine automatische Freigabe.':
+   returning?'Wiedereinstieg aktiv: erste Läufe und deine Folgetag-Rückmeldungen haben Vorrang. Keine automatische Freigabe.':
+   postIllness?'Nach dem Wiedereinstieg Belastung weiter schrittweise aufbauen; keine Nachholeinheiten.':
    caution?'Belastungs-/Erholungssignale sprechen für Zurückhaltung; keine Diagnostik.':
    observationLimited?'Datenlage ist eingeschränkt. Nur konservative Vorschläge.':
    'Vorschläge sind eine Planungshilfe, keine medizinische Freigabe.',
-  basedOnActual:true,source:'Garmin & bestehender Kalender',raceDate,returning,ill,concern,acknowledgedRuns:acknowledged.length}
+  basedOnActual:true,source:'Garmin & bestehender Kalender',raceDate,returning,ill,postIllness,concern,acknowledgedRuns:acknowledged.length}
 }
