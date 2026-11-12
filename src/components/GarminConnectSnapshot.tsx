@@ -34,7 +34,7 @@ function formatDate(raw:string|null|undefined) {
   return Number.isNaN(date.getTime())?raw:date.toLocaleDateString('de-DE')
 }
 
-export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
+export function GarminConnectSnapshot({mode,active=true}:{mode:'gear'|'calendar';active?:boolean}) {
   const [session,setSession]=useState<Session|null>(null)
   const [snapshot,setSnapshot]=useState<Snapshot|null>(null)
   const [usage,setUsage]=useState<GearUsage[]>([])
@@ -49,6 +49,8 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
   const [imageLoading,setImageLoading]=useState(false)
   const [syncBusy,setSyncBusy]=useState(false)
   const [syncProgress,setSyncProgress]=useState('')
+  const [snapshotRefresh,setSnapshotRefresh]=useState(0)
+  const [snapshotLoading,setSnapshotLoading]=useState(false)
 
   useEffect(()=>{
     if(!garminSupabase) return
@@ -62,13 +64,25 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
     return ()=>{mounted=false;subscription.unsubscribe()}
   },[])
   useEffect(()=>{
-    if(!session){return}
+    if(!active||!session)return
     let mounted=true
+    setSnapshotLoading(true)
     void contextRequest<{snapshot:Snapshot|null;usage:GearUsage[]}>(session,'GET').then(result=>{
       if(mounted){setSnapshot(result.snapshot);setUsage(result.usage||[]);setError('')}
     }).catch(()=>{if(mounted)setError('Gespeicherte Garmin-Connect-Daten nicht abrufbar.')})
+      .finally(()=>{if(mounted)setSnapshotLoading(false)})
     return ()=>{mounted=false}
-  },[session?.access_token])
+  },[active,session?.access_token,snapshotRefresh])
+
+  useEffect(()=>{
+    if(!active||mode!=='gear')return
+    // The trusted worker refreshes gear links independently. Refresh the
+    // read-only UI after browser focus or while an Equipment view stays open.
+    const onFocus=()=>setSnapshotRefresh(n=>n+1)
+    window.addEventListener('focus',onFocus)
+    const interval=window.setInterval(onFocus,5*60*1000)
+    return ()=>{window.removeEventListener('focus',onFocus);window.clearInterval(interval)}
+  },[active,mode])
 
   useEffect(()=>{
     if(mode!=='gear' || !session) return
@@ -277,11 +291,17 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
 
   return <section className="gcs-card" aria-label={mode==='gear'?'Garmin-Ausrüstung':'Garmin-Trainingskalender'}>
     <div className="gcs-title">
-      <div><span className="small-eyebrow">GARMIN CONNECT · LIVE SNAPSHOT</span>
+      <div><span className="small-eyebrow">GARMIN CONNECT · BESTÄTIGTER DATENSTAND</span>
         <h3>{mode==='gear'?'Deine Garmin-Ausrüstung':'Geplante Garmin-Workouts'}</h3>
-        <p>{snapshot ? `Stand: ${formatDate(snapshot.checked_at)} · Speicherung: ${formatDate(snapshot.synced_at)}` :
-        'Noch kein Garmin-Connect-Snapshot gespeichert.'}</p>
+        <p>{snapshot?(mode==='gear'?
+          `Ausrüstungskatalog: ${formatDate(snapshot.checked_at)} · Schuhzuordnungen: ${formatDate(snapshot.gear_links_checked_at)}`:
+          `Gespeichert: ${formatDate(snapshot.checked_at)}`):
+          'Noch kein Garmin-Connect-Snapshot gespeichert.'}</p>
       </div>
+      {mode==='gear'&&<button type="button" className="gcs-data-refresh"
+        onClick={()=>setSnapshotRefresh(n=>n+1)} disabled={!session||snapshotLoading}>
+        {snapshotLoading?'Lade Daten …':'Anzeige aktualisieren'}
+      </button>
       {mode==='gear' && import.meta.env.DEV && <div className="gcs-toolbar">
         {snapshot?.activity_gear_scope==='complete' && <button type="button" className="gcs-sync-button"
           onClick={()=>void syncGearLinks()} disabled={!session||busy||syncBusy}>
@@ -300,7 +320,10 @@ export function GarminConnectSnapshot({mode}:{mode:'gear'|'calendar'}) {
     {error && <p className="gcs-error" role="alert">{error}</p>}
     {notice && <p className="gcs-note" role="status">{notice}</p>}
     {snapshot && mode==='gear' && <>
-      <p className="gcs-note">{snapshot.gear.length} Ausrüstungsgegenstände · {snapshot.activity_gear.length} bestätigte Aktivitätszuordnungen.{snapshot.gear_links_checked_at?` Schuhzuordnungen geprüft: ${formatDate(snapshot.gear_links_checked_at)}.`:''}</p>
+      <p className="gcs-note">{snapshot.gear.length} Ausrüstungsgegenstände · {snapshot.activity_gear.length} bestätigte Aktivitätszuordnungen.
+        Automatischer inkrementeller Garmin-Cloud-Abgleich ist alle 3 Stunden geplant.
+        Die Kilometersumme ändert sich ausschließlich nach einem erfolgreich bestätigten
+        Schuhabgleich; fehlende Zuordnungen werden niemals geschätzt.</p>
       {syncProgress && <p className="gcs-sync-progress" role="status" aria-live="polite">{syncProgress}</p>}
       <p className="gcs-photo-intro">Für aktive Laufschuhe kannst du eigene Bilder hinterlegen. Fotos bleiben privat und werden deinem Garmin-Schuh dauerhaft zugeordnet.</p>
       <div className="gcs-image-availability" role="status">
