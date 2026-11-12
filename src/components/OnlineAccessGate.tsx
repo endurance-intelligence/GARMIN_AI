@@ -1,4 +1,4 @@
-import {useCallback,useEffect,useState} from 'react'
+import {useCallback,useEffect,useRef,useState} from 'react'
 import type {ReactNode} from 'react'
 import type {Session} from '@supabase/supabase-js'
 import {garminSupabase,garminSupabaseReady,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
@@ -15,6 +15,9 @@ type Status='checking'|'signed-out'|'authorized'|'denied'|'unavailable'|'unconfi
 export function OnlineAccessGate({children}:{children:ReactNode}){
   const [status,setStatus]=useState<Status>('checking')
   const [revision,setRevision]=useState(0)
+  // Keep already authorized pages mounted while the SAME user's token is refreshed.
+  const authorizedUserId=useRef<string|null>(null)
+  const lastVerifiedToken=useRef<string|null>(null)
   const verify=useCallback(async(session:Session|null):Promise<Status>=>{
     if(!session)return 'signed-out'
     if(!garminSupabaseReady)return 'unconfigured'
@@ -43,19 +46,51 @@ export function OnlineAccessGate({children}:{children:ReactNode}){
     const client=garminSupabase
     let mounted=true
     let generation=0
+    let inFlight:{userId:string;token:string}|null=null
+    let receivedInitialSession=false
     const check=(session:Session|null)=>{
+      const userId=session?.user?.id||null
+      if(!session||!userId){
+        // Sign-out invalidates an outstanding access check immediately.
+        generation++
+        inFlight=null
+        authorizedUserId.current=null
+        lastVerifiedToken.current=null
+        setStatus('signed-out')
+        return
+      }
+      // Both INITIAL_SESSION and getSession can deliver the same credentials.
+      if(authorizedUserId.current===userId&&lastVerifiedToken.current===session.access_token)return
+      if(inFlight?.userId===userId&&inFlight.token===session.access_token)return
       const current=++generation
-      setStatus('checking')
+      inFlight={userId,token:session.access_token}
+      const sameApprovedUser=authorizedUserId.current===userId
+      if(!sameApprovedUser){
+        // First login or account switch: never reveal content before owner verification.
+        authorizedUserId.current=null
+        lastVerifiedToken.current=null
+        setStatus('checking')
+      }
+      // TOKEN_REFRESHED / SIGNED_IN with the same owner is checked SILENTLY.
+      // On success, React children remain mounted and all drafts survive.
       void verify(session).then(next=>{
-        if(mounted&&generation===current)setStatus(next)
+        if(!mounted||generation!==current)return
+        authorizedUserId.current=next==='authorized'?userId:null
+        lastVerifiedToken.current=next==='authorized'?session.access_token:null
+        setStatus(next)
+      }).finally(()=>{
+        if(inFlight?.userId===userId&&inFlight.token===session.access_token)inFlight=null
       })
     }
-    // INITIAL_SESSION may arrive while the getSession promise is outstanding.
-    const {data:{subscription}}=client.auth.onAuthStateChange((_event,session)=>{
+    const {data:{subscription}}=client.auth.onAuthStateChange((event,session)=>{
+      if(event==='INITIAL_SESSION')receivedInitialSession=true
       check(session)
     })
-    void client.auth.getSession().then(({data})=>check(data.session)).catch(()=>{
-      if(mounted)setStatus('unavailable')
+    void client.auth.getSession().then(({data})=>{
+      // Don't let a delayed initial getSession undo a newer auth event.
+      if(mounted&&!receivedInitialSession)check(data.session)
+    }).catch(()=>{
+      if(mounted&&!receivedInitialSession)setStatus('unavailable')
     })
     return ()=>{
       mounted=false;generation++;subscription.unsubscribe()
