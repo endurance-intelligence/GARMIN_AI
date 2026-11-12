@@ -91,7 +91,6 @@ export function CoachGlance({active,onCalendar,children}:{
     .finally(()=>{if(mounted)setLoading(false)})
   return ()=>{mounted=false;abort.abort()}
  },[active,date])
- const event=view?.plan||view?.workout||view?.option
  const blockedLabels:Record<string,string>={
   sick:'Trainingspause · krank / Beschwerden',returning:'Vorsichtiger Wiedereinstieg',
   vacation:'Urlaub · trainingsfrei',unavailable:'Heute keine Zeit für Training'
