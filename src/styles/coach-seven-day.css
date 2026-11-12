@@ -47,3 +47,19 @@
 .c7-footer button{display:flex;align-items:center;gap:6px}
 @media(max-width:600px){.c7-root{padding:13px}.c7-week{grid-template-columns:1fr}
  .c7-top h2{font-size:21px}.c7-day{padding:10px}.c7-top{gap:9px}}
+
+/* Coach v1.2 · explicit time-based workout, readable on iPhone and iPad */
+.c7-structured-preview{display:grid;gap:10px;max-width:640px;margin:9px 0;
+ padding:12px;border:1px solid rgba(143,155,243,.25);
+ background:rgba(116,119,231,.085);border-radius:10px}
+.c7-structured-preview>span{font-size:12px;color:#e3ebff;line-height:1.5}
+.c7-structured-preview label{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+ color:#bdc9e7;font-size:11px;font-weight:720}
+.c7-structured-preview select{min-height:44px;min-width:130px;max-width:100%;
+ padding:8px 10px;background:#19283e;border:1px solid #5c7093;border-radius:9px;
+ color:#f1f5ff;font-size:13px}
+.c7-structured-preview select:focus-visible{outline:2px solid #b8bcff}
+.c7-structured-preview small{color:#b3c4dd;font-size:11px;line-height:1.6}
+@media(max-width:560px){.c7-structured-preview{padding:10px}
+.c7-structured-preview label{align-items:stretch;flex-direction:column}
+.c7-structured-preview select{width:100%}}
