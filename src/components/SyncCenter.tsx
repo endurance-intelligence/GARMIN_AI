@@ -6,7 +6,7 @@ import '../styles/sync-center.css'
 
 type Source={
   checkedAt?:string|null;lastSuccessAt?:string|null;result?:string;latestDate?:string|null;
-  scope?:string;state?:string;reason?:string;ageMinutes?:number|null;
+  scope?:string;state?:string;syncSource?:'manual'|'cloud';reason?:string;ageMinutes?:number|null;
   pending?:number|null;counts?:Record<string,number>
 }
 type Weight={weigh_date:string;weight_kg:number;state:string;updated_at:string;confirmed_at:string|null}
@@ -225,15 +225,18 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
 
   if(!active)return null
   const today=data?.weightEntries.find(v=>v.weigh_date===date)
+  const gearFromCloud=data?.sources.equipment.syncSource==='cloud'
   const automaticRows=[
     {name:'Aktivitäten',source:data?.sources.activities,
       detail:'Letzter bestätigter Import: '+dateText(data?.sources.activities.lastSuccessAt)},
     {name:'Gesundheitsdaten',source:data?.sources.health,
-      detail:'Letzter Messtag: '+(data?.sources.health.latestDate||'unbekannt')}
+      detail:'Letzter Messtag: '+(data?.sources.health.latestDate||'unbekannt')},
+    ...(gearFromCloud?[{name:'Laufschuhe · Garmin-Cloud-Abgleich',source:data?.sources.equipment,
+      detail:'Letzter bestätigter Schuhabgleich: '+dateText(data?.sources.equipment.checkedAt)}]:[])
   ]
   const manualRows=[
-    {name:'Garmin-Ausrüstung · Import',source:data?.sources.equipment,
-      detail:'Schuh- und Aktivitätszuordnungen · letzter manueller Stand: '+dateText(data?.sources.equipment.checkedAt)},
+    ...(!gearFromCloud?[{name:'Garmin-Ausrüstung · bisheriger Import',source:data?.sources.equipment,
+      detail:'Vor dem ersten erfolgreichen Cloud-Abgleich: '+dateText(data?.sources.equipment.checkedAt)}]:[]),
     {name:'Garmin-Kalender · Leseimport',source:data?.sources.calendar,
       detail:'Optionaler Garmin-Connect-Snapshot: '+dateText(data?.sources.calendar.checkedAt)+
        '. Nicht die Coach-Übertragung via Intervals.icu.'}
@@ -293,10 +296,11 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
             <small>{row.detail}</small>
           </div>)}</div>
         <details className="sync-manual-imports">
-          <summary>Optionale Garmin-Leseimporte · Ausrüstung &amp; alter Kalendersnapshot</summary>
-          <p>Diese beiden Quellen werden zurzeit <strong>nicht automatisch</strong>
-            aktualisiert. Sie gehören nicht zur Übertragung von Coach-Workouts.
-            Für Ausrüstung ist noch ein eigenständiger automatischer Import nötig.</p>
+          <summary>{gearFromCloud?'Optionaler alter Garmin-Kalendersnapshot':
+            'Optionale Garmin-Leseimporte · bisherige Ausrüstung &amp; Kalender'}</summary>
+          <p>{gearFromCloud?
+            'Schuhzuordnungen werden über den Cloud-Job geprüft. Der alte Garmin-Kalender-Snapshot bleibt optional und wird nicht als Workout-Übertragung verwendet.':
+            'Der inkrementelle Garmin-Schuhabgleich ist eingerichtet, aber der erste erfolgreiche Cloud-Lauf ist noch nicht bestätigt. Bis dahin bleibt der bisherige Ausrüstungsstand sichtbar. Der alte Kalenderimport ist optional.'}</p>
           <div className="sync-source-list">{manualRows.map(row=>
             <div className="sync-source" key={row.name}>
               <div className="sync-source-head"><strong>{row.name}</strong>
