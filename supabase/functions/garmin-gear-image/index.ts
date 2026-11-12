@@ -75,16 +75,25 @@ Deno.serve(async(req:Request)=>{
     const storage=admin.storage.from(bucket)
 
     if(req.method==='GET') {
-      const {data:objects,error:listError}=await storage.list('gear',{limit:100})
-      if(listError) throw Error('image-list')
-      const existing=new Set((objects||[]).map(o=>o.name))
+      // Avoid Storage LIST: it has returned HTTP 500/timeouts in production,
+      // although all five private photos remain present in storage.objects.
+      // Batch signing uses ONE request rather than LIST + N individual signs.
+      const requested=[...eligible.entries()].map(([id,entry])=>({
+        path:'gear/'+id+'.webp',gearId:String(entry.id)
+      }))
+      if(!requested.length)return json({images:{}},200,headers)
+      const {data:signed,error:signError}=await storage.createSignedUrls(
+        requested.map(x=>x.path),3600
+      )
+      if(signError || !Array.isArray(signed)) {
+        console.error('garmin-gear-image: bulk signing unavailable')
+        return json({error:'Bildspeicher momentan nicht erreichbar. Gespeicherte Fotos sind nicht gelöscht.'},503,headers)
+      }
+      const mapped=new Map(requested.map(x=>[x.path,x.gearId]))
       const images:Record<string,string>={}
-      for (const [id,entry] of eligible) {
-        const path=id+'.webp'
-        if(!existing.has(path)) continue
-        const {data:signed,error:signError}=await storage.createSignedUrl('gear/'+path,3600)
-        if(signError || !signed?.signedUrl) continue
-        images[String(entry.id)]=signed.signedUrl
+      for(const value of signed) {
+        const id=value.path?mapped.get(value.path):null
+        if(id && value.signedUrl && !value.error)images[id]=value.signedUrl
       }
       return json({images},200,headers)
     }
