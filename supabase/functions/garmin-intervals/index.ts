@@ -6,6 +6,7 @@
  */
 import {createClient} from 'npm:@supabase/supabase-js@2'
 import {buildIntervalsEvent,validateStoredIntervalsWorkout} from '../_shared/intervals-workout.mjs'
+import {coachWorkoutAllowed,coachWorkoutDuration} from '../_shared/coach-structured-workout.mjs'
 import {confirmedAbsentOnDate} from '../_shared/intervals-cleanup-reconcile.mjs'
 
 const project='https://eurgupsebxypjqvyizci.supabase.co'
@@ -104,7 +105,7 @@ Deno.serve(async req=>{
     db.from('garmin_training_plan')
      .select('id,revision,intervals_event_id,intervals_published_revision,intervals_published_at,intervals_sync_status,intervals_export_version')
      .not('intervals_published_revision','is',null).order('intervals_published_at',{ascending:false}).limit(100),
-    db.from('garmin_training_plan').select('id').not('archive_workout_id','is',null).neq('state','cancelled').limit(100)
+    db.from('garmin_training_plan').select('id').not('archive_snapshot','is',null).neq('state','cancelled').limit(100)
    ])
    if(linkError||rowsError||eligibleError)return reply(503,{error:'Intervals status unavailable'},h)
    return reply(200,{configured:!!link,connectedAt:link?.connected_at||null,
@@ -223,6 +224,16 @@ Deno.serve(async req=>{
   if(planError||!plan)return reply(404,{error:'Workout not found'},h)
   if(plan.state!=='pending'||!plan.approved_at||!plan.archive_snapshot)
    return reply(409,{error:'Trainingsgruppe zuerst im GARMIN_AI Kalender freigeben.'},h)
+  if(plan.archive_snapshot.sourceKind==='coach'){
+   if(coachWorkoutDuration(plan.archive_snapshot)===null)
+    return reply(422,{error:'Coach workout structure was not verified'},h)
+   const {data:context,error:contextError}=await db.from('garmin_coach_context')
+     .select('illness_state,return_started_on,blocked_periods')
+     .eq('user_id',user.id).maybeSingle()
+   if(contextError||!coachWorkoutAllowed(context,
+     plan.archive_snapshot.coachKind,plan.training_date))
+    return reply(409,{error:'Coach-Workout wegen Krankheit, Wiedereinstieg oder Urlaub aktuell gesperrt'},h)
+  }
   const repairing=input.action==='repair'
   if(!repairing&&plan.training_date<today())return reply(409,{error:'Vergangene Trainings können nicht veröffentlicht werden.'},h)
   if(repairing){
