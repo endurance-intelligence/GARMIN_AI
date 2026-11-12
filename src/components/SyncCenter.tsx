@@ -10,6 +10,16 @@ type Source={
   pending?:number|null;counts?:Record<string,number>
 }
 type Weight={weigh_date:string;weight_kg:number;state:string;updated_at:string;confirmed_at:string|null}
+type IntervalsPublication={
+  id:string;revision:number;intervals_published_revision:number|null;
+  intervals_sync_status:string;intervals_event_id:number|null;
+  intervals_published_at?:string|null
+}
+type IntervalsStatus={
+  configured:boolean;connectedAt:string|null;
+  publications:IntervalsPublication[];eligiblePlanIds:string[];garminConfirmed:boolean
+}
+
 type CronJob={name:string;active:boolean;lastStartedAt:string|null;lastFinishedAt:string|null;lastDispatchStatus:string|null}
 type SyncPayload={sources:{
   activities:Source;health:Source;equipment:Source;calendar:Source;fit:Source
@@ -52,7 +62,7 @@ async function api<T>(session:Session,method:'GET'|'POST',body?:unknown):Promise
 function stateText(value?:string) {
   const states:Record<string,string>={
     ok:'Aktuell',stale:'Veraltet',failed:'Fehlgeschlagen',unknown:'Nicht verifiziert',
-    manual:'Manueller Abgleich',partial:'Teilweise erfolgreich',
+    manual:'Manueller Leseimport',partial:'Teilweise erfolgreich',
     attention:'Prüfen',processing:'In Bearbeitung',idle:'Keine offenen Aufgaben'
   }
   return states[value||'']||'Status unbekannt'
@@ -60,6 +70,8 @@ function stateText(value?:string) {
 export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boolean;mode:'weight'|'status';onSaved?:(kg:number)=>void;inlineWheel?:boolean}){
   const [session,setSession]=useState<Session|null>(null)
   const [data,setData]=useState<SyncPayload|null>(null)
+  const [intervals,setIntervals]=useState<IntervalsStatus|null>(null)
+  const [intervalsUnavailable,setIntervalsUnavailable]=useState(false)
   const [date,setDate]=useState(berlinDay)
   const [weight,setWeight]=useState('')
   const [busy,setBusy]=useState(false)
@@ -100,6 +112,26 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
     })
     return()=>{mounted=false}
   },[active,session?.access_token,refresh])
+  // Read existing, authenticated Intervals bridge status separately from the
+  // historic Garmin Connect calendar snapshot. Never infer device delivery.
+  useEffect(()=>{
+    if(!active||mode!=='status'||!session)return
+    let mounted=true
+    setIntervalsUnavailable(false)
+    void fetch(garminSupabaseUrl+'/functions/v1/garmin-intervals',{
+      cache:'no-store',headers:{
+        authorization:'Bearer '+session.access_token,apikey:garminPublishableKey
+      }
+    }).then(async res=>{
+      if(!res.ok)throw Error('Intervals status HTTP '+res.status)
+      return await res.json() as IntervalsStatus
+    }).then(payload=>{
+      if(mounted){setIntervals(payload);setIntervalsUnavailable(false)}
+    }).catch(()=>{
+      if(mounted){setIntervals(null);setIntervalsUnavailable(true)}
+    })
+    return()=>{mounted=false}
+  },[active,mode,session?.access_token,refresh])
 
   async function save(){
     if(!session||busy)return
@@ -198,10 +230,11 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
       detail:'Letzter bestätigter Import: '+dateText(data?.sources.activities.lastSuccessAt)},
     {name:'Gesundheitsdaten',source:data?.sources.health,
       detail:'Letzter Messtag: '+(data?.sources.health.latestDate||'unbekannt')},
-    {name:'Ausrüstung',source:data?.sources.equipment,
-      detail:'Letzte vollständige Zuordnung: '+dateText(data?.sources.equipment.checkedAt)},
-    {name:'Trainingskalender',source:data?.sources.calendar,
-      detail:'Letzter lokaler Snapshot: '+dateText(data?.sources.calendar.checkedAt)}
+    {name:'Garmin-Ausrüstung · Import',source:data?.sources.equipment,
+      detail:'Schuh- und Aktivitätszuordnungen · letzter manueller Stand: '+dateText(data?.sources.equipment.checkedAt)},
+    {name:'Garmin-Kalender · Leseimport',source:data?.sources.calendar,
+      detail:'Optionaler Garmin-Connect-Snapshot: '+dateText(data?.sources.calendar.checkedAt)+
+       '. Nicht die Coach-Übertragung via Intervals.icu.'}
   ]
   return <section className={mode==='weight'?'sync-center sync-center-weight':'sync-center'} aria-label={mode==='weight'?'Tägliches Gewicht':'Synchronisierungsstatus'}>
     {mode==='weight'?<>
@@ -256,6 +289,28 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
           <span>Letzter Versuch: {dateText(row.source?.checkedAt)}</span>
           <small>{row.detail}</small>
         </div>)}</div>:<p className="sync-hint">{session?'Lese Status …':'Bitte zuerst unter Einstellungen anmelden.'}</p>}
+      {session&&data&&<div className="sync-intervals" aria-label="Coach-Workouts und Intervals.icu">
+        <div className="sync-source-head"><strong>Coach → Intervals.icu → Garmin-Uhr</strong>
+          <span className={'sync-state '+(intervals?.configured?'sync-state-ok':'sync-state-unknown')}>
+            {intervalsUnavailable?'Abfrage nicht verfügbar':intervals?.configured?'API-Key hinterlegt':
+             intervals?'Nicht verbunden':'Prüfe Verbindung …'}
+          </span>
+        </div>
+        <p>{intervals?.configured?
+          'Intervals.icu-Verbindung eingerichtet. Veröffentlichungen brauchen deine Freigabe und einen strukturierten Workout-Entwurf.':
+          'Der Garmin-Connect-Kalenderimport oben ist für diesen Übertragungsweg nicht erforderlich.'}</p>
+        {intervals&&<p className="sync-intervals-count">Bei Intervals.icu bestätigte Workout-Exporte: <strong>{
+          (intervals.publications||[]).filter(x=>x.intervals_sync_status==='confirmed'&&
+            Number.isSafeInteger(x.intervals_event_id)&&Number(x.intervals_event_id)>0).length
+        }</strong> · Zuletzt: {dateText((intervals.publications||[])
+          .filter(x=>x.intervals_sync_status==='confirmed'&&x.intervals_published_at)
+          .map(x=>x.intervals_published_at!).sort().at(-1)||null)}</p>}
+        <small>Wichtig: Der 7-Tage-Coach erzeugt derzeit zunächst einfache Kalenderentwürfe,
+          keine direkt übertragbaren strukturierten Workouts. Die Intervals.icu-Brücke akzeptiert
+          aktuell nur ausdrücklich freigegebene Workout-Archiv-Trainings.
+          Eine Intervals-Bestätigung belegt noch nicht die Ankunft bei Garmin oder auf der Uhr.
+          Dort „Upload planned workouts“ aktivieren und auf der Forerunner prüfen.</small>
+      </div>}
       {session&&data&&<div className="sync-technical">
         <div className="sync-source-head"><strong>FIT-Verarbeitung</strong>
           <span className={`sync-state sync-state-${data.sources.fit.state||'unknown'}`}>{stateText(data.sources.fit.state)}</span>
@@ -306,7 +361,11 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
           </div>)}
         </details>}
       </div>}
-      <p className="sync-weight-note">Ausrüstung und Trainingskalender sind noch nicht automatisch mit Garmin Connect verbunden. Ein grüner Eintrag wird nur aus bestätigten Importen abgeleitet; die Zeitstempel und der FIT-Rückstau bleiben sichtbar.</p>
+      <p className="sync-weight-note">Die manuell gelesenen Garmin-Connect-Ausrüstungsdaten und
+        der optionale Garmin-Kalendersnapshot sind getrennt von der Coach-Übertragung.
+        Coach-Workouts gehen nach Freigabe über Intervals.icu zu Garmin;
+        ein tatsächlicher Eingang auf der Uhr wird hier nicht behauptet.
+        Die FIT-Zeitstempel und Import-Rückstände bleiben unverändert sichtbar.</p>
     </>}
     {notice&&<p className="sync-notice" role="status">{notice}</p>}
     {error&&<p className="sync-error" role="alert">{error}</p>}
