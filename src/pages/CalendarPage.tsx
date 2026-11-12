@@ -470,6 +470,11 @@ export function CalendarPage({active,focus}:{
          <strong>{entry.title}</strong>
          <small>{entry.sub}</small>
          <span className={'hc-entry-state '+state.type}>{state.text}</span>
+         {plan&&eligible&&<div className="hc-publish-steps" aria-label="Workout-Freigabeschritte">
+          <span className="is-done">1 · Entwurf</span>
+          <span className={plan.state==='pending'||sent?'is-done':''}>2 · Freigabe</span>
+          <span className={sent?'is-done':''}>3 · Intervals.icu</span>
+         </div>}
          {entry.note&&<details className="hc-plan-notes"><summary>Ablauf ansehen</summary><p>{entry.note}</p></details>}
          {plan&&<div className="hc-delete-area">
           {deleteArmed===plan.id?<>
@@ -511,10 +516,11 @@ export function CalendarPage({active,focus}:{
        </article>
       })}
      </div>:
-     <div className="hc-empty">
+     !coachPreview&&!coachLoading&&<div className="hc-empty">
       <div className="hc-empty-icon"><Icon name="calendar-days"/></div>
       <strong>Noch kein eigener Trainingsplan.</strong>
-      <span>Feste ORC-/Fußballangebote und deren Wetter stehen direkt darunter. An freien Tagen kann der Coach später eine Empfehlung vorschlagen.</span>
+      <span>Kein eigener Termin oder Coach-Vorschlag für diesen Tag.
+       Freiwillige ORC-Angebote findest du in der Wochenübersicht.</span>
      </div>}
    </div>
    <WeeklyTrainingOptions active={active} weekStart={start} selectedDate={selected} compact/>
