@@ -265,3 +265,10 @@
 .sync-intervals p{font-size:12px;color:#cfdbec;line-height:1.55;margin:0}
 .sync-intervals small{color:#a3b2d0;font-size:11px;line-height:1.65}
 .sync-intervals .sync-intervals-count strong{color:#e2edf9}
+
+/* v0.9.43 – optional manual imports no longer masquerade as failed automatic sync. */
+.sync-manual-imports{margin:12px 0 2px;padding:12px 14px;border:1px solid rgba(159,176,219,.2);
+ border-radius:11px;background:rgba(126,152,202,.055);color:#c7d5ee}
+.sync-manual-imports summary{font-size:12px;font-weight:760;line-height:1.45;cursor:pointer}
+.sync-manual-imports p{margin:10px 0 0;font-size:11px;color:#aebed6;line-height:1.55}
+.sync-manual-imports .sync-source-list{margin-top:11px}
