@@ -61,6 +61,14 @@ async function main(){
   const jwt=await githubIdentityToken()
   mark('supabase-vault-read')
   const credential=await workerCall(jwt,'GET')
+  if(credential?.deferred===true){
+    if(credential.reason!=='garmin-rate-limit'||
+       !Number.isFinite(Date.parse(credential.retryAfter||'')))
+      throw Error('Invalid server-side Garmin cooldown')
+    console.log('GARMIN CLOUD AUDIT: deferred until '+credential.retryAfter+
+      '. No Garmin OAuth or API requests attempted.')
+    return
+  }
   if(!credential||!Number.isSafeInteger(credential.version)||
      credential.version<=0||!isGarminCloudSession(credential.tokens))
     throw Error('Cloud Garmin session unavailable')
@@ -138,6 +146,20 @@ async function main(){
     console.log('Changes (+/-) links:',preview.differences.linksAdded,'/',preview.differences.linksRemoved)
     console.log('Changes (+/-) calendar:',preview.differences.calendarAdded,'/',preview.differences.calendarRemoved)
     console.log('Garmin read-only; no equipment, calendar or weight data modified.')
+  } catch(error) {
+    const result=safeGarminFailureKind(error)
+    if(result.status===429||result.kind==='rate-limited'){
+      try{
+        const result=await workerCall(jwt,'POST',
+          {action:'record-rate-limit',phase:'full-audit'})
+        if(result?.saved===true)console.error(
+          'Garmin HTTP 429: persistent cooldown now active until '+result.retryAfter)
+        else console.error('Garmin 429: cooldown confirmation unavailable')
+      }catch{
+        console.error('Garmin 429: persistent cooldown could not be confirmed')
+      }
+    }
+    throw error
   } finally {
     // Garmin can rotate OAuth2 during ANY read. Persist the new session
     // even if a later data request failed, to keep the next check functional.
