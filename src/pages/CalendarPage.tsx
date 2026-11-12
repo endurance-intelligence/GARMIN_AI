@@ -405,7 +405,7 @@ export function CalendarPage({active,focus}:{
    <div className="hc-day-content">
     <div className="hc-day-heading">
      <div><span>AUSGEWÄHLTER TAG</span><h3>{longDate(selected)}</h3></div>
-     <span className="hc-day-count">{matching.length} {matching.length===1?'gespeicherter Termin':'gespeicherte Termine'}</span>
+     <span className="hc-day-count">{matching.length} {matching.length===1?'gespeicherter Termin':'gespeicherte Termine'}{coachPreview?' · 1 Coach-Hinweis':''}</span>
     </div>
     {coachLoading&&<p className="hc-coach-loading" role="status">Lade Coach-Empfehlungen …</p>}
     {coachError&&<p className="hc-coach-unavailable" role="status">
