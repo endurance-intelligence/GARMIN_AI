@@ -1,10 +1,14 @@
-import {useEffect,useMemo,useState} from 'react'
+import {useEffect,useMemo,useRef,useState} from 'react'
 import type {Session} from '@supabase/supabase-js'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {Icon} from '../components/Icon'
 import {WorkoutArchivePanel} from '../components/WorkoutArchivePanel'
 import {WeeklyTrainingOptions} from '../components/WeeklyTrainingOptions'
 import {CalendarWeekBoard} from '../components/CalendarWeekBoard'
+import {loadCoachSnapshot} from '../lib/coachSnapshot'
+import type {CoachSnapshot} from '../lib/coachSnapshot'
+import {buildSevenDayCoach} from '../lib/coachSevenDay.mjs'
+import type {CoachDay} from '../lib/coachSevenDay.mjs'
 import '../styles/horizon-calendar.css'
 
 type Plan={
@@ -66,7 +70,9 @@ async function ownerGet<T>(session:Session,endpoint:string):Promise<T>{
  return await res.json() as T
 }
 
-export function CalendarPage({active}:{active:boolean}){
+export function CalendarPage({active,focus}:{
+ active:boolean;focus:{date:string;token:number}|null
+}){
  const today=useMemo(todayBerlin,[])
  const [selected,setSelected]=useState(today)
  const [week,setWeek]=useState(0)
@@ -81,8 +87,23 @@ export function CalendarPage({active}:{active:boolean}){
  const [busy,setBusy]=useState(false)
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
+ const [coachSnapshot,setCoachSnapshot]=useState<CoachSnapshot|null>(null)
+ const [coachError,setCoachError]=useState('')
+ const [coachLoading,setCoachLoading]=useState(false)
+ const [coachReview,setCoachReview]=useState<string|null>(null)
+ const [coachStartTime,setCoachStartTime]=useState('18:00')
+ const coachRequestIds=useRef<Record<string,string>>({})
+ const lastFocusToken=useRef<number|null>(null)
  const [refresh,setRefresh]=useState(0)
  const start=moveDay(monday(today),week*7)
+ const coachPlan=useMemo(()=>coachSnapshot?buildSevenDayCoach({
+  today,health:coachSnapshot.health,boards:coachSnapshot.boards,
+  options:coachSnapshot.options,plans:coachSnapshot.plans,
+  goal:coachSnapshot.goal,life:coachSnapshot.life
+ }):null,[coachSnapshot,today])
+ const coachDay=coachPlan?.days.find(d=>d.date===selected)||null
+ const coachPreview=coachDay&&!['existing','completed','chosen','option'].includes(coachDay.kind)&&
+  !plans.some(p=>p.training_date===selected&&p.state!=='cancelled')?coachDay:null
  const days=Array.from({length:7},(_,i)=>moveDay(start,i))
  const entries=useMemo<CalendarEntry[]>(()=>plans.filter(p=>p.state!=='cancelled').map(p=>({
   key:'p-'+p.id,date:p.training_date,title:p.title,
@@ -92,6 +113,36 @@ export function CalendarPage({active}:{active:boolean}){
  const matching=entries.filter(e=>e.date===selected)
  const cleanupPending=plans.filter(p=>p.state==='cancelled'&&p.intervals_event_id&&p.intervals_sync_status==='needs_review')
  const countInWeek=entries.filter(e=>e.date>=start&&e.date<=days[6]).length
+ const suggestionsInWeek=coachPlan?.days.filter(d=>d.date>=start&&d.date<=days[6]&&
+  d.approvable&&!plans.some(p=>p.training_date===d.date&&p.state!=='cancelled')).length||0
+
+ useEffect(()=>{
+  if(!active||!focus||lastFocusToken.current===focus.token)return
+  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(focus.date))return
+  const targetWeek=Math.round((Date.parse(monday(focus.date)+'T12:00:00Z')-
+   Date.parse(monday(today)+'T12:00:00Z'))/(7*86400000))
+  if(!Number.isFinite(targetWeek)||targetWeek< -1||targetWeek>5)return
+  lastFocusToken.current=focus.token
+  setWeek(targetWeek);setSelected(focus.date);setCoachReview(null)
+ },[active,focus,today])
+ useEffect(()=>{
+  if(!active||!garminSupabase)return
+  let mounted=true
+  const controller=new AbortController()
+  setCoachLoading(true);setCoachError('')
+  void (async()=>{
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)throw Error('Bitte anmelden.')
+   const snapshot=await loadCoachSnapshot(session,today,controller.signal)
+   if(mounted)setCoachSnapshot(snapshot)
+  })().catch(e=>{
+   if(mounted&&!(e instanceof Error&&e.name==='AbortError')){
+    setCoachSnapshot(null)
+    setCoachError(e instanceof Error?e.message:'Coach-Vorschläge nicht verfügbar.')
+   }
+  }).finally(()=>{if(mounted)setCoachLoading(false)})
+  return ()=>{mounted=false;controller.abort()}
+ },[active,today,refresh])
 
  useEffect(()=>{
   if(!active||!garminSupabase)return
