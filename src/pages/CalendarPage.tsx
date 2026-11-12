@@ -86,7 +86,7 @@ export function CalendarPage({active}:{active:boolean}){
  const days=Array.from({length:7},(_,i)=>moveDay(start,i))
  const entries=useMemo<CalendarEntry[]>(()=>plans.filter(p=>p.state!=='cancelled').map(p=>({
   key:'p-'+p.id,date:p.training_date,title:p.title,
-  sub:p.title.startsWith('ORC · ')?'ORC Bahntraining':p.session_type==='workout'?'Strukturiertes Training':'GARMIN_AI Planung',
+  sub:p.title.startsWith('ORC · ')?'ORC Bahntraining':eligiblePlanIds.includes(p.id)?'Strukturiertes Lauftraining · Intervals.icu bereit':p.session_type==='workout'?'Strukturiertes Training':'GARMIN_AI Planung',
   note:p.notes||'',source:'plan' as const,status:p.state
  })),[plans])
  const matching=entries.filter(e=>e.date===selected)
