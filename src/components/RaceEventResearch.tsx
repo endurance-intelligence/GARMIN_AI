@@ -76,6 +76,7 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
  const [notice,setNotice]=useState('')
  const [finishAddressInput,setFinishAddressInput]=useState('')
  const initializedGoal=useRef<string|null>(null)
+ const loadedRefreshKey=useRef<number|null>(null)
  const cacheKey=(date:string)=>'garmin-ai:race-scout:draft:v1:'+date
  const readDraft=(date:string)=>{
   try{
@@ -88,7 +89,8 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
   return null
  }
  useEffect(()=>{
-  if(!active)return
+  // Switching between app sections must not re-fetch and overwrite the scout.
+  if(!active||loadedRefreshKey.current===refreshKey)return
   let mounted=true
   // Switching app tabs is not a change of the selected race.
   // Keep unsaved research and restore a draft after a browser tab reload.
@@ -96,6 +98,7 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
   void request().then(value=>{
    if(!mounted)return
    const result=value as unknown as GoalStatus
+   loadedRefreshKey.current=refreshKey
    if(initializedGoal.current!==result.goal.raceDate){
     initializedGoal.current=result.goal.raceDate
     const draft=readDraft(result.goal.raceDate)
