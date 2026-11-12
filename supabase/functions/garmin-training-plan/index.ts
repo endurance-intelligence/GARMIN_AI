@@ -76,9 +76,11 @@ Deno.serve(async req=>{
       return response(422,{error:'Invalid coach workout request'},h)
     const snapshot=buildCoachStructuredSnapshot(input)
     if(!snapshot)return response(422,{error:'Unsupported duration, start time or workout type'},h)
-    const localToday=new Intl.DateTimeFormat('en-CA',{
+    const parts=new Intl.DateTimeFormat('en-GB',{
       timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'
-    }).format(new Date())
+    }).formatToParts(new Date())
+    const part=(type:string)=>parts.find(p=>p.type===type)?.value||''
+    const localToday=[part('year'),part('month'),part('day')].join('-')
     const upper=new Date(Date.parse(localToday+'T12:00:00Z')+6*86400000).toISOString().slice(0,10)
     if(input.date<localToday||input.date>upper)
       return response(422,{error:'Coach workouts only for the next seven days'},h)
