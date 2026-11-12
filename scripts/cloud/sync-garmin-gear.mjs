@@ -33,11 +33,33 @@ async function bridge(jwt,method,data=null){
  return response.json()
 }
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms))
+async function recordGarmin429(jwt,phase,failure){
+ const verdict=safeGarminFailureKind(failure)
+ if(verdict.status!==429 && verdict.kind!=='rate-limited')return verdict
+ try{
+  const result=await bridge(jwt,'POST',{action:'record-rate-limit',phase})
+  if(result?.saved===true&&result.deferred===true){
+   console.error('Garmin HTTP 429: future jobs will skip Garmin until '+result.retryAfter)
+  }else console.error('Garmin HTTP 429: cooldown confirmation unavailable')
+ }catch{
+  // Never log the raw exception, OAuth token or signed workflow identity.
+  console.error('Garmin HTTP 429: persistent cooldown could not be confirmed')
+ }
+ return verdict
+}
 async function main(){
  mark('github-oidc')
  const jwt=await identity()
  mark('supabase-vault-read')
  const credentials=await bridge(jwt,'GET')
+ if(credentials?.deferred===true){
+  if(credentials.reason!=='garmin-rate-limit'||
+     !Number.isFinite(Date.parse(credentials.retryAfter||'')))
+   throw Error('Invalid server-side Garmin cooldown')
+  console.log('GARMIN GEAR SYNC: deferred by persistent 429 protection until '+
+   credentials.retryAfter+'. No Garmin call was made.')
+  return
+ }
  if(!isGarminCloudSession(credentials?.tokens)||!Number.isSafeInteger(credentials.version)||
   !credentials.baseline?.synced_at||!Array.isArray(credentials.baseline.gear)||
   !Array.isArray(credentials.incrementalTargets)||credentials.incrementalTargets.length>30)
@@ -60,7 +82,8 @@ async function main(){
   mark('garmin-oauth-refresh')
   try {await client.refreshTokens()}
   catch(e){
-   const v=safeGarminFailureKind(e);httpStatus=v.status;kind=v.kind;throw e
+   const v=await recordGarmin429(jwt,'oauth-refresh',e)
+   httpStatus=v.status;kind=v.kind;throw e
   }
   mark('garmin-activity-gear')
   const read=[]
@@ -68,7 +91,8 @@ async function main(){
    let raw
    try{raw=await garmin.getActivityGear(activity.activityId)}
    catch(e){
-    const v=safeGarminFailureKind(e);httpStatus=v.status;kind=v.kind;throw e
+    const v=await recordGarmin429(jwt,'activity-gear',e)
+    httpStatus=v.status;kind=v.kind;throw e
    }
    const gearIds=readActivityGear(raw,credentials.baseline.gear)
    read.push({activityId:activity.activityId,gearIds})
