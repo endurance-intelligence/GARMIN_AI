@@ -14,7 +14,7 @@ import '../styles/horizon-calendar.css'
 type Plan={
  id:string;training_date:string;title:string;state:string;session_type:string;
  sport:string;garmin_workout_id:number|null;notes:string;revision:number;
- intervals_event_id:number|null;intervals_published_revision:number|null;intervals_sync_status:string
+ intervals_event_id:number|null;intervals_published_revision:number|null;intervals_sync_status:string;intervals_export_version:number|null
 }
 type CalendarEntry={key:string;date:string;title:string;sub:string;note:string;source:'plan';status:string}
 type IntervalsPublication={id:string;revision:number;intervals_published_revision:number|null;intervals_sync_status:string;intervals_event_id:number|null;intervals_export_version:number|null}
