@@ -10,7 +10,7 @@ const studio=read('src/pages/StrengthPage.tsx')
 const component=read('src/components/ExerciseComic.tsx')
 const style=read('src/styles/exercise-comics.css')
 const allIds=Object.keys(mapping)
-test('24 distinct local proprietary-original illustrated comics, one per eligible bodyweight exercise',()=>{
+test('24 distinct original local exercise comics: eight premium raster cards, 16 vector guides',()=>{
  assert.equal(allIds.length,24)
  assert.equal(new Set(allIds).size,24)
  const excerpts=[...library.matchAll(/\bexercise\(\{([\s\S]*?)(?=\n  \}\),|\n\}\);)/g)]
@@ -25,16 +25,24 @@ test('24 distinct local proprietary-original illustrated comics, one per eligibl
  const hashes=[]
  for(const id of allIds){
   const path=mapping[id]
-  assert.equal(path,'/exercise-comics/'+id+'.svg')
-  const xml=read('public'+path)
-  assert.match(xml,/^<svg xmlns="http:\/\/www.w3.org\/2000\/svg"/)
-  assert.match(xml,/01\s+START/)
-  assert.match(xml,/02\s+BEWEGUNG/)
-  assert.match(xml,/GARMIN_AI/)
-  assert.match(xml,/<circle/)
-  assert.match(xml,/<path/)
-  assert.doesNotMatch(xml,/<image\s|https?:\/\/[^"\s]*\.(?:png|jpg|webp)|copyright|youtube/i)
-  hashes.push(createHash('sha256').update(xml).digest('hex'))
+  assert.ok(path==='/exercise-comics/'+id+'.svg'||
+   path==='/exercise-comics/'+id+'.webp',id)
+  const bytes=readFileSync(new URL('../public'+path,import.meta.url))
+  if(path.endsWith('.webp')){
+   assert.equal(bytes.toString('ascii',0,4),'RIFF')
+   assert.equal(bytes.toString('ascii',8,12),'WEBP')
+   assert.ok(bytes.length>25000&&bytes.length<150000)
+  }else{
+   const xml=bytes.toString('utf8')
+   assert.match(xml,/^<svg xmlns="http:\/\/www.w3.org\/2000\/svg"/)
+   assert.match(xml,/01\s+START/)
+   assert.match(xml,/02\s+BEWEGUNG/)
+   assert.match(xml,/GARMIN_AI/)
+   assert.match(xml,/<circle/)
+   assert.match(xml,/<path/)
+   assert.doesNotMatch(xml,/<image\s|https?:\/\/[^"\s]*\.(?:png|jpg|webp)|copyright|youtube/i)
+  }
+  hashes.push(createHash('sha256').update(bytes).digest('hex'))
  }
  assert.equal(new Set(hashes).size,24)
 })
@@ -66,7 +74,7 @@ test('all thumbnails, detailed instruction and active/rest session use the right
  assert.doesNotMatch(studio,/youtube\.com\/results/)
  assert.match(studio,/onClick=\{\(\)=>setPlayer\(p=>p\?advance\(p,plan\):p\)\}/)
 })
-test('static SVG URLs respect GitHub Pages base path, mobile players and accessibility',()=>{
+test('static local SVG and WebP URLs respect Pages base path and accessibility',()=>{
  assert.match(component,/import\.meta\.env\.BASE_URL/)
  assert.match(component,/IMAGE_BY_ID\[id\]/)
  assert.match(component,/loading=\{priority\?'eager':'lazy'\}/)
@@ -75,4 +83,18 @@ test('static SVG URLs respect GitHub Pages base path, mobile players and accessi
  assert.match(style,/\.ss-player-art/)
  assert.match(style,/\.ss-detail-illustration/)
  assert.match(style,/\.ss-exercise-art/)
+})
+
+test('exactly the 8 approved premium comic assets replace their prior vector placeholder',()=>{
+ const ids=['forearm-plank','side-plank','dead-bug','bird-dog',
+  'glute-bridge','single-leg-balance','bodyweight-squat','reverse-lunge']
+ for(const id of ids)assert.equal(mapping[id],'/exercise-comics/'+id+'.webp')
+ assert.equal(Object.values(mapping).filter(x=>x.endsWith('.webp')).length,8)
+ assert.equal(Object.values(mapping).filter(x=>x.endsWith('.svg')).length,16)
+ assert.match(component,/endsWith\('\.webp'\)/)
+ assert.match(component,/onError=\{e=>/)
+ assert.match(component,/exercise-comics\/\+id\+'\.svg'/)
+ assert.match(style,/\.ec-figure\.is-premium img/)
+ assert.match(style,/42dvh/)
+ assert.match(style,/object-fit:contain/)
 })

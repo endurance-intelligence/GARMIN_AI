@@ -31,3 +31,21 @@
  .ss-player-guide{padding:9px 11px}
  .ss-detail-illustration{margin:10px 0}
 }
+
+/* v0.9.54: premium 4:5 coaching cards (the 16 remaining SVGs stay in 15:8). */
+.ec-figure.is-premium{max-width:min(100%,400px);margin-inline:auto;background:#12213b}
+.ec-figure.is-premium img{width:100%;height:auto;aspect-ratio:4/5;object-fit:contain}
+.ss-detail-illustration .ec-figure.is-premium{max-width:min(100%,450px)}
+/* Session artwork is large enough to learn the pose but never pushes the
+   timer off an iPhone viewport. No crop of technique or incorrect/correct inset. */
+.ss-player-art .ec-figure.is-premium{
+ width:min(100%,calc(42dvh * 0.8),355px);max-width:355px;margin-inline:auto}
+.ss-player-art .ec-figure.is-premium img{aspect-ratio:4/5;object-fit:contain}
+.ss-exercise-art .ec-figure.is-premium{width:100%;max-width:100%;height:154px;
+ margin:0;overflow:hidden}
+.ss-exercise-art .ec-figure.is-premium img{
+ width:100%;height:100%;aspect-ratio:auto;object-fit:cover;object-position:center 52%}
+@media(max-width:600px){
+ .ss-player-art .ec-figure.is-premium{width:min(100%,calc(37dvh * 0.8),290px)}
+ .ss-exercise-art .ec-figure.is-premium{height:128px}
+}
