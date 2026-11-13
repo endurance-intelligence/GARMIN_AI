@@ -10,7 +10,7 @@ export type CoachSnapshot={
  options:Record<string,unknown>;plans:{entries:Array<Record<string,unknown>>};
  goal:Record<string,unknown>;life:CoachContextPayload
 }
-export async function loadCoachSnapshot(session:Session,today:string,signal?:AbortSignal):Promise<CoachSnapshot>{
+export async function loadCoachSnapshot(session:Session,today:string,signal?:AbortSignal,visibleWeek?:string):Promise<CoachSnapshot>{
  const get=async(endpoint:string):Promise<Record<string,unknown>>=>{
   const response=await fetch(garminSupabaseUrl+'/functions/v1/'+endpoint,{
    cache:'no-store',signal,headers:{
@@ -21,7 +21,10 @@ export async function loadCoachSnapshot(session:Session,today:string,signal?:Abo
   return await response.json() as Record<string,unknown>
  }
  const first=coachMonday(today),second=coachMonday(coachAddDays(today,6))
- const weeks=first===second?[first]:[first,second]
+ // Fetch the visible week as well. A calendar navigating into race week
+ // must not reuse only the rolling seven-day Coach preview.
+ const visible=visibleWeek?coachMonday(visibleWeek):first
+ const weeks=[...new Set([first,second,visible])]
  const [health,options,plans,goal,life,...boards]=await Promise.all([
   get('read-garmin-health'),get('garmin-weekly-options'),get('garmin-training-plan'),
   get('garmin-coach-goal'),get('garmin-coach-context'),
