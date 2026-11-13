@@ -1,0 +1,33 @@
+name: GARMIN_AI Movement Comics v0.9.53
+on:
+  push:
+    paths:
+      - 'public/exercise-comics/**'
+      - 'src/lib/exerciseComicAssets.json'
+      - 'src/components/ExerciseComic.tsx'
+      - 'src/pages/StrengthPage.tsx'
+      - 'src/styles/exercise-comics.css'
+      - 'tests/mobile-movement-comics-v0953.test.mjs'
+      - '.github/workflows/garmin-movement-comics-v0953.yml'
+  pull_request:
+    paths:
+      - 'public/exercise-comics/**'
+      - 'src/lib/exerciseComicAssets.json'
+      - 'src/components/ExerciseComic.tsx'
+      - 'src/pages/StrengthPage.tsx'
+      - 'src/styles/exercise-comics.css'
+      - 'tests/mobile-movement-comics-v0953.test.mjs'
+      - '.github/workflows/garmin-movement-comics-v0953.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-movement-comics-v0953.test.mjs tests/mobile-stabi-studio.test.mjs tests/mobile-ipad-ux.test.mjs
+      - run: npm run build
