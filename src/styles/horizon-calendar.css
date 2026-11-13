@@ -226,3 +226,77 @@
  .hc-coach-confirm select{width:100%}
  .hc-coach-accept,.hc-coach-cancel{min-width:0;flex:1 1 130px}
 }
+
+/* v0.9.50: One review per week, two explicit consented actions.
+   No nested modal and no day-by-day form hunt. */
+.hc-week-planner{margin:0 0 20px;padding:17px 18px;border-radius:17px;
+ border:1px solid rgba(164,152,246,.3);
+ background:linear-gradient(130deg,rgba(86,74,161,.18),rgba(32,54,94,.14));
+ min-width:0}
+.hc-week-planner-heading{display:flex;align-items:flex-start;justify-content:space-between;
+ gap:12px;flex-wrap:wrap}
+.hc-week-planner-heading>div{min-width:0;flex:1 1 280px}
+.hc-week-planner-kicker{font-weight:840;letter-spacing:.12em;font-size:9px;
+ display:inline-flex;gap:6px;align-items:center;color:#c5b3fa}
+.hc-week-planner-kicker .ic{width:13px;height:13px}
+.hc-week-planner h2{margin:6px 0;font-size:clamp(16px,2vw,22px);
+ color:#f3f2ff;letter-spacing:-.045em;line-height:1.25}
+.hc-week-planner-heading p{font-size:11px;line-height:1.6;
+ color:#b9c7e1;margin:0;max-width:780px}
+.hc-week-planner-count{display:inline-flex;align-items:center;
+ padding:7px 10px;border-radius:999px;
+ border:1px solid rgba(174,163,241,.25);background:rgba(154,135,228,.075);
+ color:#d7caff;font-size:10px;font-weight:720;white-space:nowrap}
+.hc-week-planner-list{display:grid;gap:7px;margin:13px 0 10px}
+.hc-week-planner-row{min-width:0;display:flex;justify-content:space-between;
+ flex-wrap:wrap;align-items:center;gap:10px;padding:11px 12px;
+ background:rgba(13,22,40,.33);border:1px solid rgba(159,173,229,.16);border-radius:11px}
+.hc-week-planner-row.is-chosen{border-color:rgba(188,169,249,.39)}
+.hc-week-planner-choice{display:flex;align-items:center;gap:11px;flex:1 1 250px;min-width:0;
+ cursor:pointer;font-size:12px}
+.hc-week-planner-choice input{width:18px;height:18px;accent-color:#ab9aff;flex:0 0 18px}
+.hc-week-planner-choice>span{display:flex;flex-direction:column;gap:4px;min-width:0}
+.hc-week-planner-choice strong{font-size:12px;color:#f0eeff}
+.hc-week-planner-choice small{font-size:11px;color:#b7c4e1;line-height:1.4}
+.hc-week-planner-time{display:flex;gap:10px;align-items:center;flex:0 0 auto;
+ color:#c4c9e2;font-size:11px;font-weight:700}
+.hc-week-planner-time select{color:#f1efff;background:#182540;
+ border:1px solid rgba(177,181,241,.45);border-radius:9px;padding:8px 11px;
+ min-width:105px;min-height:44px;font-size:12px}
+.hc-week-planner-note{color:#a8b9d4;font-size:10px}
+.hc-week-plan-action,.hc-week-planner-publish button{display:inline-flex;align-items:center;
+ justify-content:center;gap:8px;min-height:44px;padding:11px 14px;
+ border-radius:10px;font-size:12px;font-weight:800;cursor:pointer}
+.hc-week-plan-action{color:#fff;background:#735cc8;border:1px solid rgba(204,186,255,.54)}
+.hc-week-plan-action:hover{background:#8871e0}
+.hc-week-planner-publish{display:flex;flex-wrap:wrap;align-items:center;
+ justify-content:space-between;gap:10px;margin-top:12px;
+ padding:11px 13px;border:1px solid rgba(115,207,171,.23);
+ border-radius:12px;background:rgba(67,143,111,.10)}
+.hc-week-planner-publish>div{flex:1 1 210px}
+.hc-week-planner-publish strong{color:#a9e6c6;font-size:12px}
+.hc-week-planner-publish p{font-size:10px;color:#b1c8d0;line-height:1.5;margin:5px 0 0}
+.hc-week-planner-publish button{color:#112b28;background:#a4e5c6;border:1px solid #92e0be}
+.hc-week-planner-publish button:hover{background:#c3f0db}
+.hc-week-planner-publish>small{width:100%;font-size:10px;color:#d5b89a}
+.hc-week-plan-action .ic,.hc-week-planner-publish button .ic{width:15px;height:15px}
+.hc-week-plan-action:disabled,.hc-week-planner-publish button:disabled{opacity:.48;cursor:default}
+.hc-week-plan-action:focus-visible,.hc-week-planner-publish button:focus-visible,
+.hc-week-planner-row input:focus-visible,.hc-week-planner-row select:focus-visible{
+ outline:2px solid #b3d6ff;outline-offset:3px}
+.hc-week-planner-disclaimer{display:block;font-size:10px;color:#a1b2cd;
+ line-height:1.55;margin-top:12px}
+.hc-week-planner-result{color:#c0efd7;font-size:12px;
+ line-height:1.55;border:1px solid rgba(111,212,154,.21);
+ border-radius:9px;padding:9px 11px;background:rgba(77,157,113,.09)}
+.hc-week-planner-idle{font-size:11px;color:#b1bcd6;
+ margin:10px 0 0;line-height:1.6}
+@media(max-width:600px){
+ .hc-week-planner{padding:13px 12px;border-radius:14px;margin-bottom:13px}
+ .hc-week-planner-heading{gap:8px}
+ .hc-week-planner-count{white-space:normal}
+ .hc-week-planner-row{align-items:flex-start;padding:11px 9px;gap:9px}
+ .hc-week-planner-choice{flex-basis:100%}
+ .hc-week-planner-time{width:100%;justify-content:space-between}
+ .hc-week-plan-action,.hc-week-planner-publish button{width:100%}
+}
