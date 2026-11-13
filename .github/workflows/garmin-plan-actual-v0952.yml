@@ -1,0 +1,37 @@
+name: GARMIN_AI Plan-Ist Intelligence v0.9.52
+on:
+  push:
+    paths:
+      - 'src/lib/planActual.mjs'
+      - 'src/lib/planActual.d.mts'
+      - 'src/components/PlanActualReview.tsx'
+      - 'src/components/LiveSessionAnalyst.tsx'
+      - 'src/components/SessionGoalReview.tsx'
+      - 'src/styles/plan-actual-review.css'
+      - 'supabase/functions/garmin-training-plan/index.ts'
+      - 'tests/session-plan-actual-v0952.test.mjs'
+      - '.github/workflows/garmin-plan-actual-v0952.yml'
+  pull_request:
+    paths:
+      - 'src/lib/planActual.mjs'
+      - 'src/lib/planActual.d.mts'
+      - 'src/components/PlanActualReview.tsx'
+      - 'src/components/LiveSessionAnalyst.tsx'
+      - 'src/components/SessionGoalReview.tsx'
+      - 'src/styles/plan-actual-review.css'
+      - 'supabase/functions/garmin-training-plan/index.ts'
+      - 'tests/session-plan-actual-v0952.test.mjs'
+      - '.github/workflows/garmin-plan-actual-v0952.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/session-plan-actual-v0952.test.mjs tests/mobile-session-coach-consistency-v0943.test.mjs tests/garmin-cloud-session.test.mjs tests/coach-structured-intervals-v0947.test.mjs tests/mobile-coach-week-batch-v0950.test.mjs tests/mobile-coach-calendar-v0948.test.mjs tests/mobile-coach-seven-day-v1.test.mjs tests/mobile-ipad-ux.test.mjs tests/mobile-clean-coach.test.mjs
+      - run: npm run build
