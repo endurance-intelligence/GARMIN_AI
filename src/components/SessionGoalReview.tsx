@@ -19,17 +19,22 @@ const goals:{value:SessionGoal;label:string}[]=[
   {value:'tempo',label:'Tempo · zügig'},
   {value:'intervals',label:'Intervalle · Wiederholungen'},
 ]
-export function SessionGoalReview({samples,lapCount,activityDate}:{
-  samples:SessionSample[];lapCount:number;activityDate:string|null
+export function SessionGoalReview({samples,lapCount,activityDate,plannedGoal=null}:{
+  samples:SessionSample[];lapCount:number;activityDate:string|null;
+  plannedGoal?:'easy'|'long'|'return_easy'|null
 }) {
   // A new activity must not inherit an earlier activity's manual objective or illness context.
   // The parent also keys this component by Garmin activity id; the date guard is defensive.
   const contextKey=activityDate??'no-date'
-  const [context,setContext]=useState<{key:string;goal:SessionGoal;limitText:string;recentIllness:boolean}>(
-    {key:contextKey,goal:'unknown',limitText:'',recentIllness:false})
-  const current=context.key===contextKey?context:{key:contextKey,goal:'unknown' as SessionGoal,limitText:'',recentIllness:false}
-  const {goal,limitText,recentIllness}=current
-  const setGoal=(next:SessionGoal)=>setContext({...current,goal:next})
+  const [context,setContext]=useState<{key:string;goal:SessionGoal;limitText:string;recentIllness:boolean;touched:boolean}>(
+    {key:contextKey,goal:'unknown',limitText:'',recentIllness:false,touched:false})
+  const current=context.key===contextKey?context:{key:contextKey,goal:'unknown' as SessionGoal,limitText:'',recentIllness:false,touched:false}
+  const {limitText,recentIllness}=current
+  // A uniquely time-correlated Coach workout provides an initial purpose,
+  // but the athlete can always correct or explicitly remove this inference.
+  const goal:SessionGoal=current.touched?current.goal:
+    plannedGoal==='return_easy'?'recovery':plannedGoal??'unknown'
+  const setGoal=(next:SessionGoal)=>setContext({...current,goal:next,touched:true})
   const setLimitText=(next:string)=>setContext({...current,limitText:next})
   const setRecentIllness=(next:boolean)=>setContext({...current,recentIllness:next})
   const {data}=useGarminHrProfile(true)
@@ -53,7 +58,9 @@ export function SessionGoalReview({samples,lapCount,activityDate}:{
     intensity,profileSource:referenceKind}),
     [samples,goal,recentIllness,lapCount,appliedCap,manualValid,reference,intensity,referenceKind])
   return <section className="lsi-wrap" aria-label="Trainingszielbezogene Analyse">
-    <div className="lsi-heading"><div><span className="micro-label">SESSION INTELLIGENCE / v0.7.1</span><h3>Wofür war diese Einheit gedacht?</h3></div><span className="lsi-pill">Manueller Trainingszweck · Garmin-Referenz automatisch</span></div>
+    <div className="lsi-heading"><div><span className="micro-label">SESSION INTELLIGENCE / v0.7.1</span><h3>Wofür war diese Einheit gedacht?</h3></div><span className="lsi-pill">{plannedGoal&&!current.touched?
+  'Trainingszweck aus Coach-Plan · manuell korrigierbar':
+  'Manueller Trainingszweck · Garmin-Referenz automatisch'}</span></div>
     <p className="lsi-description">Der Coach nutzt echte HF- und Tempodaten. Gerätezonen sind eine Orientierung, keine getesteten Stoffwechselschwellen.</p>
     <div className="lsi-controls">
       <label>Trainingsziel<select value={goal} onChange={event=>setGoal(event.target.value as SessionGoal)}>{goals.map(g=><option key={g.value} value={g.value}>{g.label}</option>)}</select></label>
@@ -75,6 +82,8 @@ export function SessionGoalReview({samples,lapCount,activityDate}:{
       <summary>Messdaten und Einschränkungen ({review.signals.length})</summary>
       <div className="lsi-signals">{review.signals.map((signal,index)=><article key={`${signal.title}-${index}`} className={`lsi-signal lsi-${signal.level}`}><strong>{signal.title}</strong><p>{signal.explanation}</p></article>)}</div>
     </details>
-    <p className="lsi-disclaimer">Trainingszweck und eigene Angaben werden nicht gespeichert. Keine automatische Änderung an Garmin oder Trainingsplan.</p>
+    <p className="lsi-disclaimer">Ein Coach-Trainingszweck wird nur nach eindeutig plausibler Plan-Ist-Zuordnung vorgewählt.
+    Das beweist nicht, dass die Workout-Schritte exakt absolviert wurden.
+    Trainingszweck und eigene Angaben werden nicht gespeichert. Keine automatische Änderung an Garmin oder Trainingsplan.</p>
   </section>
 }
