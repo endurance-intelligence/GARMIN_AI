@@ -166,7 +166,7 @@ export function CalendarPage({active,focus}:{
   const client=garminSupabase
   let mounted=true
   async function load(){
-   setBusy(true);setError('');setNotice('')
+   setBusy(true)
    try{
     const {data:{session}}=await client.auth.getSession()
     if(!session)throw Error('Bitte zuerst anmelden')
@@ -366,14 +366,39 @@ export function CalendarPage({active,focus}:{
   try{
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)throw Error('Bitte zuerst anmelden')
-   const result=await ownerPost<{published:boolean;intervalsConfirmed:boolean;intervalsEventId:number}>(session,
-    'garmin-intervals',{action:'publish',planId:plan.id})
-   if(!result.published||!result.intervalsConfirmed)throw Error('Intervals-Bestätigung fehlt')
-   setPublished(old=>({...old,[plan.id]:{
-    id:plan.id,revision:plan.revision,intervals_published_revision:plan.revision,
-    intervals_sync_status:'confirmed',intervals_event_id:result.intervalsEventId,intervals_export_version:2}}))
-   setNotice('Intervals.icu hat das Training bestätigt. Prüfe es nach der Synchronisierung in Garmin Connect bzw. auf deiner Uhr.')
-  }catch(e){setError(e instanceof Error?e.message:'Übertragung fehlgeschlagen')}
+   try{
+    const result=await ownerPost<{published:boolean;intervalsConfirmed:boolean;intervalsEventId:number}>(session,
+     'garmin-intervals',{action:'publish',planId:plan.id})
+    if(!result.published||!result.intervalsConfirmed)throw Error('Intervals-Bestätigung fehlt')
+    setPublished(old=>({...old,[plan.id]:{
+     id:plan.id,revision:plan.revision,intervals_published_revision:plan.revision,
+     intervals_sync_status:'confirmed',intervals_event_id:result.intervalsEventId,intervals_export_version:2}}))
+    setPlans(old=>old.map(p=>p.id===plan.id?{...p,
+     intervals_event_id:result.intervalsEventId,intervals_published_revision:p.revision,
+     intervals_sync_status:'confirmed',intervals_export_version:2}:p))
+    setNotice('Intervals.icu hat das Workout bestätigt. Bitte anschließend auf deiner Garmin-Uhr prüfen.')
+   }catch(e){
+    // Browser network errors do not prove that a remote write failed.
+    // Re-read the owner record before offering another publish action.
+    try{
+     const fresh=await ownerGet<{entries:Plan[]}>(session,'garmin-training-plan')
+     const verified=fresh.entries?.find(p=>p.id===plan.id&&
+      p.revision===plan.revision&&p.intervals_sync_status==='confirmed'&&
+      p.intervals_published_revision===p.revision&&
+      Number(p.intervals_event_id)>0&&Number(p.intervals_export_version)>=2)
+     if(!verified)throw e
+     setPlans(old=>old.map(p=>p.id===plan.id?verified:p))
+     setPublished(old=>({...old,[plan.id]:{
+      id:plan.id,revision:plan.revision,
+      intervals_published_revision:verified.intervals_published_revision,
+      intervals_sync_status:'confirmed',intervals_event_id:verified.intervals_event_id,
+      intervals_export_version:verified.intervals_export_version}}))
+     setNotice('Übertragung bestätigt – die Browserantwort war unterbrochen. Workout ist bei Intervals.icu gespeichert. Keine erneute Übertragung nötig.')
+    }catch{
+     throw Error('Intervals-Status noch unklar. Bitte erst Kalender aktualisieren, nicht erneut senden.')
+    }
+   }
+  }catch(e){setError(e instanceof Error?e.message:'Übertragungsstatus nicht bestätigt')}
   finally{setActing(null)}
  }
  async function repairPublishedWorkout(plan:Plan){
