@@ -267,7 +267,7 @@ export function StrengthPage({active}:{active:boolean}){
      {!player.done&&<button type="button" onClick={()=>setPlayer(p=>p?advance(p,plan):p)}>Nächster Abschnitt</button>}
      <button type="button" onClick={()=>setPlayer(null)}>Schließen</button>
     </div>
-    <p>Eigene Comic-Illustrationen · Technik vor Tempo. Kraftteil: 40 Sek. Arbeit / 20 Sek. Wechsel.
+    <p>Eigene Comic-Illustrationen · Technik vor Tempo. 40 Sekunden Arbeit / 20 Sekunden Wechsel im Kraftteil.
      Keine automatische Übertragung an Garmin.</p>
    </section></div>}
  </section>
