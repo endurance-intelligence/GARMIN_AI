@@ -1,0 +1,29 @@
+name: GARMIN_AI Coach Week Batch v0.9.50
+on:
+  push:
+    paths:
+      - 'src/pages/CalendarPage.tsx'
+      - 'src/styles/horizon-calendar.css'
+      - 'supabase/functions/garmin-training-plan/index.ts'
+      - 'tests/mobile-coach-week-batch-v0950.test.mjs'
+      - '.github/workflows/garmin-coach-week-batch-v0950.yml'
+  pull_request:
+    paths:
+      - 'src/pages/CalendarPage.tsx'
+      - 'src/styles/horizon-calendar.css'
+      - 'supabase/functions/garmin-training-plan/index.ts'
+      - 'tests/mobile-coach-week-batch-v0950.test.mjs'
+      - '.github/workflows/garmin-coach-week-batch-v0950.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-coach-week-batch-v0950.test.mjs tests/mobile-coach-calendar-v0948.test.mjs tests/coach-normalmode-missing-row-v0949.test.mjs tests/coach-structured-intervals-v0947.test.mjs tests/intervals-bridge.test.mjs tests/mobile-calendar-week-board.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-ipad-ux.test.mjs tests/mobile-coach-seven-day-v1.test.mjs
+      - run: npm run build
