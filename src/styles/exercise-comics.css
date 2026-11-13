@@ -1,0 +1,33 @@
+/* v0.9.53 – native, original illustrated 24-exercise guide */
+.ec-figure{display:block;width:100%;max-width:100%;margin:10px auto 12px;
+ padding:0;overflow:hidden;border-radius:16px;
+ border:1px solid rgba(173,175,248,.25);
+ background:#14213a;box-shadow:0 12px 32px rgba(5,11,27,.2)}
+.ec-figure img{display:block;width:100%;height:auto;object-fit:contain;aspect-ratio:15/8}
+.ec-figure.is-compact{border-radius:9px;margin:0;box-shadow:none}
+.ec-missing{padding:12px;color:#bccce7;font-size:12px;background:#1a2b43;border-radius:11px}
+.ss-exercise-art{grid-column:1/-1;overflow:hidden;border-radius:11px}
+.ss-exercise-art .ec-figure{margin:0}
+.ss-player-art{width:min(100%,520px);margin:0 auto;position:relative}
+.ss-player-art .ec-figure{margin:0}
+.ss-player-timer{font-size:clamp(54px,11vw,84px);font-weight:850;
+ line-height:1;letter-spacing:-.08em;font-variant-numeric:tabular-nums;
+ background:linear-gradient(95deg,#c6b7ff,#8ce5d7);
+ color:transparent;background-clip:text;-webkit-background-clip:text;margin:12px 0}
+.ss-player-guide{display:grid;gap:4px;max-width:580px;margin:7px auto 14px;
+ padding:10px 13px;border-radius:12px;
+ background:rgba(83,101,146,.13);border:1px solid rgba(156,175,219,.18);
+ text-align:left}
+.ss-player-guide span{display:block;font-size:12px;line-height:1.5;color:#d3def0}
+.ss-player-guide small{color:#afa9f8;font-size:10px;font-weight:760;letter-spacing:.06em}
+.ss-player-next{font-size:12px;color:#c0cef0;line-height:1.5}
+.ss-player-next strong{color:#e4f0ff}
+.ss-detail-illustration{margin:11px 0 18px}
+.ss-detail-illustration .ec-figure{margin:0}
+@media(max-width:500px){
+ .ec-figure{border-radius:11px}
+ .ss-player-art{width:100%}
+ .ss-player-timer{font-size:clamp(45px,14vw,67px);margin:9px 0}
+ .ss-player-guide{padding:9px 11px}
+ .ss-detail-illustration{margin:10px 0}
+}
