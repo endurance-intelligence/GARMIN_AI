@@ -512,6 +512,72 @@ export function CalendarPage({active,focus}:{
     <Icon name="refresh-cw"/>{busy?'Prüfe …':'Aktualisieren'}
    </button>
   </div>
+  <section className="hc-week-planner" aria-label="Coach Woche in zwei Schritten planen">
+   <div className="hc-week-planner-heading">
+    <div>
+     <span className="hc-week-planner-kicker"><Icon name="sparkles"/> COACH / WOCHENPLANUNG</span>
+     <h2>Deine Woche. Eine Entscheidung.</h2>
+     <p>Die nächsten sieben Tage ({today} bis {horizonDay}).
+      Wähle deine Vorschläge, prüfe die Startzeiten und gib sie gesammelt frei.
+      Erst der zweite Klick sendet freigegebene Lauf-Workouts an Intervals.icu.</p>
+    </div>
+    <span className="hc-week-planner-count">{weekOffers.length} Vorschläge · {coachPending.length} bereit zum Senden</span>
+   </div>
+   {weekResult&&<p className="hc-week-planner-result" role="status">{weekResult}</p>}
+   {coachLoading&&<p className="hc-coach-loading">Prüfe deinen Wochenvorschlag …</p>}
+   {coachError&&<p className="hc-coach-unavailable">Wochenvorschläge derzeit nicht vollständig verfügbar. Es werden keine Trainingstage erfunden.</p>}
+   {!coachLoading&&!coachError&&weekOffers.length>0&&<>
+    <div className="hc-week-planner-list">
+     {weekOffers.map(day=>{
+      const chosen=weekChosen[day.date]!==false
+      const structured=day.sport==='running'&&['easy','long','return_easy'].includes(day.kind)
+      return <div className={'hc-week-planner-row'+(chosen?' is-chosen':'')} key={day.date}>
+       <label className="hc-week-planner-choice">
+        <input type="checkbox" checked={chosen}
+         disabled={weekWorking!==null||acting!==null}
+         onChange={e=>setWeekChosen(old=>({...old,[day.date]:e.target.checked}))}/>
+        <span><strong>{longDate(day.date)}</strong><small>{day.title} · {day.minutes} Min.</small></span>
+       </label>
+       {chosen&&structured&&<label className="hc-week-planner-time">
+        <span>Start</span>
+        <select aria-label={'Startzeit '+longDate(day.date)}
+         value={weekTimes[day.date]||'18:00'}
+         disabled={weekWorking!==null||acting!==null}
+         onChange={e=>setWeekTimes(old=>({...old,[day.date]:e.target.value}))}>
+         {Array.from({length:31},(_,i)=>{
+          const time=String(6+Math.floor(i/2)).padStart(2,'0')+':'+(i%2?'30':'00')
+          return <option value={time} key={time}>{time}</option>
+         })}
+        </select>
+       </label>}
+       {chosen&&!structured&&<span className="hc-week-planner-note">Nur Kalender · kein Garmin-Workout</span>}
+      </div>
+     })}
+    </div>
+    <button type="button" className="hc-week-plan-action"
+     onClick={()=>void approveCoachWeek()} disabled={!weekSelected.length||acting!==null||weekWorking!==null}>
+     <Icon name="check"/> {weekWorking==='approve'?'Prüfe & gebe frei …':
+      weekSelected.length+' ausgewählte Trainings übernehmen & freigeben'}
+    </button>
+   </>}
+   {!coachLoading&&!coachError&&!weekOffers.length&&!coachPending.length&&
+    <p className="hc-week-planner-idle">Aktuell keine neuen freigabefähigen Coach-Vorschläge.
+     Gespeicherte oder bereits bestätigte Trainings bleiben unverändert;
+     ORC- und Fußballtermine bleiben freiwillig.</p>}
+   {coachPending.length>0&&<div className="hc-week-planner-publish">
+    <div><strong>{coachPending.length} freigegebene Lauf-Workouts bereit</strong>
+     <p>{coachPending.map(p=>p.training_date).join(' · ')} · noch nicht an Intervals.icu bestätigt.</p></div>
+    <button type="button" onClick={()=>void publishCoachWeek()}
+     disabled={acting!==null||weekWorking!==null||!intervalsConnected}>
+     <Icon name="send"/> {weekWorking==='publish'?'Prüfe Intervals.icu …':
+      'Alle '+coachPending.length+' Workouts an Intervals.icu senden'}
+    </button>
+    {!intervalsConnected&&<small>Intervals.icu unter Einstellungen verbinden. Ohne Verbindung wird nichts gesendet.</small>}
+   </div>}
+   <small className="hc-week-planner-disclaimer">Nur bestätigte Garmin-Daten und dein aktueller Coach-Status.
+    Echte Krankheiten, Urlaubstage und bereits belegte Tage sperren die Freigabe.
+    Keine automatische externe Veröffentlichung und keine direkten Garmin-Schreibzugriffe.</small>
+  </section>
   {cleanupPending.length>0&&<div className="hc-remote-pending" role="status">
    <div><strong>Intervals.icu · {cleanupPending.length} offene Bereinigung{cleanupPending.length===1?'':'en'}</strong>
     <p>Diese Trainings sind aus GARMIN_AI ausgeblendet. Klicke auf „Bei Intervals.icu abgleichen“, um eine manuelle Löschung zu erkennen. Der Abgleich löscht nichts bei Intervals.icu.</p>
