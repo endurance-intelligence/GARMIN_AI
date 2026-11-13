@@ -30,7 +30,12 @@ const checkSignal=(metrics,metric,min,max,latestDay)=>{
 }
 export function buildSevenDayCoach(input){
  const today=input.today
- const days=Array.from({length:7},(_,i)=>coachAddDays(today,i))
+ // Coach preview defaults to the next seven days. Calendar may explicitly
+ // request another visible ISO week without changing today's health baseline.
+ const windowStart=input.startDate||today
+ if(typeof windowStart!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(windowStart))
+  throw Error('Ungültiger Coach-Zeitraum')
+ const days=Array.from({length:7},(_,i)=>coachAddDays(windowStart,i))
  const health=input.health||{},training=health.training||null
  const metrics=Array.isArray(health.metrics)?health.metrics.filter(x=>x.metric_date<=today):[]
  const latest=metrics.filter(x=>valid(x.hrv_ms)||valid(x.resting_heart_rate)||valid(x.sleep_seconds))
@@ -72,7 +77,8 @@ export function buildSevenDayCoach(input){
  const blocks=Array.isArray(life.blocked_periods)?life.blocked_periods:[]
  const isUnavailable=day=>blocks.find(b=>day>=b.start&&day<=b.end)
  const goal=input.goal?.goal||null
- const raceDate=goal?.race_date||null
+ const raceDate=typeof goal?.race_date==='string'&&
+  /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(goal.race_date)?goal.race_date:null
  const raceOffset=raceDate?Math.round((Date.parse(raceDate+'T12:00:00Z')-Date.parse(today+'T12:00:00Z'))/ONE_DAY):null
  const activities=(input.boards||[]).flatMap(x=>Array.isArray(x?.activities)?x.activities:[])
  const manual=(input.boards||[]).flatMap(x=>Array.isArray(x?.manual)?x.manual:[])
@@ -102,6 +108,20 @@ export function buildSevenDayCoach(input){
     'Selbst gemeldete Beschwerden: kein Training vorgeschlagen.'+
     (existing?' Vorhandenen Kalendertermin bitte selbst prüfen.':'')+
     (done?' Bereits absolvierte Aktivität wird nicht rückwirkend verändert.':''))
+  // An explicitly recorded race is always visible, even when a club option
+  // (e.g. Saturday track) is also stored. Health warnings are higher priority.
+  if(untilRace===0){
+   const hours=typeof goal?.race_start_time==='string'?
+    goal.race_start_time.slice(0,5):null
+   const km=Number(goal?.distance_km)
+   const distance=Number.isFinite(km)&&km>0?km.toLocaleString('de-DE')+' km':null
+   const place=typeof goal?.race_location==='string'?goal.race_location.trim():''
+   return make(day,'race',goal.race_name+(distance?' · '+distance:''),null,
+    'WETTKAMPFTAG'+(hours?' · Start '+hours+' Uhr':'')+(place?' · '+place:'')+
+    '. Keine ORC-Einheit und kein zusätzliches Training. '+
+    (existing?'Achtung: gespeicherten Trainingstermin am Renntag prüfen.':'')+
+    (isUnavailable(day)?' Achtung: eigener Sperrtag überschneidet sich mit dem Rennen.':''))
+  }
   const block=isUnavailable(day)
   if(block)
    return make(day,'blocked',block.reason==='vacation'?'Urlaub · kein Training':'Nicht verfügbar',null,
@@ -130,7 +150,6 @@ export function buildSevenDayCoach(input){
    return make(day,'recovery','Rückmeldung abwarten',null,
     'Vor weiterer Belastungssteigerung den nächsten realen Garmin-Lauf und die Verträglichkeit prüfen.')
   }
-  if(untilRace===0)return make(day,'race',goal.race_name,null,'Wettkampftag. Kein zusätzliches Training.')
   if(untilRace!==null&&untilRace<0&&untilRace>=-3)
    return make(day,'recovery','Erholung nach dem Rennen',null,'Nach einem Wettkampf keine automatische Belastungssteigerung.')
   const option=options.find(o=>o.enabled&&o.weekday===weekday(day))
@@ -144,17 +163,46 @@ export function buildSevenDayCoach(input){
     make(day,'recovery','Erholung / Mobility',null,
      'Zwei verträgliche Läufe bedeuten noch keine automatische Rückkehr zur früheren Trainingsbelastung.')
   }
+  // Race-first coach: a generic weekly option MUST NOT displace the
+  // recommendation for a real goal. The final five days are deliberately
+  // very low-volume ahead of a long ultra (no football or hard track set).
+  // These are concrete recommendations, not a medical or Garmin clearance.
+  if(untilRace!==null&&untilRace>0&&untilRace<=10){
+   const event='vor '+goal.race_name
+   if(untilRace===5)
+    return make(day,'recovery','Fußball auslassen · Erholung',null,
+     'Coach-Entscheidung: kein Fußball '+event+
+     '. Sprints, Zweikämpfe und zusätzliche Ermüdung jetzt vermeiden. Optional sanfte Mobilität oder Spaziergang.')
+   if(untilRace===4)
+    return make(day,'easy','30 Min. locker statt Intervallen',30,
+     'Coach-Entscheidung: keine harten ORC-Intervalle vier Tage vor dem Ultra. '+
+     '30 Minuten ruhiger Lauf im Sprechtempo; kein Nachholen versäumter Belastung.')
+   if(untilRace===3)
+    return make(day,'easy','25 Min. sehr locker statt vollem ORC Run',25,
+     'Coach-Entscheidung: Gruppenlauf höchstens stark verkürzt und sehr locker. '+
+     '25 Minuten genügen; keine Tempoeinheit, keine zusätzliche Belastung.')
+   if(untilRace===2)
+    return make(day,'recovery','Ruhetag · optional Spaziergang',null,
+     'Zwei Tage bis zum Rennen: kein Training nachholen. Bewegung nur bei Bedarf und ohne Ermüdung.')
+   if(untilRace===1)
+    return make(day,'recovery','Ruhetag · Anreise und Rennvorbereitung',null,
+     'Morgen ist '+goal.race_name+'. Ausruhen, Ausrüstung, Verpflegung und Anreise organisieren. Kein ORC-Training.')
+   if(untilRace>=6&&untilRace<=10){
+    if(weekday(day)===6)
+     return make(day,'easy','30 Min. locker statt ORC Track',30,
+      'Wettkampfvorbereitung: kein hartes Bahntraining. 30 Minuten sehr locker; frisch bleiben.')
+    if(weekday(day)===7)
+     return make(day,'easy','30 Min. locker im Taper',30,
+      'Umfang verringern, locker laufen, ausreichend Erholung. Kein langer Lauf mehr.')
+    return make(day,'recovery','Erholung / lockere Mobilität',null,
+     'Taper vor '+goal.race_name+': Training reduzieren, Frische priorisieren.')
+   }
+  }
   if(option&&choice==='selected')return make(day,'chosen',option.title,null,
    'Von dir ausgewählter Verein-/Gruppentermin. Keine zusätzliche Einheit.')
-  if(untilRace!==null&&untilRace<=2&&untilRace>=1)
-   return make(day,'recovery',untilRace===1?'Ruhetag vor dem Rennen':'Erholung / optional 15–20 Min. bewegen',
-    null,'Direkt vor dem Wettkampf keine zusätzliche Trainingsbelastung.')
   if(option&&choice!=='skipped'){
    return make(day,'option',option.title+' (optional)',null,
-    (untilRace!==null&&untilRace<=10?
-     'Tapering: keine harte Zusatzbelastung. Falls Teilnahme, Umfang und Intensität bewusst reduzieren.':
-     'Regelmäßige Trainingsoption, Teilnahme nicht festgelegt.')+
-    ' Über die Wochenoptionen auswählen; kein automatischer Kalendereintrag.')
+    'Regelmäßige Trainingsoption, Teilnahme nicht festgelegt. Über die Wochenoptionen auswählen; kein automatischer Kalendereintrag.')
   }
   if(!dataReady)
    return make(day,'recovery','Keine belastbare Planung',null,
