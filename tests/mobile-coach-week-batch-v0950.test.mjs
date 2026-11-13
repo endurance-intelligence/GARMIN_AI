@@ -44,7 +44,7 @@ test('backend still checks owner, illness, blocked days and explicit calendar ap
  assert.doesNotMatch(calendar,/getActivityGear\(|garminconnect-js|garmin-connect\.com/)
 })
 test('successful Intervals POST remains confirmed if separate status GET fails',()=>{
- assert.match(api,/intervals_sync_status,intervals_export_version,created_at/)
+ assert.match(api,/intervals_sync_status,intervals_export_version,archive_snapshot,created_at/)
  assert.match(calendar,/intervals_export_version:number\|null/)
  assert.match(calendar,/published\[plan\.id\]\|\|\{/)
  assert.match(calendar,/intervals_sync_status:plan\.intervals_sync_status/)
