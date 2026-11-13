@@ -306,3 +306,16 @@
  border:1px solid rgba(111,212,154,.2);background:rgba(77,157,113,.08);
  font-size:11px;line-height:1.5}
 .hc-week-planner-confirmed .ic{width:15px;height:15px;flex:0 0 15px}
+
+
+/* v0.9.51 · explicit target race headline, distinct from approved workouts */
+.hc-race-priority{display:grid;gap:7px;margin:13px 0 15px;
+ padding:15px 17px;border:1px solid rgba(245,200,120,.5);border-left:4px solid #eab765;
+ border-radius:13px;background:linear-gradient(125deg,rgba(167,105,42,.20),rgba(76,58,35,.12))}
+.hc-race-priority-label{display:inline-flex;align-items:center;gap:7px;
+ font-size:10px;font-weight:850;letter-spacing:.09em;color:#ffd89c}
+.hc-race-priority-label .ic{width:15px;height:15px}
+.hc-race-priority strong{font-size:clamp(16px,2.2vw,23px);color:#fff0c9;line-height:1.25}
+.hc-race-priority p{margin:0;font-size:12px;color:#f0d7bb;line-height:1.55}
+.hc-race-priority small{font-size:10px;color:#cbbbaa;line-height:1.5}
+@media(max-width:600px){.hc-race-priority{padding:12px;border-radius:11px}}
