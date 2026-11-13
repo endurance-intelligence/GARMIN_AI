@@ -113,6 +113,11 @@ export function CalendarPage({active,focus}:{
  const weekOffers=(coachPlan?.days||[]).filter(d=>d.approvable&&
   !plans.some(p=>p.training_date===d.date&&p.state!=='cancelled'))
  const weekSelected=weekOffers.filter(d=>weekChosen[d.date]!==false)
+ const coachDrafts=plans.filter(p=>p.training_date>=today&&
+  p.training_date<=horizonDay&&p.state==='draft'&&
+  (p.notes||'').startsWith('Coach Intelligence ·'))
+ const weekSelectedDrafts=coachDrafts.filter(p=>weekChosen[p.training_date]!==false)
+ const weekApprovalCount=weekSelected.length+weekSelectedDrafts.length
  // Only Coach-authored running sessions, not archived/ORC sessions. Old or
  // already confirmed exports are never offered for resending.
  const coachConfirmed=plans.filter(p=>p.training_date>=today&&
@@ -200,12 +205,29 @@ export function CalendarPage({active,focus}:{
  },[active,refresh])
 
  async function approveCoachWeek(){
-  if(!garminSupabase||acting||weekWorking||coachLoading||!weekSelected.length)return
+  if(!garminSupabase||acting||weekWorking||coachLoading||!weekApprovalCount)return
   setWeekWorking('approve');setWeekResult('');setError('');setNotice('')
   let approved=0;const failed:string[]=[]
   try{
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)throw Error('Bitte anmelden.')
+   // Existing saved drafts are eligible for the same user-approved batch.
+   // Individual approval remains possible from each calendar day.
+   for(const draft of weekSelectedDrafts){
+    try{
+     const confirmed=await ownerPost<{saved:boolean;id:string;revision:number;state:string}>(
+      session,'garmin-training-plan',{
+       action:'approve',id:draft.id,revision:draft.revision
+      })
+     if(!confirmed.saved||confirmed.state!=='pending')
+      throw Error('Entwurfsfreigabe nicht bestätigt')
+     setPlans(old=>old.map(p=>p.id===draft.id?{
+      ...p,state:'pending',revision:confirmed.revision}:p))
+     approved++
+    }catch(e){
+     failed.push(draft.training_date+': '+(e instanceof Error?e.message:'Freigabe fehlgeschlagen'))
+    }
+   }
    for(const day of weekSelected){
     try{
      const structured=day.sport==='running'&&
@@ -527,7 +549,7 @@ export function CalendarPage({active,focus}:{
       Wähle deine Vorschläge, prüfe die Startzeiten und gib sie gesammelt frei.
       Erst der zweite Klick sendet freigegebene Lauf-Workouts an Intervals.icu.</p>
     </div>
-    <span className="hc-week-planner-count">{weekOffers.length} Vorschläge · {coachPending.length} bereit · {coachConfirmed.length} bestätigt</span>
+    <span className="hc-week-planner-count">{weekOffers.length} Vorschläge · {coachDrafts.length} Entwürfe · {coachPending.length} bereit · {coachConfirmed.length} bestätigt</span>
    </div>
    {weekResult&&<p className="hc-week-planner-result" role="status">{weekResult}</p>}
    {coachLoading&&<p className="hc-coach-loading">Prüfe deinen Wochenvorschlag …</p>}
@@ -536,7 +558,7 @@ export function CalendarPage({active,focus}:{
     <Icon name="check-circle"/> {coachConfirmed.length} Workout{coachConfirmed.length===1?' ist':'s sind'}
     bereits bei Intervals.icu bestätigt. Kein erneuter Versand nötig.
    </p>}
-   {!coachLoading&&!coachError&&weekOffers.length>0&&<>
+   {!coachLoading&&!coachError&&(weekOffers.length>0||coachDrafts.length>0)&&<>
     <div className="hc-week-planner-list">
      {weekOffers.map(day=>{
       const chosen=weekChosen[day.date]!==false
@@ -563,14 +585,27 @@ export function CalendarPage({active,focus}:{
        {chosen&&!structured&&<span className="hc-week-planner-note">Nur Kalender · kein Garmin-Workout</span>}
       </div>
      })}
+     {coachDrafts.map(draft=>{
+      const chosen=weekChosen[draft.training_date]!==false
+      return <div className={'hc-week-planner-row is-draft'+(chosen?' is-chosen':'')}
+       key={'draft-'+draft.id}>
+       <label className="hc-week-planner-choice">
+        <input type="checkbox" checked={chosen}
+         disabled={weekWorking!==null||acting!==null}
+         onChange={e=>setWeekChosen(old=>({...old,[draft.training_date]:e.target.checked}))}/>
+        <span><strong>{longDate(draft.training_date)}</strong>
+         <small>{draft.title} · gespeicherter Entwurf · noch nicht freigegeben</small></span>
+       </label>
+      </div>
+     })}
     </div>
     <button type="button" className="hc-week-plan-action"
-     onClick={()=>void approveCoachWeek()} disabled={!weekSelected.length||acting!==null||weekWorking!==null}>
+     onClick={()=>void approveCoachWeek()} disabled={!weekApprovalCount||acting!==null||weekWorking!==null}>
      <Icon name="check"/> {weekWorking==='approve'?'Prüfe & gebe frei …':
-      weekSelected.length+' ausgewählte Trainings übernehmen & freigeben'}
+      weekApprovalCount+' ausgewählte Trainings übernehmen & freigeben'}
     </button>
    </>}
-   {!coachLoading&&!coachError&&!weekOffers.length&&!coachPending.length&&
+   {!coachLoading&&!coachError&&!weekOffers.length&&!coachDrafts.length&&!coachPending.length&&
     <p className="hc-week-planner-idle">Aktuell keine neuen freigabefähigen Coach-Vorschläge.
      Gespeicherte oder bereits bestätigte Trainings bleiben unverändert;
      ORC- und Fußballtermine bleiben freiwillig.</p>}
