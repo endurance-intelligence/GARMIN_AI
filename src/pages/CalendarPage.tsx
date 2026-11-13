@@ -92,6 +92,10 @@ export function CalendarPage({active,focus}:{
  const [coachLoading,setCoachLoading]=useState(false)
  const [coachReview,setCoachReview]=useState<string|null>(null)
  const [coachStartTime,setCoachStartTime]=useState('18:00')
+ const [weekChosen,setWeekChosen]=useState<Record<string,boolean>>({})
+ const [weekTimes,setWeekTimes]=useState<Record<string,string>>({})
+ const [weekWorking,setWeekWorking]=useState<'approve'|'publish'|null>(null)
+ const [weekResult,setWeekResult]=useState('')
  const coachRequestIds=useRef<Record<string,string>>({})
  const lastFocusToken=useRef<number|null>(null)
  const [refresh,setRefresh]=useState(0)
@@ -105,6 +109,19 @@ export function CalendarPage({active,focus}:{
  const coachPreview=coachDay&&!['existing','completed','chosen','option'].includes(coachDay.kind)&&
   !plans.some(p=>p.training_date===selected&&p.state!=='cancelled')?coachDay:null
  const days=Array.from({length:7},(_,i)=>moveDay(start,i))
+ const horizonDay=moveDay(today,6)
+ const weekOffers=(coachPlan?.days||[]).filter(d=>d.approvable&&
+  !plans.some(p=>p.training_date===d.date&&p.state!=='cancelled'))
+ const weekSelected=weekOffers.filter(d=>weekChosen[d.date]!==false)
+ // Only Coach-authored running sessions, not archived/ORC sessions. Old or
+ // already confirmed exports are never offered for resending.
+ const coachPending=plans.filter(p=>p.training_date>=today&&
+  p.training_date<=horizonDay&&p.state==='pending'&&
+  (p.notes||'').startsWith('Coach Intelligence ·')&&
+  eligiblePlanIds.includes(p.id)&&
+  !(p.intervals_sync_status==='confirmed'&&
+   p.intervals_published_revision===p.revision&&
+   Number(p.intervals_event_id)>0&&Number(p.intervals_export_version)>=2))
  const entries=useMemo<CalendarEntry[]>(()=>plans.filter(p=>p.state!=='cancelled').map(p=>({
   key:'p-'+p.id,date:p.training_date,title:p.title,
   sub:p.title.startsWith('ORC · ')?'ORC Bahntraining':eligiblePlanIds.includes(p.id)?'Strukturiertes Lauftraining · Intervals.icu bereit':p.session_type==='workout'?'Strukturiertes Training':'GARMIN_AI Planung',
@@ -176,6 +193,107 @@ export function CalendarPage({active,focus}:{
   return ()=>{mounted=false}
  },[active,refresh])
 
+ async function approveCoachWeek(){
+  if(!garminSupabase||acting||weekWorking||coachLoading||!weekSelected.length)return
+  setWeekWorking('approve');setWeekResult('');setError('');setNotice('')
+  let approved=0;const failed:string[]=[]
+  try{
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)throw Error('Bitte anmelden.')
+   for(const day of weekSelected){
+    try{
+     const structured=day.sport==='running'&&
+      ['easy','long','return_easy'].includes(day.kind)&&Number.isSafeInteger(day.minutes)
+     const chosenTime=weekTimes[day.date]||'18:00'
+     const key=['week',day.date,day.kind,day.minutes,structured?chosenTime:'event'].join(':')
+     const requestId=coachRequestIds.current[key]||
+      (coachRequestIds.current[key]=crypto.randomUUID())
+     const payload=structured?{
+      action:'create_coach_workout',clientRequestId:requestId,
+      date:day.date,title:day.title,kind:day.kind,minutes:day.minutes,
+      startTime:chosenTime
+     }:{
+      action:'create',clientRequestId:requestId,date:day.date,
+      title:day.title,sessionType:'event',
+      sport:day.kind==='mobility'?'strength':day.sport,
+      notes:'Coach Intelligence · '+day.minutes+' Minuten · freiwillig. Nur Kalendertermin.'
+     }
+     const created=await ownerPost<{saved:boolean;id:string;revision:number;state:string}>(
+      session,'garmin-training-plan',payload)
+     if(!created.saved||!created.id)throw Error('Entwurf nicht bestätigt')
+     let approvedEntry=created
+     if(created.state==='draft'){
+      approvedEntry=await ownerPost<{saved:boolean;id:string;revision:number;state:string}>(
+       session,'garmin-training-plan',{action:'approve',id:created.id,revision:created.revision})
+     }
+     if(!approvedEntry.saved||approvedEntry.state!=='pending')
+      throw Error('Kalenderfreigabe nicht bestätigt')
+     const plan:Plan={id:created.id,training_date:day.date,title:day.title,
+      state:'pending',session_type:'event',
+      sport:day.kind==='mobility'?'strength':day.sport,
+      garmin_workout_id:null,notes:'Coach Intelligence · '+day.minutes+
+       ' Minuten'+(structured?' · Start '+chosenTime:' · nur Kalender'),
+      revision:approvedEntry.revision,intervals_event_id:null,
+      intervals_published_revision:null,intervals_sync_status:'not_published',
+      intervals_export_version:null}
+     setPlans(old=>[...old.filter(p=>p.id!==plan.id),plan])
+     if(structured)setEligiblePlanIds(old=>old.includes(plan.id)?old:[...old,plan.id])
+     approved++
+    }catch(e){
+     failed.push(day.date+': '+(e instanceof Error?e.message:'Freigabe fehlgeschlagen'))
+    }
+   }
+   setWeekResult(approved+' Training'+(approved===1?'':'s')+
+    ' übernommen und freigegeben. '+(failed.length?
+     failed.length+' offen – bitte Kalenderstatus prüfen.':'Keine Übertragung an Intervals.icu ausgelöst.'))
+   if(failed.length)setError(failed.join(' · '))
+  }catch(e){setError(e instanceof Error?e.message:'Wochenfreigabe fehlgeschlagen')}
+  finally{setWeekWorking(null);setRefresh(n=>n+1)}
+ }
+ async function publishCoachWeek(){
+  if(!garminSupabase||acting||weekWorking||!intervalsConnected||!coachPending.length)return
+  setWeekWorking('publish');setWeekResult('');setError('');setNotice('')
+  let publishedCount=0;const failed:string[]=[]
+  try{
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)throw Error('Bitte anmelden.')
+   for(const plan of coachPending){
+    try{
+     const result=await ownerPost<{published:boolean;intervalsConfirmed:boolean;intervalsEventId:number}>(
+      session,'garmin-intervals',{action:'publish',planId:plan.id})
+     if(!result.published||!result.intervalsConfirmed)throw Error('Intervals-Bestätigung fehlt')
+     setPlans(old=>old.map(p=>p.id===plan.id?{
+      ...p,intervals_event_id:result.intervalsEventId,
+      intervals_published_revision:p.revision,intervals_sync_status:'confirmed',
+      intervals_export_version:2}:p))
+     publishedCount++
+    }catch(e){
+     // A POST can succeed while its browser response is lost. Never resend
+     // blindly: reconcile with the owner calendar before displaying failure.
+     try{
+      const remote=await ownerGet<{entries:Plan[]}>(session,'garmin-training-plan')
+      const confirmed=remote.entries?.find(p=>p.id===plan.id&&
+       p.revision===plan.revision&&p.intervals_sync_status==='confirmed'&&
+       p.intervals_published_revision===p.revision&&
+       Number(p.intervals_event_id)>0&&Number(p.intervals_export_version)>=2)
+      if(confirmed){
+       setPlans(old=>old.map(p=>p.id===plan.id?confirmed:p))
+       publishedCount++
+       continue
+      }
+      failed.push(plan.training_date+': '+(e instanceof Error?e.message:'Nicht bestätigt'))
+     }catch{
+      failed.push(plan.training_date+': Antwort unklar – zuerst Status aktualisieren, nicht erneut senden')
+     }
+    }
+   }
+   setWeekResult(publishedCount+' Workout'+(publishedCount===1?'':'s')+
+    ' bei Intervals.icu bestätigt. '+(failed.length?
+     failed.length+' Statusprüfungen offen.':'Bitte Garmin Connect und Uhr separat prüfen.'))
+   if(failed.length)setError(failed.join(' · '))
+  }catch(e){setError(e instanceof Error?e.message:'Wochenübertragung fehlgeschlagen')}
+  finally{setWeekWorking(null);setRefresh(n=>n+1)}
+ }
  async function acceptCoach(day:CoachDay){
   if(!garminSupabase||acting||!day.approvable||coachReview!==day.date||
    coachPlan?.days.find(d=>d.date===day.date)!==day)return
