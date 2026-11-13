@@ -466,7 +466,7 @@ export function CalendarPage({active,focus}:{
         intervals_published_revision:plan.intervals_published_revision,
         intervals_event_id:plan.intervals_event_id,
         intervals_sync_status:plan.intervals_sync_status,
-        intervals_export_version:null
+        intervals_export_version:plan.intervals_export_version
        }):undefined
        const previouslyPublished=!!(plan&&publication&&
         publication.intervals_published_revision===plan.revision&&publication.intervals_event_id)
