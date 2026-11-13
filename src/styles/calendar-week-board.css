@@ -74,3 +74,16 @@
  border-left-color:#9aa7be;background:rgba(123,143,174,.055)}
 .hwb-card.is-coach.is-coach-info .hwb-card-label{color:#a8b6d2}
 .hwb-card.is-coach:focus-visible{outline:2px solid #cab5ff;outline-offset:2px}
+
+
+/* v0.9.51 · Race is the highest-priority calendar event, never Saturday ORC */
+.hwb-card.is-coach.is-race{border:1px solid rgba(244,200,125,.65);
+ border-left:4px solid #f4c87d;background:linear-gradient(130deg,rgba(151,112,43,.25),rgba(92,59,35,.12));
+ box-shadow:0 7px 22px rgba(204,150,66,.09)}
+.hwb-card.is-coach.is-race .hwb-card-label{color:#ffdf9c}
+.hwb-card.is-coach.is-race strong{color:#fff0cb;font-size:12px}
+.hwb-card.is-coach.is-race small{color:#f6dcb3}
+.hwb-card.is-option.is-discouraged{border-color:rgba(211,157,132,.32);
+ background:rgba(112,74,57,.055);opacity:.8}
+.hwb-card.is-option.is-discouraged .hwb-card-label{color:#f0af9d}
+.hwb-card.is-option.is-discouraged small{color:#e1b5a9}
