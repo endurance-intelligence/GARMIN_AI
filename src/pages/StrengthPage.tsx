@@ -1,5 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
 import {Icon} from '../components/Icon'
+import {ExerciseComic} from '../components/ExerciseComic'
 import {EI_EXERCISES} from '../lib/eiExercises'
 import type {EIExercise} from '../lib/eiExercises'
 import {buildMovementPlan,MOVEMENT_MINUTES,MOVEMENT_PATTERNS} from '../lib/movementSession'
@@ -113,6 +114,9 @@ export function StrengthPage({active}:{active:boolean}){
  if(!active)return null
  const current=player?plan.steps[player.index]:null
  const currentExercise=current?byId.get(current.exerciseId):null
+ const upcoming=player?.rest?plan.steps[player.index+1]:null
+ const shownStep=upcoming||current
+ const shownExercise=shownStep?byId.get(shownStep.exerciseId):null
  return <section className="ss-root page active ms-root" aria-label="Stabi und Mobility Studio">
   <header className="ss-hero ms-hero">
    <div><span className="ss-kicker">GARMIN_AI / MOVEMENT STUDIO</span>
@@ -180,6 +184,7 @@ export function StrengthPage({active}:{active:boolean}){
      <div className="ss-exercise-info">
       <span>{exercise.group} · {exercise.seconds||60} Sek.</span>
       <h3>{exercise.name}</h3><p>{exercise.purpose||exercise.instruction}</p></div>
+     <div className="ss-exercise-art"><ExerciseComic id={exercise.id} name={exercise.name} compact/></div>
      <div className="ss-exercise-buttons">
       <button type="button" onClick={()=>setDetail(exercise)}>Anleitung öffnen</button>
       {plan.exerciseIds.includes(exercise.id)&&
@@ -222,6 +227,9 @@ export function StrengthPage({active}:{active:boolean}){
     <button type="button" className="ss-close" onClick={()=>setDetail(null)} aria-label="Schließen">×</button>
     <span className="ss-kicker">{detail.group} / COACH-GEPRÜFTE ÜBUNGEN</span>
     <h2>{detail.name}</h2><p>{detail.quickStart||detail.instruction}</p>
+    <div className="ss-detail-illustration">
+     <ExerciseComic id={detail.id} name={detail.name} priority/>
+    </div>
     <div className="ss-detail-meta"><span>{detail.seconds||60} Sekunden</span>
      <span>Ohne Geräte · ggf. weiche Unterlage</span></div>
     <h3>So geht's</h3><ol>{(detail.steps||[]).map((s,i)=><li key={i}>{s}</li>)}</ol>
@@ -230,27 +238,37 @@ export function StrengthPage({active}:{active:boolean}){
      <div><h3>Typische Fehler</h3><ul>{(detail.mistakes||[]).map((s,i)=><li key={i}>{s}</li>)}</ul></div></div>
     <div className="ss-easier"><p><b>Leichter:</b> {detail.easier||'Bewegung leichter ausführen.'}</p>
      <p><b>Schwieriger:</b> {detail.harder||'Bewegung kontrollierter oder einbeinig ausführen.'}</p></div>
-    <a href={'https://www.youtube.com/results?search_query='+encodeURIComponent(detail.name+' Übung Anleitung')}
-     target="_blank" rel="noreferrer">Video zur Bewegung suchen</a>
+    
     <button className="ss-main-action" type="button" onClick={()=>setDetail(null)}>Zurück zum Training</button>
    </section></div>}
   {player&&<div className="ss-overlay" role="presentation">
    <section className="ss-player" role="dialog" aria-modal="true" aria-label="30-Minuten-Kraft-und-Mobility-Training">
     <span className="ss-kicker">WORKOUT PLAYER / {current?movementLabel(current.part).toUpperCase():'FERTIG'}</span>
     <h2>{player.done?'30 Minuten geschafft.':player.rest?'Wechselpause':currentExercise?.name||'Übung'}</h2>
+    {player.rest&&shownExercise&&<p className="ss-player-next">
+     <strong>Als Nächstes:</strong> {shownExercise.name}</p>}
     <p>{player.done?'Training dokumentieren, wenn es tatsächlich absolviert wurde.':
      (current?.part==='strength'?'Runde '+current.round+' von 3 · ':'')+
      'Schritt '+(player.index+1)+' von '+plan.steps.length+
      (player.rest?' · Nächste Übung vorbereiten':' · Kontrolliert ausführen')}</p>
-    <div className="ss-timer" aria-live="off">{formatClock(player.remaining)}</div>
-    {!player.done&&currentExercise&&<p>{currentExercise.quickStart||currentExercise.instruction}</p>}
+    {!player.done&&shownExercise&&<div className="ss-player-art">
+     <ExerciseComic id={shownExercise.id} name={shownExercise.name} priority/>
+    </div>}
+    <div className="ss-player-timer" aria-live="off">{formatClock(player.remaining)}</div>
+    {!player.done&&shownExercise&&<div className="ss-player-guide">
+     <small>{player.rest?'NÄCHSTE ÜBUNG VORBEREITEN':'SAUBERE AUSFÜHRUNG'}</small>
+     <span>{shownExercise.quickStart||shownExercise.instruction}</span>
+     {(shownExercise.cues||[]).slice(0,2).map((cue,i)=>
+      <span key={i}>✓ {cue}</span>)}
+    </div>
     <div className="ss-player-actions">
      {!player.done&&<button type="button" onClick={()=>setPlayer(p=>p?{...p,running:!p.running}:p)}>
       {player.running?'Pause':'Fortsetzen'}</button>}
      {!player.done&&<button type="button" onClick={()=>setPlayer(p=>p?advance(p,plan):p)}>Nächster Abschnitt</button>}
      <button type="button" onClick={()=>setPlayer(null)}>Schließen</button>
     </div>
-    <p>40 Sekunden Arbeit / 20 Sekunden Wechsel im Kraftteil. Kein Garmin-Schreibzugriff.</p>
+    <p>Eigene Comic-Illustrationen · Technik vor Tempo. Kraftteil: 40 Sek. Arbeit / 20 Sek. Wechsel.
+     Keine automatische Übertragung an Garmin.</p>
    </section></div>}
  </section>
 }
