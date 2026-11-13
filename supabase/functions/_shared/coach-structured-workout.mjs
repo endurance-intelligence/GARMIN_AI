@@ -8,20 +8,31 @@ const plans={
  return_easy:{min:10,max:30,label:'Wiedereinstieg locker'}
 }
 export function coachWorkoutAllowed(context,kind,day){
- if(!context||typeof context!=='object'||!plans[kind]||
+ // The owner-only Coach Context API represents a newly configured athlete
+ // without a database row as "well" with no blocked dates. PostgreSQL
+ // maybeSingle() returns null for exactly that case. Preserve the same
+ // canonical initial state for draft creation, approval AND publication.
+ // Query errors are rejected by each caller BEFORE reaching this function.
+ // Undefined, malformed or incomplete contexts must still fail closed.
+ const state=context===null?{
+  illness_state:'well',return_started_on:null,blocked_periods:[]
+ }:context
+ if(!state||typeof state!=='object'||Array.isArray(state)||
+  !['well','sick','returning'].includes(state.illness_state)||
+  !Array.isArray(state.blocked_periods)||!plans[kind]||
   typeof day!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(day))
   return false
- const blocks=Array.isArray(context.blocked_periods)?context.blocked_periods:[]
+ const blocks=state.blocked_periods
  if(blocks.some(b=>typeof b?.start==='string'&&typeof b?.end==='string'&&
   day>=b.start&&day<=b.end))return false
- if(context.illness_state==='sick')return false
- if(context.illness_state==='returning')return kind==='return_easy'
- if(context.illness_state!=='well')return false
+ if(state.illness_state==='sick')return false
+ if(state.illness_state==='returning')return kind==='return_easy'
+ if(state.illness_state!=='well')return false
  if(kind==='return_easy')return false
  // The first 14 days following a declared return remain conservative.
- if(kind==='long'&&typeof context.return_started_on==='string'){
+ if(kind==='long'&&typeof state.return_started_on==='string'){
   const age=(Date.parse(day+'T12:00:00Z')-
-   Date.parse(context.return_started_on+'T12:00:00Z'))/86400000
+   Date.parse(state.return_started_on+'T12:00:00Z'))/86400000
   if(Number.isFinite(age)&&age>=0&&age<14)return false
  }
  return true
