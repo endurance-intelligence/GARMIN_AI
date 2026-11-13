@@ -4,6 +4,9 @@ import { garminPublishableKey, garminSupabase, garminSupabaseReady, garminSupaba
 import { analyzeSession } from '../lib/sessionAnalysis'
 import { SessionGoalReview } from './SessionGoalReview'
 import { SessionGearEditor } from './SessionGearEditor'
+import {PlanActualReview} from './PlanActualReview'
+import {assessPlanActual} from '../lib/planActual.mjs'
+import type {PlanActualPlan} from '../lib/planActual.mjs'
 import type { SessionSample } from '../lib/sessionAnalysis'
 import '../styles/session-live.css'
 
@@ -33,6 +36,17 @@ function heartPath(samples: SessionSample[]): string {
     return `${i===0?'M':'L'}${x.toFixed(1)},${y.toFixed(1)}`
   }).join(' ')
 }
+async function readOwnerPlans(session:Session):Promise<PlanActualPlan[]>{
+ const response=await fetch(garminSupabaseUrl+'/functions/v1/garmin-training-plan',{
+  method:'GET',cache:'no-store',headers:{
+   authorization:'Bearer '+session.access_token,apikey:garminPublishableKey
+  }
+ })
+ if(!response.ok)throw Error('Trainingsplan derzeit nicht abrufbar (HTTP '+response.status+').')
+ const data=await response.json() as {entries?:PlanActualPlan[]}
+ if(!Array.isArray(data.entries))throw Error('Trainingsplanantwort unvollständig.')
+ return data.entries
+}
 async function readPrivate<T>(session: Session, params = ''): Promise<T> {
   const url = `${garminSupabaseUrl}/functions/v1/read-garmin-session${params}`
   const response = await fetch(url, {
@@ -52,6 +66,9 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
   const [list,setList] = useState<Activity[]>([])
   const [selected,setSelected] = useState<string>('')
   const [details,setDetails] = useState<SessionResponse | null>(null)
+  const [planEntries,setPlanEntries]=useState<PlanActualPlan[]>([])
+  const [plansLoaded,setPlansLoaded]=useState(false)
+  const [planError,setPlanError]=useState('')
   const [loading,setLoading] = useState(false)
   const [error,setError] = useState('')
   const [refresh,setRefresh] = useState(0)
@@ -79,6 +96,18 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
     return () => { mounted=false }
   }, [active, session?.access_token, refresh])
 
+  useEffect(()=>{
+    if(!active||!session)return
+    let mounted=true
+    setPlansLoaded(false);setPlanEntries([]);setPlanError('')
+    void readOwnerPlans(session).then(entries=>{
+     if(mounted){setPlanEntries(entries);setPlansLoaded(true)}
+    }).catch(e=>{
+     if(mounted)setPlanError(e instanceof Error?e.message:'Plan derzeit nicht verfügbar.')
+    })
+    return ()=>{mounted=false}
+  },[active,session?.access_token,refresh])
+
   useEffect(() => {
     if (!active || !session || !selected) return
     let mounted = true
@@ -90,6 +119,12 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
     return () => { mounted=false }
   }, [active, session?.access_token, selected, refresh])
 
+  const selectedActivity=useMemo(()=>list.find(a=>a.id===selected)||null,[list,selected])
+  const planActual=useMemo(()=>plansLoaded&&selectedActivity?
+   assessPlanActual(selectedActivity,list,planEntries):null,
+   [plansLoaded,selectedActivity,list,planEntries])
+  const plannedGoal=planActual?.status==='matched'?
+   planActual.plan?.coachKind:null
   const analysis = useMemo(() => details ? analyzeSession(details.details.samples) : null, [details])
   const path = useMemo(() => details ? heartPath(details.details.samples) : '', [details])
   if (!active) return null
@@ -113,6 +148,8 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
       {error && <div className="lsa-error" role="alert">{error}</div>}
       {loading && <p className="lsa-note">Lese Garmin-Aktivität …</p>}
       {details && analysis && <>
+        <PlanActualReview match={planActual} loading={!plansLoaded&&!planError}
+         error={planError}/>
         <div className="lsa-stat-grid">
           <div><span>DISTANZ</span><strong>{details.activity.distanceM==null?'–':formatNumber(details.activity.distanceM/1000,2)} <small>km</small></strong></div>
           <div><span>DAUER</span><strong>{details.activity.durationS==null?'–':formatNumber(details.activity.durationS/60)} <small>Min.</small></strong></div>
@@ -140,7 +177,10 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
               separat und nur nach deiner Zuordnung bewertet – nicht aus dem Wettkampfziel geraten.</p>
           </article>
         </div>
-        <SessionGoalReview key={details.activity.id} samples={details.details.samples} lapCount={details.details.lapCount} activityDate={details.activity.date}/>
+        <SessionGoalReview key={details.activity.id} samples={details.details.samples}
+          lapCount={details.details.lapCount} activityDate={details.activity.date}
+          plannedGoal={plannedGoal==='easy'||plannedGoal==='long'||plannedGoal==='return_easy'?
+           plannedGoal:null}/>
         <p className="lsa-foot">Keine Trainingsfreigabe und keine automatische Änderung am Trainingsplan. Runden, HF-Zonen, Trainingstyp, Höhenprofil und Wetter werden erst berücksichtigt, wenn diese Daten verifiziert vorliegen.</p>
       </>}
     </>}
