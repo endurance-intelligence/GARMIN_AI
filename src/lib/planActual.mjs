@@ -35,7 +35,7 @@ export function assessPlanActual(activity,allActivities,allPlans){
  if(!day||!Array.isArray(allActivities)||!Array.isArray(allPlans))
   return {status:'unavailable',reason:'Aktivitäten oder Trainingsplan unvollständig.',plan:null}
  const plans=allPlans.filter(p=>p&&p.training_date===day&&
-  p.state!=='cancelled'&&p.sport==='running')
+  ['pending','confirmed'].includes(p.state)&&p.sport==='running')
  if(!plans.length)return {status:'no-plan',reason:'Für diesen Lauf ist kein GARMIN_AI-Lauftraining am selben Tag gespeichert.',plan:null}
  if(plans.length>1)return {status:'ambiguous',reason:'Mehr als ein Lauftraining für diesen Tag gespeichert. Keine automatische Zuordnung.',plan:null}
  const plan=plans[0]
