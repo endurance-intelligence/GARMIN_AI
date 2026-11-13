@@ -100,33 +100,38 @@ export function CalendarPage({active,focus}:{
  const lastFocusToken=useRef<number|null>(null)
  const [refresh,setRefresh]=useState(0)
  const start=moveDay(monday(today),week*7)
+ // Current week: forward-looking seven days. Following week: the full
+ // visible Monday-Sunday, so Saturday race day cannot fall off the edge.
+ const planStart=week>0?start:today
+ const horizonDay=moveDay(planStart,6)
  const coachPlan=useMemo(()=>coachSnapshot?buildSevenDayCoach({
-  today,health:coachSnapshot.health,boards:coachSnapshot.boards,
+  today,startDate:planStart,health:coachSnapshot.health,boards:coachSnapshot.boards,
   options:coachSnapshot.options,plans:coachSnapshot.plans,
   goal:coachSnapshot.goal,life:coachSnapshot.life
- }):null,[coachSnapshot,today])
+ }):null,[coachSnapshot,today,planStart])
+ const raceInWeek=coachPlan?.days.find(d=>d.kind==='race')||null
  const coachDay=coachPlan?.days.find(d=>d.date===selected)||null
  const coachPreview=coachDay&&!['existing','completed','chosen','option'].includes(coachDay.kind)&&
   !plans.some(p=>p.training_date===selected&&p.state!=='cancelled')?coachDay:null
  const days=Array.from({length:7},(_,i)=>moveDay(start,i))
- const horizonDay=moveDay(today,6)
  const weekOffers=(coachPlan?.days||[]).filter(d=>d.approvable&&
+  d.date>=today&&d.date<=moveDay(today,13)&&
   !plans.some(p=>p.training_date===d.date&&p.state!=='cancelled'))
  const weekSelected=weekOffers.filter(d=>weekChosen[d.date]!==false)
- const coachDrafts=plans.filter(p=>p.training_date>=today&&
+ const coachDrafts=plans.filter(p=>p.training_date>=today&&p.training_date>=planStart&&
   p.training_date<=horizonDay&&p.state==='draft'&&
   (p.notes||'').startsWith('Coach Intelligence ·'))
  const weekSelectedDrafts=coachDrafts.filter(p=>weekChosen[p.training_date]!==false)
  const weekApprovalCount=weekSelected.length+weekSelectedDrafts.length
  // Only Coach-authored running sessions, not archived/ORC sessions. Old or
  // already confirmed exports are never offered for resending.
- const coachConfirmed=plans.filter(p=>p.training_date>=today&&
+ const coachConfirmed=plans.filter(p=>p.training_date>=today&&p.training_date>=planStart&&
   p.training_date<=horizonDay&&
   (p.notes||'').startsWith('Coach Intelligence ·')&&
   p.intervals_sync_status==='confirmed'&&
   p.intervals_published_revision===p.revision&&
   Number(p.intervals_event_id)>0&&Number(p.intervals_export_version)>=2)
- const coachPending=plans.filter(p=>p.training_date>=today&&
+ const coachPending=plans.filter(p=>p.training_date>=today&&p.training_date>=planStart&&
   p.training_date<=horizonDay&&p.state==='pending'&&
   (p.notes||'').startsWith('Coach Intelligence ·')&&
   eligiblePlanIds.includes(p.id)&&
@@ -157,11 +162,11 @@ export function CalendarPage({active,focus}:{
   if(!active||!garminSupabase)return
   let mounted=true
   const controller=new AbortController()
-  setCoachLoading(true);setCoachError('')
+  setCoachLoading(true);setCoachError('');setCoachSnapshot(null)
   void (async()=>{
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)throw Error('Bitte anmelden.')
-   const snapshot=await loadCoachSnapshot(session,today,controller.signal)
+   const snapshot=await loadCoachSnapshot(session,today,controller.signal,start)
    if(mounted)setCoachSnapshot(snapshot)
   })().catch(e=>{
    if(mounted&&!(e instanceof Error&&e.name==='AbortError')){
@@ -170,7 +175,7 @@ export function CalendarPage({active,focus}:{
    }
   }).finally(()=>{if(mounted)setCoachLoading(false)})
   return ()=>{mounted=false;controller.abort()}
- },[active,today,refresh])
+ },[active,today,refresh,start])
 
  useEffect(()=>{
   if(!active||!garminSupabase)return
@@ -545,12 +550,19 @@ export function CalendarPage({active,focus}:{
     <div>
      <span className="hc-week-planner-kicker"><Icon name="sparkles"/> COACH / WOCHENPLANUNG</span>
      <h2>Deine Woche. Eine Entscheidung.</h2>
-     <p>Die nächsten sieben Tage ({today} bis {horizonDay}).
+     <p>Coach-Zeitraum: {planStart} bis {horizonDay}.
       Wähle deine Vorschläge, prüfe die Startzeiten und gib sie gesammelt frei.
       Erst der zweite Klick sendet freigegebene Lauf-Workouts an Intervals.icu.</p>
     </div>
     <span className="hc-week-planner-count">{weekOffers.length} Vorschläge · {coachDrafts.length} Entwürfe · {coachPending.length} bereit · {coachConfirmed.length} bestätigt</span>
    </div>
+   {raceInWeek&&<div className="hc-race-priority" role="status">
+    <span className="hc-race-priority-label"><Icon name="flag-triangle-right"/> HAUPTZIEL / RENNTAG</span>
+    <strong>{raceInWeek.title}</strong>
+    <p>{longDate(raceInWeek.date)} · {raceInWeek.reason}</p>
+    <small>Der Wettkampf ist bereits als Coach-Ziel hinterlegt. Keine zusätzliche Freigabe oder
+     ORC-Einheit am Renntag. Die vorgeschlagenen Trainingstage sind auf den Start ausgerichtet.</small>
+   </div>}
    {weekResult&&<p className="hc-week-planner-result" role="status">{weekResult}</p>}
    {coachLoading&&<p className="hc-coach-loading">Prüfe deinen Wochenvorschlag …</p>}
    {coachError&&<p className="hc-coach-unavailable">Wochenvorschläge derzeit nicht vollständig verfügbar. Es werden keine Trainingstage erfunden.</p>}
