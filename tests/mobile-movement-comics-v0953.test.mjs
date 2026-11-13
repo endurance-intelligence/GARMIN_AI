@@ -10,7 +10,7 @@ const studio=read('src/pages/StrengthPage.tsx')
 const component=read('src/components/ExerciseComic.tsx')
 const style=read('src/styles/exercise-comics.css')
 const allIds=Object.keys(mapping)
-test('24 distinct original local exercise comics: eight premium raster cards, 16 vector guides',()=>{
+test('24 distinct original local exercise comics: 18 premium raster cards, 6 vector guides',()=>{
  assert.equal(allIds.length,24)
  assert.equal(new Set(allIds).size,24)
  const excerpts=[...library.matchAll(/\bexercise\(\{([\s\S]*?)(?=\n  \}\),|\n\}\);)/g)]
@@ -89,12 +89,15 @@ test('static local SVG and WebP URLs respect Pages base path and accessibility',
  assert.match(style,/\.ss-exercise-art/)
 })
 
-test('exactly the 8 approved premium comic assets replace their prior vector placeholder',()=>{
+test('18 approved premium comics are mapped explicitly and the other six retain offline guides',()=>{
  const ids=['forearm-plank','side-plank','dead-bug','bird-dog',
-  'glute-bridge','single-leg-balance','bodyweight-squat','reverse-lunge']
+  'glute-bridge','single-leg-balance','bodyweight-squat','reverse-lunge',
+  'cat-cow','adductor-rockback','push-up','clamshell','calf-raise',
+  'single-leg-calf-raise','knee-to-wall','tibialis-raise','short-foot',
+  'hip-flexor-stretch']
  for(const id of ids)assert.equal(mapping[id],'/exercise-comics/'+id+'.webp')
- assert.equal(Object.values(mapping).filter(x=>x.endsWith('.webp')).length,8)
- assert.equal(Object.values(mapping).filter(x=>x.endsWith('.svg')).length,16)
+ assert.equal(Object.values(mapping).filter(x=>x.endsWith('.webp')).length,18)
+ assert.equal(Object.values(mapping).filter(x=>x.endsWith('.svg')).length,6)
  assert.match(component,/endsWith\('\.webp'\)/)
  assert.match(component,/onError=\{e=>/)
  assert.match(component,/e\.currentTarget\.src=base/)
