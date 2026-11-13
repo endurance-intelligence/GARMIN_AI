@@ -20,7 +20,7 @@ test('taper week contains seven dated suggestions, never adds intensity',()=>{
  assert.equal(plan.days.length,7)
  assert.deepEqual(plan.days.map(x=>x.date),Array.from({length:7},(_,i)=>day(i)))
  assert.ok(plan.days.every(x=>!['intervals','tempo','quality'].includes(x.kind)))
- assert.ok(plan.days.find(x=>x.kind==='option'))
+ assert.ok(!plan.days.some(x=>x.kind==='option')) // Taper takes priority over track
  assert.ok(plan.days.some(x=>x.kind==='easy'&&x.approvable))
 })
 test('illness or pain inhibits every proposed workout approval',()=>{
@@ -37,8 +37,9 @@ test('existing plans and actual Garmin activity are never duplicated',()=>{
  assert.equal(result.days[2].kind,'completed')
  assert.equal(result.days[1].approvable,false)
 })
-test('selected club attendance remains optional and is not converted to a new workout',()=>{
+test('selected club attendance stays an optional group plan when there is no imminent race',()=>{
  const data=fixture()
+ data.goal.goal.race_date='2027-03-01'
  data.options.choices=[{option_code:'track',training_date:day(2),choice:'selected'}]
  data.options.options[0].weekday=6
  data.options.choices[0].training_date=day(2)
