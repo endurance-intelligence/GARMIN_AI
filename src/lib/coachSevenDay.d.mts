@@ -10,5 +10,5 @@ export type SevenDayPlan={
 export function coachAddDays(date:string,delta:number):string
 export function coachMonday(date:string):string
 export function buildSevenDayCoach(input:{
- today:string;health?:any;boards?:any[];options?:any;plans?:any;goal?:any;life?:any;symptoms?:boolean
+ today:string;startDate?:string;health?:any;boards?:any[];options?:any;plans?:any;goal?:any;life?:any;symptoms?:boolean
 }):SevenDayPlan
