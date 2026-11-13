@@ -6,6 +6,7 @@ on:
       - 'src/styles/horizon-calendar.css'
       - 'supabase/functions/garmin-training-plan/index.ts'
       - 'tests/mobile-coach-week-batch-v0950.test.mjs'
+      - 'tests/mobile-calendar-delete-fix-v0930.test.mjs'
       - '.github/workflows/garmin-coach-week-batch-v0950.yml'
   pull_request:
     paths:
@@ -13,6 +14,7 @@ on:
       - 'src/styles/horizon-calendar.css'
       - 'supabase/functions/garmin-training-plan/index.ts'
       - 'tests/mobile-coach-week-batch-v0950.test.mjs'
+      - 'tests/mobile-calendar-delete-fix-v0930.test.mjs'
       - '.github/workflows/garmin-coach-week-batch-v0950.yml'
 jobs:
   verify:
@@ -25,5 +27,5 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: node --test tests/mobile-coach-week-batch-v0950.test.mjs tests/mobile-coach-calendar-v0948.test.mjs tests/coach-normalmode-missing-row-v0949.test.mjs tests/coach-structured-intervals-v0947.test.mjs tests/intervals-bridge.test.mjs tests/mobile-calendar-week-board.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-ipad-ux.test.mjs tests/mobile-coach-seven-day-v1.test.mjs
+      - run: node --test tests/mobile-coach-week-batch-v0950.test.mjs tests/mobile-coach-calendar-v0948.test.mjs tests/coach-normalmode-missing-row-v0949.test.mjs tests/coach-structured-intervals-v0947.test.mjs tests/intervals-bridge.test.mjs tests/mobile-calendar-week-board.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-ipad-ux.test.mjs tests/mobile-coach-seven-day-v1.test.mjs tests/mobile-calendar-delete-fix-v0930.test.mjs
       - run: npm run build
