@@ -150,8 +150,11 @@ export function buildSevenDayCoach(input){
    return make(day,'recovery','Rückmeldung abwarten',null,
     'Vor weiterer Belastungssteigerung den nächsten realen Garmin-Lauf und die Verträglichkeit prüfen.')
   }
-  if(untilRace!==null&&untilRace<0&&untilRace>=-3)
-   return make(day,'recovery','Erholung nach dem Rennen',null,'Nach einem Wettkampf keine automatische Belastungssteigerung.')
+  const postRaceDays=Number(goal?.distance_km)>=42?7:3
+  if(untilRace!==null&&untilRace<0&&untilRace>=-postRaceDays)
+   return make(day,'recovery','Regeneration nach dem Wettkampf',null,
+    'Nach dem Rennen keine automatische Belastungssteigerung. Besonders nach einem Ultra '+
+    'Erholung und Beschwerden beachten; Rückkehr erst nach eigener Freigabe.')
   const option=options.find(o=>o.enabled&&o.weekday===weekday(day))
   const choice=option?choices.find(c=>c.training_date===day&&c.option_code===option.code)?.choice:null
   if(postIllness){
@@ -163,6 +166,13 @@ export function buildSevenDayCoach(input){
     make(day,'recovery','Erholung / Mobility',null,
      'Zwei verträgliche Läufe bedeuten noch keine automatische Rückkehr zur früheren Trainingsbelastung.')
   }
+  // A short easy run is still a TRAINING recommendation; do not propose it
+  // when Garmin evidence is incomplete or meaningful recovery flags exist.
+  if(untilRace!==null&&untilRace>0&&untilRace<=10&&(!dataReady||caution))
+   return make(day,'recovery','Frische vor dem Rennen priorisieren',null,
+    !dataReady?'Garmin-Daten unvollständig. Keine Laufeinheit freigeben, erst Daten prüfen.':
+    'Aktuelle Erholungssignale / Umfang sprechen gegen zusätzliche Belastung. '+
+    'Ruhen und Beschwerden prüfen; keine automatische Trainingsfreigabe.')
   // Race-first coach: a generic weekly option MUST NOT displace the
   // recommendation for a real goal. The final five days are deliberately
   // very low-volume ahead of a long ultra (no football or hard track set).
