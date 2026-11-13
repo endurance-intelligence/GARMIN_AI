@@ -81,9 +81,9 @@ Deno.serve(async req=>{
     }).formatToParts(new Date())
     const part=(type:string)=>parts.find(p=>p.type===type)?.value||''
     const localToday=[part('year'),part('month'),part('day')].join('-')
-    const upper=new Date(Date.parse(localToday+'T12:00:00Z')+6*86400000).toISOString().slice(0,10)
+    const upper=new Date(Date.parse(localToday+'T12:00:00Z')+13*86400000).toISOString().slice(0,10)
     if(input.date<localToday||input.date>upper)
-      return response(422,{error:'Coach workouts only for the next seven days'},h)
+      return response(422,{error:'Coach workouts only for the next fourteen days'},h)
     const {data:context,error:contextError}=await db.from('garmin_coach_context')
       .select('illness_state,return_started_on,blocked_periods')
       .eq('user_id',user.id).maybeSingle()
