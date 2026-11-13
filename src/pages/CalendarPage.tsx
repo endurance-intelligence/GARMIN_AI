@@ -458,9 +458,20 @@ export function CalendarPage({active,focus}:{
      <div className="hc-entries">
       {matching.map(entry=>{
        const plan=plans.find(p=>'p-'+p.id===entry.key)
-       const publication=plan?published[plan.id]:undefined
-       const previouslyPublished=!!(plan&&publication&&publication.intervals_published_revision===plan.revision&&publication.intervals_event_id)
-       const needsRepair=previouslyPublished&&!(publication?.intervals_export_version&&publication.intervals_export_version>=2&&publication.intervals_sync_status==='confirmed')
+       // The owner calendar is the canonical confirmation. An optional
+       // Intervals status GET may fail after a successful POST; never show
+       // "unsent" solely because that second endpoint was unreachable.
+       const publication=plan?(published[plan.id]||{
+        id:plan.id,revision:plan.revision,
+        intervals_published_revision:plan.intervals_published_revision,
+        intervals_event_id:plan.intervals_event_id,
+        intervals_sync_status:plan.intervals_sync_status,
+        intervals_export_version:null
+       }):undefined
+       const previouslyPublished=!!(plan&&publication&&
+        publication.intervals_published_revision===plan.revision&&publication.intervals_event_id)
+       const needsRepair=previouslyPublished&&!(publication?.intervals_sync_status==='confirmed'&&
+        (publication?.intervals_export_version===null || Number(publication?.intervals_export_version)>=2))
        const sent=previouslyPublished&&!needsRepair
        const eligible=!!plan&&eligiblePlanIds.includes(plan.id)
        const state=sent?{text:'Intervals.icu bestätigt · Garmin prüfen',type:'verified'}:readState(entry.status)
