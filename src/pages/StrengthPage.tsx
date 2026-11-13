@@ -260,7 +260,7 @@ export function StrengthPage({active}:{active:boolean}){
      <span>{shownExercise.quickStart||shownExercise.instruction}</span>
      {(shownExercise.cues||[]).slice(0,2).map((cue,i)=>
       <span key={i}>✓ {cue}</span>)}
-    </div>
+    </div>}
     <div className="ss-player-actions">
      {!player.done&&<button type="button" onClick={()=>setPlayer(p=>p?{...p,running:!p.running}:p)}>
       {player.running?'Pause':'Fortsetzen'}</button>}
