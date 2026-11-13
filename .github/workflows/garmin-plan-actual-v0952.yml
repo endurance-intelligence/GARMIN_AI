@@ -10,6 +10,7 @@ on:
       - 'src/styles/plan-actual-review.css'
       - 'supabase/functions/garmin-training-plan/index.ts'
       - 'tests/session-plan-actual-v0952.test.mjs'
+      - 'tests/mobile-coach-week-batch-v0950.test.mjs'
       - '.github/workflows/garmin-plan-actual-v0952.yml'
   pull_request:
     paths:
@@ -21,6 +22,7 @@ on:
       - 'src/styles/plan-actual-review.css'
       - 'supabase/functions/garmin-training-plan/index.ts'
       - 'tests/session-plan-actual-v0952.test.mjs'
+      - 'tests/mobile-coach-week-batch-v0950.test.mjs'
       - '.github/workflows/garmin-plan-actual-v0952.yml'
 jobs:
   verify:
