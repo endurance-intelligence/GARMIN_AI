@@ -208,7 +208,7 @@ export function CalendarPage({active,focus}:{
     session_type:'event',sport:day.kind==='mobility'?'strength':day.sport,
     garmin_workout_id:null,revision:result.revision||1,
     intervals_event_id:null,intervals_published_revision:null,
-    intervals_sync_status:'not_published',
+    intervals_sync_status:'not_published',intervals_export_version:null,
     notes:structured?'Coach-Workout · '+day.minutes+' Min. · Start '+coachStartTime+
      ' · 3 Zeitabschnitte':'Coach-Kalenderentwurf'
    }
@@ -471,7 +471,7 @@ export function CalendarPage({active,focus}:{
        const previouslyPublished=!!(plan&&publication&&
         publication.intervals_published_revision===plan.revision&&publication.intervals_event_id)
        const needsRepair=previouslyPublished&&!(publication?.intervals_sync_status==='confirmed'&&
-        (publication?.intervals_export_version===null || Number(publication?.intervals_export_version)>=2))
+        (Number(publication?.intervals_export_version)>=2))
        const sent=previouslyPublished&&!needsRepair
        const eligible=!!plan&&eligiblePlanIds.includes(plan.id)
        const state=sent?{text:'Intervals.icu bestätigt · Garmin prüfen',type:'verified'}:readState(entry.status)
