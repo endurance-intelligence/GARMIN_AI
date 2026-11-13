@@ -49,9 +49,13 @@ test('24 distinct original local exercise comics: eight premium raster cards, 16
 test('exercise IDs are explicit and not the legacy wrong visual alias',()=>{
  assert.ok(mapping['bodyweight-squat'])
  assert.ok(mapping['reverse-lunge'])
- assert.match(read('public'+mapping['bodyweight-squat']),/Kniebeuge/)
- assert.doesNotMatch(read('public'+mapping['bodyweight-squat']),/Goblet/)
- assert.match(read('public'+mapping['reverse-lunge']),/Ausfallschritt/)
+ // The premium images are binary WebP; the original diagrams still
+ // identify the correct move and remain our offline image fallback.
+ assert.match(read('public/exercise-comics/bodyweight-squat.svg'),/Kniebeuge/)
+ assert.doesNotMatch(read('public/exercise-comics/bodyweight-squat.svg'),/Goblet/)
+ assert.match(read('public/exercise-comics/reverse-lunge.svg'),/Ausfallschritt/)
+ assert.equal(mapping['bodyweight-squat'],'/exercise-comics/bodyweight-squat.webp')
+ assert.equal(mapping['reverse-lunge'],'/exercise-comics/reverse-lunge.webp')
 })
 test('each 30-minute session step has an available comic across 30 steps and remix rotations',()=>{
  for(const d of ['2026-11-13','2026-11-14','2026-11-15','2026-11-16']){
@@ -93,7 +97,7 @@ test('exactly the 8 approved premium comic assets replace their prior vector pla
  assert.equal(Object.values(mapping).filter(x=>x.endsWith('.svg')).length,16)
  assert.match(component,/endsWith\('\.webp'\)/)
  assert.match(component,/onError=\{e=>/)
- assert.match(component,/exercise-comics\/\+id\+'\.svg'/)
+ assert.match(component,/e\.currentTarget\.src=base/)
  assert.match(style,/\.ec-figure\.is-premium img/)
  assert.match(style,/42dvh/)
  assert.match(style,/object-fit:contain/)
