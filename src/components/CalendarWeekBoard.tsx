@@ -171,10 +171,13 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
         </button>}
         {slot.map(option=>{
          const choice=choices.find(x=>x.training_date===day&&x.option_code===option.code)?.choice||'open'
+         const discouraged=coach?.reason.startsWith('Coach-Entscheidung:')||false
          return <button type="button" key={'o-'+option.code}
-           onClick={()=>onSelect(day)} className={'hwb-card is-option'+(choice==='skipped'?' is-muted':'')}>
-          <span className="hwb-card-label">◇ OPTION / {choice==='selected'?'DABEI':choice==='skipped'?'AUSLASSEN':'OFFEN'}</span>
+           onClick={()=>onSelect(day)} className={'hwb-card is-option'+(choice==='skipped'?' is-muted':'')+
+            (discouraged?' is-discouraged':'')}>
+          <span className="hwb-card-label">◇ OPTION / {discouraged?'COACH RÄT AB':choice==='selected'?'DABEI':choice==='skipped'?'AUSLASSEN':'OFFEN'}</span>
           <strong>{option.title}</strong>
+          {discouraged&&<small>Coach-Empfehlung oben hat Vorrang; keine automatische Trainingsfreigabe.</small>}
           <span>{option.start_time.slice(0,5)} Uhr · {option.location_label}</span>
           <FixedTrainingWeather active={active} compact date={day} time={option.start_time}
            location={option.location_label} latitude={option.location_lat} longitude={option.location_lon}/>
