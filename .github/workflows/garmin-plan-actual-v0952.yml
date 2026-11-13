@@ -11,6 +11,7 @@ on:
       - 'supabase/functions/garmin-training-plan/index.ts'
       - 'tests/session-plan-actual-v0952.test.mjs'
       - 'tests/mobile-coach-week-batch-v0950.test.mjs'
+      - 'tests/mobile-calendar-delete-fix-v0930.test.mjs'
       - '.github/workflows/garmin-plan-actual-v0952.yml'
   pull_request:
     paths:
@@ -23,6 +24,7 @@ on:
       - 'supabase/functions/garmin-training-plan/index.ts'
       - 'tests/session-plan-actual-v0952.test.mjs'
       - 'tests/mobile-coach-week-batch-v0950.test.mjs'
+      - 'tests/mobile-calendar-delete-fix-v0930.test.mjs'
       - '.github/workflows/garmin-plan-actual-v0952.yml'
 jobs:
   verify:
@@ -35,5 +37,5 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: node --test tests/session-plan-actual-v0952.test.mjs tests/mobile-session-coach-consistency-v0943.test.mjs tests/garmin-cloud-session.test.mjs tests/coach-structured-intervals-v0947.test.mjs tests/mobile-coach-week-batch-v0950.test.mjs tests/mobile-coach-calendar-v0948.test.mjs tests/mobile-coach-seven-day-v1.test.mjs tests/mobile-ipad-ux.test.mjs tests/mobile-clean-coach.test.mjs
+      - run: node --test tests/session-plan-actual-v0952.test.mjs tests/mobile-session-coach-consistency-v0943.test.mjs tests/garmin-cloud-session.test.mjs tests/coach-structured-intervals-v0947.test.mjs tests/mobile-coach-week-batch-v0950.test.mjs tests/mobile-coach-calendar-v0948.test.mjs tests/mobile-coach-seven-day-v1.test.mjs tests/mobile-ipad-ux.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-calendar-delete-fix-v0930.test.mjs
       - run: npm run build
