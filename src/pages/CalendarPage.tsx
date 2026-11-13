@@ -115,6 +115,12 @@ export function CalendarPage({active,focus}:{
  const weekSelected=weekOffers.filter(d=>weekChosen[d.date]!==false)
  // Only Coach-authored running sessions, not archived/ORC sessions. Old or
  // already confirmed exports are never offered for resending.
+ const coachConfirmed=plans.filter(p=>p.training_date>=today&&
+  p.training_date<=horizonDay&&
+  (p.notes||'').startsWith('Coach Intelligence ·')&&
+  p.intervals_sync_status==='confirmed'&&
+  p.intervals_published_revision===p.revision&&
+  Number(p.intervals_event_id)>0&&Number(p.intervals_export_version)>=2)
  const coachPending=plans.filter(p=>p.training_date>=today&&
   p.training_date<=horizonDay&&p.state==='pending'&&
   (p.notes||'').startsWith('Coach Intelligence ·')&&
@@ -521,11 +527,15 @@ export function CalendarPage({active,focus}:{
       Wähle deine Vorschläge, prüfe die Startzeiten und gib sie gesammelt frei.
       Erst der zweite Klick sendet freigegebene Lauf-Workouts an Intervals.icu.</p>
     </div>
-    <span className="hc-week-planner-count">{weekOffers.length} Vorschläge · {coachPending.length} bereit zum Senden</span>
+    <span className="hc-week-planner-count">{weekOffers.length} Vorschläge · {coachPending.length} bereit · {coachConfirmed.length} bestätigt</span>
    </div>
    {weekResult&&<p className="hc-week-planner-result" role="status">{weekResult}</p>}
    {coachLoading&&<p className="hc-coach-loading">Prüfe deinen Wochenvorschlag …</p>}
    {coachError&&<p className="hc-coach-unavailable">Wochenvorschläge derzeit nicht vollständig verfügbar. Es werden keine Trainingstage erfunden.</p>}
+   {coachConfirmed.length>0&&<p className="hc-week-planner-confirmed" role="status">
+    <Icon name="check-circle"/> {coachConfirmed.length} Workout{coachConfirmed.length===1?' ist':'s sind'}
+    bereits bei Intervals.icu bestätigt. Kein erneuter Versand nötig.
+   </p>}
    {!coachLoading&&!coachError&&weekOffers.length>0&&<>
     <div className="hc-week-planner-list">
      {weekOffers.map(day=>{
