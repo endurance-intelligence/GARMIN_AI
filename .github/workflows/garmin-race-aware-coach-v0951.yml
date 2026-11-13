@@ -12,6 +12,7 @@ on:
       - 'supabase/functions/garmin-training-plan/index.ts'
       - 'tests/race-aware-coach-taper-v0951.test.mjs'
       - 'tests/mobile-coach-seven-day-v1.test.mjs'
+      - 'tests/mobile-coach-calendar-v0948.test.mjs'
       - '.github/workflows/garmin-race-aware-coach-v0951.yml'
   pull_request:
     paths:
@@ -25,6 +26,7 @@ on:
       - 'supabase/functions/garmin-training-plan/index.ts'
       - 'tests/race-aware-coach-taper-v0951.test.mjs'
       - 'tests/mobile-coach-seven-day-v1.test.mjs'
+      - 'tests/mobile-coach-calendar-v0948.test.mjs'
       - '.github/workflows/garmin-race-aware-coach-v0951.yml'
 jobs:
   verify:
