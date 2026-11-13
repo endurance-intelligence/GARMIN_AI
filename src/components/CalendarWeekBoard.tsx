@@ -89,12 +89,14 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
     .filter(x=>sportKind(x.sport_type)!=='rowing')
   const manual=(data?.manual||[]).filter(x=>x.session_date===day&&x.kind!=='rowing')
   const local=plans.filter(p=>p.training_date===day&&p.state!=='cancelled')
-  const slot=options.filter(x=>x.weekday===index+1&&day>=today&&
-    !completedWeeklyOption(x,day,acts))
   const candidate=coachDays.find(x=>x.date===day)
-  // Show one Coach hint, never a second copy of a real/confirmed entry or club option.
-  const coach=day>=today&&!local.length&&!acts.length&&!manual.length&&candidate&&
-   !['existing','completed','chosen','option'].includes(candidate.kind)?candidate:null
+  // The recorded race takes precedence over the regular Saturday club slot.
+  const slot=options.filter(x=>x.weekday===index+1&&day>=today&&
+    candidate?.kind!=='race'&&!completedWeeklyOption(x,day,acts))
+  // Even a conflicting local plan must never hide the real race goal.
+  const coach=day>=today&&candidate&&
+   (candidate.kind==='race'||(!local.length&&!acts.length&&!manual.length&&
+    !['existing','completed','chosen','option'].includes(candidate.kind)))?candidate:null
   return {day,index,daily,acts,manual,local,slot,coach}
  })
  return <section className="hwb-root" aria-label="Wochenübersicht mit echten Garmin-Aktivitäten und Gesundheitsdaten">
@@ -158,6 +160,15 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
          <strong>{plan.title}</strong>
          <small>Details und Freigabe am ausgewählten Tag</small>
         </button>)}
+        {coach&&<button type="button" onClick={()=>onSelect(day)} key={'coach-'+day}
+         className={'hwb-card is-coach'+(coach.kind==='race'?' is-race':coach.approvable?' is-coach-offer':' is-coach-info')}>
+         <span className="hwb-card-label">{coach.kind==='race'?
+          '🏁 RENNTAG / HAUPTZIEL':coach.approvable?
+          '✦ COACH / VORSCHLAG':'✦ COACH / ANSAGE'}</span>
+         <strong>{coach.title}</strong>
+         {coach.minutes!==null&&<span>{coach.minutes} Minuten · noch nicht eingetragen</span>}
+         <small>{coach.reason}</small>
+        </button>}
         {slot.map(option=>{
          const choice=choices.find(x=>x.training_date===day&&x.option_code===option.code)?.choice||'open'
          return <button type="button" key={'o-'+option.code}
@@ -169,16 +180,6 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
            location={option.location_label} latitude={option.location_lat} longitude={option.location_lon}/>
          </button>
         })}
-        {coach&&<button type="button" onClick={()=>onSelect(day)} key={'coach-'+day}
-         className={'hwb-card is-coach'+(coach.approvable?' is-coach-offer':' is-coach-info')}>
-         <span className="hwb-card-label">{coach.approvable?
-          '✦ COACH / VORSCHLAG':'✦ COACH / ORIENTIERUNG'}</span>
-         <strong>{coach.title}</strong>
-         {coach.minutes!==null&&<span>{coach.minutes} Minuten · noch nicht eingetragen</span>}
-         <small>{coach.approvable?'Antippen und im Kalender übernehmen':
-          coach.kind==='blocked'||coach.kind==='illness'?'Kein Training empfohlen':
-          'Keine verbindliche Trainingseinheit'}</small>
-        </button>}
         {!acts.length&&!manual.length&&!local.length&&!slot.length&&!coach&&
          <span className="hwb-empty">Noch nichts eingetragen</span>}
        </div>
