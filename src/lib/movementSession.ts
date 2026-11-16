@@ -1,4 +1,4 @@
-import {EI_EXERCISES} from './eiExercises'
+import {EI_EXERCISES} from './eiExercises.ts'
 
 /** A balanced, reproducible 30-minute circuit – varied, never a random grab-bag.
  * No fictitious workout readiness score. Day and rotation index only pick
