@@ -74,7 +74,7 @@ export function IntervalsCoachContext({active,mode,weekStart,activityId,averageH
    {kind==='easy'&&typeof firstHrLimit==='number'&&validKilometerHrs.length>=4&&
     <div className="ic-glance-stat"><span>HF-KONTEXT</span>
      <strong>{validKilometerHrs.length-aboveFirst}/{validKilometerHrs.length}</strong>
-     <small>km Ø-HF bis {firstHrLimit} bpm</small></div>}
+     <small>km Ø-HF bis {firstHrLimit} bpm{validHr(averageHr)?' · Lauf Ø '+Math.round(averageHr)+' bpm':''}</small></div>}
    {!matched&&<p className="ic-muted">Für diesen Lauf keine eindeutig zugeordnete Intervals.icu-Belastung.
     Garmin bleibt die Bewertungsgrundlage.</p>}
   </div>}
