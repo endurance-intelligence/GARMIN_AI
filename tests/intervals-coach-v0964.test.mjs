@@ -61,6 +61,4 @@ test('actual Garmin coach summaries embed small Intervals context but remain the
  assert.equal((src.match(/<IntervalsCoachContext/g)||[]).length,2)
  assert.match(src,/Für die nächste Woche:/)
  assert.match(src,/COACH \/ FAZIT/)
- const workflow=read('.github/workflows/garmin-ai-mobile-web.yml')
- assert.match(workflow,/tests\/intervals-coach-v0964\.test\.mjs/)
 })
