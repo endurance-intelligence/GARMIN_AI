@@ -12,13 +12,14 @@ test('iPad compact 761–1024px uses bottom touch nav, not cramped desktop sideb
   assert.match(css,/\.main\s*\{[^}]*calc\(116px \+ env\(safe-area-inset-bottom\)\)/s)
 })
 
-test('real Garmin recovery appears before simulated coach recommendation',()=>{
+test('real Garmin recovery appears before REAL Coach decision and no fake prototype remains',()=>{
   const coach=read('src/pages/CoachPage.tsx')
   const iRecovery=coach.indexOf('<CoachGlance active={active}')
-  const iDemo=coach.indexOf('className="stage v3-stage"')
-  assert.ok(iRecovery>=0&&iRecovery<iDemo)
+  const iDecision=coach.indexOf('<CoachSevenDay active={active}')
+  assert.ok(iRecovery>=0&&iRecovery<iDecision)
   assert.match(read('src/components/CoachGlance.tsx'),/MORGENCHECK/)
-  assert.match(coach,/DEMO · keine Änderung am Trainingsplan/)
+  assert.match(read('src/components/CoachSevenDay.tsx'),/<CoachDecisionLive/)
+  assert.doesNotMatch(coach,/DEMO · keine Änderung am Trainingsplan/)
   const css=read('src/styles/mobile-ux-v084.css')
   assert.match(css,/\.introduction-v3 \.seg\s*\{[^}]*display:inline-flex/s)
 })
