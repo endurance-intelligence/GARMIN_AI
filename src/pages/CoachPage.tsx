@@ -8,6 +8,7 @@ import {WeeklyTrainingOptions,berlinToday,mondayOf} from '../components/WeeklyTr
 import {CrossTrainingCoachCard} from '../components/CrossTrainingCoachCard'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {CoachSevenDay} from '../components/CoachSevenDay'
+import {CoachEvidenceSummary} from '../components/CoachEvidenceSummary'
 import '../styles/coach-glance.css'
 import type {Page} from '../navigation'
 
@@ -54,6 +55,7 @@ export function CoachPage({active,onGo,onOpenCalendar}: {active:boolean; onGo:(p
   <CoachTodayWeather active={active}/>
  </CoachGlance>
  <CoachGoalPanel active={active} compact onEdit={()=>onGo('race')}/>
+ <CoachEvidenceSummary active={active} mode="weekly" weekStart={mondayOf(berlinToday())}/>
  <CoachSevenDay active={active} onCalendar={onOpenCalendar}/>
  <WeeklyTrainingOptions active={active} weekStart={mondayOf(berlinToday())} compact/>
  <CrossTrainingCoachCard active={active} onOpen={()=>onGo('strength')}/>

@@ -5,6 +5,7 @@ import {Icon} from '../components/Icon'
 import {WorkoutArchivePanel} from '../components/WorkoutArchivePanel'
 import {WeeklyTrainingOptions} from '../components/WeeklyTrainingOptions'
 import {CalendarWeekBoard} from '../components/CalendarWeekBoard'
+import {CoachEvidenceSummary} from '../components/CoachEvidenceSummary'
 import {loadCoachSnapshot} from '../lib/coachSnapshot'
 import type {CoachSnapshot} from '../lib/coachSnapshot'
 import {buildSevenDayCoach} from '../lib/coachSevenDay.mjs'
@@ -673,6 +674,7 @@ export function CalendarPage({active,focus}:{
      <div><span>AUSGEWÄHLTER TAG</span><h3>{longDate(selected)}</h3></div>
      <span className="hc-day-count">{matching.length} {matching.length===1?'gespeicherter Termin':'gespeicherte Termine'}{coachPreview?' · 1 Coach-Hinweis':''}</span>
     </div>
+    <CoachEvidenceSummary active={active} mode="calendar" weekStart={start} selectedDate={selected}/>
     {coachLoading&&<p className="hc-coach-loading" role="status">Lade Coach-Empfehlungen …</p>}
     {coachError&&<p className="hc-coach-unavailable" role="status">
      Coach-Empfehlungen derzeit nicht erreichbar. Keine Trainingsvorgaben geschätzt.

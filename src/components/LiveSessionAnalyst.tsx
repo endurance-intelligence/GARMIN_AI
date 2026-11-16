@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { garminPublishableKey, garminSupabase, garminSupabaseReady, garminSupabaseUrl } from '../lib/garminSupabase'
 import { analyzeSession } from '../lib/sessionAnalysis'
 import { SessionGoalReview } from './SessionGoalReview'
+import {CoachEvidenceSummary} from './CoachEvidenceSummary'
 import { SessionGearEditor } from './SessionGearEditor'
 import {PlanActualReview} from './PlanActualReview'
 import {assessPlanActual} from '../lib/planActual.mjs'
@@ -150,6 +151,7 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
       {details && analysis && <>
         <PlanActualReview match={planActual} loading={!plansLoaded&&!planError}
          error={planError}/>
+        <CoachEvidenceSummary active={active} mode="training" activityId={details.activity.id}/>
         <div className="lsa-stat-grid">
           <div><span>DISTANZ</span><strong>{details.activity.distanceM==null?'–':formatNumber(details.activity.distanceM/1000,2)} <small>km</small></strong></div>
           <div><span>DAUER</span><strong>{details.activity.durationS==null?'–':formatNumber(details.activity.durationS/60)} <small>Min.</small></strong></div>
