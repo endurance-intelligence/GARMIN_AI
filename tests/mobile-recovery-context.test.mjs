@@ -79,5 +79,6 @@ test('owner auth, weather, race and weight quick action remain intact',()=>{
  assert.match(coach,/<CoachTodayWeather active=\{active\}\/>/)
  assert.match(coach,/mode="weight" inlineWheel onSaved=/)
  assert.match(glance,/get\('read-garmin-health',token\)/)
- assert.match(glance,/authorization:'Bearer '\+token/)
+ assert.match(glance,/readCoachPrivate/)
+ assert.match(read('src/lib/coachRequestPool.ts'),/authorization:'Bearer '\+token/)
 })

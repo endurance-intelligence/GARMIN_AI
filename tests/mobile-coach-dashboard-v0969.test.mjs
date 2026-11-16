@@ -41,7 +41,7 @@ test('recovery statements explain measured 7h46, 39ms HRV, 43 bpm individually',
  assert.match(recoveryMetricMeaning(report.metrics[1]),/HRV deutlich unter/)
  assert.match(recoveryMetricMeaning(report.metrics[2]),/Ruhepuls nahe/)
  const narrative=recoveryDashboardMeaning(report)
- assert.match(narrative,/HRV liegt klar unter/)
+ assert.match(narrative,/HRV liegt (heute )?klar unter/)
  assert.match(narrative,/Verlauf und dein Befinden/)
  assert.doesNotMatch(narrative,/trainingsbereit|freigegeben/i)
  assert.match(recoveryMetricMeaning({metric:'hrv_ms',latest:null,median:null,difference:null}),/Kein aktueller/)

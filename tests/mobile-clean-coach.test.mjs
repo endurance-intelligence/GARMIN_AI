@@ -46,7 +46,8 @@ test('overview is backed by existing authenticated Garmin services',()=>{
   assert.ok(c.includes(endpoint),endpoint)
  }
  assert.match(c,/garminSupabase.auth.getSession\(\)/)
- assert.match(c,/authorization:'Bearer '\+token/)
+ assert.match(c,/readCoachPrivate/)
+ assert.match(read('src/lib/coachRequestPool.ts'),/authorization:'Bearer '\+token/)
  assert.match(c,/cache:'no-store'/)
  assert.match(c,/Heute trainingsfrei · bewusst ausgelassen/)
  assert.doesNotMatch(c,/Heute noch offen/)
