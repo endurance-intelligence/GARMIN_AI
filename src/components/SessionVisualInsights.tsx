@@ -58,13 +58,20 @@ export function SessionVisualInsights({active,activityId,samples}:{
  const splits=review?.type==='intervals'?review?.intervals||[]:review?.kilometers||[]
  const isIntervals=review?.type==='intervals'
  const hasOpenPaceZone=zones?.paceZones?.some(x=>x>=250)||false
+ const trainingLoad=typeof extra?.activity?.load==='number'&&Number.isFinite(extra.activity.load)&&extra.activity.load>=0?
+  extra.activity.load:null
  if(!active)return null
  return <section className="sv-wrap" aria-label="Visuelle Garmin- und Intervals.icu-Trainingsanalyse">
   <div className="sv-top">
    <div><span className="sv-eyebrow">COACH VISUALS / GARMIN × INTERVALS.ICU</span>
     <h3>So sah dein Training wirklich aus.</h3>
     <p>Gemessene Belastung, deine Zonen und die einzelnen Abschnitte – ohne erfundene Zielwerte.</p>
-   </div><span className="sv-source-dot" aria-hidden="true"/>
+   </div>
+   {trainingLoad!==null?<div className="sv-load-kpi" role="group" aria-label="Intervals.icu Trainingsbelastung">
+    <span>TRAININGSBELASTUNG</span>
+    <div><strong>{decimal(trainingLoad)}</strong><small>Punkte · Intervals Load</small></div>
+    <p>Schätzung aus Dauer und Intensität – kein Prozentwert und keine Trainingsnote.</p>
+   </div>:<span className="sv-source-dot" aria-hidden="true"/>}
   </div>
   {loading&&<p className="sv-state" role="status">Lade deine persönlichen Trainingsgrafiken …</p>}
   {!loading&&!availability.coach&&!availability.intervals&&

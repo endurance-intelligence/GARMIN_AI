@@ -61,22 +61,22 @@ export function IntervalsCoachContext({active,mode,weekStart,activityId,averageH
  const validKilometerHrs=(kilometerHrs||[]).filter(validHr)
  const aboveFirst=typeof firstHrLimit==='number'?validKilometerHrs.filter(x=>x>firstHrLimit).length:0
  const hasInfo=!!trend||!!matched||!!zones
+ // Load is shown beside the visual analysis heading, not twice in the verdict.
+ const showHrContext=kind==='easy'&&typeof firstHrLimit==='number'&&validKilometerHrs.length>=4
+ const showIntensity=matched?.intensity!==null&&matched?.intensity!==undefined
+ if(mode==='activity'&&!showHrContext&&!showIntensity)return null
  if(!hasInfo)return <details className="ic-context"><summary>Intervals.icu · keine ergänzenden Werte</summary>
    <p>Keine verlässlichen Zusatzdaten für diesen Zeitraum. Die Garmin-Bewertung bleibt gültig.</p></details>
  return <div className="ic-context ic-glance" aria-label="Kurze Intervals.icu-Ergänzung zum Coach-Fazit">
   <div className="ic-glance-head"><span className="ic-source">INTERVALS.ICU · ZUSATZCHECK</span>
    {mode==='activity'&&<small>Details unten als Grafik</small>}</div>
   {mode==='activity'&&<div className="ic-glance-values">
-   {matched?.load!==null&&matched?.load!==undefined&&
-    <div className="ic-glance-stat"><span>TRAININGSBELASTUNG</span><strong>{number(matched.load)}</strong><small>Intervals Load</small></div>}
    {matched?.intensity!==null&&matched?.intensity!==undefined&&
     <div className="ic-glance-stat"><span>INTENSITÄT</span><strong>{number(matched.intensity)}</strong><small>Intervals-Faktor</small></div>}
-   {kind==='easy'&&typeof firstHrLimit==='number'&&validKilometerHrs.length>=4&&
+   {showHrContext&&
     <div className="ic-glance-stat"><span>HF-KONTEXT</span>
      <strong>{validKilometerHrs.length-aboveFirst}/{validKilometerHrs.length}</strong>
      <small>km Ø-HF bis {firstHrLimit} bpm{validHr(averageHr)?' · Lauf Ø '+Math.round(averageHr)+' bpm':''}</small></div>}
-   {!matched&&<p className="ic-muted">Für diesen Lauf keine eindeutig zugeordnete Intervals.icu-Belastung.
-    Garmin bleibt die Bewertungsgrundlage.</p>}
   </div>}
   {mode==='week'&&trend&&<div className="ic-glance-values">
    <div className="ic-glance-stat"><span>FITNESS / CTL</span><strong>{number(trend.ctl)}</strong>

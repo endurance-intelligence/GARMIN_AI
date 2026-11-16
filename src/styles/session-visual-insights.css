@@ -74,3 +74,20 @@
 
 .sv-split-zone{font-size:9px;font-weight:800;color:#c3baff;background:rgba(153,128,230,.1);border:1px solid rgba(155,140,216,.2);
  border-radius:7px;padding:4px 5px;margin-top:3px}
+
+/* v0.9.67 – Intervals load is explained beside the graphic heading, not duplicated in the verdict. */
+.sv-load-kpi{width:min(245px,100%);flex:0 1 245px;display:grid;gap:4px;padding:11px 13px;
+ border:1px solid rgba(120,186,239,.31);border-radius:13px;
+ background:linear-gradient(135deg,rgba(32,79,110,.57),rgba(16,32,56,.65))}
+.sv-load-kpi>span{font-size:10px;font-weight:850;letter-spacing:.08em;color:#9bd4f6}
+.sv-load-kpi>div{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.sv-load-kpi strong{font-weight:900;line-height:1;font-size:30px;letter-spacing:-.045em;
+ font-variant-numeric:tabular-nums;color:#f2fcff}
+.sv-load-kpi small{font-size:10px;color:#b7c9e3;font-weight:700}
+.sv-load-kpi p{margin:3px 0 0;font-size:10px;line-height:1.45;color:#a9bfd7}
+@media(max-width:600px){
+ .sv-top{align-items:stretch;flex-wrap:wrap}
+ .sv-load-kpi{width:100%;max-width:none;flex:1 1 100%;padding:9px 11px}
+ .sv-load-kpi strong{font-size:26px}
+ .sv-load-kpi p{font-size:10px}
+}
