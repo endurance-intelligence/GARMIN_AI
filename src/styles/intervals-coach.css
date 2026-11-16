@@ -7,3 +7,17 @@
 .ic-context summary{cursor:pointer;color:#bcd9fa;font-weight:750;list-style:revert}
 .ic-zones{margin-top:7px;padding:5px 0}.ic-zones summary{font-size:11px}
 .ic-zones p{font-size:11px;margin:5px 0}.ic-zones small{display:block}
+/* v0.9.66: the primary run review stays compact; detailed visuals live below. */
+.ic-context.ic-glance{margin:12px 0 0;padding:12px;border:1px solid rgba(111,160,207,.24);
+ background:linear-gradient(115deg,rgba(48,86,124,.17),rgba(25,38,64,.35));border-radius:12px}
+.ic-glance-head{display:flex;gap:10px;justify-content:space-between;align-items:center}
+.ic-glance-head small{color:#9bb0cd;font-size:10px}
+.ic-glance-values{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+.ic-glance-stat{display:grid;gap:2px;min-width:118px;flex:1 1 118px;max-width:235px;
+ background:rgba(14,25,44,.56);padding:9px 11px;border-radius:11px;border:1px solid rgba(126,166,218,.17)}
+.ic-glance-stat>span{font-size:9px;color:#a1b7d7;letter-spacing:.065em;font-weight:800}
+.ic-glance-stat>strong{font-size:20px;font-variant-numeric:tabular-nums;line-height:1.2;color:#e8f4ff;letter-spacing:-.04em}
+.ic-glance-stat>small{font-size:10px;color:#a7c0da}
+.ic-context p.ic-glance-foot{font-size:10px;color:#9aaecb;margin:9px 0 0;line-height:1.5}
+@media(max-width:600px){.ic-glance-values{gap:6px}.ic-glance-stat{min-width:85px;padding:8px}
+.ic-glance-stat>strong{font-size:18px}.ic-glance-stat>span{font-size:8px}.ic-glance-head small{font-size:9px}}

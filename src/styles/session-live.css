@@ -35,3 +35,26 @@
 .lsa-intensity-content{padding:0 12px 14px}
 .lsa-intensity-content .iie-wrap{margin:0}
 @media(max-width:600px){.lsa-deep-dive>summary,.lsa-intensity-toggle{padding:13px 12px}.lsa-intensity-content{padding:0 7px 12px}}
+
+/* v0.9.66: visual-first workout detail section, mobile-first. */
+.lsa-intensity-visual{margin:15px 0 16px;border-color:rgba(104,166,231,.45);
+ background:linear-gradient(135deg,rgba(30,56,92,.38),rgba(16,28,51,.6))}
+.lsa-intensity-visual>.lsa-intensity-toggle{padding:16px 18px}
+.lsa-intensity-visual>.lsa-intensity-toggle>span:first-child{font-size:16px;line-height:1.35;letter-spacing:-.025em}
+.lsa-intensity-visual .lsa-visual-overline{display:block;margin-bottom:4px;font-size:9px;font-weight:900;
+ color:#88cfff;letter-spacing:.13em}
+.lsa-intensity-visual>.lsa-intensity-content{padding:0 12px 12px}
+.lsa-garmin-zone-detail{border:1px solid rgba(111,151,197,.24);border-radius:13px;overflow:hidden;margin-top:12px}
+.lsa-garmin-zone-detail>button{display:flex;width:100%;justify-content:space-between;align-items:center;
+ padding:12px 15px;text-align:left;gap:10px;border:0;background:rgba(28,48,76,.32);color:#dcecff;
+ font-size:12px;font-weight:800;cursor:pointer}
+.lsa-garmin-zone-detail>button small{font-size:10px;color:#9aadc9}
+.lsa-garmin-zone-body{padding:12px;background:rgba(13,24,43,.5)}
+@media(max-width:600px){
+ .lsa-intensity-visual>.lsa-intensity-toggle{padding:13px 11px}
+ .lsa-intensity-visual>.lsa-intensity-toggle>span:first-child{font-size:14px}
+ .lsa-intensity-visual>.lsa-intensity-toggle>small{font-size:10px}
+ .lsa-intensity-visual>.lsa-intensity-content{padding:0 7px 8px}
+ .lsa-garmin-zone-detail>button{padding:10px 9px;align-items:flex-start;flex-direction:column;gap:4px}
+ .lsa-garmin-zone-body{padding:8px}
+}

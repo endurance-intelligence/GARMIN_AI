@@ -150,6 +150,8 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
         <PlanActualReview match={planActual} loading={!plansLoaded&&!planError}
          error={planError}/>
         <CoachEvidenceSummary active={active} mode="training" activityId={details.activity.id}/>
+        <SessionIntensityDetails key={details.activity.id} samples={details.details.samples}
+          activityDate={details.activity.date} activityId={details.activity.id} active={active}/>
         <details className="lsa-deep-dive">
           <summary>HF-Verlauf, Messwerte und technische Beobachtungen <span>Optional ansehen</span></summary>
           <div className="lsa-deep-dive-content">
@@ -183,8 +185,6 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
         </div>
           </div>
         </details>
-        <SessionIntensityDetails key={details.activity.id} samples={details.details.samples}
-          activityDate={details.activity.date}/>
         <p className="lsa-foot">Der Coach erkennt den Trainingstyp aus Garmin-Aktivität und FIT-Belastungen.
           Die Intensitätszonen sind optionale Zusatzinformationen, keine Voraussetzung für ein Fazit.
           Keine automatischen Änderungen am Trainingsplan.</p>

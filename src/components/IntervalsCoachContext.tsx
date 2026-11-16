@@ -12,7 +12,6 @@ type Props={active:boolean;mode:'week'|'activity';weekStart?:string;activityId?:
  averageHr?:number|null;kilometerHrs?:number[];kind?:string}
 const number=(n:number)=>n.toLocaleString('de-DE',{maximumFractionDigits:1})
 const validHr=(x:unknown):x is number=>typeof x==='number'&&Number.isFinite(x)&&x>=35&&x<=220
-const pct=(n:number)=>n.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})
 const paceFromSpeed=(speed:number)=>{const secs=Math.round(1000/speed);return Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0')}
 /** Intervals.icu pace_zones are percentages of threshold SPEED, NOT seconds/km.
  * threshold_pace is SI m/s, irrespective of pace_units display settings.
@@ -61,41 +60,36 @@ export function IntervalsCoachContext({active,mode,weekStart,activityId,averageH
  const firstHrLimit=zones?.hrZones?.[0]
  const validKilometerHrs=(kilometerHrs||[]).filter(validHr)
  const aboveFirst=typeof firstHrLimit==='number'?validKilometerHrs.filter(x=>x>firstHrLimit).length:0
- const paceLimits=zones?displayPaceZoneLimits(zones.paceZones,zones.thresholdPace):[]
  const hasInfo=!!trend||!!matched||!!zones
  if(!hasInfo)return <details className="ic-context"><summary>Intervals.icu · keine ergänzenden Werte</summary>
    <p>Keine verlässlichen Zusatzdaten für diesen Zeitraum. Die Garmin-Bewertung bleibt gültig.</p></details>
- return <div className="ic-context" aria-label="Intervals.icu ergänzt den Garmin-Coach">
-  <div className="ic-source">INTERVALS.ICU · TRAININGSKONTEXT</div>
-  {mode==='activity'&&kind==='easy'&&typeof firstHrLimit==='number'&&validKilometerHrs.length>=4&&<p className="ic-interpretation">
-   <strong>HF-Einordnung:</strong> {validKilometerHrs.length-aboveFirst} von {validKilometerHrs.length} Kilometerabschnitten
-   hatten Ø HF bis {firstHrLimit} bpm (erste konfigurierte Intervals.icu-HF-Grenze).
-   {validHr(averageHr)&&<> Gesamt-Ø {Math.round(averageHr)} bpm.</>}
-   {aboveFirst>0?<> {aboveFirst} Abschnitte lagen darüber – also kein durchgehend gleich niedriger Puls.</>:
-    <> Kein Kilometerabschnitt lag im Durchschnitt darüber.</>}
-   <small>Abschnittsdurchschnitte, keine sekundengenaue Zeit in Zonen; kein LT1-Nachweis.</small>
-  </p>}
-  {trend&&<p><strong>Belastungstrend:</strong> Fitness (CTL) {number(trend.ctl)},
-   Fatigue (ATL) {number(trend.atl)}, Form {trend.form>=0?'+':''}{number(trend.form)}.
-   {trend.daysBetween>0&&<> CTL-Änderung {trend.ctlChange>=0?'+':''}{number(trend.ctlChange)}
-    in {trend.daysBetween} Tagen.</>}
-   <small> Stand {trend.asOf} · Trendwerte, keine automatische Freigabe</small></p>}
-  {matched&&<p><strong>Belastung dieses Laufs:</strong> {matched.load===null?'Kein Belastungswert verfügbar':number(matched.load)+' Intervals.icu Load'}.
-    {matched.intensity!==null&&<> Intensitätsfaktor {number(matched.intensity)}.</>}
-    <small> Eindeutig dem Garmin-Lauf zugeordnet · nicht doppelt gezählt</small></p>}
-  {mode==='activity'&&!matched&&zones&&<p className="ic-muted">Keine eindeutige Intervals.icu-Aktivität zugeordnet. Persönliche Zonen sind trotzdem verfügbar.</p>}
-  {zones&&<details className="ic-zones"><summary>Persönliche Intervals.icu-Laufzonen ansehen</summary>
-    {zones.hrZones.length>0&&<p>HF-Grenzen: {zones.hrZones.join(' · ')} bpm</p>}
-    {zones.lthr!==null&&<p>Hinterlegte LTHR: {zones.lthr} bpm (nicht automatisch LT1).</p>}
-    {paceLimits.length>0&&<div className="ic-pace">
-     <strong>Pace-Grenzen (Prozent des Schwellentempos):</strong>
-     <ul>{paceLimits.map(z=><li key={z.zone}>Z{z.zone} bis {pct(z.percentage)} %{z.pace?' · ca. '+z.pace+' min/km':''}</li>)}</ul>
-     <small>Die Prozente beziehen sich auf die Schwellen-Geschwindigkeit. {zones.thresholdPace===null?
-      'Für die Umrechnung in min/km fehlt das Schwellentempo.':
-      'Pace in min/km aus der hinterlegten Schwellen-Geschwindigkeit berechnet.'}
-      {' '}Die letzte offene Zone hat keine endliche Obergrenze.</small>
-    </div>}
-    <small>Konfigurierte Zonen in Intervals.icu. Keine automatisch getesteten physiologischen Schwellen.</small>
-   </details>}
+ return <div className="ic-context ic-glance" aria-label="Kurze Intervals.icu-Ergänzung zum Coach-Fazit">
+  <div className="ic-glance-head"><span className="ic-source">INTERVALS.ICU · ZUSATZCHECK</span>
+   {mode==='activity'&&<small>Details unten als Grafik</small>}</div>
+  {mode==='activity'&&<div className="ic-glance-values">
+   {matched?.load!==null&&matched?.load!==undefined&&
+    <div className="ic-glance-stat"><span>TRAININGSBELASTUNG</span><strong>{number(matched.load)}</strong><small>Intervals Load</small></div>}
+   {matched?.intensity!==null&&matched?.intensity!==undefined&&
+    <div className="ic-glance-stat"><span>INTENSITÄT</span><strong>{number(matched.intensity)}</strong><small>Intervals-Faktor</small></div>}
+   {kind==='easy'&&typeof firstHrLimit==='number'&&validKilometerHrs.length>=4&&
+    <div className="ic-glance-stat"><span>HF-KONTEXT</span>
+     <strong>{validKilometerHrs.length-aboveFirst}/{validKilometerHrs.length}</strong>
+     <small>km Ø-HF bis {firstHrLimit} bpm</small></div>}
+   {!matched&&<p className="ic-muted">Für diesen Lauf keine eindeutig zugeordnete Intervals.icu-Belastung.
+    Garmin bleibt die Bewertungsgrundlage.</p>}
+  </div>}
+  {mode==='week'&&trend&&<div className="ic-glance-values">
+   <div className="ic-glance-stat"><span>FITNESS / CTL</span><strong>{number(trend.ctl)}</strong>
+    <small>{trend.ctlChange>=0?'+':''}{number(trend.ctlChange)} im Verlauf</small></div>
+   <div className="ic-glance-stat"><span>FATIGUE / ATL</span><strong>{number(trend.atl)}</strong>
+    <small>Trainingsbelastung</small></div>
+   <div className="ic-glance-stat"><span>FORM</span><strong>{trend.form>=0?'+':''}{number(trend.form)}</strong>
+    <small>Stand {trend.asOf}</small></div>
+  </div>}
+  {mode==='week'&&!trend&&<p className="ic-muted">Kein durchgehender Fitness-/Fatigue-Verlauf für diese Woche verfügbar.</p>}
+  {mode==='activity'&&<p className="ic-glance-foot">Garmin bewertet den Lauf. Persönliche HF- und Pace-Zonen
+   sowie die Wiederholungen findest du weiter unten bei „Trainingszonen & Wiederholungen“.
+   Die Intervals-Zonen sind konfigurierte Referenzen, kein LT1-Nachweis.</p>}
+  {mode==='week'&&<p className="ic-glance-foot">Belastungstrend als Kontext, keine automatische Trainingsfreigabe.</p>}
  </div>
 }

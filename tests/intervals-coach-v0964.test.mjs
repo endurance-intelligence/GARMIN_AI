@@ -47,9 +47,9 @@ test('Intervals context is strictly owner-only read-only, remote GET only',()=>{
 })
 test('only supplemental data, Garmin coach still primary and no duplicate counting',()=>{
  const view=read('src/components/IntervalsCoachContext.tsx')
- assert.match(view,/nicht doppelt gezählt/)
+ assert.match(view,/Garmin bewertet den Lauf/)
  assert.match(view,/Die Garmin-Bewertung bleibt gültig/)
- assert.match(view,/Hinterlegte LTHR/)
+ assert.match(read('src/components/SessionVisualInsights.tsx'),/Hinterlegte LTHR/)
  assert.match(view,/garmin-intervals-insights/)
  assert.match(view,/mode==='activity'/)
 })

@@ -97,9 +97,22 @@ export function buildActivityCoach(activity,details={},goal=null) {
   }else attention='Kilometerabschnitte fehlen; Tempoverlauf kann nicht beurteilt werden.'
   if(type==='easy')attention+=' „Locker“ stammt zunächst aus dem Aktivitätsnamen; die konfigurierten HF-Zonen und dein Empfinden liefern weiteren Kontext, aber keine automatisch bestimmte LT1.'
  }
+ // Small, privacy-safe Garmin FIT summaries for visual coaching. No GPS or
+ // raw point stream leaves the owner-only server.
+ const intervals=type==='intervals' && efforts.length>=2?
+  efforts.slice(0,24).map((l,i)=>({
+   repeat:i+1,distanceM:Math.round(n(l.distanceM)||0),
+   durationS:n(l.elapsedS),paceSeconds:Math.round(1000/Number(l.avgSpeed)),
+   avgHr:n(l.avgHr)
+  })):[]
+ const kilometers=type!=='intervals'?
+  laps.filter(l=>n(l.distanceM)>=750&&n(l.avgSpeed)>0.8).slice(0,42).map((l,i)=>({
+   km:i+1,distanceM:Math.round(n(l.distanceM)||0),
+   paceSeconds:Math.round(1000/Number(l.avgSpeed)),avgHr:n(l.avgHr)
+  })):[]
  const goalText=goalFinding(date,goal,type)
  return {activityId:String(activity.activity_id||activity.id),date,name:String(activity.activity_name||'Lauf').slice(0,130),
-  type,headline,positive,attention,goal:goalText,quality,facts,
+  type,headline,positive,attention,goal:goalText,quality,facts,intervals,kilometers,
   averageHr:avgHr,
   kilometerHrs:type==='intervals'?[]:laps.filter(l=>n(l.distanceM)>=750&&n(l.avgSpeed)>0.8).map(l=>n(l.avgHr)).filter(h=>h!==null),
   short:[headline,positive,goalText].join(' ').slice(0,600),source:'Garmin FIT'}
