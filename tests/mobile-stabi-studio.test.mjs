@@ -155,7 +155,7 @@ test('only unilateral bodyweight exercises receive an exact halfway switch',()=>
   'knee-to-wall','short-foot','single-leg-balance','hip-flexor-stretch',
   'thoracic-rotation','single-leg-glute-bridge']){
   const block=all.slice(all.indexOf('id: "'+id+'"'),all.indexOf('id: "'+id+'"')+420)
-  assert.match(block,/sideSwitch:\\s*true/,id)
+  assert.ok(block.includes('sideSwitch: true'),id)
  }
  const p=buildMovementPlan('2026-11-16')
  const strengthIndex=p.steps.findIndex(s=>s.part==='strength')
