@@ -11,12 +11,18 @@ test('live Session Intelligence has no demo verdict, no fake fueling and no stal
  assert.doesNotMatch(page,/GarminConnectSnapshot|demoSessions|session\.grade|Einnahme simulieren|BEISPIELANALYSEN|session-score|fuel-demo-log/)
  assert.match(page,/Keine künstlichen Trainingsnoten/)
 })
-test('live session keeps measured data separate from manual training intention',()=>{
+test('live session shows exactly one automatic coach verdict and optional HR details',()=>{
  const view=read('src/components/LiveSessionAnalyst.tsx')
- assert.match(view,/analysis\.signals\.filter\(signal=>signal\.title!=='Trainingsziel noch nicht hinterlegt'\)/)
- assert.match(view,/separat und nur nach deiner Zuordnung bewertet/)
- assert.match(view,/<SessionGoalReview/)
- assert.match(view,/Runden nicht übermittelt/)
+ const zones=read('src/components/SessionIntensityDetails.tsx')
+ assert.match(view,/<CoachEvidenceSummary active=\{active\} mode="training"/)
+ assert.equal((view.match(/<CoachEvidenceSummary/g)||[]).length,1)
+ assert.doesNotMatch(view,/<SessionGoalReview|plannedGoal=/)
+ assert.doesNotMatch(view,/separat und nur nach deiner Zuordnung bewertet|Runden nicht übermittelt/)
+ assert.match(view,/<details className="lsa-deep-dive">/)
+ assert.match(view,/<SessionIntensityDetails key=\{details\.activity\.id\}/)
+ assert.match(zones,/useGarminHrProfile\(open\)/)
+ assert.match(zones,/<IntensityEvidencePanel/)
+ assert.doesNotMatch(zones,/<SessionGoalReview|coachFinding\(/)
 })
 test('aerobic analysis is optional and import diagnostics are behind disclosure',()=>{
  const page=read('src/pages/TrainingPage.tsx')

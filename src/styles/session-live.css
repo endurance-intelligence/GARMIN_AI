@@ -17,3 +17,21 @@
 @media(max-width:940px){.lsa-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.lsa-panels{grid-template-columns:1fr}.lsa-head{flex-wrap:wrap}}
 @media(max-width:600px){.lsa-wrap{padding:18px;border-radius:18px}.lsa-head h2{font-size:24px}.lsa-stat-grid strong{font-size:23px}.lsa-section-title{flex-wrap:wrap}}
 .lsa-demo-divider{font-size:10px;letter-spacing:.13em;font-weight:800;color:#a7b3cf;margin:26px 0 14px;padding-top:16px;border-top:1px solid #34405d}
+
+/* v0.9.62 — one authoritative run verdict; technical observations remain optional. */
+.lsa-deep-dive{margin:16px 0 0;border:1px solid #344765;border-radius:15px;background:#111b30;overflow:hidden}
+.lsa-deep-dive>summary{list-style:none;cursor:pointer;padding:15px 18px;color:#e9f0ff;font-size:13px;font-weight:800;
+ display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+.lsa-deep-dive>summary::-webkit-details-marker{display:none}
+.lsa-deep-dive>summary::before{content:'+';color:#9bcfff;font-size:19px;line-height:1}
+.lsa-deep-dive[open]>summary::before{content:'−'}
+.lsa-deep-dive>summary span{color:#9cb2d6;font-size:11px;font-weight:600;margin-left:auto}
+.lsa-deep-dive-content{padding:0 13px 16px}
+.lsa-deep-dive .lsa-panels{margin-top:12px}
+.lsa-intensity-expand{margin-top:12px;border:1px solid #344765;border-radius:15px;background:#111b30}
+.lsa-intensity-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;
+ text-align:left;color:#e9f0ff;background:transparent;border:0;padding:15px 18px;cursor:pointer;font-size:13px;font-weight:800}
+.lsa-intensity-toggle small{font-size:11px;color:#9cb2d6;font-weight:600}
+.lsa-intensity-content{padding:0 12px 14px}
+.lsa-intensity-content .iie-wrap{margin:0}
+@media(max-width:600px){.lsa-deep-dive>summary,.lsa-intensity-toggle{padding:13px 12px}.lsa-intensity-content{padding:0 7px 12px}}
