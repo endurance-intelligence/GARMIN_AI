@@ -55,7 +55,7 @@ test('Intervals pace zone percentages are not shown as raw seconds or 999',()=>{
  assert.match(read('src/components/SessionVisualInsights.tsx'),/Pace-Grenzen aus der/)
  assert.match(read('src/components/SessionVisualInsights.tsx'),/min\/km/)
  assert.doesNotMatch(src,/API-Rohwerte|paceZones\.join/)
- assert.match(src,/Erste|erste konfigurierte Intervals.icu-HF-Grenze/)
+ assert.match(src,/firstHrLimit/)
  assert.match(src,/kein LT1-Nachweis/)
 })
 test('user-specific zones count km means, not fabricated time-in-zone',()=>{
