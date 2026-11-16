@@ -27,8 +27,16 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
  const [startTime,setStartTime]=useState('18:00')
  const [saving,setSaving]=useState<string|null>(null)
  const [savedDay,setSavedDay]=useState<string|null>(null)
+ const [showAllDays,setShowAllDays]=useState(false)
  const ids=useRef<Record<string,string>>({})
  const today=berlinDateToday()
+ useEffect(()=>{
+  const changed=()=>setReload(n=>n+1)
+  window.addEventListener('garmin-ai-weekly-choice-changed',changed)
+  window.addEventListener('garmin-ai-coach-data-changed',changed)
+  return ()=>{window.removeEventListener('garmin-ai-weekly-choice-changed',changed)
+   window.removeEventListener('garmin-ai-coach-data-changed',changed)}
+ },[])
  useEffect(()=>{
   if(!active||!garminSupabase)return
   let mounted=true
@@ -70,6 +78,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
    setReview(null)
    setSavedDay(null)
    setNotice('Deine Angaben wurden gespeichert und der 7-Tage-Coach neu berechnet. Keine Garmin-Änderung.')
+   window.dispatchEvent(new Event('garmin-ai-coach-data-changed'))
   }catch(e){setError(e instanceof Error?e.message:'Coach-Kontext nicht gespeichert.')}
   finally{setContextBusy(false)}
  }
@@ -111,6 +120,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
    }:prev)
    setReview(null)
    setSavedDay(day.date)
+   window.dispatchEvent(new Event('garmin-ai-coach-data-changed'))
    setNotice((structured?
     'Zeitgesteuertes Lauf-Workout ('+day.minutes+' Min., Start '+startTime+
     ') als Entwurf gespeichert. Nächster Schritt: im Kalender freigeben und danach bewusst an Intervals.icu senden.':
@@ -129,19 +139,27 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
    <button type="button" className="c7-refresh" disabled={loading||saving!==null}
     onClick={()=>{setReload(x=>x+1);setReview(null);setSavedDay(null)}}><Icon name="refresh-cw"/> Aktualisieren</button>
   </div>
-  {snapshot&&<CoachLifeContext life={snapshot.life} busy={contextBusy||saving!==null} onAction={updateLife}/>} 
+  {snapshot&&<details className="c7-life-settings">
+   <summary>Coach-Einstellungen · Krankheit, Urlaub und verfügbare Tage
+    <span>{snapshot.life.context.illness_state==='sick'?'Pause aktiv':
+     snapshot.life.context.illness_state==='returning'?'Wiedereinstieg aktiv':'Bei Bedarf öffnen'}</span></summary>
+   <CoachLifeContext life={snapshot.life} busy={contextBusy||saving!==null} onAction={updateLife}/>
+  </details>}
   {loading&&!plan&&<p className="c7-alert" role="status">Prüfe aktuelle Garmin- und Kalenderdaten …</p>}
   {error&&<p className="c7-error" role="alert">{error}</p>}
   {plan&&<>
-   <CoachDecisionLive plan={plan} reviewDate={review} saving={saving!==null||contextBusy}
+   <CoachDecisionLive plan={plan} snapshot={snapshot!} reviewDate={review} saving={saving!==null||contextBusy}
     onReview={date=>{
-     setReview(date);setStartTime('18:00')
+     setReview(date);setShowAllDays(true);setStartTime('18:00')
      requestAnimationFrame(()=>document.getElementById('c7-day-'+date)?.scrollIntoView({
       behavior:'smooth',block:'center'
      }))
     }}
     onCalendar={onCalendar}
-    onPlan={()=>document.getElementById('c7-week-overview')?.scrollIntoView({behavior:'smooth',block:'start'})}/>
+    onPlan={()=>{
+     setShowAllDays(true)
+     requestAnimationFrame(()=>document.getElementById('c7-week-overview')?.scrollIntoView({behavior:'smooth',block:'start'}))
+    }}/>
    <details className="c7-evidence">
     <summary className="c7-evidence-summary">Alle zugrunde liegenden Messwerte und Datenqualität anzeigen</summary>
     <div className="c7-evidence-label"><strong>Datenlage und Begründung</strong>
@@ -154,7 +172,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
      Kein KI-Readiness-Score, keine Diagnose.</p>
    </details>
    <div className="c7-week" id="c7-week-overview" role="list">
-    {plan.days.map(day=><article className={'c7-day c7-'+day.kind} id={'c7-day-'+day.date} key={day.date} role="listitem">
+    {(showAllDays?plan.days:plan.days.slice(0,3)).map(day=><article className={'c7-day c7-'+day.kind} id={'c7-day-'+day.date} key={day.date} role="listitem">
      <div className="c7-day-main"><div className="c7-date">{formatDate(day.date)}</div>
       <div className="c7-day-copy"><strong>{day.title}</strong>
        <p>{day.reason}</p>
@@ -192,6 +210,10 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
      </div>}
     </article>)}
    </div>
+   {plan.days.length>3&&<button className="c7-more-days" type="button"
+    aria-expanded={showAllDays} onClick={()=>setShowAllDays(v=>!v)}>
+    {showAllDays?'Weniger Tage anzeigen':'Weitere '+(plan.days.length-3)+' Tage anzeigen'} <Icon name="arrow-up-right"/>
+   </button>}
    {notice&&<div className="c7-saved-next" role="status">
     <p className="c7-ok">{notice}</p>
     {savedDay&&<button type="button" className="c7-next-calendar" onClick={()=>onCalendar(savedDay)}>

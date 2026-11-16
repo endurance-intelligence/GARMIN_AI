@@ -134,3 +134,9 @@
 .cg-home-weather:disabled .cg-home-weather-open{display:none}
 @media(max-width:830px){.cg-home-weather{min-height:65px}}
 @media(prefers-reduced-motion:reduce){.cg-home-weather{transition:none}.cg-home-weather:hover{transform:none}}
+
+/* v0.9.72 - weather details including apparent temp and critical hour. */
+.cg-home-weather-data{gap:4px 9px}
+.cg-home-weather-data span{font-size:10px;line-height:1.4}
+.cg-postrace-context{cursor:default;pointer-events:none}
+.cg-postrace-context .cg-home-weather-content small{line-height:1.55}

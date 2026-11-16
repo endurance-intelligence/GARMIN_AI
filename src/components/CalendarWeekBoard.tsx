@@ -156,9 +156,12 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
          </button>)}
         {local.map(plan=><button type="button" className="hwb-card is-planned"
           key={'p-'+plan.id} onClick={()=>onSelect(day)}>
-         <span className="hwb-card-label">◌ GARMIN_AI / {plan.state==='draft'?'ENTWURF':'GEPLANT'}</span>
+         <span className="hwb-card-label">◌ GARMIN_AI / {day<today&&['pending','draft'].includes(plan.state)?
+          'VERGANGEN · NICHT BESTÄTIGT':plan.state==='draft'?'ENTWURF':plan.state==='pending'?'FREIGABE OFFEN':'GEPLANT'}</span>
          <strong>{plan.title}</strong>
-         <small>Details und Freigabe am ausgewählten Tag</small>
+         <small>{day<today&&['pending','draft'].includes(plan.state)?
+          'Termin liegt zurück. Im Kalender prüfen und bewusst abschließen – nicht automatisch nachholen.':
+          'Details und Freigabe am ausgewählten Tag'}</small>
         </button>)}
         {coach&&<button type="button" onClick={()=>onSelect(day)} key={'coach-'+day}
          className={'hwb-card is-coach'+(coach.kind==='race'?' is-race':coach.approvable?' is-coach-offer':' is-coach-info')}>

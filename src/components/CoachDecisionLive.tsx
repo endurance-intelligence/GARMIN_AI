@@ -1,14 +1,15 @@
 import type {SevenDayPlan} from '../lib/coachSevenDay.mjs'
+import type {CoachSnapshot} from '../lib/coachSnapshot'
 import {selectCoachDecision} from '../lib/coachDecision.mjs'
 import {Icon} from './Icon'
 import '../styles/coach-decision-live.css'
 
 const dated=(date:string)=>new Intl.DateTimeFormat('de-DE',{timeZone:'UTC',
  weekday:'long',day:'2-digit',month:'2-digit'}).format(new Date(date+'T12:00:00Z'))
-type Props={plan:SevenDayPlan;reviewDate:string|null;saving:boolean;
+type Props={plan:SevenDayPlan;snapshot:CoachSnapshot;reviewDate:string|null;saving:boolean;
  onReview:(date:string)=>void;onCalendar:(date:string)=>void;onPlan:()=>void}
-export function CoachDecisionLive({plan,reviewDate,saving,onReview,onCalendar,onPlan}:Props){
- const x=selectCoachDecision(plan)
+export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCalendar,onPlan}:Props){
+ const x=selectCoachDecision(plan,snapshot)
  if(!x)return null
  const {day}=x
  const reviewIsOpen=reviewDate===day.date

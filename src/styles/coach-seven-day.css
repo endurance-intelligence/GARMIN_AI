@@ -86,3 +86,19 @@
 #c7-week-overview{scroll-margin-top:24px}
 .c7-day{scroll-margin-top:110px}
 @media(max-width:760px){.c7-day{scroll-margin-top:80px}}
+
+/* v0.9.72 - coach management as subordinate settings */
+.c7-life-settings{margin:8px 0 11px;border:1px solid rgba(131,157,203,.22);
+ background:rgba(14,24,44,.34);border-radius:11px;padding:0 12px}
+.c7-life-settings>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;
+ justify-content:space-between;gap:9px;flex-wrap:wrap;font-size:12px;font-weight:750;
+ color:#c8d6ef;list-style:none}
+.c7-life-settings>summary::-webkit-details-marker{display:none}
+.c7-life-settings>summary>span{font-size:10px;color:#a2b6d7}
+.c7-life-settings[open]{padding-bottom:10px}
+.c7-life-settings>summary:focus-visible{outline:2px solid #b6ccff;outline-offset:3px}
+.c7-more-days{display:inline-flex;align-items:center;gap:8px;margin:9px 0 0;padding:10px 14px;
+ border-radius:10px;border:1px solid rgba(154,162,230,.4);background:rgba(85,102,167,.18);
+ color:#dde6fd;min-height:44px;font-size:12px;font-weight:800;cursor:pointer}
+.c7-more-days:focus-visible{outline:2px solid #b7d0ff;outline-offset:3px}
+@media(max-width:600px){.c7-more-days{width:100%;justify-content:center}}

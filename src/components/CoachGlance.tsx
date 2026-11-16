@@ -1,11 +1,14 @@
 /** Compact, real data only. All signals are read from owner-authenticated Edge APIs. */
 import {useEffect,useState} from 'react'
 import type {ReactNode} from 'react'
-import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
+import {garminSupabase} from '../lib/garminSupabase'
+import {readCoachPrivate} from '../lib/coachRequestPool'
 import {Icon} from './Icon'
 import {interpretRecovery,formatSleep,differenceLabel,recoveryNarrative} from '../lib/recoveryComparison'
 import {RecoverySparkline} from './RecoverySparkline'
 import {coachTodayChoice} from '../lib/coachTodayChoice.mjs'
+import {summarizeDayActivity,dayCoachHeadline} from '../lib/coachDayStatus.mjs'
+import {recoveryWeekTrend} from '../lib/recoveryWeekTrend.mjs'
 import {recoveryMetricMeaning,recoveryDashboardMeaning} from '../lib/recoveryMeaning.mjs'
 import '../styles/coach-glance.css'
 
@@ -17,7 +20,8 @@ type Overview={
   workout:CalendarWorkout|null;option:CalendarWorkout|null;plan:CoachPlan|null;
   blocked:'sick'|'returning'|'vacation'|'unavailable'|null;
   availabilityOk:boolean;health:HealthDay|null;healthHistory:HealthDay[];
-  calendarOk:boolean;healthOk:boolean;skipped:boolean;skippedTitle:string
+  calendarOk:boolean;healthOk:boolean;skipped:boolean;skippedTitle:string;
+  completed:ReturnType<typeof summarizeDayActivity>;activityOk:boolean
 }
 function today(){
  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
@@ -42,33 +46,30 @@ export function CoachGlance({active,onCalendar,children}:{
  useEffect(()=>{
   const changed=()=>setRefresh(n=>n+1)
   window.addEventListener('garmin-ai-weekly-choice-changed',changed)
-  return ()=>window.removeEventListener('garmin-ai-weekly-choice-changed',changed)
+  window.addEventListener('garmin-ai-coach-data-changed',changed)
+  return ()=>{window.removeEventListener('garmin-ai-weekly-choice-changed',changed)
+   window.removeEventListener('garmin-ai-coach-data-changed',changed)}
  },[])
  useEffect(()=>{
   if(!active||!garminSupabase)return
   let mounted=true
   const abort=new AbortController()
   setLoading(true);setError(false)
-  async function get(url:string,token:string){
-   const result=await fetch(garminSupabaseUrl+'/functions/v1/'+url,{
-    cache:'no-store',signal:abort.signal,
-    headers:{authorization:'Bearer '+token,apikey:garminPublishableKey}
-   })
-   if(!result.ok)throw Error('Private API unavailable')
-   return await result.json() as Record<string,unknown>
-  }
+  const get=(url:string,token:string)=>readCoachPrivate(url,token,abort.signal)
   void garminSupabase.auth.getSession().then(async({data})=>{
    const token=data.session?.access_token
    if(!token)throw Error('Session required')
    const results=await Promise.allSettled([
     get('garmin-weekly-options',token),get('garmin-training-plan',token),
-    get('read-garmin-health',token),get('garmin-coach-context',token)
+    get('read-garmin-health',token),get('garmin-coach-context',token),
+    get('garmin-week-board?start='+new Date(Date.parse(date+'T12:00:00Z')-((new Date(date+'T12:00:00Z').getUTCDay()+6)%7)*86400000).toISOString().slice(0,10),token)
    ])
    if(!mounted)return
    const week=results[0].status==='fulfilled'?results[0].value:null
    const plans=results[1].status==='fulfilled'?results[1].value:null
    const health=results[2].status==='fulfilled'?results[2].value:null
    const life=results[3].status==='fulfilled'?results[3].value:null
+   const board=results[4].status==='fulfilled'?results[4].value:null
    const rows=week?.options as CalendarWorkout[]|undefined
    const choices=week?.choices as WeeklyChoice[]|undefined
    const planRows=plans?.entries as CoachPlan[]|undefined
@@ -85,10 +86,12 @@ export function CoachGlance({active,onCalendar,children}:{
     dateBlock?.reason==='vacation'?'vacation':
     dateBlock?.reason==='unavailable'?'unavailable':null
    const todayPlan=todayChoice.plan as CoachPlan|null
+   const completed=summarizeDayActivity(board,date)
    const latestHealth=Array.isArray(healthRows)?
     [...healthRows].filter(h=>h.metric_date<=date).sort((a,b)=>b.metric_date.localeCompare(a.metric_date))[0]||null:null
    setView({workout:todayWorkout,option:todayOption,plan:todayPlan,
-    skipped:todayChoice.skipped,skippedTitle:todayChoice.skippedTitle,
+    skipped:todayChoice.skipped,skippedTitle:todayChoice.skippedTitle,completed,
+    activityOk:!!board,
     blocked,availabilityOk:!!life,health:latestHealth,
     healthHistory:Array.isArray(healthRows)?healthRows:[],
     calendarOk:!!week&&!!plans,healthOk:!!health})
@@ -101,27 +104,33 @@ export function CoachGlance({active,onCalendar,children}:{
   sick:'Trainingspause · krank / Beschwerden',returning:'Vorsichtiger Wiedereinstieg',
   vacation:'Urlaub · trainingsfrei',unavailable:'Heute keine Zeit für Training'
  }
+ const fromActivity=view?dayCoachHeadline(view,view.completed):null
  const title=view?.blocked?blockedLabels[view.blocked]:
-  !view?.calendarOk?'Trainingskalender nicht vollständig erreichbar':
-  view.plan?.title||view.workout?.title||
-  (view.option?'Optional: '+view.option.title:view.skipped?'Heute trainingsfrei · bewusst ausgelassen':'Heute kein Training geplant')
+  fromActivity?.title||
+  (view?.skipped&&!view.activityOk?'Termin ausgelassen · Garmin-Aktivitäten nicht geprüft':null)||
+  (!view?.calendarOk?'Trainingskalender nicht vollständig erreichbar':
+   view?.plan?.title||view?.workout?.title||
+   (view?.option?'Optional: '+view.option.title:view?.skipped?'Heute trainingsfrei · bewusst ausgelassen':'Heute kein Training geplant'))
  const category=view?.blocked?
   'Dein im Coach gemeldeter Status hat Vorrang. Keine Nachholeinheiten.':
-  view?.plan?(view.plan.state==='draft'?'Entwurf im GARMIN_AI-Kalender · noch nicht freigegeben':'GARMIN_AI-Kalender · geplanter Termin'):
-  view?.workout?'Zugesagt · '+view.workout.start_time.slice(0,5)+' Uhr · '+view.workout.location_label:
-  view?.option?'Offene Wochenoption · noch nicht zugesagt':
-  view?.skipped?'Auslassen gespeichert'+(view.skippedTitle?' · '+view.skippedTitle:'')+'. Kein Nachholen vorgesehen.':
-  'Kein geplanter oder zugesagter Trainingstermin.'
+  fromActivity?.note||
+  (view&&!view.activityOk?'Garmin-Aktivitäten für heute derzeit nicht erreichbar.':null)||
+  (view?.plan?(view.plan.state==='draft'?'Entwurf im GARMIN_AI-Kalender · noch nicht freigegeben':'GARMIN_AI-Kalender · geplanter Termin'):
+   view?.workout?'Zugesagt · '+view.workout.start_time.slice(0,5)+' Uhr · '+view.workout.location_label:
+   view?.option?'Offene Wochenoption · noch nicht zugesagt':
+   view?.skipped?'Auslassen gespeichert'+(view.skippedTitle?' · '+view.skippedTitle:'')+'. Kein Nachholen vorgesehen.':
+   'Kein geplanter oder zugesagter Trainingstermin.')
  const health=view?.health
  const comparison=health?interpretRecovery(view?.healthHistory||[],health.metric_date):null
  const [sleep,hrv,rhr]=comparison?.metrics||[]
+ const trend=health?recoveryWeekTrend(view?.healthHistory||[],health.metric_date):null
  return <div className="co-at-a-glance">
   <section className="co-today" aria-label="Training heute">
    <div className="co-section-head">
     <div><span className="co-eyebrow">HEUTE · TRAINING</span>
-     {view&&<span className={'co-decision-chip '+(view.skipped?'co-decision-skipped':view.plan||view.workout?'co-decision-active':view.option?'co-decision-optional':'co-decision-free')}>
+     {view&&<span className={'co-decision-chip '+(fromActivity?'co-decision-active':view.skipped?'co-decision-skipped':view.plan||view.workout?'co-decision-active':view.option?'co-decision-optional':'co-decision-free')}>
       <span className="co-decision-dot" aria-hidden="true"/>
-      {view.skipped?'BEWUSST AUSGELASSEN':view.plan?'PLAN IM KALENDER':view.workout?'TEILNAHME BESTÄTIGT':view.option?'FREIWILLIGER TERMIN':'KEIN TERMIN'}
+      {fromActivity?'TRAINING ERLEDIGT':view.skipped?'BEWUSST AUSGELASSEN':view.plan?'PLAN IM KALENDER':view.workout?'TEILNAHME BESTÄTIGT':view.option?'FREIWILLIGER TERMIN':'KEIN TERMIN'}
      </span>}
      <h2>{loading&&!view?'Lade deinen Tag …':title}</h2>
      <p>{category}</p>
@@ -144,8 +153,8 @@ export function CoachGlance({active,onCalendar,children}:{
       <span className="co-recovery-insight-icon"><Icon name="activity"/></span>
       <div>
         <strong>Dein Verlauf auf einen Blick</strong>
-        <p>{recoveryNarrative(comparison)}</p>
-        <p className="co-recovery-reading">{recoveryDashboardMeaning(comparison)}</p>
+
+        <p className="co-recovery-reading">{recoveryDashboardMeaning(comparison,trend)}</p>
       </div>
     </div>
     <div className="co-trend-grid" role="list" aria-label="Schlaf, HRV und Ruhepuls mit Verlauf der letzten sieben Tage">
@@ -180,7 +189,7 @@ export function CoachGlance({active,onCalendar,children}:{
       <div className="co-recovery-explanation">
         <p><strong>Schlaf:</strong> Dauer, nicht Schlafqualität. <strong>HRV:</strong> individuelle Schwankung
         des Herzrhythmus. <strong>Ruhepuls:</strong> ebenfalls im persönlichen Verlauf betrachten.</p>
-        <p><strong>Deine konkreten Werte:</strong> {recoveryDashboardMeaning(comparison)}</p>
+        <p><strong>Messwertvergleich:</strong> {recoveryNarrative(comparison)}</p>
         <p>Die gestrichelte Linie zeigt den Median der 14 Tage vor der neuesten Messung –
         nur bei mindestens sieben gültigen Werten. Das ist keine langfristige gesunde Baseline.
         Krankheit, Trainingsbelastung und Befinden müssen für eine Empfehlung zusätzlich einfließen.</p>

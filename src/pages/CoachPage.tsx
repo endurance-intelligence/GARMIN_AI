@@ -4,6 +4,7 @@ import {SyncCenter} from '../components/SyncCenter'
 import {CoachTodayWeather} from '../components/CoachTodayWeather'
 import {CoachGlance} from '../components/CoachGlance'
 import {WeeklyTrainingOptions,berlinToday,mondayOf} from '../components/WeeklyTrainingOptions'
+import {coachAddDays} from '../lib/coachSevenDay.mjs'
 import {CrossTrainingCoachCard} from '../components/CrossTrainingCoachCard'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {CoachSevenDay} from '../components/CoachSevenDay'
@@ -52,9 +53,22 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenRaceWeather}: {activ
   <CoachTodayWeather active={active}/>
  </CoachGlance>
  <CoachSevenDay active={active} onCalendar={onOpenCalendar}/>
- <CoachEvidenceSummary active={active} mode="weekly" weekStart={mondayOf(berlinToday())}/>
- <WeeklyTrainingOptions active={active} weekStart={mondayOf(berlinToday())} compact/>
- <CrossTrainingCoachCard active={active} onOpen={()=>onGo('strength')}/>
+ <div className="co-week-review">
+  <div className="co-week-title"><strong>Letzte abgeschlossene Woche</strong>
+   <small>Montag bis Sonntag · kein Vergleich mit einer angefangenen Woche</small></div>
+  <CoachEvidenceSummary active={active} mode="weekly"
+   weekStart={coachAddDays(mondayOf(berlinToday()),-7)}/>
+ </div>
+ <div className="co-extras">
+  <details className="co-extra-fold">
+   <summary>Feste Trainingsangebote und Teilnahme</summary>
+   <WeeklyTrainingOptions active={active} weekStart={mondayOf(berlinToday())} compact/>
+  </details>
+  <details className="co-extra-fold">
+   <summary>Stabi, Fußball & ergänzender Sport</summary>
+   <CrossTrainingCoachCard active={active} onOpen={()=>onGo('strength')}/>
+  </details>
+ </div>
  {weightOpen&&createPortal(<div className="co-dialog-backdrop"
    onPointerDown={event=>{if(event.currentTarget===event.target)setWeightOpen(false)}}>
    <div className="co-dialog" role="dialog" aria-modal="true" aria-label="Gewicht speichern">

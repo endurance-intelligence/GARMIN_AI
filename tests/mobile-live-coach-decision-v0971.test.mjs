@@ -43,7 +43,7 @@ test('first approvable recommendation is reviewed, never immediately approved or
  const ui=read('src/components/CoachDecisionLive.tsx')
  const coach=read('src/components/CoachSevenDay.tsx')
  assert.match(ui,/onReview\(day.date\)/)
- assert.match(coach,/setReview\(date\);setStartTime\('18:00'\)/)
+ assert.match(coach,/setReview\(date\);setShowAllDays\(true\);setStartTime\('18:00'\)/)
  assert.match(coach,/id=\{'c7-day-'\+day.date\}/)
  assert.match(coach,/review===day.date/)
  assert.match(coach,/Ja, Entwurf speichern/)

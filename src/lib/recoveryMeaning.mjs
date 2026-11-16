@@ -23,15 +23,23 @@ export function recoveryMetricMeaning(row){
  }
  return 'Persönlichen Verlauf beobachten.'
 }
-export function recoveryDashboardMeaning(report){
+export function recoveryDashboardMeaning(report,trend=null){
  if(!report||!Array.isArray(report.metrics))return 'Ohne aktuelle Messwerte ist keine Einordnung möglich.'
  const [sleep,hrv,pulse]=report.metrics
  const readable=[sleep,hrv,pulse].filter(x=>valid(x?.difference))
  if(!readable.length)return 'Noch keine verlässliche persönliche Vergleichsbasis.'
+ const week=trend?.metrics?.hrv_ms
+ const hrvContext=week&&valid(week.current)&&valid(week.previous)?
+  ' HRV-Wochenmedian '+Math.round(week.current)+' statt '+Math.round(week.previous)+
+  ' ms ('+(trend.status==='stable'?'stabil':trend.status==='higher'?'höher':'niedriger')+').':
+  ''
  const hrvLow=valid(hrv?.difference)&&valid(hrv?.median)&&hrv.median>0&&hrv.difference/hrv.median<=-.15
  const pulseHigh=valid(pulse?.difference)&&pulse.difference>=5
  const sleepLow=valid(sleep?.difference)&&sleep.difference<=-3600
- if(hrvLow&&!pulseHigh&&!sleepLow)return 'Einordnung: Deine HRV liegt klar unter dem jüngsten Median. Schlaf und Ruhepuls liefern keinen ähnlich deutlichen Warnhinweis. Beobachte den Verlauf und dein Befinden – keine automatische Trainingsfreigabe.'
- if(pulseHigh||sleepLow||hrvLow)return 'Einordnung: Mindestens ein Erholungswert weicht deutlich von deinem jüngsten Verlauf ab. Weitere Signale und dein Befinden sind für die Trainingsentscheidung entscheidend.'
- return 'Einordnung: Die verfügbaren Werte zeigen keine große Abweichung zur jüngsten Referenz. Das ist keine Aussage über vollständige Erholung.'
+ if(hrvLow&&!pulseHigh&&!sleepLow)return 'Einordnung: Deine HRV liegt heute klar unter dem jüngsten Median.'+hrvContext+
+  ' Schlaf und Ruhepuls liefern keinen ähnlich deutlichen Warnhinweis. Beobachte Verlauf und Befinden – keine automatische Trainingsfreigabe.'
+ if(pulseHigh||sleepLow||hrvLow)return 'Einordnung: Mindestens ein Erholungswert weicht heute deutlich von deinem jüngsten Verlauf ab.'+hrvContext+
+  ' Weitere Signale und dein Befinden sind für die Trainingsentscheidung entscheidend.'
+ return 'Einordnung: Die verfügbaren Tageswerte zeigen keine große Abweichung zur jüngsten Referenz.'+hrvContext+
+  ' Das ist keine Aussage über vollständige Erholung.'
 }
