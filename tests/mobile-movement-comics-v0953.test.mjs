@@ -76,7 +76,7 @@ test('all thumbnails, detailed instruction and active/rest session use the right
  assert.match(studio,/shownExercise\.quickStart\|\|shownExercise\.instruction/)
  assert.match(studio,/shownExercise\.cues/)
  assert.doesNotMatch(studio,/youtube\.com\/results/)
- assert.match(studio,/onClick=\{\(\)=>setPlayer\(p=>p\?advance\(p,plan\):p\)\}/)
+ assert.match(studio,/onClick=\{\(\)=>setPlayer\(p=>p\?advanceMovementPlayer\(p,plan\):p\)\}/)
 })
 test('static local SVG and WebP URLs respect Pages base path and accessibility',()=>{
  assert.match(component,/import\.meta\.env\.BASE_URL/)

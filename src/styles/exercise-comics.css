@@ -49,3 +49,10 @@
  .ss-player-art .ec-figure.is-premium{width:min(100%,calc(37dvh * 0.8),290px)}
  .ss-exercise-art .ec-figure.is-premium{height:128px}
 }
+
+/* v0.9.57: audible countdown and visible screen wake lock state */
+.ms-device-status{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px 12px;
+ font-size:11px;color:#b8d8e6;margin:4px auto 12px}
+.ms-device-status button{border:1px solid rgba(159,180,236,.3);border-radius:10px;
+ background:#1b2b46;color:#e9efff;padding:7px 11px;font-size:11px;font-weight:700}
+.ms-countdown{font-size:14px;font-weight:800;color:#e8d5ff;letter-spacing:.04em}

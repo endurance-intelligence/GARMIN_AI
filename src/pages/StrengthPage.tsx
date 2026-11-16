@@ -3,14 +3,13 @@ import {Icon} from '../components/Icon'
 import {ExerciseComic} from '../components/ExerciseComic'
 import {EI_EXERCISES} from '../lib/eiExercises'
 import type {EIExercise} from '../lib/eiExercises'
-import {buildMovementPlan,MOVEMENT_MINUTES,MOVEMENT_PATTERNS} from '../lib/movementSession'
-import type {MovementPlan,MovementStep} from '../lib/movementSession'
+import {buildMovementPlan,MOVEMENT_MINUTES,MOVEMENT_PATTERNS,MOVEMENT_PREP_SECONDS,advanceMovementPlayer,movementPlayerCue,startMovementPlayer,tickMovementPlayer} from '../lib/movementSession'
+import type {MovementPlayer,MovementStep} from '../lib/movementSession'
 import {berlinDate,crossKind,loadCrossTraining,saveCrossTraining} from '../lib/crossTrainingClient'
 import type {CrossResponse} from '../lib/crossTrainingClient'
 import '../styles/strength-studio.css'
 import '../styles/movement-studio-v2.css'
 
-type Player={index:number;rest:boolean;remaining:number;running:boolean;done:boolean}
 const DAY=berlinDate
 const categories=[
  {id:'all',name:'Alle'}, {id:'core',name:'Core'},
@@ -24,13 +23,22 @@ const byId=new Map(BODYWEIGHT_EXERCISES.map(x=>[x.id,x]))
 const formatClock=(n:number)=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')
 const short=(n:string)=>n.slice(8,10)+'.'+n.slice(5,7)+'.'
 const movementLabel=(part:MovementStep['part'])=>part==='warmup'?'Mobilisieren':part==='strength'?'Kraft & Stabilität':'Auslockern'
-function advance(p:Player,plan:MovementPlan):Player{
- const step=plan.steps[p.index]
- if(!step)return {...p,running:false,done:true,remaining:0}
- if(!p.rest&&step.restSeconds>0)return {...p,rest:true,remaining:step.restSeconds}
- const index=p.index+1
- if(index>=plan.steps.length)return {...p,running:false,done:true,remaining:0}
- return {...p,index,rest:false,remaining:plan.steps[index].workSeconds}
+/** One small synthesized tone, no external media or copyrighted sound files. */
+function playMovementBeep(audio:AudioContext|null,cue:'countdown-start'|'countdown-end'|'go'){
+ if(!audio||audio.state!=='running')return
+ const now=audio.currentTime
+ const oscillator=audio.createOscillator()
+ const gain=audio.createGain()
+ oscillator.type='sine'
+ oscillator.frequency.value=cue==='go'?1040:cue==='countdown-start'?780:510
+ gain.gain.setValueAtTime(0.001,now)
+ gain.gain.exponentialRampToValueAtTime(0.13,now+0.015)
+ gain.gain.exponentialRampToValueAtTime(0.001,now+(cue==='go'?0.27:0.14))
+ oscillator.connect(gain)
+ gain.connect(audio.destination)
+ oscillator.start(now)
+ oscillator.stop(now+(cue==='go'?0.28:0.15))
+ oscillator.onended=()=>{oscillator.disconnect();gain.disconnect()}
 }
 export function StrengthPage({active}:{active:boolean}){
  const [date,setDate]=useState(DAY)
@@ -38,7 +46,12 @@ export function StrengthPage({active}:{active:boolean}){
  const [focus,setFocus]=useState('all')
  const [search,setSearch]=useState('')
  const [detail,setDetail]=useState<EIExercise|null>(null)
- const [player,setPlayer]=useState<Player|null>(null)
+ const [player,setPlayer]=useState<MovementPlayer|null>(null)
+ const [soundOn,setSoundOn]=useState(true)
+ const [wakeStatus,setWakeStatus]=useState<'off'|'active'|'pending'|'unavailable'|'unsupported'>('off')
+ const wakeRef=useRef<WakeLockSentinel|null>(null)
+ const audioRef=useRef<AudioContext|null>(null)
+ const lastCueRef=useRef('')
  const [rpe,setRpe]=useState('')
  const [history,setHistory]=useState<CrossResponse|null>(null)
  const [loading,setLoading]=useState(false)
@@ -65,20 +78,73 @@ export function StrengthPage({active}:{active:boolean}){
  },[active])
  useEffect(()=>{
   if(!active||!player?.running||player.done)return
-  const interval=setInterval(()=>setPlayer(p=>{
-   if(!p||!p.running||p.done)return p
-   return p.remaining>1?{...p,remaining:p.remaining-1}:advance(p,plan)
-  }),1000)
+  const interval=setInterval(()=>setPlayer(p=>p?tickMovementPlayer(p,plan):p),1000)
   return ()=>clearInterval(interval)
  },[active,player?.running,player?.done,plan])
+ // The wake lock is requested only for a foreground, actively running workout.
+ // Safari/OS can still revoke it (low battery, locked device, background tab).
+ useEffect(()=>{
+  let cancelled=false
+  const shouldHold=active&&!!player?.running&&!player.done
+  function release(){
+   const lock=wakeRef.current
+   wakeRef.current=null
+   if(lock)void lock.release().catch(()=>{})
+  }
+  async function acquire(){
+   if(!shouldHold||document.visibilityState!=='visible'){
+    release();setWakeStatus('off');return
+   }
+   if(!('wakeLock' in navigator)){setWakeStatus('unsupported');return}
+   if(wakeRef.current&&!wakeRef.current.released){setWakeStatus('active');return}
+   setWakeStatus('pending')
+   try{
+    const lock=await navigator.wakeLock.request('screen')
+    if(cancelled||document.visibilityState!=='visible'){void lock.release();return}
+    wakeRef.current=lock
+    setWakeStatus('active')
+    lock.addEventListener('release',()=>{
+     if(wakeRef.current===lock){wakeRef.current=null;setWakeStatus('unavailable')}
+    })
+   }catch{if(!cancelled)setWakeStatus('unavailable')}
+  }
+  function onVisibility(){
+   if(document.visibilityState==='hidden'){
+    // Browser background throttling would otherwise silently skip the next beep.
+    setPlayer(p=>p?.running?{...p,running:false}:p)
+    release();setWakeStatus('off')
+   }else void acquire()
+  }
+  void acquire()
+  document.addEventListener('visibilitychange',onVisibility)
+  return ()=>{cancelled=true;document.removeEventListener('visibilitychange',onVisibility);release()}
+ },[active,player?.running,player?.done])
+ useEffect(()=>{
+  if(!active||!player?.running||player.done)return
+  const cue=movementPlayerCue(player,plan)
+  if(!cue)return
+  const key=[player.index,player.prestart?'pre':player.rest?'rest':'work',player.remaining].join(':')
+  if(lastCueRef.current===key)return
+  lastCueRef.current=key
+  if(soundOn)playMovementBeep(audioRef.current,cue)
+ },[active,player,plan,soundOn])
+ useEffect(()=>()=>{void audioRef.current?.close()},[])
  useEffect(()=>{if(!active)setPlayer(p=>p?{...p,running:false}:p)},[active])
+ function unlockAudio(){
+  try{
+   if(!audioRef.current||audioRef.current.state==='closed')audioRef.current=new AudioContext()
+   if(audioRef.current.state==='suspended')void audioRef.current.resume()
+  }catch{/* Browser disabled sound; the visual countdown still works. */}
+ }
  function mixAgain(){
   if(player?.running)return
   setRotation(x=>x+1);setPlayer(null);setNotice('')
  }
  function begin(){
   if(player?.running)return
-  setPlayer({index:0,rest:false,remaining:plan.steps[0].workSeconds,running:true,done:false})
+  lastCueRef.current=''
+  if(soundOn)unlockAudio()
+  setPlayer(startMovementPlayer())
   setError('');setNotice('')
  }
  async function save(){
@@ -144,7 +210,7 @@ export function StrengthPage({active}:{active:boolean}){
      const unique=part==='strength'?steps.slice(0,8):steps
      return <div className="ms-plan-section" key={part}>
       <div className="ms-plan-heading"><strong>{movementLabel(part)}</strong>
-       <span>{part==='warmup'?'4 × 60 Sek.':part==='strength'?'3 × 8 × (40 + 20 Sek.)':'2 × 60 Sek.'}</span></div>
+       <span>{part==='warmup'?'4 × (55 + 5 Sek.)':part==='strength'?'3 × 8 × (40 + 20 Sek.)':'55 + 5 / 60 Sek.'}</span></div>
       <div className="ms-plan-exercises">{unique.map((s,i)=>{
        const e=byId.get(s.exerciseId)
        return <button type="button" key={s.exerciseId+'-'+i}
@@ -163,7 +229,7 @@ export function StrengthPage({active}:{active:boolean}){
    </div>
    <p className="ms-caption">Die Mischung ist ein Vorschlag, keine automatische Trainingsfreigabe.
     Für echten Zugkraftaufbau im oberen Rücken wäre später ein Widerstand nötig – Bodenübungen trainieren hier vor allem die Schulterblätter.
-    Vor harten Einheiten kann der Coach leichtere Varianten empfehlen.</p>
+    Vor harten Einheiten kann der Coach leichtere Varianten empfehlen. Start mit 5-Sekunden-Countdown, 3‑2‑1-Tönen und aktiviertem Bildschirm-Wachhalten (wenn unterstützt).</p>
   </section>
   <section className="ss-library">
    <div className="ss-section-title"><div>
@@ -244,30 +310,40 @@ export function StrengthPage({active}:{active:boolean}){
   {player&&<div className="ss-overlay" role="presentation">
    <section className="ss-player" role="dialog" aria-modal="true" aria-label="30-Minuten-Kraft-und-Mobility-Training">
     <span className="ss-kicker">WORKOUT PLAYER / {current?movementLabel(current.part).toUpperCase():'FERTIG'}</span>
-    <h2>{player.done?'30 Minuten geschafft.':player.rest?'Wechselpause':currentExercise?.name||'Übung'}</h2>
+    <h2>{player.done?'30 Minuten geschafft.':player.prestart?'Bereit machen':player.rest?(player.remaining<=MOVEMENT_PREP_SECONDS?'5-Sekunden-Wechsel':'Erholung'):currentExercise?.name||'Übung'}</h2>
     {player.rest&&shownExercise&&<p className="ss-player-next">
      <strong>Als Nächstes:</strong> {shownExercise.name}</p>}
     <p>{player.done?'Training dokumentieren, wenn es tatsächlich absolviert wurde.':
      (current?.part==='strength'?'Runde '+current.round+' von 3 · ':'')+
      'Schritt '+(player.index+1)+' von '+plan.steps.length+
-     (player.rest?' · Nächste Übung vorbereiten':' · Kontrolliert ausführen')}</p>
+     (player.prestart?' · Start in 5 Sekunden':player.rest?' · Letzte 5 Sek. vorbereiten':' · Kontrolliert ausführen')}</p>
     {!player.done&&shownExercise&&<div className="ss-player-art">
      <ExerciseComic id={shownExercise.id} name={shownExercise.name} priority/>
     </div>}
     <div className="ss-player-timer" aria-live="off">{formatClock(player.remaining)}</div>
+    {!player.done&&player.running&&player.remaining<=3&&<div className="ms-countdown" aria-live="off">
+     {player.prestart||player.rest?'Los in ':'Noch '}{player.remaining} · {player.prestart||player.rest?'gleich starten':'Übung endet'}</div>}
+    {!player.done&&<div className="ms-device-status" role="status">
+     <span>{wakeStatus==='active'?'☀ Display bleibt an':wakeStatus==='pending'?'Display wird aktiviert …':
+      wakeStatus==='unsupported'?'Display-Wachhalten hier nicht unterstützt':
+      wakeStatus==='unavailable'?'Display-Wachhalten vom Gerät abgelehnt':
+      'Display-Wachhalten bei laufender Session'}</span>
+     <button type="button" aria-pressed={soundOn} onClick={()=>{if(!soundOn)unlockAudio();setSoundOn(s=>!s)}}>
+      {soundOn?'🔊 Piep-Töne an':'🔇 Piep-Töne aus'}</button>
+    </div>}
     {!player.done&&shownExercise&&<div className="ss-player-guide">
-     <small>{player.rest?'NÄCHSTE ÜBUNG VORBEREITEN':'SAUBERE AUSFÜHRUNG'}</small>
+     <small>{player.prestart?'STARTVORBEREITUNG':player.rest?'NÄCHSTE ÜBUNG VORBEREITEN':'SAUBERE AUSFÜHRUNG'}</small>
      <span>{shownExercise.quickStart||shownExercise.instruction}</span>
      {(shownExercise.cues||[]).slice(0,2).map((cue,i)=>
       <span key={i}>✓ {cue}</span>)}
     </div>}
     <div className="ss-player-actions">
-     {!player.done&&<button type="button" onClick={()=>setPlayer(p=>p?{...p,running:!p.running}:p)}>
+     {!player.done&&<button type="button" onClick={()=>{if(!player.running&&soundOn)unlockAudio();setPlayer(p=>p?{...p,running:!p.running}:p)}}>
       {player.running?'Pause':'Fortsetzen'}</button>}
-     {!player.done&&<button type="button" onClick={()=>setPlayer(p=>p?advance(p,plan):p)}>Nächster Abschnitt</button>}
+     {!player.done&&<button type="button" onClick={()=>setPlayer(p=>p?advanceMovementPlayer(p,plan):p)}>Nächster Abschnitt</button>}
      <button type="button" onClick={()=>setPlayer(null)}>Schließen</button>
     </div>
-    <p>Eigene Comic-Illustrationen · Technik vor Tempo. 40 Sekunden Arbeit / 20 Sekunden Wechsel im Kraftteil.
+    <p>Eigene Comic-Illustrationen · Technik vor Tempo. 40 Sekunden Arbeit / 20 Sekunden Wechsel im Kraftteil (15 Sekunden Erholung + 5 Sekunden Vorbereitung).
      Keine automatische Übertragung an Garmin.</p>
    </section></div>}
  </section>
