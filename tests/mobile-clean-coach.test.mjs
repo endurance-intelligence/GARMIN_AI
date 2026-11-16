@@ -9,11 +9,11 @@ test('Coach uses a small header and glance, no default oversized cards',()=>{
  assert.match(c,/<CoachGlance active=\{active\}/)
  assert.match(c,/<CoachTodayWeather active=\{active\}\/>/)
  assert.match(read('src/components/CoachGlance.tsx'),/<details className="co-recovery-details">/)
- assert.match(c,/<details className="co-extra co-demo"/)
- assert.match(c,/\{demoOpen&&<div className="co-extra-content">/)
+ assert.doesNotMatch(c,/<details className="co-extra co-demo"/)
+ assert.match(c,/<CoachSevenDay active=\{active\}/)
  assert.doesNotMatch(c,/<LiveRecovery active=/)
- assert.ok(c.indexOf('<CoachGlance')<c.indexOf('className="stage v3-stage"'))
- assert.ok(c.indexOf('<CoachGlance')<c.indexOf('className="stage v3-stage"'))
+ assert.ok(c.indexOf('<CoachGlance')<c.indexOf('<CoachSevenDay'))
+ assert.ok(c.indexOf('<CoachSevenDay')<c.indexOf('<CoachEvidenceSummary'))
 })
 
 test('weight is one quick sheet with direct swipe wheels and verified save',()=>{
@@ -32,11 +32,12 @@ test('weight is one quick sheet with direct swipe wheels and verified save',()=>
  assert.match(sync,/Garmin-Übertragung folgt nach Freigabe/)
 })
 
-test('Coach preview is clearly marked demo and available only on demand',()=>{
+test('old simulated Coach prototype is retired and replaced by live decision panels',()=>{
  const c=read('src/pages/CoachPage.tsx')
- assert.match(c,/Coach-Prototyp ansehen · Demo/)
- assert.match(c,/DEMO · keine Änderung am Trainingsplan/)
- assert.match(c,/onToggle=\{event=>setDemoOpen\(event.currentTarget.open\)\}/)
+ assert.doesNotMatch(c,/Coach-Prototyp ansehen · Demo/)
+ assert.doesNotMatch(c,/DEMO · keine Änderung am Trainingsplan/)
+ assert.match(read('src/components/CoachSevenDay.tsx'),/<CoachDecisionLive/)
+ assert.match(read('src/components/CoachDecisionLive.tsx'),/ECHTE DATEN/)
 })
 
 test('overview is backed by existing authenticated Garmin services',()=>{

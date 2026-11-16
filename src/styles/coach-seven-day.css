@@ -75,3 +75,14 @@
  border-color:rgba(181,173,246,.52);background:rgba(122,106,221,.24)}
 .c7-next-calendar .ic{width:15px;height:15px}
 @media(max-width:500px){.c7-root .c7-next-calendar{width:100%}}
+
+/* v0.9.71 · evidence stays inspectable but does not duplicate the new "Why" card. */
+.c7-evidence{margin-top:8px;margin-bottom:14px}
+.c7-evidence-summary{list-style:revert;cursor:pointer;min-height:39px;display:flex;
+ align-items:center;gap:9px;font-size:11px;color:#cad7f6;font-weight:790}
+.c7-evidence-summary:hover{color:#fff}
+.c7-evidence-summary:focus-visible{outline:2px solid #b2c4ff;outline-offset:3px}
+.c7-evidence[open]{padding-bottom:12px}
+#c7-week-overview{scroll-margin-top:24px}
+.c7-day{scroll-margin-top:110px}
+@media(max-width:760px){.c7-day{scroll-margin-top:80px}}

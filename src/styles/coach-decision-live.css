@@ -1,0 +1,81 @@
+/* v0.9.71 · live-data-only Horizon coach decision cards */
+.cdl-root{margin:16px 0 17px;color:#edf3ff}
+.cdl-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 13px}
+.cdl-kicker{display:inline-flex;align-items:center;gap:6px;color:#aaa3ff;font-size:9px;font-weight:850;
+ letter-spacing:.12em}.cdl-kicker .ic{width:13px;height:13px}
+.cdl-head h3{margin:6px 0 0;font-size:clamp(19px,2.3vw,26px);letter-spacing:-.04em;font-weight:870}
+.cdl-owner{font-size:10px;color:#9fb5d3}
+.cdl-grid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);gap:12px}
+.cdl-choice,.cdl-why{position:relative;overflow:hidden;isolation:isolate;border-radius:19px;
+ border:1px solid rgba(160,176,234,.24);min-width:0;box-shadow:0 15px 35px rgba(4,9,22,.16)}
+.cdl-choice{background:radial-gradient(ellipse 410px 220px at -15% -28%,rgba(132,113,242,.19),transparent 83%),
+ radial-gradient(ellipse 310px 240px at 102% 114%,rgba(76,126,235,.12),transparent 77%),
+ linear-gradient(125deg,#1d243a,#121c30 78%);padding:22px}
+.cdl-choice-top,.cdl-why-head{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.cdl-overline{display:flex;align-items:center;gap:6px;font-size:9px;font-weight:900;color:#c9c8ff;letter-spacing:.085em}
+.cdl-led{width:6px;height:6px;border-radius:50%;background:#afa9ff;box-shadow:0 0 13px #bcb7ff}
+.cdl-status{display:inline-flex;align-items:center;padding:5px 8px;border-radius:99px;
+ font-size:9px;font-weight:850;border:1px solid rgba(223,187,125,.29);
+ background:rgba(188,135,75,.13);color:#f0d3a0}
+.cdl-status-calendar{color:#a8e4cf;border-color:rgba(122,207,165,.29);background:rgba(73,160,134,.13)}
+.cdl-status-no-write,.cdl-status-completed{color:#bad8f0;border-color:rgba(134,180,227,.24);background:rgba(90,146,207,.13)}
+.cdl-choice-body{position:relative;z-index:2;max-width:680px}
+.cdl-choice h4{margin:17px 0 6px;font-size:clamp(25px,3.1vw,37px);line-height:1.08;
+ letter-spacing:-.062em;font-weight:880;color:#f3f4ff}
+.cdl-choice-body>p:first-of-type{font-size:12px;line-height:1.55;color:#bac8e6;margin:0 0 15px}
+.cdl-swap{display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr);gap:7px;align-items:center;
+ border:1px solid rgba(159,169,227,.2);background:rgba(5,13,29,.34);border-radius:14px;
+ padding:14px 11px;margin:10px 0 15px}
+.cdl-swap>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cdl-swap>div>span{font-size:9px;color:#91a5c9;font-weight:800;letter-spacing:.08em}
+.cdl-swap strong{font-size:clamp(13px,1.5vw,18px);letter-spacing:-.025em;line-height:1.3;
+ color:#f3f5ff;overflow-wrap:anywhere}
+.cdl-swap small{font-size:10px;line-height:1.45;color:#a7b8d4}
+.cdl-arrow{font-size:24px;color:#aaa4ff;text-align:center}
+.cdl-actions{display:flex;gap:8px;flex-wrap:wrap}
+.cdl-root button{min-height:44px;display:inline-flex;gap:8px;align-items:center;justify-content:center;
+ border-radius:10px;font-weight:850;font-size:11px;padding:10px 13px;cursor:pointer}
+.cdl-root button .ic{height:15px;width:15px}
+.cdl-root .cdl-primary{background:#d4f781;border:1px solid rgba(208,243,130,.5);color:#142019}
+.cdl-root .cdl-primary:hover{background:#e6ffa7}
+.cdl-root .cdl-primary.cdl-nonwrite{background:rgba(135,155,234,.2);color:#ecedff;border-color:rgba(151,163,230,.32)}
+.cdl-root .cdl-secondary{background:rgba(246,248,255,.035);color:#d4def2;border:1px solid rgba(170,185,229,.21)}
+.cdl-root .cdl-secondary:hover{background:rgba(148,164,232,.13)}
+.cdl-root button:focus-visible{outline:2px solid #b9d8ff;outline-offset:3px}
+.cdl-root button:disabled{opacity:.6;cursor:wait}
+.cdl-smallprint{font-size:10px;line-height:1.55;color:#9baccc;margin:10px 0 0}
+.cdl-art{position:absolute;z-index:0;right:-95px;top:-155px;width:380px;height:380px;opacity:.48;pointer-events:none}
+.cdl-orbit-one,.cdl-orbit-two,.cdl-orbit-three{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(193,182,255,.2)}
+.cdl-orbit-two{inset:45px;border-color:rgba(186,173,255,.13)}
+.cdl-orbit-three{inset:90px;border-style:dashed;border-color:rgba(186,194,255,.14)}
+.cdl-orbit-center{position:absolute;inset:143px;display:grid;place-items:center;border-radius:50%;
+ background:radial-gradient(circle,rgba(133,127,254,.35),rgba(58,86,180,.1))}
+.cdl-orbit-center .ic{height:45px;width:45px;color:#e9e6ff}
+.cdl-why{padding:22px;background:radial-gradient(ellipse 275px 200px at 100% -25%,rgba(90,103,192,.14),transparent 80%),
+ linear-gradient(147deg,#141c2e,#0e1728)}
+.cdl-why-head{color:#b4c0ff}
+.cdl-star{font-size:18px;color:#c0b3ff}
+.cdl-why h4{font-size:clamp(23px,2.6vw,31px);line-height:1.12;letter-spacing:-.055em;margin:11px 0 14px;color:#f5f5ff}
+.cdl-specific{font-size:12px;line-height:1.65;color:#e4e9fb;background:rgba(118,115,200,.12);
+ border:1px solid rgba(159,144,250,.18);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.cdl-specific strong{color:#cfc6ff}
+.cdl-factors{display:grid}
+.cdl-factor{display:grid;grid-template-columns:23px minmax(0,1fr) 8px;gap:10px;align-items:start;
+ padding:11px 0;border-bottom:1px solid rgba(153,173,221,.11)}
+.cdl-factor-number{font-size:9px;font-weight:850;color:#9caee2}
+.cdl-factor>div strong{font-size:11px;color:#e5eaff}
+.cdl-factor p{font-size:10px;line-height:1.65;color:#acbdd7;margin:4px 0 0;overflow-wrap:anywhere}
+.cdl-factor-dot{width:6px;height:6px;margin-top:4px;border-radius:50%;background:#ffc783;box-shadow:0 0 8px rgba(255,200,133,.45)}
+.cdl-factor-recovery{background:#72d1ed;box-shadow:0 0 8px rgba(114,209,237,.42)}
+.cdl-factor-goal{background:#d4f881;box-shadow:0 0 8px rgba(212,248,129,.42)}
+.cdl-flags{font-size:10px;line-height:1.55;color:#ebd6ab;margin:12px 0 0}
+.cdl-why-foot{font-size:10px;color:#94a7c7;line-height:1.55;margin:13px 0 0}
+@media(max-width:1000px){.cdl-grid{grid-template-columns:1fr}.cdl-choice,.cdl-why{padding:17px}
+ .cdl-choice h4{font-size:28px}.cdl-why h4{font-size:24px}.cdl-art{right:-150px}}
+@media(max-width:600px){.cdl-root{margin:13px 0}.cdl-head{gap:7px}.cdl-head h3{font-size:19px}
+ .cdl-owner{font-size:9px}.cdl-choice,.cdl-why{padding:13px;border-radius:15px}
+ .cdl-choice h4{font-size:25px;margin-top:14px}
+ .cdl-swap{padding:10px 8px;gap:5px}.cdl-swap strong{font-size:13px}.cdl-swap small{font-size:9px}
+ .cdl-root button{width:100%}.cdl-art{opacity:.27}
+ .cdl-factor{padding:10px 0}.cdl-specific{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.cdl-root button{transition:none}}

@@ -7,6 +7,7 @@ import type {CoachSnapshot} from '../lib/coachSnapshot'
 import type {CoachDay} from '../lib/coachSevenDay.mjs'
 import {Icon} from './Icon'
 import {CoachLifeContext} from './CoachLifeContext'
+import {CoachDecisionLive} from './CoachDecisionLive'
 import type {CoachContextPayload} from './CoachLifeContext'
 import '../styles/coach-seven-day.css'
 
@@ -132,20 +133,28 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
   {loading&&!plan&&<p className="c7-alert" role="status">Prüfe aktuelle Garmin- und Kalenderdaten …</p>}
   {error&&<p className="c7-error" role="alert">{error}</p>}
   {plan&&<>
-   <div className="c7-evidence">
+   <CoachDecisionLive plan={plan} reviewDate={review} saving={saving!==null||contextBusy}
+    onReview={date=>{
+     setReview(date);setStartTime('18:00')
+     requestAnimationFrame(()=>document.getElementById('c7-day-'+date)?.scrollIntoView({
+      behavior:'smooth',block:'center'
+     }))
+    }}
+    onCalendar={onCalendar}
+    onPlan={()=>document.getElementById('c7-week-overview')?.scrollIntoView({behavior:'smooth',block:'start'})}/>
+   <details className="c7-evidence">
+    <summary className="c7-evidence-summary">Alle zugrunde liegenden Messwerte und Datenqualität anzeigen</summary>
     <div className="c7-evidence-label"><strong>Datenlage und Begründung</strong>
      <span>{plan.attention?'Konservativer Modus':'Individuell eingeordnet'}</span></div>
     <p>{plan.attentionText}</p>
-    <details><summary>Verwendete Garmin-Daten ansehen</summary>
-     <ul>{plan.flags.map((x,i)=><li key={i}>{x}</li>)}</ul>
-     {plan.signals.length>0&&<p><strong>Auffälligkeiten:</strong> {plan.signals.join(' · ')}</p>}
-     <p>Median: jeweils 14 Kalendertage vor dem letzten Messwert, erst ab 7 gültigen Werten.
-      Die Abweichungsgrenzen sind Vorsichtsregeln, keine medizinischen Grenzwerte.
-      Kein KI-Readiness-Score, keine Diagnose.</p>
-    </details>
-   </div>
-   <div className="c7-week" role="list">
-    {plan.days.map(day=><article className={'c7-day c7-'+day.kind} key={day.date} role="listitem">
+    <ul>{plan.flags.map((x,i)=><li key={i}>{x}</li>)}</ul>
+    {plan.signals.length>0&&<p><strong>Auffälligkeiten:</strong> {plan.signals.join(' · ')}</p>}
+    <p>Median: jeweils 14 Kalendertage vor dem letzten Messwert, erst ab 7 gültigen Werten.
+     Die Abweichungsgrenzen sind Vorsichtsregeln, keine medizinischen Grenzwerte.
+     Kein KI-Readiness-Score, keine Diagnose.</p>
+   </details>
+   <div className="c7-week" id="c7-week-overview" role="list">
+    {plan.days.map(day=><article className={'c7-day c7-'+day.kind} id={'c7-day-'+day.date} key={day.date} role="listitem">
      <div className="c7-day-main"><div className="c7-date">{formatDate(day.date)}</div>
       <div className="c7-day-copy"><strong>{day.title}</strong>
        <p>{day.reason}</p>
