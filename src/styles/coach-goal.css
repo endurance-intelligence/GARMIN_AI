@@ -103,3 +103,34 @@
  .cg-home-days strong{font-size:27px}.cg-home-race-info h2{font-size:18px!important}
  .cg-home-race-meta{gap:4px}.cg-home-race-meta>span{font-size:9px;padding:4px 5px}
  .cg-home-weather-data{gap:4px 8px}.cg-home-weather-data strong{font-size:17px}}
+
+/* v0.9.70 · take the original Horizon concept's orbital atmosphere into REAL race data. */
+.cg-root.cg-home-hero{isolation:isolate;position:relative;overflow:hidden;
+ border:1px solid rgba(166,151,255,.32);
+ background:radial-gradient(ellipse 350px 230px at 93% -55%,rgba(150,125,247,.23),transparent 90%),
+ radial-gradient(ellipse 300px 170px at 12% 140%,rgba(54,176,220,.11),transparent 85%),
+ linear-gradient(122deg,#22253f,#171f35 67%,#121c30);
+ box-shadow:0 14px 42px rgba(5,12,29,.18),inset 0 1px rgba(247,239,255,.04)}
+.cg-root.cg-home-hero:before{content:'';position:absolute;pointer-events:none;z-index:-1;
+ width:275px;height:275px;right:-135px;top:-155px;border:1px solid rgba(178,170,255,.2);
+ border-radius:50%;box-shadow:0 0 0 38px rgba(165,146,237,.03),0 0 0 82px rgba(165,146,237,.025)}
+.cg-home-race-info h2{color:#f1f1ff!important;text-shadow:0 3px 22px rgba(156,142,255,.09)}
+.cg-home-days{background:radial-gradient(circle at 45% 36%,rgba(168,152,255,.35),rgba(74,64,140,.10) 70%);
+ box-shadow:0 0 23px rgba(139,126,255,.14),inset 0 1px rgba(230,216,255,.11)}
+.cg-home-weather{position:relative;text-align:left;appearance:none;cursor:pointer;color:#f1f6ff;
+ font:inherit;width:100%;min-height:81px;transition:background .18s,border-color .18s,transform .18s;
+ border:1px solid rgba(116,177,235,.34);
+ background:radial-gradient(ellipse at 87% -20%,rgba(122,159,247,.16),transparent 70%),rgba(14,32,56,.62)}
+.cg-home-weather:not(:disabled):hover{transform:translateY(-1px);
+ background:radial-gradient(ellipse at 87% -20%,rgba(122,159,247,.26),transparent 70%),rgba(20,45,80,.71);
+ border-color:rgba(160,210,255,.65)}
+.cg-home-weather:not(:disabled):focus-visible{outline:2px solid #b5d9ff;outline-offset:3px}
+.cg-home-weather:disabled{cursor:default}
+.cg-home-weather-icon{background:linear-gradient(145deg,rgba(165,145,251,.21),rgba(63,183,225,.16));
+ box-shadow:0 0 21px rgba(100,169,238,.1)}
+.cg-home-weather-open{margin-left:auto;align-self:center;flex:0 0 auto;width:27px;height:27px;
+ display:grid;place-items:center;border-radius:9px;color:#b4c5ff;background:rgba(160,162,255,.1);
+ border:1px solid rgba(155,186,243,.16);font-size:18px}
+.cg-home-weather:disabled .cg-home-weather-open{display:none}
+@media(max-width:830px){.cg-home-weather{min-height:65px}}
+@media(prefers-reduced-motion:reduce){.cg-home-weather{transition:none}.cg-home-weather:hover{transform:none}}

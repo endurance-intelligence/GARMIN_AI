@@ -81,3 +81,9 @@
  .rfc-status{padding:6px 8px;font-size:9px}
  .rfc-share{padding:7px 8px;font-size:10px}
 }
+
+/* v0.9.70 · focus target reached from Coach dashboard weather preview. */
+#race-detailed-forecast{scroll-margin-top:25px}
+#race-detailed-forecast:focus{outline:none}
+#race-detailed-forecast:focus-visible{outline:2px solid #a4d0ff;outline-offset:3px}
+@media(max-width:760px){#race-detailed-forecast{scroll-margin-top:15px}}

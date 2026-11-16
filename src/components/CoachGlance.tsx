@@ -119,6 +119,10 @@ export function CoachGlance({active,onCalendar,children}:{
   <section className="co-today" aria-label="Training heute">
    <div className="co-section-head">
     <div><span className="co-eyebrow">HEUTE · TRAINING</span>
+     {view&&<span className={'co-decision-chip '+(view.skipped?'co-decision-skipped':view.plan||view.workout?'co-decision-active':view.option?'co-decision-optional':'co-decision-free')}>
+      <span className="co-decision-dot" aria-hidden="true"/>
+      {view.skipped?'BEWUSST AUSGELASSEN':view.plan?'PLAN IM KALENDER':view.workout?'TEILNAHME BESTÄTIGT':view.option?'FREIWILLIGER TERMIN':'KEIN TERMIN'}
+     </span>}
      <h2>{loading&&!view?'Lade deinen Tag …':title}</h2>
      <p>{category}</p>
      {view&&!view.availabilityOk&&<p className="co-data-note">

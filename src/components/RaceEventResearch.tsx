@@ -441,6 +441,13 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
     {children}
    </div>}
   </div>}
+  {saved.length===0&&children&&<div className="rer-event-dossier rer-weather-standalone">
+   <div className="rer-event-dossier-head"><span className="rer-kicker">RENNWETTER</span>
+    <h3>Die Prognose für deinen Wettkampf</h3>
+    <p>Die ausführliche Wetteranalyse ist auch ohne gespeichertes Event-Dossier zugänglich.</p>
+   </div>
+   {children}
+  </div>}
   {notice&&<p className="rer-notice" role="status">{notice}</p>}
   {error&&<p className="rer-error" role="alert">{error}</p>}
  </section>

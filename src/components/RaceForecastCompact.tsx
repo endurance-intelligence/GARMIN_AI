@@ -159,7 +159,8 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity,co
    window.open('https://wa.me/?text='+encodeURIComponent(message),'_blank','noopener,noreferrer')
   }
  }
- return <section className="rfc-root" aria-label="Wetter für dein aktuelles Hauptziel">
+ return <section id="race-detailed-forecast" tabIndex={-1} className="rfc-root"
+  aria-label="Detaillierte Wetterprognose für dein aktuelles Hauptziel">
   <div className="rfc-head"><div><small>RACE INTELLIGENCE / RENNWETTER</small>
    <h2>Wetter am Renntag.</h2>
    <p>{race?race.race_date.split('-').reverse().join('.')+' · '+race.race_name:'Dein nächstes Hauptziel'} · {placeName||race?.race_location||'Ort offen'}</p>

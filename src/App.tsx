@@ -27,6 +27,7 @@ const navActive=(page:Page,id:Page)=>page===id||
 
 function App() {
   const [calendarFocus,setCalendarFocus]=useState<{date:string;token:number}|null>(null)
+  const [raceWeatherFocus,setRaceWeatherFocus]=useState(0)
   const [page,setPage]=useState<Page>(()=>{
    try{
     const last=sessionStorage.getItem('garmin-ai:last-page:v1')
@@ -39,6 +40,10 @@ function App() {
     setPage(next)
     try{sessionStorage.setItem('garmin-ai:last-page:v1',next)}catch{}
     window.scrollTo({top:0,behavior:'instant'})
+  }
+  function openRaceWeather(){
+    setRaceWeatherFocus(n=>n+1)
+    go('race')
   }
   function openCalendar(date?:string){
     if(date&&/^\d{4}-\d{2}-\d{2}$/.test(date))
@@ -59,12 +64,12 @@ function App() {
     </aside>
     <main className="main"><div className="main-in">
       <header className="topbar"><div className="crumbs"><span>WORKSPACE</span><span className="slash">/</span><strong>{(page==='gear'?'Equipment':page==='settings'?'Einstellungen':page==='strength'?'Stabi Studio':navigation.find(n=>n.id===page)?.name)}</strong></div><div className="top-actions"><div className="mobile-brand" style={{display:'none'}}><div className="brand-logo"><Icon name="activity"/></div>GARMIN_AI</div><span className="date">DESIGN CONCEPT / NOV 2026</span><span className="pill"><span className="pulse"/> LIVE DATA · COACH DEMO</span><div className="round-icon"><Icon name="bell"/></div></div></header>
-      <CoachPage active={page==='home'} onGo={go} onOpenCalendar={openCalendar}/>
+      <CoachPage active={page==='home'} onGo={go} onOpenCalendar={openCalendar} onOpenRaceWeather={openRaceWeather}/>
       <CalendarPage active={page==='calendar'} focus={calendarFocus}/>
       <TrainingPage active={page==='training'} onGo={go}/>
       <StrengthPage active={page==='strength'}/>
       {import.meta.env.DEV && <LiveGarminActivities active={page==='training'}/>}
-      <RacePage active={page==='race'} onGo={go}/>
+      <RacePage active={page==='race'} onGo={go} focusWeatherToken={raceWeatherFocus}/>
       <GearPage active={page==='gear'} onGo={go}/>
       <SettingsPage active={page==='settings'} onGo={go}/>
       <MorePage active={page==='more'} onGo={go}/>

@@ -26,7 +26,7 @@ const asDraft=(x:Omit<CoachGoal,'updated_at'>):Draft=>({
  raceLocation:x.race_location,raceStartTime:x.race_start_time||'',
  coachNote:x.coach_note
 })
-export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl}:{active:boolean;compact?:boolean;onEdit?:()=>void;onSaved?:()=>void;logoUrl?:string|null}){
+export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onForecastOpen}:{active:boolean;compact?:boolean;onEdit?:()=>void;onSaved?:()=>void;logoUrl?:string|null;onForecastOpen?:()=>void}){
  const [goal,setGoal]=useState<CoachGoal|null>(null)
  const [draft,setDraft]=useState<Draft>(()=>asDraft(suggestedGoal))
  const [loading,setLoading]=useState(false)
@@ -94,7 +94,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl}:{ac
      <small>{phase.daysUntil>0?'TAGE BIS START':phase.daysUntil===0?'HEUTE':'ZIEL VORBEI'}</small></div>
    </div>
   </div>
-  <CoachRaceWeatherMini active={active} goal={current}/>
+  <CoachRaceWeatherMini active={active} goal={current} onOpenDetails={onForecastOpen}/>
   {loading&&<small className="cg-home-loading">Aktives Ziel wird aktualisiert …</small>}
   {error&&<small className="cg-home-error" role="alert">{error}</small>}
  </section>

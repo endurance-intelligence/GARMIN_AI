@@ -182,3 +182,42 @@
  min-height:47px;border-top:1px solid rgba(158,177,224,.11);padding-top:8px}
 @media(max-width:760px){.co-recovery-reading{font-size:11px!important}
  .co-trend-meaning{font-size:9px;line-height:1.45;min-height:65px;margin-top:5px;padding-top:6px}}
+
+/* v0.9.70 · turn REAL day/recovery cards into premium Horizon visuals, without fake scores. */
+.co-home .co-header-left h1{
+ background:linear-gradient(115deg,#f9f8ff 18%,#ccc6ff 62%,#9bc9ff);
+ background-clip:text;-webkit-background-clip:text;color:transparent;
+ font-weight:850}
+.co-home .co-today{isolation:isolate;overflow:hidden;
+ border-color:rgba(166,161,249,.29);
+ background:radial-gradient(ellipse 460px 240px at 100% -58%,rgba(154,126,255,.17),transparent 88%),
+ radial-gradient(ellipse 300px 220px at -15% 125%,rgba(65,164,225,.1),transparent 78%),
+ linear-gradient(118deg,#20243e,#141e33 73%,#111a2a);
+ box-shadow:0 13px 32px rgba(5,10,25,.16),inset 0 1px rgba(224,221,255,.04)}
+.co-home .co-today:after{content:'';position:absolute;z-index:-1;pointer-events:none;
+ right:-85px;top:-126px;width:270px;height:270px;border-radius:50%;
+ border:1px solid rgba(172,162,255,.12);
+ box-shadow:0 0 0 33px rgba(147,157,237,.02),0 0 0 65px rgba(143,145,237,.02)}
+.co-decision-chip{display:inline-flex;align-items:center;gap:6px;width:fit-content;
+ border-radius:24px;border:1px solid rgba(175,175,250,.20);
+ background:rgba(163,140,240,.11);padding:5px 9px;margin:10px 0 0;
+ font-size:9px;font-weight:820;letter-spacing:.06em;color:#c6bdfc}
+.co-decision-dot{width:6px;height:6px;border-radius:50%;background:#aca1ff;
+ box-shadow:0 0 11px rgba(170,163,255,.56)}
+.co-decision-skipped{border-color:rgba(134,210,174,.26);
+ background:rgba(83,158,123,.13);color:#b1edcf}
+.co-decision-skipped .co-decision-dot{background:#c5fa8c;box-shadow:0 0 13px rgba(196,247,140,.6)}
+.co-decision-active{border-color:rgba(116,181,235,.28);color:#bddbf6}
+.co-decision-active .co-decision-dot{background:#80c7ff}
+.co-decision-free{color:#b1c7de}
+.co-home .co-today .co-section-head h2{font-weight:870;letter-spacing:-.045em;
+ font-size:clamp(19px,2.25vw,26px)}
+.co-home .co-recovery-glance{position:relative;overflow:hidden;
+ border:1px solid rgba(150,162,227,.20);border-radius:18px;
+ background:radial-gradient(ellipse 360px 180px at 0% -25%,rgba(144,111,236,.11),transparent 85%),
+ linear-gradient(155deg,#171f35,#111a2b 88%)}
+.co-home .co-recovery-insight{border-color:rgba(169,151,255,.27);
+ background:linear-gradient(110deg,rgba(128,102,228,.17),rgba(47,90,157,.08))}
+.co-home .co-trend-tile{box-shadow:inset 0 1px rgba(249,249,255,.03)}
+@media(max-width:760px){.co-decision-chip{margin-top:8px;font-size:8px}
+ .co-home .co-today .co-section-head h2{font-size:19px}}

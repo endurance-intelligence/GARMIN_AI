@@ -13,7 +13,7 @@ import '../styles/coach-glance.css'
 import type {Page} from '../navigation'
 
 type Decision = 'pending' | 'approved' | 'rejected'
-export function CoachPage({active,onGo,onOpenCalendar}: {active:boolean; onGo:(page:Page)=>void;onOpenCalendar:(date?:string)=>void}) {
+export function CoachPage({active,onGo,onOpenCalendar,onOpenRaceWeather}: {active:boolean; onGo:(page:Page)=>void;onOpenCalendar:(date?:string)=>void;onOpenRaceWeather:()=>void}) {
   const [decision,setDecision] = useState<Decision>('pending')
   const [weightOpen,setWeightOpen]=useState(false)
   const [savedWeight,setSavedWeight]=useState<number|null>(null)
@@ -51,7 +51,7 @@ export function CoachPage({active,onGo,onOpenCalendar}: {active:boolean; onGo:(p
  {savedWeight!==null&&<p role="status" className="co-saved-note">
   {savedWeight.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})} kg gespeichert · Garmin-Übertragung noch ausstehend
  </p>}
- <CoachGoalPanel active={active} compact onEdit={()=>onGo('race')}/>
+ <CoachGoalPanel active={active} compact onEdit={()=>onGo('race')} onForecastOpen={onOpenRaceWeather}/>
  <CoachGlance active={active} onCalendar={()=>onOpenCalendar()}>
   <CoachTodayWeather active={active}/>
  </CoachGlance>

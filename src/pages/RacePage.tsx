@@ -1,4 +1,4 @@
-import {useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {Icon} from '../components/Icon'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {RaceEventResearch} from '../components/RaceEventResearch'
@@ -8,7 +8,24 @@ import {RaceRouteViewer} from '../components/RaceRouteViewer'
 import type {Forecast} from '../lib/weatherIntelligence'
 import type {Point} from '../lib/gpxRaceRoute.mjs'
 import type {Page} from '../navigation'
-export function RacePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
+export function RacePage({active,onGo,focusWeatherToken=0}:{active:boolean;onGo:(page:Page)=>void;focusWeatherToken?:number}){
+ const lastWeatherFocus=useRef(0)
+ useEffect(()=>{
+  if(!active||focusWeatherToken===0||focusWeatherToken===lastWeatherFocus.current)return
+  lastWeatherFocus.current=focusWeatherToken
+  let frame=0
+  const focus=()=>{
+   const target=document.getElementById('race-detailed-forecast')
+   if(target){
+    target.scrollIntoView({behavior:'smooth',block:'start'})
+    target.focus({preventScroll:true})
+   }
+  }
+  frame=requestAnimationFrame(()=>requestAnimationFrame(focus))
+  // Event dossier loads asynchronously and can move the forecast on the page.
+  const settle=window.setTimeout(focus,650)
+  return ()=>{cancelAnimationFrame(frame);window.clearTimeout(settle)}
+ },[active,focusWeatherToken])
  const [researchRefresh,setResearchRefresh]=useState(0)
  const [eventLogo,setEventLogo]=useState<string|null>(null)
  const [goalRefresh,setGoalRefresh]=useState(0)

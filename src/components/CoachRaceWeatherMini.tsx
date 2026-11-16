@@ -5,7 +5,7 @@ import {raceForecastStatus} from '../lib/raceForecastShare.mjs'
 import '../styles/coach-goal.css'
 type GoalWeather={race_date:string;race_location:string;race_start_time:string|null;target_hours:number|null}
 type View={temperature:string;rain:number;gust:number;description:string;label:string}
-export function CoachRaceWeatherMini({active,goal}:{active:boolean;goal:GoalWeather}){
+export function CoachRaceWeatherMini({active,goal,onOpenDetails}:{active:boolean;goal:GoalWeather;onOpenDetails?:()=>void}){
  const [view,setView]=useState<View|null>(null)
  const [loading,setLoading]=useState(false)
  const [missing,setMissing]=useState('')
@@ -39,7 +39,9 @@ export function CoachRaceWeatherMini({active,goal}:{active:boolean;goal:GoalWeat
   return ()=>{mounted=false}
  },[active,goal.race_date,goal.race_location,goal.race_start_time,goal.target_hours])
  if(!active)return null
- return <div className="cg-home-weather" aria-label="Wetter am Renntag">
+ return <button type="button" className="cg-home-weather" onClick={onOpenDetails}
+  disabled={!onOpenDetails}
+  aria-label={'Detaillierte Rennwetterprognose für '+(goal.race_location||'deinen Wettkampf')+' öffnen'}>
   <span className="cg-home-weather-icon" aria-hidden="true">☁</span>
   <div className="cg-home-weather-content">
    <span className="cg-home-weather-kicker">RENNWETTER · {goal.race_location||'Ort fehlt'}</span>
@@ -48,5 +50,6 @@ export function CoachRaceWeatherMini({active,goal}:{active:boolean;goal:GoalWeat
     <small title={view.description}>{view.label} · Prognose, keine Gewissheit</small></>:
     <small>{loading?'Prüfe Renntag-Prognose …':missing||'Noch keine Stundenprognose vorhanden'}</small>}
   </div>
- </div>
+  <span className="cg-home-weather-open" aria-hidden="true">↗</span>
+ </button>
 }

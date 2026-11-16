@@ -68,7 +68,7 @@ test('race-and-weather hero is topmost and compact, preserving full goal edit vi
  const css=read('src/styles/coach-goal.css')
  assert.ok(page.indexOf('<CoachGoalPanel active={active} compact')<page.indexOf('<CoachGlance active={active}'))
  assert.match(goal,/if\(compact\)return <section className="cg-root cg-compact cg-home-hero"/)
- assert.match(goal,/<CoachRaceWeatherMini active=\{active\} goal=\{current\}\/>/)
+ assert.match(goal,/<CoachRaceWeatherMini active=\{active\} goal=\{current\} onOpenDetails=\{onForecastOpen\}\/>/)
  assert.match(goal,/Ziel bearbeiten/)
  assert.match(goal,/Ziel & Trainingsphase bearbeiten/)
  assert.match(weather,/raceForecastStatus/)
