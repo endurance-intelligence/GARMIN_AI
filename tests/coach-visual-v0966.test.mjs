@@ -85,6 +85,6 @@ test('the new session visual is a genuine responsive graphic below the single co
  assert.match(visual,/TRAININGSBELASTUNG/)
  assert.match(visual,/Schätzung aus Dauer und Intensität/)
  assert.match(visual,/role="group" aria-label="Intervals.icu Trainingsbelastung"/)
- assert.ok(style.includes('.sv-load-kpi'))
+ assert.ok(css.includes('.sv-load-kpi'))
  assert.doesNotMatch(summary,/API-Rohwerte|paceZones\.join/)
 })
