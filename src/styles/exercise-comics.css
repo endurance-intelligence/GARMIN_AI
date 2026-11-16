@@ -103,3 +103,9 @@
  .ms-phase-rest .ss-player-art .ec-figure.is-premium,
  .ms-phase-switch .ss-player-art .ec-figure.is-premium{width:min(100%,calc(27dvh * .8),220px)}
 }
+
+/* v0.9.60: prominent workout status immediately beneath the running clock. */
+.ss-player-timer+.ms-phase-banner{margin:4px auto 12px;max-width:560px}
+@media(max-width:600px){
+ .ss-player-timer+.ms-phase-banner{margin:2px auto 9px}
+}

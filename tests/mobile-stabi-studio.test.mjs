@@ -212,3 +212,18 @@ test('work, recovery, changeover and manual pause render distinct visible states
  assert.ok(studio.includes('ALS NÄCHSTES – NOCH NICHT STARTEN'))
  assert.ok(studio.includes("'Training anhalten':'Fortsetzen'"))
 })
+
+test('active, rest and changeover labels appear immediately below the countdown timer',()=>{
+ const timer='<div className="ss-player-timer" aria-live="off">{formatClock(player.remaining)}</div>'
+ const banner='<div className="ms-phase-banner" role="status" aria-live="polite">'
+ const timerAt=studio.indexOf(timer)
+ const bannerAt=studio.indexOf(banner)
+ const illustrationAt=studio.indexOf('<div className="ss-player-art">')
+ const sidePromptAt=studio.indexOf("className={'ms-side-prompt'")
+ assert.ok(timerAt>0)
+ assert.ok(illustrationAt>0&&illustrationAt<timerAt)
+ assert.equal(bannerAt,timerAt+timer.length+5)
+ assert.ok(sidePromptAt>bannerAt)
+ assert.equal(studio.split(banner).length-1,1)
+ assert.ok(read('src/styles/exercise-comics.css').includes('.ss-player-timer+.ms-phase-banner'))
+})

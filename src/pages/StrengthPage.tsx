@@ -366,10 +366,6 @@ export function StrengthPage({active}:{active:boolean}){
   {player&&<div className="ss-overlay" role="presentation">
    <section className={'ss-player ms-phase-'+phase} role="dialog" aria-modal="true" aria-label="30-Minuten-Kraft-und-Mobility-Training">
     <span className="ss-kicker">WORKOUT PLAYER / {current?movementLabel(current.part).toUpperCase():'FERTIG'}</span>
-    <div className="ms-phase-banner" role="status" aria-live="polite">
-     <span className="ms-phase-symbol" aria-hidden="true">{phaseMessage.icon}</span>
-     <div><strong>{phaseMessage.headline}</strong><small>{phaseMessage.hint}</small></div>
-    </div>
     <h2>{player.done?'30 Minuten geschafft.':player.prestart?'Bereit machen':player.rest?(player.remaining<=MOVEMENT_PREP_SECONDS?'5-Sekunden-Wechsel':'Erholung'):currentExercise?.name||'Übung'}</h2>
     {player.rest&&shownExercise&&<p className="ss-player-next">
      <strong>Als Nächstes:</strong> {shownExercise.name}</p>}
@@ -381,6 +377,10 @@ export function StrengthPage({active}:{active:boolean}){
      <ExerciseComic id={shownExercise.id} name={shownExercise.name} priority/>
     </div>}
     <div className="ss-player-timer" aria-live="off">{formatClock(player.remaining)}</div>
+    <div className="ms-phase-banner" role="status" aria-live="polite">
+     <span className="ms-phase-symbol" aria-hidden="true">{phaseMessage.icon}</span>
+     <div><strong>{phaseMessage.headline}</strong><small>{phaseMessage.hint}</small></div>
+    </div>
     {sideMovement&&<div className={'ms-side-prompt'+(sideSwitchNow?' is-switching':'')} role="status">
      {sideSwitchNow?'↔ SEITE / FUSS WECHSELN':player.remaining>midRemaining?
       'Zuerst eine Seite · Wechsel zur Halbzeit':'Jetzt die andere Seite'}
