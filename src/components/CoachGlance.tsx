@@ -5,6 +5,8 @@ import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garm
 import {Icon} from './Icon'
 import {interpretRecovery,formatSleep,differenceLabel,recoveryNarrative} from '../lib/recoveryComparison'
 import {RecoverySparkline} from './RecoverySparkline'
+import {coachTodayChoice} from '../lib/coachTodayChoice.mjs'
+import {recoveryMetricMeaning,recoveryDashboardMeaning} from '../lib/recoveryMeaning.mjs'
 import '../styles/coach-glance.css'
 
 type CalendarWorkout={weekday:number;code:string;title:string;start_time:string;location_label:string}
@@ -15,7 +17,7 @@ type Overview={
   workout:CalendarWorkout|null;option:CalendarWorkout|null;plan:CoachPlan|null;
   blocked:'sick'|'returning'|'vacation'|'unavailable'|null;
   availabilityOk:boolean;health:HealthDay|null;healthHistory:HealthDay[];
-  calendarOk:boolean;healthOk:boolean
+  calendarOk:boolean;healthOk:boolean;skipped:boolean;skippedTitle:string
 }
 function today(){
  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
@@ -35,7 +37,13 @@ export function CoachGlance({active,onCalendar,children}:{
  const [view,setView]=useState<Overview|null>(null)
  const [loading,setLoading]=useState(false)
  const [error,setError]=useState(false)
+ const [refresh,setRefresh]=useState(0)
  const date=today()
+ useEffect(()=>{
+  const changed=()=>setRefresh(n=>n+1)
+  window.addEventListener('garmin-ai-weekly-choice-changed',changed)
+  return ()=>window.removeEventListener('garmin-ai-weekly-choice-changed',changed)
+ },[])
  useEffect(()=>{
   if(!active||!garminSupabase)return
   let mounted=true
@@ -66,11 +74,9 @@ export function CoachGlance({active,onCalendar,children}:{
    const planRows=plans?.entries as CoachPlan[]|undefined
    const healthRows=health?.metrics as HealthDay[]|undefined
    const weekday=new Date(date+'T12:00:00Z').getUTCDay()||7
-   const todayOptions=Array.isArray(rows)?rows.filter(w=>w.weekday===weekday):[]
-   const attendance=(w:CalendarWorkout)=>choices?.find(c=>
-    c.training_date===date&&c.option_code===w.code)?.choice||'open'
-   const todayWorkout=todayOptions.find(w=>attendance(w)==='selected')||null
-   const todayOption=todayOptions.find(w=>attendance(w)==='open')||null
+   const todayChoice=coachTodayChoice(rows||[],choices||[],planRows||[],date,weekday)
+   const todayWorkout=todayChoice.workout as CalendarWorkout|null
+   const todayOption=todayChoice.option as CalendarWorkout|null
    const context=life?.context as {illness_state?:string;
     blocked_periods?:Array<{start:string;end:string;reason:string}>}|undefined
    const dateBlock=context?.blocked_periods?.find(b=>b.start<=date&&b.end>=date)
@@ -78,11 +84,11 @@ export function CoachGlance({active,onCalendar,children}:{
     context?.illness_state==='returning'?'returning':
     dateBlock?.reason==='vacation'?'vacation':
     dateBlock?.reason==='unavailable'?'unavailable':null
-   const todayPlan=Array.isArray(planRows)?
-    planRows.find(p=>p.training_date===date&&!['cancelled','confirmed'].includes(p.state))||null:null
+   const todayPlan=todayChoice.plan as CoachPlan|null
    const latestHealth=Array.isArray(healthRows)?
     [...healthRows].filter(h=>h.metric_date<=date).sort((a,b)=>b.metric_date.localeCompare(a.metric_date))[0]||null:null
    setView({workout:todayWorkout,option:todayOption,plan:todayPlan,
+    skipped:todayChoice.skipped,skippedTitle:todayChoice.skippedTitle,
     blocked,availabilityOk:!!life,health:latestHealth,
     healthHistory:Array.isArray(healthRows)?healthRows:[],
     calendarOk:!!week&&!!plans,healthOk:!!health})
@@ -90,7 +96,7 @@ export function CoachGlance({active,onCalendar,children}:{
   }).catch(()=>{if(mounted)setError(true)})
     .finally(()=>{if(mounted)setLoading(false)})
   return ()=>{mounted=false;abort.abort()}
- },[active,date])
+ },[active,date,refresh])
  const blockedLabels:Record<string,string>={
   sick:'Trainingspause · krank / Beschwerden',returning:'Vorsichtiger Wiedereinstieg',
   vacation:'Urlaub · trainingsfrei',unavailable:'Heute keine Zeit für Training'
@@ -98,13 +104,14 @@ export function CoachGlance({active,onCalendar,children}:{
  const title=view?.blocked?blockedLabels[view.blocked]:
   !view?.calendarOk?'Trainingskalender nicht vollständig erreichbar':
   view.plan?.title||view.workout?.title||
-  (view.option?'Optional: '+view.option.title:'Heute noch offen')
+  (view.option?'Optional: '+view.option.title:view.skipped?'Heute trainingsfrei · bewusst ausgelassen':'Heute kein Training geplant')
  const category=view?.blocked?
   'Dein im Coach gemeldeter Status hat Vorrang. Keine Nachholeinheiten.':
   view?.plan?(view.plan.state==='draft'?'Entwurf im GARMIN_AI-Kalender · noch nicht freigegeben':'GARMIN_AI-Kalender · geplanter Termin'):
   view?.workout?'Zugesagt · '+view.workout.start_time.slice(0,5)+' Uhr · '+view.workout.location_label:
   view?.option?'Offene Wochenoption · noch nicht zugesagt':
-  'Kein bestätigter Termin · dein nächster Vorschlag steht im 7-Tage-Plan'
+  view?.skipped?'Auslassen gespeichert'+(view.skippedTitle?' · '+view.skippedTitle:'')+'. Kein Nachholen vorgesehen.':
+  'Kein geplanter oder zugesagter Trainingstermin.'
  const health=view?.health
  const comparison=health?interpretRecovery(view?.healthHistory||[],health.metric_date):null
  const [sleep,hrv,rhr]=comparison?.metrics||[]
@@ -119,7 +126,7 @@ export function CoachGlance({active,onCalendar,children}:{
     </div>
     <button type="button" className="co-link" onClick={onCalendar}>Kalender öffnen <Icon name="arrow-up-right"/></button>
    </div>
-   {!loading&&view?.availabilityOk&&!view.blocked&&children}
+   {!loading&&view?.availabilityOk&&!view.blocked&&!view.skipped&&children}
   </section>
   <section className="co-recovery-glance" aria-label="Garmin Erholung mit grafischen Trends">
     <div className="co-recovery-heading">
@@ -134,6 +141,7 @@ export function CoachGlance({active,onCalendar,children}:{
       <div>
         <strong>Dein Verlauf auf einen Blick</strong>
         <p>{recoveryNarrative(comparison)}</p>
+        <p className="co-recovery-reading">{recoveryDashboardMeaning(comparison)}</p>
       </div>
     </div>
     <div className="co-trend-grid" role="list" aria-label="Schlaf, HRV und Ruhepuls mit Verlauf der letzten sieben Tage">
@@ -154,6 +162,7 @@ export function CoachGlance({active,onCalendar,children}:{
             metric={entry.key} day={health.metric_date}
             median={entry.row?.median??null} label={entry.name}/>:
           <div className="co-trend-empty">Noch keine Messwerte</div>}
+        <p className="co-trend-meaning">{recoveryMetricMeaning(entry.row)}</p>
       </div>)}
     </div>
     <div className="co-recovery-context">
@@ -167,6 +176,7 @@ export function CoachGlance({active,onCalendar,children}:{
       <div className="co-recovery-explanation">
         <p><strong>Schlaf:</strong> Dauer, nicht Schlafqualität. <strong>HRV:</strong> individuelle Schwankung
         des Herzrhythmus. <strong>Ruhepuls:</strong> ebenfalls im persönlichen Verlauf betrachten.</p>
+        <p><strong>Deine konkreten Werte:</strong> {recoveryDashboardMeaning(comparison)}</p>
         <p>Die gestrichelte Linie zeigt den Median der 14 Tage vor der neuesten Messung –
         nur bei mindestens sieben gültigen Werten. Das ist keine langfristige gesunde Baseline.
         Krankheit, Trainingsbelastung und Befinden müssen für eine Empfehlung zusätzlich einfließen.</p>

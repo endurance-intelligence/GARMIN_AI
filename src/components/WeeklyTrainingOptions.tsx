@@ -130,6 +130,8 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDa
    })
    setNotice(option.title+' · '+fullDate(date)+': '+(choice==='selected'?'Dabei':choice==='skipped'?'Auslassen':'Wieder offen')+
     '. Keine automatische Übertragung an Garmin.')
+   // Keep the Coach day header and its weather consistent without a tab reload.
+   window.dispatchEvent(new CustomEvent('garmin-ai-weekly-choice-changed',{detail:{date}}))
   }catch(e){setError(e instanceof Error?e.message:'Auswahl fehlgeschlagen')}
   finally{setBusy(null)}
  }

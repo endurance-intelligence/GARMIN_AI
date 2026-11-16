@@ -174,3 +174,11 @@
  .co-home .co-link{width:100%;justify-content:space-between}
  .co-home .co-section-head>div{flex-basis:100%}
 }
+
+/* v0.9.69 – every recovery number gets a brief, personalized meaning. */
+.co-recovery-reading{margin-top:9px!important;padding-top:9px;border-top:1px solid rgba(149,170,220,.17);
+ color:#e0dffc!important;font-size:12px!important;line-height:1.6!important}
+.co-trend-meaning{font-size:10.5px;line-height:1.5;color:#a5b9d5;margin:8px 0 0;
+ min-height:47px;border-top:1px solid rgba(158,177,224,.11);padding-top:8px}
+@media(max-width:760px){.co-recovery-reading{font-size:11px!important}
+ .co-trend-meaning{font-size:9px;line-height:1.45;min-height:65px;margin-top:5px;padding-top:6px}}

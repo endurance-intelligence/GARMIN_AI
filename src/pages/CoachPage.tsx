@@ -51,10 +51,10 @@ export function CoachPage({active,onGo,onOpenCalendar}: {active:boolean; onGo:(p
  {savedWeight!==null&&<p role="status" className="co-saved-note">
   {savedWeight.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})} kg gespeichert · Garmin-Übertragung noch ausstehend
  </p>}
+ <CoachGoalPanel active={active} compact onEdit={()=>onGo('race')}/>
  <CoachGlance active={active} onCalendar={()=>onOpenCalendar()}>
   <CoachTodayWeather active={active}/>
  </CoachGlance>
- <CoachGoalPanel active={active} compact onEdit={()=>onGo('race')}/>
  <CoachEvidenceSummary active={active} mode="weekly" weekStart={mondayOf(berlinToday())}/>
  <CoachSevenDay active={active} onCalendar={onOpenCalendar}/>
  <WeeklyTrainingOptions active={active} weekStart={mondayOf(berlinToday())} compact/>

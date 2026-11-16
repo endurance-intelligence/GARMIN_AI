@@ -62,3 +62,44 @@
 .cg-title-row h2{margin:0!important;min-width:0;overflow-wrap:anywhere}
 .cg-compact .cg-title-row img{height:43px;width:43px}
 @media(max-width:480px){.cg-title-row img{height:44px;width:44px}.cg-title-row{gap:8px}}
+
+/* v0.9.69 - the race goal is the compact, weather-aware Coach hero, NOT a huge card. */
+.cg-root.cg-home-hero{margin:0 0 13px;padding:14px 18px;border-radius:16px;
+ display:grid;grid-template-columns:minmax(0,1.1fr) minmax(250px,.75fr);align-items:center;gap:17px;
+ background:linear-gradient(120deg,#1a2540,#101b30 75%);border:1px solid rgba(145,165,231,.27)}
+.cg-home-race{min-width:0}
+.cg-home-race-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.cg-home-hero .cg-kicker{font-size:9px;letter-spacing:.13em}
+.cg-home-hero .cg-state{font-size:8px;padding:4px 7px;white-space:nowrap}
+.cg-home-race-main{display:flex;justify-content:space-between;align-items:center;gap:14px;min-width:0}
+.cg-home-race-info{min-width:0}
+.cg-home-race-info h2{margin:0 0 8px!important;line-height:1.15;font-size:clamp(17px,2.3vw,23px)!important;
+ font-weight:870;letter-spacing:-.035em;color:#f2f6ff}
+.cg-home-race-meta{display:flex;gap:6px;flex-wrap:wrap;color:#c1d2f0}
+.cg-home-race-meta>span{font-size:10px;padding:4px 8px;border:1px solid rgba(152,173,218,.25);border-radius:7px;
+ background:rgba(72,97,151,.16);font-weight:700}
+.cg-home-edit{min-height:30px;margin:8px 0 0;padding:0;border:0;background:transparent!important;
+ color:#bdc5ff;font-size:10px;font-weight:780;text-decoration:underline;text-underline-offset:3px}
+.cg-home-days{flex:0 0 68px;min-height:68px;display:grid;place-items:center;gap:0;
+ border:1px solid rgba(162,147,255,.29);border-radius:12px;background:rgba(107,95,197,.12);padding:7px}
+.cg-home-days strong{font-size:31px;font-weight:900;line-height:1;letter-spacing:-.065em;color:#e8ddff}
+.cg-home-days small{font-size:8px;text-align:center;font-weight:750;color:#afaee9}
+.cg-home-weather{align-self:stretch;min-width:0;display:flex;gap:10px;align-items:center;
+ padding:12px 14px;border:1px solid rgba(101,156,211,.24);border-radius:12px;
+ background:linear-gradient(110deg,rgba(47,79,118,.21),rgba(17,32,56,.42))}
+.cg-home-weather-icon{width:28px;height:28px;flex:0 0 28px;display:grid;place-items:center;
+ border-radius:9px;background:rgba(103,176,217,.12);color:#b5dffe;font-size:17px}
+.cg-home-weather-content{display:grid;gap:5px;min-width:0}
+.cg-home-weather-kicker{color:#9dbdec;font-size:9px;font-weight:850;letter-spacing:.09em}
+.cg-home-weather-data{display:flex;align-items:baseline;flex-wrap:wrap;gap:5px 10px}
+.cg-home-weather-data strong{font-size:19px;color:#f1faff;white-space:nowrap}
+.cg-home-weather-data span{color:#c7dbf0;font-size:11px;white-space:nowrap}
+.cg-home-weather-content small{font-size:10px;color:#a5b8d1;line-height:1.4}
+.cg-home-loading{font-size:10px;color:#acbdd6;grid-column:1/-1}
+.cg-home-error{font-size:10px;color:#efbac1;grid-column:1/-1}
+@media(max-width:830px){.cg-root.cg-home-hero{grid-template-columns:minmax(0,1fr);gap:9px;padding:13px 14px}
+ .cg-home-weather{padding:9px 12px}.cg-home-race-head{margin-bottom:6px}}
+@media(max-width:420px){.cg-home-race-main{gap:8px}.cg-home-days{flex-basis:57px;min-height:57px}
+ .cg-home-days strong{font-size:27px}.cg-home-race-info h2{font-size:18px!important}
+ .cg-home-race-meta{gap:4px}.cg-home-race-meta>span{font-size:9px;padding:4px 5px}
+ .cg-home-weather-data{gap:4px 8px}.cg-home-weather-data strong{font-size:17px}}

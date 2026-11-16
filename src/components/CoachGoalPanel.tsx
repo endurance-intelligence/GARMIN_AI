@@ -3,6 +3,7 @@ import type {CoachGoal} from '../lib/coachGoal'
 import {phaseForRace,berlinDateToday,suggestedGoal} from '../lib/coachGoal'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import '../styles/coach-goal.css'
+import {CoachRaceWeatherMini} from './CoachRaceWeatherMini'
 
 async function goalRequest(body?:Record<string,unknown>):Promise<{goal:CoachGoal|null;saved?:boolean}>{
  if(!garminSupabase)throw Error('Bitte zuerst anmelden.')
@@ -72,6 +73,31 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl}:{ac
  const phase=phaseForRace(current.race_date,berlinDateToday())
  const distanceText=Number(current.distance_km).toLocaleString('de-DE',{maximumFractionDigits:1})
  const days=Math.max(0,phase.daysUntil)
+ if(compact)return <section className="cg-root cg-compact cg-home-hero"
+  aria-label="Aktuelles Hauptziel und Rennwetter">
+  <div className="cg-home-race">
+   <div className="cg-home-race-head"><span className="cg-kicker">DEIN NÄCHSTES ZIEL</span>
+    <span className={'cg-state'+(goal?' is-active':'')}>{goal?'AKTIVES ZIEL':'NOCH NICHT BESTÄTIGT'}</span></div>
+   <div className="cg-home-race-main">
+    <div className="cg-home-race-info">
+     <h2>{current.race_name}</h2>
+     <div className="cg-home-race-meta">
+      <span>{current.race_date.split('-').reverse().join('.')}</span>
+      <span>{distanceText} km</span>
+      {current.target_hours!==null&&<span>Ziel {Number(current.target_hours).toLocaleString('de-DE')} h</span>}
+      <span>{phase.title}</span>
+     </div>
+     <button className="cg-home-edit" type="button" onClick={onEdit}
+      disabled={!onEdit}>Ziel bearbeiten ↗</button>
+    </div>
+    <div className="cg-home-days"><strong>{phase.daysUntil>0?days:phase.daysUntil===0?'GO':'–'}</strong>
+     <small>{phase.daysUntil>0?'TAGE BIS START':phase.daysUntil===0?'HEUTE':'ZIEL VORBEI'}</small></div>
+   </div>
+  </div>
+  <CoachRaceWeatherMini active={active} goal={current}/>
+  {loading&&<small className="cg-home-loading">Aktives Ziel wird aktualisiert …</small>}
+  {error&&<small className="cg-home-error" role="alert">{error}</small>}
+ </section>
  return <section className={'cg-root'+(compact?' cg-compact':'')} aria-label="Trainingsziel und Vorbereitungsphase">
   <div className="cg-head">
    <span className="cg-kicker">COACH / MEIN ZIEL</span>
