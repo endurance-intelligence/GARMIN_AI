@@ -8,8 +8,17 @@ export type MovementPlan={steps:MovementStep[];exerciseIds:string[];minutes:numb
 export const MOVEMENT_MINUTES=30
 export const CIRCUIT_ROUNDS=3
 export const MOVEMENT_PREP_SECONDS=5
+export type MovementPlayerPhase='prepare'|'work'|'rest'|'switch'|'paused'|'done'
 export type MovementPlayer={index:number;rest:boolean;prestart:boolean;remaining:number;running:boolean;done:boolean}
 export type MovementCue='countdown-start'|'countdown-end'|'go'
+/** Work, recovery, changeover and user-paused states are visually distinct. */
+export function movementPlayerPhase(player:MovementPlayer):MovementPlayerPhase{
+ if(player.done)return 'done'
+ if(!player.running)return 'paused'
+ if(player.prestart)return 'prepare'
+ if(player.rest)return player.remaining<=MOVEMENT_PREP_SECONDS?'switch':'rest'
+ return 'work'
+}
 /** No extra time added: each one-minute mobility slot is 55s move + 5s change. */
 export function startMovementPlayer():MovementPlayer{
  return {index:0,rest:false,prestart:true,remaining:MOVEMENT_PREP_SECONDS,running:true,done:false}

@@ -3,7 +3,7 @@ import {Icon} from '../components/Icon'
 import {ExerciseComic} from '../components/ExerciseComic'
 import {EI_EXERCISES} from '../lib/eiExercises'
 import type {EIExercise} from '../lib/eiExercises'
-import {buildMovementPlan,MOVEMENT_MINUTES,MOVEMENT_PATTERNS,MOVEMENT_PREP_SECONDS,advanceMovementPlayer,movementPlayerCue,movementSideSwitchMoment,startMovementPlayer,tickMovementPlayer} from '../lib/movementSession'
+import {buildMovementPlan,MOVEMENT_MINUTES,MOVEMENT_PATTERNS,MOVEMENT_PREP_SECONDS,advanceMovementPlayer,movementPlayerCue,movementSideSwitchMoment,movementPlayerPhase,startMovementPlayer,tickMovementPlayer} from '../lib/movementSession'
 import type {MovementPlayer,MovementStep} from '../lib/movementSession'
 import {berlinDate,crossKind,loadCrossTraining,saveCrossTraining} from '../lib/crossTrainingClient'
 import type {CrossResponse} from '../lib/crossTrainingClient'
@@ -23,6 +23,14 @@ const byId=new Map(BODYWEIGHT_EXERCISES.map(x=>[x.id,x]))
 const formatClock=(n:number)=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')
 const short=(n:string)=>n.slice(8,10)+'.'+n.slice(5,7)+'.'
 const movementLabel=(part:MovementStep['part'])=>part==='warmup'?'Mobilisieren':part==='strength'?'Kraft & Stabilität':'Auslockern'
+const phaseCopy={
+ prepare:{icon:'⏳',headline:'STARTVORBEREITUNG',hint:'Position einnehmen · gleich geht es los'},
+ work:{icon:'▶',headline:'JETZT AUSFÜHREN',hint:'Übung läuft · kontrolliert weitermachen'},
+ rest:{icon:'⏸',headline:'PAUSE – ERHOLEN',hint:'Nichts machen · kurz durchatmen'},
+ switch:{icon:'↪',headline:'WECHSEL – BEREIT MACHEN',hint:'Nächste Position einnehmen · gleich starten'},
+ paused:{icon:'⏸',headline:'TRAINING ANGEHALTEN',hint:'Die Zeit steht · mit Fortsetzen weiter'},
+ done:{icon:'✓',headline:'EINHEIT GESCHAFFT',hint:'Training abgeschlossen'}
+} as const
 /**
  * iOS Safari may mute Web Audio in silent mode; when available, request a
  * playback-category audio session during sound-enabled workouts.
@@ -226,6 +234,8 @@ export function StrengthPage({active}:{active:boolean}){
  const upcoming=player?.rest?plan.steps[player.index+1]:null
  const shownStep=upcoming||current
  const shownExercise=shownStep?byId.get(shownStep.exerciseId):null
+ const phase=player?movementPlayerPhase(player):'prepare'
+ const phaseMessage=phaseCopy[phase]
  const midRemaining=current?Math.ceil(current.workSeconds/2):0
  const sideMovement=!!player&&!player.done&&!player.rest&&!player.prestart&&!!currentExercise?.sideSwitch
  const sideSwitchNow=sideMovement&&player.remaining<=midRemaining&&player.remaining>midRemaining-3
@@ -354,15 +364,19 @@ export function StrengthPage({active}:{active:boolean}){
     <button className="ss-main-action" type="button" onClick={()=>setDetail(null)}>Zurück zum Training</button>
    </section></div>}
   {player&&<div className="ss-overlay" role="presentation">
-   <section className="ss-player" role="dialog" aria-modal="true" aria-label="30-Minuten-Kraft-und-Mobility-Training">
+   <section className={'ss-player ms-phase-'+phase} role="dialog" aria-modal="true" aria-label="30-Minuten-Kraft-und-Mobility-Training">
     <span className="ss-kicker">WORKOUT PLAYER / {current?movementLabel(current.part).toUpperCase():'FERTIG'}</span>
+    <div className="ms-phase-banner" role="status" aria-live="polite">
+     <span className="ms-phase-symbol" aria-hidden="true">{phaseMessage.icon}</span>
+     <div><strong>{phaseMessage.headline}</strong><small>{phaseMessage.hint}</small></div>
+    </div>
     <h2>{player.done?'30 Minuten geschafft.':player.prestart?'Bereit machen':player.rest?(player.remaining<=MOVEMENT_PREP_SECONDS?'5-Sekunden-Wechsel':'Erholung'):currentExercise?.name||'Übung'}</h2>
     {player.rest&&shownExercise&&<p className="ss-player-next">
      <strong>Als Nächstes:</strong> {shownExercise.name}</p>}
     <p>{player.done?'Training dokumentieren, wenn es tatsächlich absolviert wurde.':
      (current?.part==='strength'?'Runde '+current.round+' von 3 · ':'')+
      'Schritt '+(player.index+1)+' von '+plan.steps.length+
-     (player.prestart?' · Start in 5 Sekunden':player.rest?' · Letzte 5 Sek. vorbereiten':' · Kontrolliert ausführen')}</p>
+     (phase==='prepare'?' · Start in 5 Sekunden':phase==='rest'?' · Erholungszeit':phase==='switch'?' · nächste Übung vorbereiten':phase==='paused'?' · Timer gestoppt':' · Kontrolliert ausführen')}</p>
     {!player.done&&shownExercise&&<div className="ss-player-art">
      <ExerciseComic id={shownExercise.id} name={shownExercise.name} priority/>
     </div>}
@@ -388,14 +402,14 @@ export function StrengthPage({active}:{active:boolean}){
       'Ton blockiert: Handylautstärke und Lautlosmodus prüfen':'Ton mit „Ton testen“ prüfen'}</small>}
     </div>}
     {!player.done&&shownExercise&&<div className="ss-player-guide">
-     <small>{player.prestart?'STARTVORBEREITUNG':player.rest?'NÄCHSTE ÜBUNG VORBEREITEN':'SAUBERE AUSFÜHRUNG'}</small>
+     <small>{phase==='prepare'?'STARTVORBEREITUNG':phase==='rest'?'ALS NÄCHSTES – NOCH NICHT STARTEN':phase==='switch'?'NÄCHSTE ÜBUNG JETZT VORBEREITEN':phase==='paused'?'TRAINING ANGEHALTEN':'SAUBERE AUSFÜHRUNG'}</small>
      <span>{shownExercise.quickStart||shownExercise.instruction}</span>
      {(shownExercise.cues||[]).slice(0,2).map((cue,i)=>
       <span key={i}>✓ {cue}</span>)}
     </div>}
     <div className="ss-player-actions">
      {!player.done&&<button type="button" onClick={()=>{if(!player.running&&soundOn)unlockAudio();setPlayer(p=>p?{...p,running:!p.running}:p)}}>
-      {player.running?'Pause':'Fortsetzen'}</button>}
+      {player.running?'Training anhalten':'Fortsetzen'}</button>}
      {!player.done&&<button type="button" onClick={()=>setPlayer(p=>p?advanceMovementPlayer(p,plan):p)}>Nächster Abschnitt</button>}
      <button type="button" onClick={()=>setPlayer(null)}>Schließen</button>
     </div>

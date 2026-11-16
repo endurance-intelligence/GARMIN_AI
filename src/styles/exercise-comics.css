@@ -64,3 +64,42 @@
 .ms-side-prompt.is-switching{background:rgba(132,90,228,.34);
  border-color:rgba(190,149,255,.9);color:white;font-size:15px;letter-spacing:.02em}
 .ms-device-status small{color:#acbbd4;font-size:10px}
+
+/* v0.9.59: strong, explicit workout-phase indication on iPhone / iPad.
+   Work=green; recovery=amber; last-five-second setup=purple; paused=grey. */
+.ms-phase-banner{display:flex;align-items:center;justify-content:center;text-align:left;gap:12px;
+ border:2px solid transparent;border-radius:16px;padding:12px 16px;margin:12px 0 10px}
+.ms-phase-banner>div{display:grid;gap:3px;min-width:0}
+.ms-phase-banner strong{display:block;font-size:clamp(18px,4vw,26px);font-weight:900;
+ line-height:1.16;letter-spacing:-.025em;color:#fff}
+.ms-phase-banner small{display:block;font-size:12px;font-weight:700;line-height:1.4}
+.ms-phase-symbol{display:grid;place-items:center;flex:0 0 44px;height:44px;
+ border-radius:12px;background:rgba(255,255,255,.15);font-size:24px;color:inherit}
+.ms-phase-work .ms-phase-banner{border-color:#5bd9ab;background:#164c40;color:#e0fff3}
+.ms-phase-work .ms-phase-banner small{color:#b6f5dc}
+.ms-phase-rest .ms-phase-banner{border-color:#ffc76b;background:#69441a;color:#fff1d2}
+.ms-phase-rest .ms-phase-banner small{color:#ffe3a5}
+.ms-phase-switch .ms-phase-banner{border-color:#b3a3ff;background:#49357b;color:#f0eaff}
+.ms-phase-switch .ms-phase-banner small{color:#eee1ff}
+.ms-phase-prepare .ms-phase-banner{border-color:#80c5ff;background:#244c70;color:#e6f5ff}
+.ms-phase-prepare .ms-phase-banner small{color:#cce7ff}
+.ms-phase-paused .ms-phase-banner{border-color:#a2afc1;background:#344054;color:#e4eaf4}
+.ms-phase-paused .ms-phase-banner small{color:#c7d2de}
+.ms-phase-done .ms-phase-banner{border-color:#5bd9ab;background:#164c40;color:#e0fff3}
+.ms-phase-done .ms-phase-banner small{color:#b6f5dc}
+.ms-phase-rest .ss-player-timer{background:linear-gradient(90deg,#ffe7ab,#ffbf65);
+ color:transparent;background-clip:text;-webkit-background-clip:text}
+.ms-phase-switch .ss-player-timer{background:linear-gradient(90deg,#e0c7ff,#ac92ff);
+ color:transparent;background-clip:text;-webkit-background-clip:text}
+.ms-phase-work .ss-player-timer{background:linear-gradient(90deg,#b3ffe5,#66d9ae);
+ color:transparent;background-clip:text;-webkit-background-clip:text}
+.ms-phase-rest .ss-player-art .ec-figure.is-premium,
+.ms-phase-switch .ss-player-art .ec-figure.is-premium{width:min(100%,calc(32dvh * .8),270px)}
+@media(max-width:600px){
+ .ms-phase-banner{gap:10px;padding:10px 12px;margin:8px 0}
+ .ms-phase-banner strong{font-size:clamp(18px,5vw,23px)}
+ .ms-phase-banner small{font-size:11px}
+ .ms-phase-symbol{flex-basis:38px;height:38px;font-size:22px}
+ .ms-phase-rest .ss-player-art .ec-figure.is-premium,
+ .ms-phase-switch .ss-player-art .ec-figure.is-premium{width:min(100%,calc(27dvh * .8),220px)}
+}

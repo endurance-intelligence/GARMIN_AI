@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
-import {buildMovementPlan,MOVEMENT_MINUTES,MOVEMENT_PATTERNS,MOVEMENT_PREP_SECONDS,startMovementPlayer,tickMovementPlayer,advanceMovementPlayer,movementPlayerCue,movementSideSwitchMoment} from '../src/lib/movementSession.ts'
+import {buildMovementPlan,MOVEMENT_MINUTES,MOVEMENT_PATTERNS,MOVEMENT_PREP_SECONDS,startMovementPlayer,tickMovementPlayer,advanceMovementPlayer,movementPlayerCue,movementSideSwitchMoment,movementPlayerPhase} from '../src/lib/movementSession.ts'
 const read=(p)=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
 const library=read('src/lib/eiExercises.ts')
 const studio=read('src/pages/StrengthPage.tsx')
@@ -183,4 +183,32 @@ test('mobile audio is unlocked by user gesture and has an audible test action',(
  assert.ok(studio.includes('onClick={()=>unlockAudio(true)}'))
  assert.ok(studio.includes('Ton testen'))
  assert.ok(studio.includes('setWorkoutAudioSession(false)'))
+})
+
+test('work, recovery, changeover and manual pause render distinct visible states',()=>{
+ const p=startMovementPlayer()
+ assert.equal(movementPlayerPhase(p),'prepare')
+ const work={...p,prestart:false,remaining:40}
+ assert.equal(movementPlayerPhase(work),'work')
+ const recovery={...work,rest:true,remaining:20}
+ assert.equal(movementPlayerPhase(recovery),'rest')
+ assert.equal(movementPlayerPhase({...recovery,remaining:6}),'rest')
+ assert.equal(movementPlayerPhase({...recovery,remaining:5}),'switch')
+ assert.equal(movementPlayerPhase({...recovery,remaining:3}),'switch')
+ assert.equal(movementPlayerPhase({...work,running:false}),'paused')
+ assert.equal(movementPlayerPhase({...recovery,running:false}),'paused')
+ assert.equal(movementPlayerPhase({...work,done:true}),'done')
+ const style=read('src/styles/exercise-comics.css')
+ for(const color of ['work','rest','switch','paused']){
+  assert.ok(style.includes('.ms-phase-'+color+' .ms-phase-banner'),color)
+ }
+ assert.ok(studio.includes('const phase=player?movementPlayerPhase(player)'))
+ assert.ok(studio.includes("'ss-player ms-phase-'+phase"))
+ assert.ok(studio.includes('phaseMessage.headline'))
+ assert.ok(studio.includes('PAUSE – ERHOLEN'))
+ assert.ok(studio.includes('JETZT AUSFÜHREN'))
+ assert.ok(studio.includes('WECHSEL – BEREIT MACHEN'))
+ assert.ok(studio.includes('Nichts machen · kurz durchatmen'))
+ assert.ok(studio.includes('ALS NÄCHSTES – NOCH NICHT STARTEN'))
+ assert.ok(studio.includes("'Training anhalten':'Fortsetzen'"))
 })
