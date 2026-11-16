@@ -27,6 +27,13 @@ export function tickMovementPlayer(p:MovementPlayer,plan:MovementPlan):MovementP
  if(!p.running||p.done)return p
  return p.remaining>1?{...p,remaining:p.remaining-1}:advanceMovementPlayer(p,plan)
 }
+/** A 40s strength step changes sides at 20s left; 55s mobility at 28s left.
+ * The exercise metadata selects which steps actually need a mid-set switch. */
+export function movementSideSwitchMoment(p:MovementPlayer,plan:MovementPlan):boolean{
+ const step=plan.steps[p.index]
+ return !!step&&p.running&&!p.done&&!p.rest&&!p.prestart&&
+  p.remaining===Math.ceil(step.workSeconds/2)
+}
 export function movementPlayerCue(p:MovementPlayer,plan:MovementPlan):MovementCue|null{
  if(!p.running||p.done)return null
  if(p.remaining<=3&&p.remaining>=1){

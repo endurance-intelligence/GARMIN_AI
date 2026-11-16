@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
-import {buildMovementPlan,MOVEMENT_MINUTES,MOVEMENT_PATTERNS,MOVEMENT_PREP_SECONDS,startMovementPlayer,tickMovementPlayer,advanceMovementPlayer,movementPlayerCue} from '../src/lib/movementSession.ts'
+import {buildMovementPlan,MOVEMENT_MINUTES,MOVEMENT_PATTERNS,MOVEMENT_PREP_SECONDS,startMovementPlayer,tickMovementPlayer,advanceMovementPlayer,movementPlayerCue,movementSideSwitchMoment} from '../src/lib/movementSession.ts'
 const read=(p)=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
 const library=read('src/lib/eiExercises.ts')
 const studio=read('src/pages/StrengthPage.tsx')
@@ -147,4 +147,40 @@ test('screen wake lock and sound start from a user click and stop when leaving',
  assert.ok(studio.includes('playMovementBeep(audioRef.current,cue)'))
  assert.ok(studio.includes('Piep-Töne an'))
  assert.ok(studio.includes('onClick={begin}'))
+})
+
+test('only unilateral bodyweight exercises receive an exact halfway switch',()=>{
+ const all=read('src/lib/eiExercises.ts')
+ for(const id of ['adductor-rockback','side-plank','clamshell','single-leg-calf-raise',
+  'knee-to-wall','short-foot','single-leg-balance','hip-flexor-stretch',
+  'thoracic-rotation','single-leg-glute-bridge']){
+  const block=all.slice(all.indexOf('id: "'+id+'"'),all.indexOf('id: "'+id+'"')+420)
+  assert.match(block,/sideSwitch:\\s*true/,id)
+ }
+ const p=buildMovementPlan('2026-11-16')
+ const strengthIndex=p.steps.findIndex(s=>s.part==='strength')
+ const mobilityIndex=p.steps.findIndex(s=>s.part==='warmup')
+ for(const [i,half] of [[strengthIndex,20],[mobilityIndex,28]]){
+  const step=p.steps[i]
+  let player={...startMovementPlayer(),prestart:false,index:i,remaining:half}
+  assert.equal(movementSideSwitchMoment(player,p),true)
+  assert.equal(movementSideSwitchMoment({...player,remaining:half+1},p),false)
+  assert.equal(movementSideSwitchMoment({...player,remaining:half-1},p),false)
+  assert.equal(movementSideSwitchMoment({...player,rest:true},p),false)
+  assert.equal(movementSideSwitchMoment({...player,running:false},p),false)
+  assert.ok(step.workSeconds===40||step.workSeconds===55)
+ }
+ assert.ok(studio.includes('exercise?.sideSwitch&&movementSideSwitchMoment(player,plan)'))
+ assert.ok(studio.includes('↔ SEITE / FUSS WECHSELN'))
+ assert.ok(studio.includes("if(cue==='switch')"))
+})
+test('mobile audio is unlocked by user gesture and has an audible test action',()=>{
+ assert.ok(studio.includes("session.type=enabled?'playback':'auto'"))
+ assert.ok(studio.includes('audio.createBufferSource()'))
+ assert.ok(studio.includes('audio.resume()'))
+ assert.ok(studio.includes('void ready.then('))
+ assert.ok(studio.includes('playMovementBeep(audio,\'go\')'))
+ assert.ok(studio.includes('onClick={()=>unlockAudio(true)}'))
+ assert.ok(studio.includes('Ton testen'))
+ assert.ok(studio.includes('setWorkoutAudioSession(false)'))
 })

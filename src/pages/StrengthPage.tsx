@@ -3,7 +3,7 @@ import {Icon} from '../components/Icon'
 import {ExerciseComic} from '../components/ExerciseComic'
 import {EI_EXERCISES} from '../lib/eiExercises'
 import type {EIExercise} from '../lib/eiExercises'
-import {buildMovementPlan,MOVEMENT_MINUTES,MOVEMENT_PATTERNS,MOVEMENT_PREP_SECONDS,advanceMovementPlayer,movementPlayerCue,startMovementPlayer,tickMovementPlayer} from '../lib/movementSession'
+import {buildMovementPlan,MOVEMENT_MINUTES,MOVEMENT_PATTERNS,MOVEMENT_PREP_SECONDS,advanceMovementPlayer,movementPlayerCue,movementSideSwitchMoment,startMovementPlayer,tickMovementPlayer} from '../lib/movementSession'
 import type {MovementPlayer,MovementStep} from '../lib/movementSession'
 import {berlinDate,crossKind,loadCrossTraining,saveCrossTraining} from '../lib/crossTrainingClient'
 import type {CrossResponse} from '../lib/crossTrainingClient'
@@ -23,22 +23,41 @@ const byId=new Map(BODYWEIGHT_EXERCISES.map(x=>[x.id,x]))
 const formatClock=(n:number)=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')
 const short=(n:string)=>n.slice(8,10)+'.'+n.slice(5,7)+'.'
 const movementLabel=(part:MovementStep['part'])=>part==='warmup'?'Mobilisieren':part==='strength'?'Kraft & Stabilität':'Auslockern'
-/** One small synthesized tone, no external media or copyrighted sound files. */
-function playMovementBeep(audio:AudioContext|null,cue:'countdown-start'|'countdown-end'|'go'){
+/**
+ * iOS Safari may mute Web Audio in silent mode; when available, request a
+ * playback-category audio session during sound-enabled workouts.
+ * This is optional: other browsers use ordinary Web Audio.
+ */
+function setWorkoutAudioSession(enabled:boolean){
+ try{
+  const session=(navigator as Navigator&{audioSession?:{type:string}}).audioSession
+  if(session)session.type=enabled?'playback':'auto'
+ }catch{/* unsupported or disabled by the browser */}
+}
+/** Short, locally synthesized tones (no downloaded audio or third-party assets). */
+function playMovementBeep(audio:AudioContext|null,cue:'countdown-start'|'countdown-end'|'go'|'switch'){
  if(!audio||audio.state!=='running')return
  const now=audio.currentTime
- const oscillator=audio.createOscillator()
- const gain=audio.createGain()
- oscillator.type='sine'
- oscillator.frequency.value=cue==='go'?1040:cue==='countdown-start'?780:510
- gain.gain.setValueAtTime(0.001,now)
- gain.gain.exponentialRampToValueAtTime(0.13,now+0.015)
- gain.gain.exponentialRampToValueAtTime(0.001,now+(cue==='go'?0.27:0.14))
- oscillator.connect(gain)
- gain.connect(audio.destination)
- oscillator.start(now)
- oscillator.stop(now+(cue==='go'?0.28:0.15))
- oscillator.onended=()=>{oscillator.disconnect();gain.disconnect()}
+ const tone=(freq:number,start:number,duration:number)=>{
+  const oscillator=audio.createOscillator()
+  const gain=audio.createGain()
+  oscillator.type='sine'
+  oscillator.frequency.value=freq
+  gain.gain.setValueAtTime(0.001,start)
+  gain.gain.exponentialRampToValueAtTime(0.22,start+0.012)
+  gain.gain.exponentialRampToValueAtTime(0.001,start+duration)
+  oscillator.connect(gain)
+  gain.connect(audio.destination)
+  oscillator.start(start)
+  oscillator.stop(start+duration+0.01)
+  oscillator.onended=()=>{oscillator.disconnect();gain.disconnect()}
+ }
+ if(cue==='switch'){
+  tone(650,now,0.16)
+  tone(950,now+0.22,0.24)
+ }else{
+  tone(cue==='go'?1040:cue==='countdown-start'?820:520,now,cue==='go'?0.30:0.20)
+ }
 }
 export function StrengthPage({active}:{active:boolean}){
  const [date,setDate]=useState(DAY)
@@ -48,6 +67,7 @@ export function StrengthPage({active}:{active:boolean}){
  const [detail,setDetail]=useState<EIExercise|null>(null)
  const [player,setPlayer]=useState<MovementPlayer|null>(null)
  const [soundOn,setSoundOn]=useState(true)
+ const [audioState,setAudioState]=useState<'idle'|'ready'|'blocked'>('idle')
  const [wakeStatus,setWakeStatus]=useState<'off'|'active'|'pending'|'unavailable'|'unsupported'>('off')
  const wakeRef=useRef<WakeLockSentinel|null>(null)
  const audioRef=useRef<AudioContext|null>(null)
@@ -121,20 +141,43 @@ export function StrengthPage({active}:{active:boolean}){
  },[active,player?.running,player?.done])
  useEffect(()=>{
   if(!active||!player?.running||player.done)return
-  const cue=movementPlayerCue(player,plan)
+  const exercise=byId.get(plan.steps[player.index]?.exerciseId)
+  const half=!!exercise?.sideSwitch&&movementSideSwitchMoment(player,plan)
+  const cue=half?'switch':movementPlayerCue(player,plan)
   if(!cue)return
   const key=[player.index,player.prestart?'pre':player.rest?'rest':'work',player.remaining].join(':')
   if(lastCueRef.current===key)return
   lastCueRef.current=key
   if(soundOn)playMovementBeep(audioRef.current,cue)
  },[active,player,plan,soundOn])
- useEffect(()=>()=>{void audioRef.current?.close()},[])
+ useEffect(()=>()=>{
+  setWorkoutAudioSession(false)
+  void audioRef.current?.close()
+ },[])
+ useEffect(()=>{
+  if(!active||!player?.running||player.done||!soundOn)setWorkoutAudioSession(false)
+ },[active,player?.running,player?.done,soundOn])
  useEffect(()=>{if(!active)setPlayer(p=>p?{...p,running:false}:p)},[active])
- function unlockAudio(){
+ /** This must be invoked synchronously by a real user tap (iOS autoplay policy). */
+ function unlockAudio(testTone=false){
   try{
+   setWorkoutAudioSession(true)
    if(!audioRef.current||audioRef.current.state==='closed')audioRef.current=new AudioContext()
-   if(audioRef.current.state==='suspended')void audioRef.current.resume()
-  }catch{/* Browser disabled sound; the visual countdown still works. */}
+   const audio=audioRef.current
+   // Prime Web Audio inside the user gesture; Safari will not reliably unlock
+   // a context created in a later effect or timeout.
+   const buffer=audio.createBuffer(1,1,audio.sampleRate)
+   const source=audio.createBufferSource()
+   source.buffer=buffer
+   source.connect(audio.destination)
+   source.start()
+   source.onended=()=>source.disconnect()
+   const ready=audio.state==='running'?Promise.resolve():audio.resume()
+   void ready.then(()=>{
+    setAudioState('ready')
+    if(testTone)playMovementBeep(audio,'go')
+   }).catch(()=>setAudioState('blocked'))
+  }catch{setAudioState('blocked')}
  }
  function mixAgain(){
   if(player?.running)return
@@ -183,6 +226,9 @@ export function StrengthPage({active}:{active:boolean}){
  const upcoming=player?.rest?plan.steps[player.index+1]:null
  const shownStep=upcoming||current
  const shownExercise=shownStep?byId.get(shownStep.exerciseId):null
+ const midRemaining=current?Math.ceil(current.workSeconds/2):0
+ const sideMovement=!!player&&!player.done&&!player.rest&&!player.prestart&&!!currentExercise?.sideSwitch
+ const sideSwitchNow=sideMovement&&player.remaining<=midRemaining&&player.remaining>midRemaining-3
  return <section className="ss-root page active ms-root" aria-label="Stabi und Mobility Studio">
   <header className="ss-hero ms-hero">
    <div><span className="ss-kicker">GARMIN_AI / MOVEMENT STUDIO</span>
@@ -229,7 +275,7 @@ export function StrengthPage({active}:{active:boolean}){
    </div>
    <p className="ms-caption">Die Mischung ist ein Vorschlag, keine automatische Trainingsfreigabe.
     Für echten Zugkraftaufbau im oberen Rücken wäre später ein Widerstand nötig – Bodenübungen trainieren hier vor allem die Schulterblätter.
-    Vor harten Einheiten kann der Coach leichtere Varianten empfehlen. Start mit 5-Sekunden-Countdown, 3‑2‑1-Tönen und aktiviertem Bildschirm-Wachhalten (wenn unterstützt).</p>
+    Vor harten Einheiten kann der Coach leichtere Varianten empfehlen. Start mit 5-Sekunden-Countdown, 3‑2‑1-Tönen, Halbzeit-Signal für einseitige Übungen und aktiviertem Bildschirm-Wachhalten (wenn unterstützt).</p>
   </section>
   <section className="ss-library">
    <div className="ss-section-title"><div>
@@ -321,6 +367,10 @@ export function StrengthPage({active}:{active:boolean}){
      <ExerciseComic id={shownExercise.id} name={shownExercise.name} priority/>
     </div>}
     <div className="ss-player-timer" aria-live="off">{formatClock(player.remaining)}</div>
+    {sideMovement&&<div className={'ms-side-prompt'+(sideSwitchNow?' is-switching':'')} role="status">
+     {sideSwitchNow?'↔ SEITE / FUSS WECHSELN':player.remaining>midRemaining?
+      'Zuerst eine Seite · Wechsel zur Halbzeit':'Jetzt die andere Seite'}
+    </div>}
     {!player.done&&player.running&&player.remaining<=3&&<div className="ms-countdown" aria-live="off">
      {player.prestart||player.rest?'Los in ':'Noch '}{player.remaining} · {player.prestart||player.rest?'gleich starten':'Übung endet'}</div>}
     {!player.done&&<div className="ms-device-status" role="status">
@@ -328,8 +378,14 @@ export function StrengthPage({active}:{active:boolean}){
       wakeStatus==='unsupported'?'Display-Wachhalten hier nicht unterstützt':
       wakeStatus==='unavailable'?'Display-Wachhalten vom Gerät abgelehnt':
       'Display-Wachhalten bei laufender Session'}</span>
-     <button type="button" aria-pressed={soundOn} onClick={()=>{if(!soundOn)unlockAudio();setSoundOn(s=>!s)}}>
-      {soundOn?'🔊 Piep-Töne an':'🔇 Piep-Töne aus'}</button>
+     <button type="button" aria-pressed={soundOn} onClick={()=>{
+      if(!soundOn)unlockAudio()
+      else{setWorkoutAudioSession(false);setAudioState('idle')}
+      setSoundOn(s=>!s)
+     }}>{soundOn?'🔊 Piep-Töne an':'🔇 Piep-Töne aus'}</button>
+     <button type="button" onClick={()=>unlockAudio(true)}>♪ Ton testen</button>
+     {soundOn&&<small>{audioState==='ready'?'Audio aktiviert':audioState==='blocked'?
+      'Ton blockiert: Handylautstärke und Lautlosmodus prüfen':'Ton mit „Ton testen“ prüfen'}</small>}
     </div>}
     {!player.done&&shownExercise&&<div className="ss-player-guide">
      <small>{player.prestart?'STARTVORBEREITUNG':player.rest?'NÄCHSTE ÜBUNG VORBEREITEN':'SAUBERE AUSFÜHRUNG'}</small>
@@ -343,7 +399,7 @@ export function StrengthPage({active}:{active:boolean}){
      {!player.done&&<button type="button" onClick={()=>setPlayer(p=>p?advanceMovementPlayer(p,plan):p)}>Nächster Abschnitt</button>}
      <button type="button" onClick={()=>setPlayer(null)}>Schließen</button>
     </div>
-    <p>Eigene Comic-Illustrationen · Technik vor Tempo. 40 Sekunden Arbeit / 20 Sekunden Wechsel im Kraftteil (15 Sekunden Erholung + 5 Sekunden Vorbereitung).
+    <p>Eigene Comic-Illustrationen · Technik vor Tempo. 40 Sekunden Arbeit / 20 Sekunden Wechsel im Kraftteil (15 Sekunden Erholung + 5 Sekunden Vorbereitung). Einseitige Übungen: nach der Hälfte Seite wechseln.
      Keine automatische Übertragung an Garmin.</p>
    </section></div>}
  </section>

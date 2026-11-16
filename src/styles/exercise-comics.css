@@ -56,3 +56,11 @@
 .ms-device-status button{border:1px solid rgba(159,180,236,.3);border-radius:10px;
  background:#1b2b46;color:#e9efff;padding:7px 11px;font-size:11px;font-weight:700}
 .ms-countdown{font-size:14px;font-weight:800;color:#e8d5ff;letter-spacing:.04em}
+
+/* v0.9.58: clear halfway alert for unilateral movements and mobile sound probe */
+.ms-side-prompt{margin:0 auto 9px;padding:8px 12px;text-align:center;
+ border:1px solid rgba(158,198,242,.25);border-radius:12px;
+ background:rgba(28,54,78,.55);color:#cfe9ff;font-size:12px;font-weight:750}
+.ms-side-prompt.is-switching{background:rgba(132,90,228,.34);
+ border-color:rgba(190,149,255,.9);color:white;font-size:15px;letter-spacing:.02em}
+.ms-device-status small{color:#acbbd4;font-size:10px}

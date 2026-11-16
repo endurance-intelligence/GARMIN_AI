@@ -586,6 +586,8 @@ export const EI_EXERCISES:EIExercise[]=[
   exercise({
     id: "single-leg-glute-bridge",
     name: "Glute Bridge einbeinig",
+    sideSwitch: true,
+    sideSwitchSeconds: 3,
     group: "Gesäß & Hüfte",
     seconds: 40,
     equipment: [],
