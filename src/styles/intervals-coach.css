@@ -1,0 +1,9 @@
+.ic-context{font-size:12px;line-height:1.55;color:#c6d4eb;margin:12px 0 0;padding:10px 12px;
+ border-radius:11px;background:rgba(101,129,167,.075);border:1px solid rgba(155,182,228,.2)}
+.ic-context p{margin:6px 0;color:#d5e2f7}.ic-context strong{color:#fff}
+.ic-context small{display:inline;color:#a9bbd2;font-size:11px}
+.ic-source{font-size:10px;font-weight:850;letter-spacing:.075em;color:#a8c8f1}
+.ic-context.ic-muted,.ic-muted{color:#a9b9cf}
+.ic-context summary{cursor:pointer;color:#bcd9fa;font-weight:750;list-style:revert}
+.ic-zones{margin-top:7px;padding:5px 0}.ic-zones summary{font-size:11px}
+.ic-zones p{font-size:11px;margin:5px 0}.ic-zones small{display:block}
