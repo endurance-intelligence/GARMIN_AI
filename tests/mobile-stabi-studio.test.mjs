@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
-import {buildMovementPlan,MOVEMENT_MINUTES,MOVEMENT_PATTERNS,MOVEMENT_PREP_SECONDS,startMovementPlayer,tickMovementPlayer,advanceMovementPlayer,movementPlayerCue,movementSideSwitchMoment,movementPlayerPhase} from '../src/lib/movementSession.ts'
+import {buildMovementPlan,MOVEMENT_MINUTES,MOVEMENT_PATTERNS,MOVEMENT_PREP_SECONDS,startMovementPlayer,tickMovementPlayer,advanceMovementPlayer,movementPlayerCue,movementSideSwitchMoment,movementPlayerPhase,movementFirstSideSeconds,movementSecondSideSeconds,movementRestSeconds} from '../src/lib/movementSession.ts'
 const read=(p)=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
 const library=read('src/lib/eiExercises.ts')
 const studio=read('src/pages/StrengthPage.tsx')
@@ -104,11 +104,11 @@ test('five-second switches cover every adjacent exercise without extending the 3
   Array.from({length:24},()=>[40,20]))
  assert.deepEqual(p.steps.slice(-2).map(x=>[x.workSeconds,x.restSeconds]),[[55,5],[60,0]])
 })
-test('player counts down 3-2-1 at start, before exercise finishes and for each changeover',()=>{
- const plan=buildMovementPlan('2026-11-16')
+test('initial and final countdowns, side-change countdown and next-exercise GO signal',()=>{
+ const plan=buildMovementPlan('2026-11-16',0)
  let x=startMovementPlayer()
  assert.equal(x.remaining,5)
- assert.equal(x.prestart,true)
+ assert.equal(movementPlayerPhase(x),'prepare')
  x=tickMovementPlayer(x,plan);x=tickMovementPlayer(x,plan)
  assert.equal(x.remaining,3)
  assert.equal(movementPlayerCue(x,plan),'countdown-start')
@@ -119,23 +119,26 @@ test('player counts down 3-2-1 at start, before exercise finishes and for each c
  assert.equal(x.remaining,1)
  assert.equal(movementPlayerCue(x,plan),'countdown-start')
  x=tickMovementPlayer(x,plan)
- assert.equal(x.remaining,55)
+ const step=plan.steps[0]
+ assert.equal(x.remaining,movementFirstSideSeconds(step))
  assert.equal(movementPlayerCue(x,plan),'go')
- for(let i=55;i>3;i--)x=tickMovementPlayer(x,plan)
- assert.equal(x.remaining,3)
- assert.equal(movementPlayerCue(x,plan),'countdown-end')
- x=tickMovementPlayer(x,plan);x=tickMovementPlayer(x,plan)
- assert.equal(x.remaining,1)
- assert.equal(movementPlayerCue(x,plan),'countdown-end')
- x=tickMovementPlayer(x,plan)
+ for(let n=x.remaining;n>0;n--)x=tickMovementPlayer(x,plan)
+ if(step.sideSwitch){
+  assert.equal(movementPlayerPhase(x),'side-change')
+  assert.equal(x.remaining,5)
+  assert.equal(movementSideSwitchMoment(x,plan),true)
+  for(let n=5;n>3;n--)x=tickMovementPlayer(x,plan)
+  assert.equal(movementPlayerCue(x,plan),'countdown-start')
+  for(let n=3;n>0;n--)x=tickMovementPlayer(x,plan)
+  assert.equal(x.secondSide,true)
+  assert.equal(x.remaining,movementSecondSideSeconds(step))
+  assert.equal(movementPlayerCue(x,plan),'go')
+  for(let n=x.remaining;n>0;n--)x=tickMovementPlayer(x,plan)
+ }
  assert.equal(x.rest,true)
- assert.equal(x.remaining,5)
- for(let i=5;i>3;i--)x=tickMovementPlayer(x,plan)
- assert.equal(x.remaining,3)
- assert.equal(movementPlayerCue(x,plan),'countdown-start')
- x=advanceMovementPlayer(x,plan)
+ assert.equal(x.remaining,movementRestSeconds(step))
+ for(let n=x.remaining;n>0;n--)x=tickMovementPlayer(x,plan)
  assert.equal(x.index,1)
- assert.equal(x.rest,false)
  assert.equal(movementPlayerCue(x,plan),'go')
 })
 test('screen wake lock and sound start from a user click and stop when leaving',()=>{
@@ -149,7 +152,7 @@ test('screen wake lock and sound start from a user click and stop when leaving',
  assert.ok(studio.includes('onClick={begin}'))
 })
 
-test('only unilateral bodyweight exercises receive an exact halfway switch',()=>{
+test('unilateral exercises have exactly five seconds for the leg/side change',()=>{
  const all=read('src/lib/eiExercises.ts')
  for(const id of ['adductor-rockback','side-plank','clamshell','single-leg-calf-raise',
   'knee-to-wall','short-foot','single-leg-balance','hip-flexor-stretch',
@@ -157,22 +160,64 @@ test('only unilateral bodyweight exercises receive an exact halfway switch',()=>
   const block=all.slice(all.indexOf('id: "'+id+'"'),all.indexOf('id: "'+id+'"')+420)
   assert.ok(block.includes('sideSwitch: true'),id)
  }
- const p=buildMovementPlan('2026-11-16')
- const strengthIndex=p.steps.findIndex(s=>s.part==='strength')
- const mobilityIndex=p.steps.findIndex(s=>s.part==='warmup')
- for(const [i,half] of [[strengthIndex,20],[mobilityIndex,28]]){
-  const step=p.steps[i]
-  let player={...startMovementPlayer(),prestart:false,index:i,remaining:half}
-  assert.equal(movementSideSwitchMoment(player,p),true)
-  assert.equal(movementSideSwitchMoment({...player,remaining:half+1},p),false)
-  assert.equal(movementSideSwitchMoment({...player,remaining:half-1},p),false)
-  assert.equal(movementSideSwitchMoment({...player,rest:true},p),false)
-  assert.equal(movementSideSwitchMoment({...player,running:false},p),false)
-  assert.ok(step.workSeconds===40||step.workSeconds===55)
+ let foundStrength=false,foundMobility=false,foundLast=false
+ for(let rotation=0;rotation<14;rotation++){
+  const plan=buildMovementPlan('2026-11-16',rotation)
+  for(let i=0;i<plan.steps.length;i++){
+   const step=plan.steps[i]
+   if(!step.sideSwitch)continue
+   const first=movementFirstSideSeconds(step)
+   const second=movementSecondSideSeconds(step)
+   const rest=movementRestSeconds(step)
+   assert.equal(first+second+5+rest,step.workSeconds+step.restSeconds)
+   assert.ok(first>0&&second>0&&rest>=0)
+   let p={...startMovementPlayer(),index:i,prestart:false,remaining:first}
+   for(let n=first;n>0;n--)p=tickMovementPlayer(p,plan)
+   assert.equal(movementPlayerPhase(p),'side-change')
+   assert.equal(p.remaining,5)
+   assert.equal(movementSideSwitchMoment(p,plan),true)
+   p=tickMovementPlayer(p,plan)
+   assert.equal(p.remaining,4)
+   assert.equal(movementSideSwitchMoment(p,plan),false)
+   for(let n=4;n>0;n--)p=tickMovementPlayer(p,plan)
+   assert.equal(p.secondSide,true)
+   assert.equal(p.remaining,second)
+   if(step.part==='strength'){
+    foundStrength=true
+    assert.equal(first,20)
+    assert.equal(second,20)
+    assert.equal(rest,15)
+   }else if(step.restSeconds===5){
+    foundMobility=true
+    assert.equal(first,25)
+    assert.equal(second,25)
+    assert.equal(rest,5)
+   }else{
+    foundLast=true
+    assert.equal(first+second,55)
+    assert.equal(rest,0)
+   }
+  }
  }
+ assert.equal(foundStrength,true)
+ assert.equal(foundMobility,true)
+ assert.equal(foundLast,true)
  assert.ok(studio.includes('exercise?.sideSwitch&&movementSideSwitchMoment(player,plan)'))
  assert.ok(studio.includes('↔ SEITE / FUSS WECHSELN'))
  assert.ok(studio.includes("if(cue==='switch')"))
+})
+test('session remains exactly 30 minutes plus the original 5-second opening prep',()=>{
+ for(const date of ['2026-11-13','2026-11-16','2026-11-19']){
+  for(const rotation of [0,1,2,3,7]){
+   const plan=buildMovementPlan(date,rotation)
+   let p=startMovementPlayer()
+   let ticks=0
+   while(!p.done&&ticks<1830){p=tickMovementPlayer(p,plan);ticks++}
+   assert.equal(p.done,true,date+' rotation '+rotation)
+   assert.equal(ticks,1805,date+' rotation '+rotation)
+   assert.equal(p.index,29)
+  }
+ }
 })
 test('mobile audio is unlocked by user gesture and has an audible test action',()=>{
  assert.ok(studio.includes("session.type=enabled?'playback':'auto'"))
@@ -195,6 +240,7 @@ test('work, recovery, changeover and manual pause render distinct visible states
  assert.equal(movementPlayerPhase({...recovery,remaining:6}),'rest')
  assert.equal(movementPlayerPhase({...recovery,remaining:5}),'switch')
  assert.equal(movementPlayerPhase({...recovery,remaining:3}),'switch')
+ assert.equal(movementPlayerPhase({...work,sideChange:true,remaining:5}),'side-change')
  assert.equal(movementPlayerPhase({...work,running:false}),'paused')
  assert.equal(movementPlayerPhase({...recovery,running:false}),'paused')
  assert.equal(movementPlayerPhase({...work,done:true}),'done')
@@ -208,7 +254,9 @@ test('work, recovery, changeover and manual pause render distinct visible states
  assert.ok(studio.includes('PAUSE – ERHOLEN'))
  assert.ok(studio.includes('JETZT AUSFÜHREN'))
  assert.ok(studio.includes('WECHSEL – BEREIT MACHEN'))
+ assert.ok(studio.includes('SEITE / BEIN WECHSELN'))
  assert.ok(studio.includes('Nichts machen · kurz durchatmen'))
+ assert.ok(style.includes('.ms-phase-side-change .ms-phase-banner'))
  assert.ok(studio.includes('ALS NÄCHSTES – NOCH NICHT STARTEN'))
  assert.ok(studio.includes("'Training anhalten':'Fortsetzen'"))
 })

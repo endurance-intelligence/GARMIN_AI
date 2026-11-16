@@ -109,3 +109,13 @@
 @media(max-width:600px){
  .ss-player-timer+.ms-phase-banner{margin:2px auto 9px}
 }
+
+/* v0.9.60: an actual five-second side/leg changeover (not exercise time). */
+.ms-phase-side-change .ms-phase-banner{border-color:#91d6ff;background:#254d70;color:#f1fbff}
+.ms-phase-side-change .ms-phase-banner small{color:#c9ecff}
+.ms-phase-side-change .ss-player-timer{background:linear-gradient(90deg,#d5f1ff,#89cfff);
+ color:transparent;background-clip:text;-webkit-background-clip:text}
+.ms-phase-side-change .ss-player-art .ec-figure.is-premium{width:min(100%,calc(32dvh * .8),270px)}
+@media(max-width:600px){
+ .ms-phase-side-change .ss-player-art .ec-figure.is-premium{width:min(100%,calc(27dvh * .8),220px)}
+}

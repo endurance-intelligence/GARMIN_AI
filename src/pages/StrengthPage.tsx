@@ -28,6 +28,7 @@ const phaseCopy={
  work:{icon:'▶',headline:'JETZT AUSFÜHREN',hint:'Übung läuft · kontrolliert weitermachen'},
  rest:{icon:'⏸',headline:'PAUSE – ERHOLEN',hint:'Nichts machen · kurz durchatmen'},
  switch:{icon:'↪',headline:'WECHSEL – BEREIT MACHEN',hint:'Nächste Position einnehmen · gleich starten'},
+ 'side-change':{icon:'↔',headline:'SEITE / BEIN WECHSELN',hint:'5 Sekunden · andere Seite vorbereiten'},
  paused:{icon:'⏸',headline:'TRAINING ANGEHALTEN',hint:'Die Zeit steht · mit Fortsetzen weiter'},
  done:{icon:'✓',headline:'EINHEIT GESCHAFFT',hint:'Training abgeschlossen'}
 } as const
@@ -236,9 +237,8 @@ export function StrengthPage({active}:{active:boolean}){
  const shownExercise=shownStep?byId.get(shownStep.exerciseId):null
  const phase=player?movementPlayerPhase(player):'prepare'
  const phaseMessage=phaseCopy[phase]
- const midRemaining=current?Math.ceil(current.workSeconds/2):0
  const sideMovement=!!player&&!player.done&&!player.rest&&!player.prestart&&!!currentExercise?.sideSwitch
- const sideSwitchNow=sideMovement&&player.remaining<=midRemaining&&player.remaining>midRemaining-3
+ const sideSwitchNow=sideMovement&&player.sideChange
  return <section className="ss-root page active ms-root" aria-label="Stabi und Mobility Studio">
   <header className="ss-hero ms-hero">
    <div><span className="ss-kicker">GARMIN_AI / MOVEMENT STUDIO</span>
@@ -372,7 +372,7 @@ export function StrengthPage({active}:{active:boolean}){
     <p>{player.done?'Training dokumentieren, wenn es tatsächlich absolviert wurde.':
      (current?.part==='strength'?'Runde '+current.round+' von 3 · ':'')+
      'Schritt '+(player.index+1)+' von '+plan.steps.length+
-     (phase==='prepare'?' · Start in 5 Sekunden':phase==='rest'?' · Erholungszeit':phase==='switch'?' · nächste Übung vorbereiten':phase==='paused'?' · Timer gestoppt':' · Kontrolliert ausführen')}</p>
+     (phase==='prepare'?' · Start in 5 Sekunden':phase==='rest'?' · Erholungszeit':phase==='switch'?' · nächste Übung vorbereiten':phase==='side-change'?' · Seite wechseln':phase==='paused'?' · Timer gestoppt':' · Kontrolliert ausführen')}</p>
     {!player.done&&shownExercise&&<div className="ss-player-art">
      <ExerciseComic id={shownExercise.id} name={shownExercise.name} priority/>
     </div>}
@@ -382,11 +382,11 @@ export function StrengthPage({active}:{active:boolean}){
      <div><strong>{phaseMessage.headline}</strong><small>{phaseMessage.hint}</small></div>
     </div>
     {sideMovement&&<div className={'ms-side-prompt'+(sideSwitchNow?' is-switching':'')} role="status">
-     {sideSwitchNow?'↔ SEITE / FUSS WECHSELN':player.remaining>midRemaining?
-      'Zuerst eine Seite · Wechsel zur Halbzeit':'Jetzt die andere Seite'}
+     {sideSwitchNow?'↔ SEITE / FUSS WECHSELN · '+player.remaining+' SEK.':!player.secondSide?
+      'Erste Seite · dann 5 Sekunden wechseln':'Zweite Seite ausführen'}
     </div>}
     {!player.done&&player.running&&player.remaining<=3&&<div className="ms-countdown" aria-live="off">
-     {player.prestart||player.rest?'Los in ':'Noch '}{player.remaining} · {player.prestart||player.rest?'gleich starten':'Übung endet'}</div>}
+     {player.prestart||player.rest||player.sideChange?'Los in ':'Noch '}{player.remaining} · {player.sideChange?'andere Seite starten':player.prestart||player.rest?'gleich starten':'Übung endet'}</div>}
     {!player.done&&<div className="ms-device-status" role="status">
      <span>{wakeStatus==='active'?'☀ Display bleibt an':wakeStatus==='pending'?'Display wird aktiviert …':
       wakeStatus==='unsupported'?'Display-Wachhalten hier nicht unterstützt':
@@ -402,7 +402,7 @@ export function StrengthPage({active}:{active:boolean}){
       'Ton blockiert: Handylautstärke und Lautlosmodus prüfen':'Ton mit „Ton testen“ prüfen'}</small>}
     </div>}
     {!player.done&&shownExercise&&<div className="ss-player-guide">
-     <small>{phase==='prepare'?'STARTVORBEREITUNG':phase==='rest'?'ALS NÄCHSTES – NOCH NICHT STARTEN':phase==='switch'?'NÄCHSTE ÜBUNG JETZT VORBEREITEN':phase==='paused'?'TRAINING ANGEHALTEN':'SAUBERE AUSFÜHRUNG'}</small>
+     <small>{phase==='prepare'?'STARTVORBEREITUNG':phase==='rest'?'ALS NÄCHSTES – NOCH NICHT STARTEN':phase==='switch'?'NÄCHSTE ÜBUNG JETZT VORBEREITEN':phase==='side-change'?'ANDERE SEITE VORBEREITEN':phase==='paused'?'TRAINING ANGEHALTEN':'SAUBERE AUSFÜHRUNG'}</small>
      <span>{shownExercise.quickStart||shownExercise.instruction}</span>
      {(shownExercise.cues||[]).slice(0,2).map((cue,i)=>
       <span key={i}>✓ {cue}</span>)}
@@ -413,7 +413,7 @@ export function StrengthPage({active}:{active:boolean}){
      {!player.done&&<button type="button" onClick={()=>setPlayer(p=>p?advanceMovementPlayer(p,plan):p)}>Nächster Abschnitt</button>}
      <button type="button" onClick={()=>setPlayer(null)}>Schließen</button>
     </div>
-    <p>Eigene Comic-Illustrationen · Technik vor Tempo. 40 Sekunden Arbeit / 20 Sekunden Wechsel im Kraftteil (15 Sekunden Erholung + 5 Sekunden Vorbereitung). Einseitige Übungen: nach der Hälfte Seite wechseln.
+    <p>Eigene Comic-Illustrationen · Technik vor Tempo. 40 Sekunden Arbeit / 20 Sekunden Wechsel im Kraftteil (15 Sekunden Erholung + 5 Sekunden Vorbereitung). Einseitige Übungen: zur Halbzeit fünf Sekunden Seitenwechselpause; Dauer bleibt 30 Minuten.
      Keine automatische Übertragung an Garmin.</p>
    </section></div>}
  </section>
