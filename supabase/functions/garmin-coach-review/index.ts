@@ -76,7 +76,7 @@ Deno.serve(async req=>{
   const details:Record<string,unknown>={}
   if(runIds.length){
    const {data:rows,error:detailsError}=await admin.from('garmin_activity_details')
-    .select('activity_id,fit_status,fit_laps,fit_workout_steps,fit_quality')
+    .select('activity_id,fit_status,fit_laps,fit_workout_steps,fit_quality,fit_terrain')
     .in('activity_id',runIds)
    if(detailsError)throw detailsError
    for(const row of rows||[])details[String(row.activity_id)]=row

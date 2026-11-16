@@ -26,7 +26,12 @@ function goalFinding(date, goal, type) {
  if(!knownGoal(goal))return 'Hauptziel nicht verfügbar: keine Wettkampfprognose abgeleitet.'
  const remaining=daysBetween(date,String(goal.race_date))
  const name=goal.race_name.slice(0,85)
- if(remaining>=0 && remaining<=10)return `${name} in ${remaining} Tagen: Frische erhalten, keine Trainingskilometer nachholen. Einzelne gute Intervalle sind kein Grund für neue harte Reize.`
+ if(remaining>=0 && remaining<=10){
+  const taper=type==='intervals'?'Einzelne gute Wiederholungen sind kein Grund für weitere harte Reize.':
+   type==='easy'||type==='recovery'?'Ein ruhiger Lauf passt zur Frische-Erhaltung, sofern er sich tatsächlich locker angefühlt hat.':
+   'Jetzt keine Trainingskilometer nachholen oder ungeplante Belastung ergänzen.'
+  return `${name} in ${remaining} Tagen: Taper und Frische priorisieren. ${taper}`
+ }
  if(remaining>10 && remaining<=50)return `${name} in ${remaining} Tagen: ${type==='intervals'?'Guter Temposchwerpunkt ersetzt nicht die spezifische Ausdauerarbeit.':'Belastung und Erholung über mehrere Wochen beobachten.'}`
  if(remaining>50)return `${name} in ${remaining} Tagen: Den Trainingsverlauf und die langfristige Belastbarkeit im Blick behalten.`
  return `${name} liegt bereits zurück. Für künftige Empfehlungen braucht es ein neues Hauptziel.`
@@ -61,24 +66,42 @@ export function buildActivityCoach(activity,details={},goal=null) {
   attention=avgHr!==null?`Ø HF der gesamten Aktivität ${Math.round(avgHr)} bpm – inklusive Ein- und Auslaufen, daher keine Intervall-HF.`:'HF der Intervalle nicht verfügbar.'
  } else {
   const kilometer=laps.filter(l=>n(l.distanceM)>=750 && n(l.avgSpeed)>0.8)
-  headline=type==='easy'?'Locker geplant – Verlauf geprüft.':type==='long'?'Langer Lauf – Ausdauerverlauf im Fokus.':'Dauerlauf – Tempo und Puls im Blick.'
+  headline=type==='easy'?'Als locker bezeichnet – HF-Verlauf geprüft.':type==='long'?'Langer Lauf – Ausdauerverlauf im Fokus.':'Dauerlauf – Tempo und Puls im Blick.'
   const km= n(activity.distance_m)!==null?de(n(activity.distance_m)/1000)+' km':'Lauf'
   positive=avgHr!==null?`${km}, Ø ${Math.round(avgHr)} bpm.`:`${km}.`
   if(kilometer.length>=4){
    const speeds=kilometer.map(l=>Number(l.avgSpeed)),mean=speeds.reduce((a,b)=>a+b,0)/speeds.length
    const spread=(Math.max(...speeds)-Math.min(...speeds))/mean*100
-   positive+=` Kilometerabschnitte ${spread<=10?'relativ gleichmäßig':spread<=20?'mit Tempoänderungen':'mit deutlichen Tempoänderungen'} (${Math.round(spread)} % Geschwindigkeitsspanne).`
-   facts.push(`${Math.round(spread)} % Pace-Variation`)
-   const hf1=n(kilometer[0].avgHr), hf2=n(kilometer.at(-1).avgHr)
-   attention=hf1!==null&&hf2!==null?`HF erster/letzter Kilometerabschnitt Ø ${Math.round(hf1)} → ${Math.round(hf2)} bpm. ${Math.abs(hf2-hf1)>=8?'Ursachen mit Gelände, Temperatur und subjektiver Anstrengung abgleichen.':'Keine große Veränderung zwischen beiden Abschnitten.'}`:
+   positive+=` Kilometerabschnitte mit ${Math.round(spread)} % Geschwindigkeitsspanne. Unterschiedliche Pace ist allein kein Zeichen für schlechte Ausführung.`
+   facts.push(`${Math.round(spread)} % Geschwindigkeitsspanne`)
+   // First/last km alone misses what happened between. Compare both halves
+   // instead, and never call this cardiac drift when pace or terrain varies.
+   const halves=Math.floor(kilometer.length/2)
+   const first=kilometer.slice(0,halves),second=kilometer.slice(halves)
+   const avg=(xs,key)=>{const vals=xs.map(x=>n(x[key])).filter(x=>x!==null);return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null}
+   const h1=avg(first,'avgHr'),h2=avg(second,'avgHr')
+   const v1=avg(first,'avgSpeed'),v2=avg(second,'avgSpeed')
+   const speedDelta=v1!==null&&v2!==null&&v1>0?100*(v2/v1-1):null
+   const varying=speedDelta!==null&&Math.abs(speedDelta)>5
+   attention=h1!==null&&h2!==null?
+    `HF erste/zweite Streckenhälfte Ø ${Math.round(h1)} → ${Math.round(h2)} bpm.`+
+    (speedDelta!==null?` Tempo zweite Hälfte ${Math.round(Math.abs(speedDelta))} % ${speedDelta>=0?'schneller':'langsamer'}.`:'')+
+    (varying?' Bei unterschiedlichem Tempo ist daraus kein belastbarer Cardiac Drift ableitbar.':
+     ' Ohne gesicherte vergleichbare Bedingungen ist das noch kein Beleg für Cardiac Drift.') :
     'Für eine verlässliche HF-Verlaufsbewertung fehlen Abschnittswerte.'
+   const terrain=Array.isArray(details.fit_terrain)?details.fit_terrain:[]
+   const uphill=terrain.some(x=>x?.terrain==='uphill'||n(x?.gradePct)>=3)
+   const downhill=terrain.some(x=>x?.terrain==='downhill'||n(x?.gradePct)<=-3)
+   if(uphill||downhill)positive+=` Das FIT-Streckenprofil enthält ${uphill&&downhill?'Anstiege und Gefälle':uphill?'Anstiege':'Gefälle'}; die Pace-Schwankungen müssen im Gelände-Kontext gelesen werden.`
    quality='fit-kilometers'
-  } else attention='Kilometerabschnitte fehlen; Tempoverlauf kann nicht beurteilt werden.'
-  if(type==='easy') attention+=' „Locker“ lässt sich ohne bestätigte persönliche Intensitätsgrenze und Empfinden nicht abschließend verifizieren.'
+  }else attention='Kilometerabschnitte fehlen; Tempoverlauf kann nicht beurteilt werden.'
+  if(type==='easy')attention+=' „Locker“ stammt zunächst aus dem Aktivitätsnamen; die konfigurierten HF-Zonen und dein Empfinden liefern weiteren Kontext, aber keine automatisch bestimmte LT1.'
  }
  const goalText=goalFinding(date,goal,type)
  return {activityId:String(activity.activity_id||activity.id),date,name:String(activity.activity_name||'Lauf').slice(0,130),
-  type,headline,positive,attention,goal:goalText,quality, facts,
+  type,headline,positive,attention,goal:goalText,quality,facts,
+  averageHr:avgHr,
+  kilometerHrs:type==='intervals'?[]:laps.filter(l=>n(l.distanceM)>=750&&n(l.avgSpeed)>0.8).map(l=>n(l.avgHr)).filter(h=>h!==null),
   short:[headline,positive,goalText].join(' ').slice(0,600),source:'Garmin FIT'}
 }
 export function buildWeeklyCoach(activities,detailsById,goal,weekStart){

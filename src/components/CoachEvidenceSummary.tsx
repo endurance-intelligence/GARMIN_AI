@@ -4,7 +4,8 @@ import '../styles/coach-evidence-summary.css'
 import {IntervalsCoachContext} from './IntervalsCoachContext'
 
 type Review={activityId:string;date:string;name:string;type:string;headline:string;
- positive:string;attention:string;goal:string;quality:string;source:string;short:string}
+ positive:string;attention:string;goal:string;quality:string;source:string;short:string;
+ averageHr:number|null;kilometerHrs:number[]}
 type Week={weekStart:string;endExclusive:string;runCount:number;distanceKm:number;previousKm:number;
  intervalCount:number;footballCount:number;observation:string;effort:string;next:string}
 type Result={source:string;week:Week;reviews:Review[];updatedAt:string}
@@ -70,7 +71,8 @@ export function CoachEvidenceSummary({active,mode,weekStart,selectedDate,activit
    <p className="cr-attention">{r.attention}</p>
    <p className="cr-goal"><strong>Hauptziel:</strong> {r.goal}</p>
    {r.quality==='limited'&&<small>Bewertung eingeschränkt: fehlende Abschnittsdaten werden nicht geschätzt.</small>}
-   <IntervalsCoachContext active={active} mode="activity" activityId={r.activityId}/>
+   <IntervalsCoachContext active={active} mode="activity" activityId={r.activityId}
+    averageHr={r.averageHr} kilometerHrs={r.kilometerHrs} kind={r.type}/>
   </article>)}
   {result&&mode==='calendar'&&reviews.length===0&&<p className="cr-meta">Für diesen Tag ist kein abgeschlossener Lauf erfasst.</p>}
  </section>

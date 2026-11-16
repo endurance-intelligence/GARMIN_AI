@@ -15,10 +15,8 @@ export function PlanActualReview({match,loading,error}:{
   <p>Trainingsplan derzeit nicht erreichbar. Keine Zuordnung behauptet.</p>
  </div>
  if(!match)return null
- if(match.status==='no-plan'||match.status==='no-link')return <div className="par-card par-muted">
-  <span className="par-label">PLAN ↔ IST / OHNE ZUORDNUNG</span>
-  <p>Kein passender Coach-Plan für diesen Lauf vorhanden. Die Garmin-Messwerte werden trotzdem unabhängig analysiert.</p>
- </div>
+ // No planned workout is normal. Do not occupy prime Coach space with a non-error.
+ if(match.status==='no-plan'||match.status==='no-link')return null
  if(match.status!=='matched'||!match.plan)return <div className="par-card par-muted" role="status">
   <span className="par-label">PLAN ↔ IST / NOCH OFFEN</span>
   <strong>Zuordnung nicht eindeutig</strong>

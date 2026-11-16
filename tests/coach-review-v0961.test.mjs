@@ -22,7 +22,7 @@ test('easy 10k with Garmin km laps called interval is not misclassified as inter
  const r=buildActivityCoach(easy,easyDetail,goal)
  assert.equal(r.type,'easy')
  assert.match(r.positive,/Ø 131 bpm/)
- assert.match(r.attention,/ohne bestätigte persönliche Intensitätsgrenze/)
+ assert.match(r.attention,/konfigurierten HF-Zonen und dein Empfinden/)
  assert.doesNotMatch(r.headline,/Intervalle/)
 })
 test('missing FIT laps produces limited judgement not a made-up grading',()=>{
