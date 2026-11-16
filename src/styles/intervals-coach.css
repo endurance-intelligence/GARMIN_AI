@@ -21,3 +21,27 @@
 .ic-context p.ic-glance-foot{font-size:10px;color:#9aaecb;margin:9px 0 0;line-height:1.5}
 @media(max-width:600px){.ic-glance-values{gap:6px}.ic-glance-stat{min-width:85px;padding:8px}
 .ic-glance-stat>strong{font-size:18px}.ic-glance-stat>span{font-size:8px}.ic-glance-head small{font-size:9px}}
+
+/* v0.9.68 · completed-week load, not a partial-week verdict. */
+.ic-week-load{margin-top:13px;border:1px solid rgba(117,177,210,.28);
+ border-radius:12px;padding:12px;background:rgba(22,45,66,.55)}
+.ic-week-load-higher{border-color:rgba(224,169,104,.43)}
+.ic-week-load-usual{border-color:rgba(103,209,170,.35)}
+.ic-week-load-head{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap}
+.ic-week-load-head strong{font-size:12px;color:#e6f4ff}
+.ic-week-load-head span{font-size:10px;font-weight:850;border-radius:30px;padding:4px 8px;
+ background:rgba(112,171,221,.14);color:#aedeef}
+.ic-week-load-higher .ic-week-load-head span{background:rgba(211,151,73,.17);color:#ffdbac}
+.ic-week-load-usual .ic-week-load-head span{background:rgba(91,192,144,.17);color:#a0f1d4}
+.ic-week-compare{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin:10px 0}
+.ic-week-compare>div{display:grid;gap:3px;background:rgba(4,16,29,.31);border-radius:9px;padding:10px}
+.ic-week-compare>div>small{color:#a8c1df;font-size:10px}
+.ic-week-compare>div>strong{font-size:23px;line-height:1.1;letter-spacing:-.04em}
+.ic-week-compare>div>strong small{font-size:10px;font-weight:650;color:#9aafca}
+.ic-week-vs{color:#879ebd;font-weight:850}
+.ic-context p.ic-week-coach{font-size:12px;line-height:1.55;color:#e1edfa;margin:10px 0}
+.ic-context p.ic-week-coach strong{color:#a9e4d8}
+.ic-week-load>small{display:block;font-size:10px;line-height:1.5;color:#9eafc7}
+.ic-context p.ic-week-no-history{font-size:11px;line-height:1.55;color:#aabdd6;margin-top:11px}
+@media(max-width:600px){.ic-week-load{padding:10px}.ic-week-compare{gap:6px}
+ .ic-week-compare>div>strong{font-size:19px}.ic-week-compare>div{padding:8px}}

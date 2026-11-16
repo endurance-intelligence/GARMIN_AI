@@ -1,6 +1,7 @@
 /** GARMIN_AI v0.9.64: owner-only, READ-ONLY Intervals.icu training context. */
 import {createClient} from 'npm:@supabase/supabase-js@2'
 import {runningSportSettings,wellnessTrend,matchOneGarminActivity,activityEvidence} from './intervalsInsights.mjs'
+import {activityLoadComparison,weekLoadComparison,loadCoachFinding} from './loadComparison.mjs'
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
 const isDev=(s:string)=>/^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(s)
@@ -20,6 +21,7 @@ function key(mode:'public'|'secret'){
 const validDay=(s:string)=>/^\d{4}-\d\d-\d\d$/.test(s)&&!Number.isNaN(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s
 const dayAdd=(s:string,n:number)=>new Date(Date.parse(s+'T12:00:00Z')+n*86400000).toISOString().slice(0,10)
 const monday=(s:string)=>dayAdd(s,-((new Date(s+'T12:00:00Z').getUTCDay()+6)%7))
+const berlinToday=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
 async function remote(path:string,secret:string){
  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),8500)
  try{
@@ -61,24 +63,28 @@ Deno.serve(async req=>{
   }
   const start=garmin?monday(String(garmin.start_time_local).slice(0,10)):startParam||''
   if(!validDay(start))return json(422,{error:'Valid week start required'},h)
-  const earliest=dayAdd(start,-21),latest=dayAdd(start,6)
+  const earliest=dayAdd(start,-56),latest=dayAdd(start,6)
   const {data:connection,error:connError}=await db.from('garmin_intervals_connection')
    .select('connected_at').eq('user_id',user.id).maybeSingle()
   if(connError)throw connError
   if(!connection)return json(200,{connected:false,zones:null,trend:null,activity:null,availability:{profile:false,wellness:false,activity:false}},h)
   const {data:secret,error:secretError}=await db.rpc('garmin_intervals_key_get',{p_user_id:user.id})
   if(secretError||typeof secret!=='string'||!secret)return json(503,{error:'Secure Intervals credential unavailable'},h)
+  // Load comparisons use recorded Intervals activities only; missing imports are
+  // UNKNOWN, not a zero-load week. Same list supports unique Garmin matching.
   const query=new URLSearchParams({oldest:earliest,newest:latest})
-  const remoteRequests=[remote('/athlete/0',secret),remote('/athlete/0/wellness?'+query,secret)]
-  if(garmin){
-   const day=String(garmin.start_time_local).slice(0,10)
-   remoteRequests.push(remote('/athlete/0/activities?'+new URLSearchParams({oldest:day,newest:day,limit:'50'}),secret))
-  }
+  const remoteRequests=[
+   remote('/athlete/0',secret),
+   remote('/athlete/0/wellness?'+query,secret),
+   remote('/athlete/0/activities?'+new URLSearchParams({oldest:earliest,newest:latest,limit:'300'}),secret)
+  ]
   const settled=await Promise.allSettled(remoteRequests)
   const body=i=>settled[i]?.status==='fulfilled'?settled[i].value:null
   const profile=body(0),wellness=body(1),remoteActivities=body(2)
   const zones=runningSportSettings(profile)
-  const trend=wellnessTrend(wellness,earliest,latest)
+  const asOf=garmin?String(garmin.start_time_local).slice(0,10):
+   (latest<berlinToday()?latest:berlinToday())
+  const trend=wellnessTrend(wellness,earliest,asOf)
   const match=garmin?matchOneGarminActivity(garmin,remoteActivities):null
   let activity=null
   if(match&&typeof match.id==='string'&&/^[a-zA-Z0-9_:-]{1,80}$/.test(match.id)){
@@ -86,9 +92,22 @@ Deno.serve(async req=>{
     activity=activityEvidence(match,data)
    }catch{activity=activityEvidence(match,null)}
   }
-  // Never leak remote source IDs, raw workouts, raw wellbeing, API key or GPS.
-  // Unavailable Garmin-sourced Intervals activities are NOT a zero-load day.
-  return json(200,{connected:true,zones,trend,activity,
+  const {data:goal}=await db.from('garmin_coach_goals').select('race_name,race_date')
+   .eq('user_id',user.id).maybeSingle()
+  const race=goal&&typeof goal.race_date==='string'?goal:null
+  const activityComparison=garmin&&activity?.load!==null&&activity?.load!==undefined?
+   activityLoadComparison(remoteActivities,activity.load,asOf):null
+  const weekComparison=weekLoadComparison(remoteActivities,start,berlinToday())
+  const loadContext={
+   activity:activityComparison,week:weekComparison,
+   activityFinding:loadCoachFinding(activityComparison,'activity',race,asOf),
+   weekFinding:loadCoachFinding(weekComparison,'week',race,dayAdd(weekComparison?.weekStart||start,6)),
+   // Coverage metadata prevents false assumptions of a complete import.
+   historyAvailable:Array.isArray(remoteActivities),
+   historyWindowDays:56
+  }
+  // No raw source workouts/IDs, GPS, user email, credentials or wellness rows.
+  return json(200,{connected:true,zones,trend,activity,loadContext,
    availability:{profile:!!profile,wellness:Array.isArray(wellness),activity:Array.isArray(remoteActivities)},
    source:'Intervals.icu · Zusatzkontext, Garmin bleibt Primärquelle',
    warnings:settled.map((x,i)=>x.status==='rejected'?['zones','fitness','activity'][i]+' unavailable':null).filter(Boolean)},h)

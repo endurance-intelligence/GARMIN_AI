@@ -6,7 +6,11 @@ type Fitness={asOf:string;ctl:number;atl:number;form:number;ctlChange:number;atl
 type Zones={source:string;hrZones:number[];paceZones:number[];lthr:number|null;maxHr:number|null;
  hrNames:string[];paceNames:string[];thresholdPace:number|null}
 type ActivityEvidence={load:number|null;intensity:number|null;decoupling:number|null;hrZoneSeconds:number[]}
+type WeekLoad={available:boolean;reason?:string;weekStart?:string;isPreviousWeek?:boolean;
+ load?:number;baseline?:number;category?:'higher'|'usual'|'lower';previousWeeks?:number;activityCount?:number}
+type LoadFinding={category:'higher'|'usual'|'lower';text:string}
 type Insight={connected:boolean;trend:Fitness|null;zones:Zones|null;activity:ActivityEvidence|null;
+ loadContext?:{week:WeekLoad|null;weekFinding:LoadFinding|null;historyAvailable:boolean};
  availability:{profile:boolean;wellness:boolean;activity:boolean};warnings?:string[]}
 type Props={active:boolean;mode:'week'|'activity';weekStart?:string;activityId?:string;
  averageHr?:number|null;kilometerHrs?:number[];kind?:string}
@@ -56,11 +60,13 @@ export function IntervalsCoachContext({active,mode,weekStart,activityId,averageH
   <p>Über Einstellungen verbinden – Garmin bleibt die Grundlage deiner Laufanalyse.</p></details>
  const trend=mode==='week'?data.trend:null
  const matched=mode==='activity'?data.activity:null
+ const weeklyLoad=mode==='week'?data.loadContext?.week:null
+ const weeklyFinding=mode==='week'?data.loadContext?.weekFinding:null
  const zones=data.zones
  const firstHrLimit=zones?.hrZones?.[0]
  const validKilometerHrs=(kilometerHrs||[]).filter(validHr)
  const aboveFirst=typeof firstHrLimit==='number'?validKilometerHrs.filter(x=>x>firstHrLimit).length:0
- const hasInfo=!!trend||!!matched||!!zones
+ const hasInfo=!!trend||!!matched||!!zones||!!weeklyLoad
  // Load is shown beside the visual analysis heading, not twice in the verdict.
  const showHrContext=kind==='easy'&&typeof firstHrLimit==='number'&&validKilometerHrs.length>=4
  const showIntensity=matched?.intensity!==null&&matched?.intensity!==undefined
@@ -87,6 +93,30 @@ export function IntervalsCoachContext({active,mode,weekStart,activityId,averageH
     <small>Stand {trend.asOf}</small></div>
   </div>}
   {mode==='week'&&!trend&&<p className="ic-muted">Kein durchgehender Fitness-/Fatigue-Verlauf für diese Woche verfügbar.</p>}
+  {mode==='week'&&weeklyLoad?.available&&typeof weeklyLoad.load==='number'&&
+   typeof weeklyLoad.baseline==='number'&&weeklyLoad.category&&
+   <div className={'ic-week-load ic-week-load-'+weeklyLoad.category}>
+    <div className="ic-week-load-head">
+     <strong>Belastung deiner {weeklyLoad.isPreviousWeek?'letzten abgeschlossenen':'ausgewählten'} Woche</strong>
+     <span>{weeklyLoad.category==='higher'?'Über dem Vergleich':weeklyLoad.category==='lower'?'Unter dem Vergleich':'Im üblichen Bereich'}</span>
+    </div>
+    <div className="ic-week-compare">
+     <div><small>Woche ab {weeklyLoad.weekStart?.slice(8,10)}.{weeklyLoad.weekStart?.slice(5,7)}.</small>
+      <strong>{number(weeklyLoad.load)} <small>Load</small></strong></div>
+     <span className="ic-week-vs">vs.</span>
+     <div><small>Median · {weeklyLoad.previousWeeks} Vorwochen</small>
+      <strong>{number(weeklyLoad.baseline)} <small>Load</small></strong></div>
+    </div>
+    {weeklyFinding?.text&&<p className="ic-week-coach"><strong>Coach:</strong> {weeklyFinding.text}</p>}
+    <small>Alle erfassten Sportarten; fehlende Aktivitäten können die Vergleichswerte verändern.
+     Keine automatische Änderung deines Trainingsplans.</small>
+   </div>}
+  {mode==='week'&&weeklyLoad&&!weeklyLoad.available&&
+   <p className="ic-week-no-history">Wochenbelastung noch nicht fair vergleichbar:
+    {weeklyLoad.reason==='incomplete-week-history'?' Es fehlen vollständige Aktivitäten aus mindestens drei Vorwochen.':
+     weeklyLoad.reason==='no-completed-week'?' Diese Woche ist noch nicht abgeschlossen.':
+     ' Historische Belastungswerte fehlen.'}
+    {' '}Keine Hoch-/Niedrig-Einstufung ohne Vergleichsbasis.</p>}
   {mode==='activity'&&<p className="ic-glance-foot">Garmin bewertet den Lauf. Persönliche HF- und Pace-Zonen
    sowie die Wiederholungen findest du weiter unten bei „Trainingszonen & Wiederholungen“.
    Die Intervals-Zonen sind konfigurierte Referenzen, kein LT1-Nachweis.</p>}

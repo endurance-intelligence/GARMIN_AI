@@ -91,3 +91,34 @@
  .sv-load-kpi strong{font-size:26px}
  .sv-load-kpi p{font-size:10px}
 }
+
+/* v0.9.68 · personal Intervals load context without arbitrary cut-offs. */
+.sv-load-flag{display:inline-flex;align-items:center;width:fit-content;padding:5px 8px;margin-top:3px;
+ border-radius:8px;font-size:10px;font-weight:850;border:1px solid #6688b2;background:rgba(120,158,206,.1);color:#d7e8ff}
+.sv-load-flag-higher{color:#ffd69b;border-color:rgba(244,175,105,.38);background:rgba(211,137,62,.13)}
+.sv-load-flag-usual{color:#9eebd4;border-color:rgba(90,208,159,.3);background:rgba(64,164,122,.12)}
+.sv-load-flag-lower{color:#b4d7f6;border-color:rgba(124,175,234,.34);background:rgba(80,139,196,.11)}
+.sv-load-comparison{margin:0 0 13px;padding:14px 17px;border:1px solid rgba(121,167,213,.27);
+ border-radius:14px;background:linear-gradient(110deg,rgba(40,66,102,.34),rgba(18,35,60,.37))}
+.sv-load-comparison-title{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:13px}
+.sv-load-comparison-title strong{font-size:13px;color:#eaf6ff}
+.sv-load-comparison-title span{font-size:10px;color:#a5bcdd}
+.sv-load-comparison-scale{position:relative;height:13px;background:#2b3d57;border-radius:20px;overflow:visible}
+.sv-load-comparison-fill{height:100%;background:linear-gradient(90deg,#688fe1,#67d9cb);
+ border-radius:20px;box-shadow:0 0 14px rgba(92,199,208,.18);transition:width .2s ease}
+.sv-load-median-pin{position:absolute;top:-5px;width:3px;height:23px;border-radius:2px;
+ background:#ffe4aa;box-shadow:0 0 0 2px rgba(12,26,48,.75)}
+.sv-load-comparison-legend{display:flex;flex-wrap:wrap;gap:8px 15px;color:#b6c9e5;font-size:10px;margin:11px 0}
+.sv-load-comparison-legend>span{display:inline-flex;align-items:center;gap:4px}
+.sv-load-comparison-legend b{color:#effbff;font-size:12px}
+.sv-my-load,.sv-median-load{display:inline-block;width:8px;height:8px;border-radius:3px;background:#67d9cb}
+.sv-median-load{background:#ffe4aa}
+.sv-load-coach{margin:9px 0 0;font-size:12px;line-height:1.55;color:#d8e7fa}
+.sv-load-coach strong{color:#a6e8d7}
+.sv-load-fineprint{font-size:10px;color:#9db0ca;line-height:1.5;margin:8px 0 0}
+.sv-load-no-baseline{border:1px dashed rgba(127,177,222,.3);border-radius:11px;padding:11px;
+ color:#aebdd4;font-size:11px;line-height:1.6;margin:0 0 13px}
+.sv-load-no-baseline strong{color:#c8dbef}
+@media(max-width:600px){.sv-load-comparison{padding:11px 12px}.sv-load-comparison-title{gap:3px}
+ .sv-load-comparison-title strong{font-size:12px}.sv-load-comparison-legend{gap:7px 11px}}
+@media(prefers-reduced-motion:reduce){.sv-load-comparison-fill{transition:none}}

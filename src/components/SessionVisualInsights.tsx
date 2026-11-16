@@ -9,10 +9,15 @@ type Segment={repeat?:number;km?:number;distanceM:number;durationS?:number|null;
 type Review={activityId:string;name:string;type:string;intervals?:Segment[];kilometers?:Segment[]}
 type CoachResponse={reviews:Review[]}
 type Zones={hrZones:number[];paceZones:number[];lthr:number|null;thresholdPace:number|null;hrNames:string[]}
-type Extra={connected:boolean;zones:Zones|null;activity:{load:number|null;hrZoneSeconds:number[]}|null}
+type LoadComparison={available:boolean;reason?:string;load?:number;median?:number;ratio?:number;
+ category?:'higher'|'lower'|'usual';count?:number;weekCount?:number;windowDays?:number}
+type CoachFinding={label:string;category:'higher'|'lower'|'usual';text:string;daysToRace?:number|null}
+type Extra={connected:boolean;zones:Zones|null;activity:{load:number|null;hrZoneSeconds:number[]}|null;
+ loadContext?:{activity:LoadComparison|null;activityFinding:CoachFinding|null;historyAvailable:boolean}}
 const decimal=(n:number)=>n.toLocaleString('de-DE',{maximumFractionDigits:1})
 const pct=(n:number)=>n.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})
 const zoneRange=(b:{low:number|null;high:number|null})=>b.low===null?'≤ '+b.high+' bpm':b.high===null?'> '+(b.low-1)+' bpm':b.low+'–'+b.high+' bpm'
+const loadLabel={higher:'Über deinem Lauf-Median',usual:'Im üblichen Bereich',lower:'Unter deinem Lauf-Median'} as const
 async function readPrivate(path:string,token:string,signal:AbortSignal){
  const r=await fetch(garminSupabaseUrl+'/functions/v1/'+path,{
   method:'GET',cache:'no-store',signal,
@@ -60,6 +65,14 @@ export function SessionVisualInsights({active,activityId,samples}:{
  const hasOpenPaceZone=zones?.paceZones?.some(x=>x>=250)||false
  const trainingLoad=typeof extra?.activity?.load==='number'&&Number.isFinite(extra.activity.load)&&extra.activity.load>=0?
   extra.activity.load:null
+ const comparison=extra?.loadContext?.activity
+ const finding=extra?.loadContext?.activityFinding
+ const personalLoad=comparison?.available===true&&typeof comparison.median==='number'&&
+  typeof comparison.ratio==='number'&&comparison.category?comparison:null
+ const currentShare=personalLoad&&trainingLoad!==null&&personalLoad.median!==undefined?
+  Math.min(98,Math.max(4,100*trainingLoad/(Math.max(trainingLoad,personalLoad.median)*1.2))):null
+ const medianShare=personalLoad&&trainingLoad!==null&&personalLoad.median!==undefined?
+  Math.min(98,Math.max(4,100*personalLoad.median/(Math.max(trainingLoad,personalLoad.median)*1.2))):null
  if(!active)return null
  return <section className="sv-wrap" aria-label="Visuelle Garmin- und Intervals.icu-Trainingsanalyse">
   <div className="sv-top">
@@ -71,9 +84,35 @@ export function SessionVisualInsights({active,activityId,samples}:{
     <span>TRAININGSBELASTUNG</span>
     <div><strong>{decimal(trainingLoad)}</strong><small>Punkte · Intervals Load</small></div>
     <p>Schätzung aus Dauer und Intensität – kein Prozentwert und keine Trainingsnote.</p>
+    {personalLoad&&<span className={'sv-load-flag sv-load-flag-'+personalLoad.category}>
+     {loadLabel[personalLoad.category!]}</span>}
    </div>:<span className="sv-source-dot" aria-hidden="true"/>}
   </div>
   {loading&&<p className="sv-state" role="status">Lade deine persönlichen Trainingsgrafiken …</p>}
+  {trainingLoad!==null&&personalLoad&&currentShare!==null&&medianShare!==null&&
+   <div className="sv-load-comparison" aria-label="Persönlicher Trainingsbelastungsvergleich">
+    <div className="sv-load-comparison-title"><strong>Wie anstrengend war der Lauf für dich?</strong>
+     <span>Vergleich: deine letzten 8 Wochen</span></div>
+    <div className="sv-load-comparison-scale" role="img"
+     aria-label={'Dein Lauf: '+decimal(trainingLoad)+' Belastungspunkte. Median der vorherigen Läufe: '+decimal(personalLoad.median!)+' Punkte.'}>
+      <div className="sv-load-comparison-fill" style={{width:currentShare+'%'}}/>
+      <div className="sv-load-median-pin" style={{left:medianShare+'%'}}/>
+    </div>
+    <div className="sv-load-comparison-legend"><span><i className="sv-my-load"/>Dieser Lauf <b>{decimal(trainingLoad)}</b></span>
+     <span><i className="sv-median-load"/>Dein bisheriger Median <b>{decimal(personalLoad.median!)}</b></span>
+     <span>{personalLoad.count} Läufe als Vergleich</span></div>
+    {finding?.text&&<p className="sv-load-coach"><strong>Coach:</strong> {finding.text}</p>}
+    <p className="sv-load-fineprint">Vergleich aller erfassten Laufeinheiten – auch unterschiedlicher Länge.
+     Der Belastungswert beschreibt Trainingsstress, nicht die Qualität der Intervalle.</p>
+   </div>}
+  {trainingLoad!==null&&!personalLoad&&!loading&&extra?.loadContext&&
+   <p className="sv-load-no-baseline">
+    <strong>Persönlicher Vergleich noch nicht zuverlässig möglich.</strong>
+    {extra.loadContext.historyAvailable?
+     ' Es liegen zu wenige Intervals.icu-Läufe aus mindestens drei Wochen vor.':
+     ' Intervals.icu liefert derzeit keine vollständige Aktivitätshistorie.'}
+    {' '}Die {decimal(trainingLoad)} Punkte bleiben messbar, werden aber nicht als hoch oder niedrig eingestuft.
+   </p>}
   {!loading&&!availability.coach&&!availability.intervals&&
    <p className="sv-state">Detailgrafiken sind momentan nicht abrufbar. Das Coach-Fazit oben bleibt davon unabhängig.</p>}
   {splits.length>0&&<article className="sv-panel">
