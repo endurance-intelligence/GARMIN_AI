@@ -27,6 +27,7 @@ export function CoachLongTermPlan({today,snapshot}:{
   </summary>
   <div className="cltp-body">
    <p className="cltp-intro">{plan.message}</p>
+   <p className="cltp-intro"><strong>Trainingsmethode: polarisiert.</strong> Viel locker, gezielt hart, kaum mittleres Dauertempo.</p>
    {plan.baselineKm!==null&&<p className="cltp-basis">
     Ausgangspunkt: deine letzten zwei Laufwochen mit ungefähr <strong>{plan.baselineKm} km/Woche</strong>.
     Die folgenden Umfänge sind Richtwerte, keine Trainingsfreigabe.
@@ -41,6 +42,8 @@ export function CoachLongTermPlan({today,snapshot}:{
      <div className="cltp-week-content">
       <div className="cltp-week-title"><strong>{week.phaseLabel}</strong><span>{week.key}</span></div>
       <p>{week.focus}</p>
+      <p className="cltp-polarized">{week.qualityOptions>0?
+       'Maximal 1 harte Intervalloption · sonst locker.':'Diese Woche keine harte Einheit einplanen.'}</p>
       {week.targetKm!==null&&<p className="cltp-week-target">
        <Icon name="footprints"/> Laufumfang grob: {week.targetKm.low}–{week.targetKm.high} km
        {week.longRunMinutes!==null&&<span> · Langer Lauf: ca. {week.longRunMinutes} Min.</span>}
