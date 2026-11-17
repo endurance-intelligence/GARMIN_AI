@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react'
 import {Icon} from '../components/Icon'
-import {RaceEventResearch} from '../components/RaceEventResearch'
+import {RaceEventDossier} from '../components/RaceEventDossier'
 import {RaceForecastCompact} from '../components/RaceForecastCompact'
 import {RaceRouteViewer} from '../components/RaceRouteViewer'
 import {RaceStrategyCard} from '../components/RaceStrategyCard'
@@ -26,7 +26,6 @@ export function RacePage({active,onGo,focusWeatherToken=0}:{
   const settle=window.setTimeout(focus,650)
   return ()=>{cancelAnimationFrame(frame);window.clearTimeout(settle)}
  },[active,focusWeatherToken])
- const [researchRefresh,setResearchRefresh]=useState(0)
  const [raceForecast,setRaceForecast]=useState<Forecast|null>(null)
  const [eventCity,setEventCity]=useState<string|null>(null)
  const [course,setCourse]=useState<{courseType:string|null;finishCity:string|null}|null>(null)
@@ -42,14 +41,13 @@ export function RacePage({active,onGo,focusWeatherToken=0}:{
    </button>
   </header>
   <RaceStrategyCard active={active}/>
-  <RaceEventResearch active={active} refreshKey={researchRefresh}
-   onEventSaved={()=>setResearchRefresh(n=>n+1)}
+  <RaceEventDossier active={active}
    onEventCityChange={setEventCity} onCourseChange={setCourse}>
    <RaceForecastCompact active={active} eventCity={eventCity}
-    course={course} routePoints={routePoints} refreshKey={researchRefresh}
+    course={course} routePoints={routePoints} refreshKey={0}
     onForecast={setRaceForecast}/>
-   <RaceRouteViewer active={active} refreshKey={researchRefresh}
+   <RaceRouteViewer active={active} refreshKey={0}
     forecast={raceForecast} onTrack={setRoutePoints}/>
-  </RaceEventResearch>
+  </RaceEventDossier>
  </section>
 }
