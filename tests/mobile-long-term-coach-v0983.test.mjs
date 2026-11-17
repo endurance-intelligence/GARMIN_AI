@@ -98,7 +98,7 @@ test('week overview remains a preview: no direct persistence, no automatic Garmi
  assert.match(ui,/Keine automatischen Kalenderänderungen/)
  assert.match(ui,/DEIN ZIEL · MEHRWÖCHIGE PLANUNG/)
  assert.match(ui,/Laufumfang grob/)
- assert.match(read('src/components/CoachSevenDay.tsx'),/<CoachLongTermPlan today=\{today\} snapshot=\{snapshot\}/)
+ assert.match(read('src/pages/GoalsPage.tsx'),/<CoachLongTermPlan today=\{berlinDateToday\(\)\} snapshot=\{snapshot\}/)
 })
 test('race countdown is a vertically and horizontally centered group, without shifting mobile layout',()=>{
  const css=read('src/styles/coach-goal.css')
