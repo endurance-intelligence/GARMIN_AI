@@ -4,7 +4,7 @@ import {SyncCenter} from '../components/SyncCenter'
 import {CoachTodayWeather} from '../components/CoachTodayWeather'
 import {CoachGlance} from '../components/CoachGlance'
 import {CoachHealthStatus} from '../components/CoachHealthStatus'
-import {WeeklyTrainingOptions,berlinToday,mondayOf} from '../components/WeeklyTrainingOptions'
+import {berlinToday,mondayOf} from '../components/WeeklyTrainingOptions'
 import {CrossTrainingCoachCard} from '../components/CrossTrainingCoachCard'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {CoachSevenDay} from '../components/CoachSevenDay'
@@ -27,6 +27,7 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather}: 
   const [snapshotError,setSnapshotError]=useState(false)
   const [snapshotLoading,setSnapshotLoading]=useState(true)
   const [snapshotVersion,setSnapshotVersion]=useState(0)
+ const [showWeeklyReview,setShowWeeklyReview]=useState(false)
   useEffect(()=>{
    const update=()=>setSnapshotVersion(v=>v+1)
    window.addEventListener('garmin-ai-weekly-choice-changed',update)
@@ -100,11 +101,16 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather}: 
   </CoachGlance>
   <CoachSevenDay active={active} focus={focus} onCalendar={onOpenCalendar} sharedSnapshot={sharedSnapshot}/>
  </>}
- <CoachEvidenceSummary active={active} mode="weekly" weekStart={coachAddDays(mondayOf(berlinToday()),-7)}/>
- <details className="co-extra-tools">
-   <summary>Mehr: Trainingsoptionen, Kraft & Mobility</summary>
-   <WeeklyTrainingOptions active={active} weekStart={mondayOf(berlinToday())} compact/>
-   <CrossTrainingCoachCard active={active} onOpen={()=>onGo('strength')}/>
+ <details className="co-extra-tools" onToggle={event=>setShowWeeklyReview(event.currentTarget.open)}>
+   <summary>Wochenrückblick &amp; weitere Trainingsoptionen <span>Bei Bedarf</span></summary>
+   {showWeeklyReview&&<CoachEvidenceSummary active={active&&showWeeklyReview}
+    mode="weekly" weekStart={coachAddDays(mondayOf(berlinToday()),-7)}/>}
+   <div className="co-extra-actions">
+    <button type="button" onClick={()=>onOpenCalendar()}>
+     <span>Gruppentermine und Wochenplanung im Kalender</span> <span aria-hidden="true">↗</span>
+    </button>
+    <CrossTrainingCoachCard active={active&&showWeeklyReview} onOpen={()=>onGo('strength')}/>
+   </div>
   </details>
  {weightOpen&&createPortal(<div className="co-dialog-backdrop"
    onPointerDown={event=>{if(event.currentTarget===event.target)setWeightOpen(false)}}>
