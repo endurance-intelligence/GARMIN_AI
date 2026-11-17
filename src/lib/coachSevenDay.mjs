@@ -1,4 +1,5 @@
 import {latestWorkoutFeedback,evaluateWorkoutFeedback} from './postWorkoutFeedback.mjs'
+import {analyzeWorkoutFeedbackTrend} from './feedbackTrend.mjs'
 /** GARMIN_AI Coach Intelligence v1.0 — conservative, explainable seven-day preview.
  * No synthetic training readiness, direct Garmin write or automatic approval.
  */
@@ -77,6 +78,9 @@ export function buildSevenDayCoach(input){
  const blocks=Array.isArray(life.blocked_periods)?life.blocked_periods:[]
  const dayDecisions=Array.isArray(life.day_decisions)?life.day_decisions:[]
  const checks=Array.isArray(life.race_recovery_checks)?life.race_recovery_checks:[]
+ const feedbackTrend=analyzeWorkoutFeedbackTrend(life.post_workout_feedback,today)
+ const trendReducing=feedbackTrend.kind==='reduce'
+ const trendShortening=feedbackTrend.kind==='shorten'
  const workoutFeedback=latestWorkoutFeedback(life.post_workout_feedback,today)
  const workoutAssessment=workoutFeedback?evaluateWorkoutFeedback(workoutFeedback):null
  const feedbackCaution=workoutAssessment?.avoidHard===true
@@ -122,6 +126,10 @@ export function buildSevenDayCoach(input){
   raceDate?'Wettkampfziel '+goal.race_name+' am '+raceDate:'Kein Wettkampfziel verfügbar',
   crossNote
  ]
+ if(feedbackTrend.count14>=3)flags.push(
+  'Persönlicher Belastungsverlauf: '+feedbackTrend.count14+
+  ' Rückmeldungen in 14 Tagen ('+feedbackTrend.count28+' in 28 Tagen). '+
+  feedbackTrend.title+'. '+feedbackTrend.suggestion)
  if(workoutFeedback&&workoutAssessment)flags.push(
   'Letzte persönliche Rückmeldung ('+workoutFeedback.activityDate+'): '+
   'Anstrengung '+workoutFeedback.rpe+'/10 · Beine '+workoutFeedback.legs+
@@ -328,17 +336,40 @@ export function buildSevenDayCoach(input){
   if(!['accepted','declined'].includes(choice)||
     ['race','illness','blocked','existing','completed'].includes(item.kind))return item
   return {...item,decision:choice,approvable:false}
+ }).map(item=>{
+  // Only future suggestions change. Never overwrite calendar, race, illness or decisions.
+  if(item.decision||!['easy','long','return_easy'].includes(item.kind)||
+    item.date<today||item.date>coachAddDays(today,6))return item
+  if(trendReducing)return {...item,kind:'recovery',title:'Nach Feedback: Erholung priorisieren',
+   minutes:null,approvable:false,
+   reason:'Deine letzten '+feedbackTrend.count14+' Rückmeldungen: '+
+    feedbackTrend.summary+' '+feedbackTrend.suggestion+
+    ' Kein vorhandener Kalendereintrag wird geändert.'}
+  if(trendShortening){
+   const shorter=item.kind==='long'?Math.min(item.minutes||45,45):
+    Math.min(item.minutes||25,25)
+   return {...item,kind:'easy',title:'Weniger Umfang · '+shorter+' Min. locker',
+    minutes:shorter,approvable:true,
+    reason:'Nach deinen letzten '+feedbackTrend.count14+
+     ' Rückmeldungen empfiehlt der Coach einen kürzeren, lockeren Lauf. '+
+     'Statt '+item.minutes+' Minuten jetzt '+shorter+' Minuten. '+
+     'Nur ein Vorschlag – Freigabe bleibt bei dir.'}
+  }
+  return item
  })
  return {today,days:items,signals,flags,
-  attention:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||observationLimited,
+  attention:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||observationLimited,
   attentionText:ill||input.symptoms?'Krank-Modus aktiv: Trainingsvorschläge sind gesperrt, bis du deine Genesung meldest.':
    returning?'Wiedereinstieg aktiv: erste Läufe und deine Folgetag-Rückmeldungen haben Vorrang. Keine automatische Freigabe.':
    postIllness?'Nach dem Wiedereinstieg Belastung weiter schrittweise aufbauen; keine Nachholeinheiten.':
    feedbackCaution?'Deine eigene Rückmeldung nach der Einheit spricht für mehr Ruhe. Die nächsten Tage werden vorsichtiger geplant.':
+   trendReducing||trendShortening?'Dein Feedback aus mehreren Einheiten spricht für weniger Belastung. Vorschläge angepasst, nicht im Kalender geändert.':
    caution?'Belastungs-/Erholungssignale sprechen für Zurückhaltung; keine Diagnostik.':
    observationLimited?'Datenlage ist eingeschränkt. Nur konservative Vorschläge.':
    'Vorschläge sind eine Planungshilfe, keine medizinische Freigabe.',
   basedOnActual:true,source:'Garmin & bestehender Kalender',raceDate,returning,ill,postIllness,concern,acknowledgedRuns:acknowledged.length,
   recoveryRaceDate,checkedRecently,reportedExhaustion,
-  latestWorkoutFeedback:workoutFeedback?.activityId||null}
+  latestWorkoutFeedback:workoutFeedback?.activityId||null,
+  feedbackTrend:{level:feedbackTrend.level,kind:feedbackTrend.kind,
+   count14:feedbackTrend.count14,count28:feedbackTrend.count28}}
 }
