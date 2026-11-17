@@ -34,11 +34,11 @@ test('one tap switches Race Prep and focuses the detailed weather section',()=>{
  assert.match(forecast,/id="race-detailed-forecast" tabIndex=\{-1\}/)
 })
 test('forecast remains accessible even when no saved event dossier exists',()=>{
- const research=read('src/components/RaceEventResearch.tsx')
- assert.match(research,/saved\.length===0&&children&&<div className="rer-event-dossier rer-weather-standalone"/)
- assert.match(research,/gespeichertes Event-Dossier/)
- assert.match(research,/saved\.length>0&&<div className="rer-saved"/)
- assert.match(research,/\{children\}/)
+ const dossier=read('src/components/RaceEventDossier.tsx')
+ assert.match(dossier,/<section className="red-root"/)
+ assert.match(dossier,/const title=saved\?\.event_title\|\|goal\?\.raceName\|\|'Dein nächstes Rennen'/)
+ assert.match(dossier,/\{children\}/)
+ assert.match(dossier,/saved,setSaved\]=useState<EventSummary\|null>\(null\)/)
 })
 test('Horizon visuals are now applied to actual Coach components, not simulated workouts',()=>{
  const goal=read('src/styles/coach-goal.css')
