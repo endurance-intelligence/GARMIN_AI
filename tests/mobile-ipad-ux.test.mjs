@@ -63,5 +63,5 @@ test('layout-only release preserves owner gate, weight writes and all private se
   assert.doesNotMatch(css,/service_role|oauth_token|Authorization\s*:/i)
   const sync=read('src/components/SyncCenter.tsx')
   assert.match(sync,/session,'POST',\{date,kg\}/)
-  assert.match(sync,/Übertragung zu Garmin Connect steht noch aus/)
+  assert.match(sync,/Garmin Connect nicht bestätigt/)
 })
