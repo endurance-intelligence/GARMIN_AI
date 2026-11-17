@@ -75,11 +75,26 @@ export function buildSevenDayCoach(input){
   y.activityId===x.activity_id&&y.assessment==='ok'))
  const hasUnreviewed=runs.some(x=>!reviews.some(y=>y.activityId===x.activity_id))
  const blocks=Array.isArray(life.blocked_periods)?life.blocked_periods:[]
+ const dayDecisions=Array.isArray(life.day_decisions)?life.day_decisions:[]
+ const checks=Array.isArray(life.race_recovery_checks)?life.race_recovery_checks:[]
+ const lastRaceCheck=[...checks].filter(x=>typeof x.raceDate==='string'&&x.raceDate<=today)
+  .sort((a,b)=>String(b.raceDate).localeCompare(String(a.raceDate))||
+    String(b.reportedOn).localeCompare(String(a.reportedOn)))[0]||null
  const isUnavailable=day=>blocks.find(b=>day>=b.start&&day<=b.end)
  const goal=input.goal?.goal||null
  const raceDate=typeof goal?.race_date==='string'&&
   /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(goal.race_date)?goal.race_date:null
  const raceOffset=raceDate?Math.round((Date.parse(raceDate+'T12:00:00Z')-Date.parse(today+'T12:00:00Z'))/ONE_DAY):null
+ // A previously recorded finish stays relevant even after the next goal is selected.
+ const recoveryRaceDate=raceDate&&raceDate<=today?raceDate:
+  lastRaceCheck?.raceDate||raceDate
+ const raceCheck=[...checks].filter(x=>x.raceDate===recoveryRaceDate&&x.reportedOn<=today)
+  .sort((a,b)=>String(b.reportedOn).localeCompare(String(a.reportedOn)))[0]||null
+ const checkAge=raceCheck?Math.round((Date.parse(today+'T12:00:00Z')-
+  Date.parse(raceCheck.reportedOn+'T12:00:00Z'))/ONE_DAY):null
+ const checkedRecently=checkAge!==null&&checkAge>=0&&checkAge<=2
+ const reportedExhaustion=raceCheck?Math.max(Number(raceCheck.fatigue),Number(raceCheck.soreness)):null
+ const ultraRecovery=raceDate===recoveryRaceDate&&Number(goal?.distance_km)>=42
  const activities=(input.boards||[]).flatMap(x=>Array.isArray(x?.activities)?x.activities:[])
  const manual=(input.boards||[]).flatMap(x=>Array.isArray(x?.manual)?x.manual:[])
  const options=Array.isArray(input.options?.options)?input.options.options:[]
@@ -101,6 +116,9 @@ export function buildSevenDayCoach(input){
   raceDate?'Wettkampfziel '+goal.race_name+' am '+raceDate:'Kein Wettkampfziel verfügbar',
   crossNote
  ]
+ if(raceCheck)flags.push('Renn-Erholung: eigener Check-in vom '+raceCheck.reportedOn+
+  ' · Erschöpfung '+raceCheck.fatigue+'/10 · Beine '+raceCheck.soreness+'/10'+
+  (raceCheck.warning?' · Warnzeichen gemeldet':''))
  const make=(day,kind,title,minutes,reason,sport='running')=>
   ({date:day,kind,title,minutes,reason,sport,
    approvable:['easy','long','mobility','return_easy'].includes(kind)})
@@ -136,6 +154,11 @@ export function buildSevenDayCoach(input){
     (existing?' Achtung: Bereits geplanter Termin bleibt bestehen – im Kalender prüfen.':''))
   if(existing)return make(day,'existing',existing.title,null,'Bereits in GARMIN_AI geplant. Keine zweite Einheit erzeugen.',existing.sport||'running')
   if(done)return make(day,'completed','Bereits trainiert',null,'Absolvierte Garmin-/Stabi-Aktivität; keine zusätzliche Planung.')
+  const decision=dayDecisions.find(x=>x.date===day)
+  if(decision?.choice==='declined')return make(day,'declined','Deine Entscheidung · abgelehnt',null,
+   'Du hast die Empfehlung für diesen Tag abgelehnt. Kein Kalenderblock, keine automatische Nachholeinheit.')
+  if(decision?.choice==='accepted')return make(day,'acknowledged','Deine Entscheidung · übernommen',null,
+   'Du hast den ruhigen Tag bzw. die Planung bestätigt. Keine automatische Kalenderänderung.')
   if(returning){
    if(concern)return make(day,'illness','Wiedereinstieg unterbrechen',null,
     'Nach einem Wiedereinstiegslauf wurden Beschwerden gemeldet. Nicht weitertrainieren; medizinisch klären.')
@@ -157,11 +180,40 @@ export function buildSevenDayCoach(input){
    return make(day,'recovery','Rückmeldung abwarten',null,
     'Vor weiterer Belastungssteigerung den nächsten realen Garmin-Lauf und die Verträglichkeit prüfen.')
   }
-  const postRaceDays=Number(goal?.distance_km)>=42?7:3
-  if(untilRace!==null&&untilRace<0&&untilRace>=-postRaceDays)
-   return make(day,'recovery','Regeneration nach dem Wettkampf',null,
-    'Nach dem Rennen keine automatische Belastungssteigerung. Besonders nach einem Ultra '+
-    'Erholung und Beschwerden beachten; Rückkehr erst nach eigener Freigabe.')
+  const daysPostRace=recoveryRaceDate?
+   Math.round((Date.parse(day+'T12:00:00Z')-Date.parse(recoveryRaceDate+'T12:00:00Z'))/ONE_DAY):null
+  if(daysPostRace!==null&&daysPostRace>0&&daysPostRace<=14){
+   if(!raceCheck||!checkedRecently)
+    return make(day,'recovery','Renn-Erholung · Check-in fehlt',null,
+     'Nach '+(ultraRecovery?'dem Ultra':'dem Rennen')+
+     ' bitte Erschöpfung und Muskelgefühl im Renn-Barometer eintragen bzw. aktualisieren. '+
+     'Bis dahin keine automatischen Laufeinheiten oder Trainingsblocker im Kalender.')
+   if(raceCheck.warning)
+    return make(day,'recovery','Warnzeichen · Belastung abklären',null,
+     'Du hast Warnzeichen gemeldet. Kein Laufvorschlag. Bei Brustschmerzen, Atemnot, '+
+     'Schwindel oder starken Beschwerden medizinisch abklären.')
+   if(!Number.isFinite(reportedExhaustion)||reportedExhaustion>=7)
+    return make(day,'recovery','Stark erschöpft · Erholung priorisieren',null,
+     'Eigene Belastungseinschätzung: '+reportedExhaustion+'/10. '+
+     'Heute Ruhe und höchstens sehr leichte Alltagsbewegung. Morgen neu einschätzen.')
+   if(reportedExhaustion>=4)
+    return make(day,'recovery','Noch belastet · nur leichte Bewegung',null,
+     'Eigene Belastungseinschätzung: '+reportedExhaustion+'/10. '+
+     'Spaziergang oder sanfte Mobility statt Trainingskilometern; morgen erneut prüfen.')
+   if(daysPostRace<=2||(ultraRecovery&&daysPostRace<=5))
+    return make(day,'recovery','Nach dem Rennen · ruhig regenerieren',null,
+     'Subjektiv schon frischer ('+reportedExhaustion+'/10), aber '+daysPostRace+
+     ' Tage nach '+(ultraRecovery?'einem langen Ultra':'dem Rennen')+
+     ' noch keine Laufeinheit automatisch freigeben.')
+   if(!dataReady||caution)
+    return make(day,'recovery','Erholung & Garmin-Daten prüfen',null,
+     'Barometer '+reportedExhaustion+'/10, aber Garmin-Verlauf oder Erholungssignale '+
+     'reichen noch nicht für einen Laufvorschlag.')
+   const minutes=ultraRecovery?20:25
+   return make(day,'easy','Behutsam zurück · '+minutes+' Min. locker',minutes,
+    'Barometer '+reportedExhaustion+'/10, '+daysPostRace+' Tage nach dem Rennen. '+
+    'Nur symptomfrei im Sprechtempo, keine Intervalle und kein Nachholen. Am Folgetag bewerten.')
+  }
   const option=options.find(o=>o.enabled&&o.weekday===weekday(day))
   const choice=option?choices.find(c=>c.training_date===day&&c.option_code===option.code)?.choice:null
   if(postIllness){
@@ -261,5 +313,6 @@ export function buildSevenDayCoach(input){
    caution?'Belastungs-/Erholungssignale sprechen für Zurückhaltung; keine Diagnostik.':
    observationLimited?'Datenlage ist eingeschränkt. Nur konservative Vorschläge.':
    'Vorschläge sind eine Planungshilfe, keine medizinische Freigabe.',
-  basedOnActual:true,source:'Garmin & bestehender Kalender',raceDate,returning,ill,postIllness,concern,acknowledgedRuns:acknowledged.length}
+  basedOnActual:true,source:'Garmin & bestehender Kalender',raceDate,returning,ill,postIllness,concern,acknowledgedRuns:acknowledged.length,
+  recoveryRaceDate,checkedRecently,reportedExhaustion}
 }
