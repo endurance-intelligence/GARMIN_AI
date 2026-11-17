@@ -52,15 +52,15 @@ export function interpretRecovery(history:RecoveryDay[],latestDay:string){
  const clauses:string[]=[]
  if(sleep.difference!==null){
   const minutes=Math.round(sleep.difference/60)
-  clauses.push(minutes===0?'Schlafdauer nahe dem jüngsten Median':
-   'Schlafdauer '+(minutes>0?'über':'unter')+' dem jüngsten Median')
+  clauses.push(minutes===0?'Schlaf ungefähr wie sonst':
+   'Schlaf '+(minutes>0?'etwas länger':'etwas kürzer')+' als sonst')
  }
  if(hrv.difference!==null)clauses.push(
-  Math.round(hrv.difference)===0?'HRV nahe dem jüngsten Median':
-   'HRV '+(hrv.difference>0?'darüber':'darunter'))
+  Math.round(hrv.difference)===0?'HRV ungefähr wie sonst':
+   'HRV '+(hrv.difference>0?'höher':'niedriger')+' als sonst')
  if(rhr.difference!==null)clauses.push(
-  Math.round(rhr.difference)===0?'Ruhepuls nahe dem jüngsten Median':
-   'Ruhepuls '+(rhr.difference>0?'darüber':'darunter'))
+  Math.round(rhr.difference)===0?'Ruhepuls ungefähr wie sonst':
+   'Ruhepuls '+(rhr.difference>0?'höher':'niedriger')+' als sonst')
  const headline=clauses.length?clauses.join(' · '):
   'Für einen belastbaren Vergleich fehlen noch Messwerte.'
  return {metrics,headline,latestDay,referenceStart:earliest,referenceEnd:calendarDayOffset(latestDay,-1)}
@@ -85,15 +85,15 @@ export function recoveryNarrative(report:ReturnType<typeof interpretRecovery>):s
  const parts:string[]=[]
  if(sleep.difference!==null){
   const minutes=Math.round(Math.abs(sleep.difference)/60)
-  parts.push(minutes===0?'Schlafdauer nahe dem jüngsten Median':
-    minutes+' Min. '+(sleep.difference>0?'mehr':'weniger')+' Schlaf als zuletzt')
+  parts.push(minutes===0?'Schlaf ungefähr wie sonst':
+    minutes+' Min. '+(sleep.difference>0?'mehr':'weniger')+' Schlaf als sonst')
  }
  if(hrv.difference!==null)parts.push(
-  Math.round(hrv.difference)===0?'HRV nahe dem jüngsten Median':
-  'HRV '+(hrv.difference>0?'über':'unter')+' dem jüngsten Median')
+  Math.round(hrv.difference)===0?'HRV ungefähr wie sonst':
+  'HRV '+(hrv.difference>0?'höher':'niedriger')+' als sonst')
  if(pulse.difference!==null)parts.push(
-  Math.round(pulse.difference)===0?'Ruhepuls nahe dem jüngsten Median':
-  'Ruhepuls '+(pulse.difference>0?'über':'unter')+' dem jüngsten Median')
+  Math.round(pulse.difference)===0?'Ruhepuls ungefähr wie sonst':
+  'Ruhepuls '+(pulse.difference>0?'höher':'niedriger')+' als sonst')
  return parts.length?parts.join(' · ')+'.':
   'Für einen Vergleich fehlen noch genügend gültige Messungen.'
 }
