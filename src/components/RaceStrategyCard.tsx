@@ -2,7 +2,7 @@ import {useEffect,useRef,useState} from 'react'
 import {Icon} from './Icon'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {estimateRaceStrategy} from '../lib/raceStrategyMath.mjs'
-import {estimateRaceBudget} from '../lib/raceExecution.mjs'
+import {estimateRaceBudget,buildRaceLapCheckpoints} from '../lib/raceExecution.mjs'
 import type {CoachGoal} from '../lib/coachGoal'
 import '../styles/race-strategy.css'
 
@@ -113,6 +113,11 @@ export function RaceStrategyCard({active}:{active:boolean}){
   carbsPerHour:get(draft.carbs),fluidPerHour:get(draft.fluid),
   sodiumPerHour:get(draft.sodium)
  })
+ const checkpoints=goal&&draft.courseMode==='laps'?buildRaceLapCheckpoints({
+  distanceKm:Number(goal.distance_km),loopKm:loop,movingMinutes:moving,
+  regularPauseMinutes:regular,longStopEvery:every,longStopMinutes:long
+ }):[]
+ const clock=(mins:number)=>Math.floor(mins/60)+'h '+String(mins%60).padStart(2,'0')
  const formatted=(value:number|null,unit:string)=>
   value===null?'Noch nicht geplant':
    value.toLocaleString('de-DE',{maximumFractionDigits:0})+' '+unit
@@ -200,6 +205,20 @@ export function RaceStrategyCard({active}:{active:boolean}){
       <small>Nur eine Rechnung aus deinen Eingaben. Wetter, Versorgung und unerwartete Stopps
        können die tatsächliche Zeit verändern.</small>
      </div>}
+     {checkpoints.length>0&&<details className="rsp-checkpoints">
+      <summary>Rundenzeiten &amp; Stopps ansehen ({checkpoints.length} Runden)
+       <Icon name="chevron-down"/></summary>
+      <div className="rsp-checkpoint-head"><span>Runde / km</span>
+       <span>Ankunft</span><span>Pause</span><span>Weiter / Ziel</span></div>
+      {checkpoints.map(p=><div className="rsp-checkpoint-row" key={p.lap}>
+       <span>{p.lap} · {p.km.toLocaleString('de-DE')} km</span>
+       <span>{clock(p.arrivalMinutes)}</span>
+       <span>{p.stopMinutes?Math.round(p.stopMinutes)+' Min.':'–'}</span>
+       <strong>{clock(p.departureMinutes)}</strong>
+      </div>)}
+      <small>Ankunft und Aufbruch sind nur eine Zeitrechnung aus deinen Angaben.
+       Unterbrechungen und Laufzeit können im Wettkampf abweichen.</small>
+     </details>}
      {calculation&&<div className="rsp-race-budget" aria-label="Rennziel und Zeitpuffer">
       <div><span>Bewegungstempo ohne Pausen</span>
        <strong>{paceText(budget.estimatedMovingPaceSeconds)}</strong></div>
