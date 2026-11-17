@@ -102,7 +102,7 @@ test('clean layout shows three days, hides management tools and allows full week
  const css=read('src/styles/coach-seven-day.css')
  assert.match(seven,/plan\.days\.slice\(0,showAllDays\?7:3\)/)
  assert.match(seven,/Alle 7 Tage anzeigen/)
- assert.match(seven,/<details className="c7-settings">/)
+ assert.match(seven,/<details className="c7-settings" id="c7-life-settings">/)
  assert.match(page,/<details className="co-extra-tools">/)
  assert.match(css,/\.c7-settings/)
  assert.match(css,/\.c7-stale-plan/)
