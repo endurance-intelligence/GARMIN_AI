@@ -96,12 +96,13 @@ test('real coach retains explicit approval and opens calendar instead of silentl
  assert.match(seven,/Vergangene Entwürfe im Kalender prüfen/)
  assert.doesNotMatch(ui,/method:'POST'/)
 })
-test('clean layout shows three days, hides management tools and allows full week',()=>{
+test('clean layout shows all seven selectable days with one focused decision',()=>{
  const page=read('src/pages/CoachPage.tsx')
  const seven=read('src/components/CoachSevenDay.tsx')
  const css=read('src/styles/coach-seven-day.css')
- assert.match(seven,/plan\.days\.slice\(0,showAllDays\?7:3\)/)
- assert.match(seven,/Alle 7 Tage anzeigen/)
+ assert.match(seven,/plan\.days\.map\(day=><button type="button" key=\{day.date\} role="tab"/)
+ assert.match(seven,/plan\.days\.filter\(day=>day.date===selectedDay/)
+ assert.match(seven,/role="tablist"/)
  assert.match(seven,/<details className="c7-settings" id="c7-life-settings">/)
  assert.match(page,/<details className="co-extra-tools">/)
  assert.match(css,/\.c7-settings/)
