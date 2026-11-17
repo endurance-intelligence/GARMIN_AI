@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {RaceGoalsPanel} from '../components/RaceGoalsPanel'
 import {CoachLongTermPlan} from '../components/CoachLongTermPlan'
+import {RaceEventResearch} from '../components/RaceEventResearch'
 import {Icon} from '../components/Icon'
 import {garminSupabase} from '../lib/garminSupabase'
 import {berlinDateToday} from '../lib/coachGoal'
@@ -15,6 +16,7 @@ export function GoalsPage({active,onGo}:{active:boolean;onGo:(page:Page)=>void})
  const [snapshot,setSnapshot]=useState<CoachSnapshot|null>(null)
  const [loading,setLoading]=useState(false)
  const [error,setError]=useState('')
+ const [showEventScout,setShowEventScout]=useState(false)
  useEffect(()=>{
   if(!active||!garminSupabase)return
   let mounted=true
@@ -43,9 +45,16 @@ export function GoalsPage({active,onGo}:{active:boolean;onGo:(page:Page)=>void})
   <CoachGoalPanel key={'primary-'+revision} active={active} onSaved={changed}/>
   <RaceGoalsPanel key={'portfolio-'+revision} active={active} onPrimaryChange={changed}/>
   {snapshot&&<CoachLongTermPlan today={berlinDateToday()} snapshot={snapshot}/>}
+  <details className="goals-event-scout" onToggle={event=>setShowEventScout(event.currentTarget.open)}>
+   <summary><span><strong>Veranstaltungsdaten &amp; Wettkampfarchiv</strong>
+    <small>Event Scout, Veranstalter-Webseite, Quellen und gespeicherte Strecken</small></span>
+    <Icon name="chevron-down"/></summary>
+   {showEventScout&&<RaceEventResearch active={active&&showEventScout}
+    refreshKey={revision} onEventSaved={changed}/>}
+  </details>
   {loading&&!snapshot&&<p role="status" className="goals-status">Lade deinen langfristigen Trainingsfahrplan …</p>}
   {error&&<p role="alert" className="goals-status">{error}</p>}
-  <p className="goals-hint">Dein Ziel steuert den Trainingsaufbau. Wetter, Strecke,
+  <p className="goals-hint">Dein Ziel steuert den Trainingsaufbau. Rennwetter, Streckenanalyse,
    Verpflegung und Pausen für die nächste Veranstaltung findest du unter Race Prep.</p>
  </section>
 }
