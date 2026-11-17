@@ -39,6 +39,6 @@ test('narrow iPhone stacks picker and button with sufficient touch height',()=>{
 test('weight quick entry never assumes Garmin has received the measurement',()=>{
   const jsx=read('src/components/SyncCenter.tsx')
   assert.match(jsx,/session,'POST',\{date,kg\}/)
-  assert.match(jsx,/Garmin-Übertragung folgt nach Freigabe/)
-  assert.match(jsx,/Übertragung zu Garmin Connect steht noch aus/)
+  assert.match(jsx,/Keine automatische Garmin-Connect-Gewichtsübertragung/)
+  assert.match(jsx,/Garmin Connect nicht bestätigt/)
 })
