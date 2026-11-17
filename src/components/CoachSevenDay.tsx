@@ -9,8 +9,7 @@ import {Icon} from './Icon'
 import {CoachLifeContext} from './CoachLifeContext'
 import {CoachDecisionLive} from './CoachDecisionLive'
 import {CoachPostRaceBarometer} from './CoachPostRaceBarometer'
-import {PostWorkoutFeedbackCard} from './PostWorkoutFeedbackCard'
-import {FeedbackTrendCard} from './FeedbackTrendCard'
+import {GarminFeedbackCard} from './GarminFeedbackCard'
 import {WeeklyPlanActualCard} from './WeeklyPlanActualCard'
 import {assessCustomProposal} from '../lib/coachCustomProposal.mjs'
 import type {CoachContextPayload} from './CoachLifeContext'
@@ -75,11 +74,6 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot}:{
    behavior:'smooth',block:'start'
   }))
  },[active,focus,plan])
- const recentActivities=(snapshot?.boards||[]).flatMap(board=>
-  Array.isArray(board.activities)?board.activities:[]) as Array<{
-   activity_id:string;activity_name:string|null;start_time_local:string|null;
-   sport_type:string|null;duration_s:number|null;rpe_raw:number|null
-  }>
  const customDay=plan?.days.find(day=>day.date===customDate)||null
  const customAssessment=useMemo(()=>customDay&&plan?
   assessCustomProposal({day:customDay,plan,kind:customKind,minutes:customMinutes,
@@ -226,10 +220,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot}:{
    <button type="button" className="c7-refresh" disabled={loading||saving!==null}
     onClick={()=>{setReload(x=>x+1);window.dispatchEvent(new Event('garmin-ai-coach-changed'));setReview(null);setSavedDay(null)}}><Icon name="refresh-cw"/> Aktualisieren</button>
   </div>
-  {snapshot&&<PostWorkoutFeedbackCard activities={recentActivities} life={snapshot.life}
-   busy={contextBusy||saving!==null} onSave={updateLife}/>}
-  {snapshot&&<FeedbackTrendCard
-   feedback={snapshot.life.context.post_workout_feedback} today={today}/>}
+  {snapshot&&<GarminFeedbackCard snapshot={snapshot} today={today}/>} 
   {snapshot&&<CoachPostRaceBarometer goal={snapshot.goal} life={snapshot.life}
     busy={contextBusy||saving!==null} onSave={updateLife}/>}
   {snapshot&&<details className="c7-settings" id="c7-life-settings">
