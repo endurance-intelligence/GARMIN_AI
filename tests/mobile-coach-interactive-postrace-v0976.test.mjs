@@ -54,7 +54,8 @@ test('explicit decline and accept are persisted as user decisions, never as cale
 test('post-race recovery without a check-in asks for one rather than fabricating readiness',()=>{
  const p=buildSevenDayCoach(sample())
  assert.equal(p.days[0].kind,'recovery')
- assert.match(p.days[0].title,/Check-in fehlt/)
+ assert.equal(p.days[0].title,'Regeneration nach dem Wettkampf')
+ assert.match(p.days[0].reason,/Renn-Barometer|eintragen/)
  assert.ok(p.days.every(d=>!d.approvable))
  assert.equal(p.reportedExhaustion,null)
  assert.ok(!p.days.some(d=>d.kind==='blocked'))
@@ -77,7 +78,8 @@ test('even low fatigue requires several easy ultra recovery days, then only shor
 })
 test('stale check-ins and self-reported warning signs never greenlight exercise',()=>{
  const stale=buildSevenDayCoach(sample(check(1,1,false,'2026-11-21')))
- assert.match(stale.days[0].title,/Check-in fehlt/)
+ assert.equal(stale.days[0].title,'Regeneration nach dem Wettkampf')
+ assert.match(stale.days[0].reason,/Renn-Barometer|eintragen/)
  const warning=buildSevenDayCoach(sample(check(1,2,true)))
  assert.equal(warning.days[0].kind,'illness')
  assert.ok(warning.days.every(d=>!d.approvable))
