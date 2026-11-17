@@ -105,7 +105,7 @@ test('photo image analysis requires private secret and explicit owner authentica
 test('mobile calendar no longer binds ORC to two fixed weekdays',()=>{
  const calendar=read('src/pages/CalendarPage.tsx')
  const panel=read('src/components/WorkoutArchivePanel.tsx')
- assert.match(calendar,/<WorkoutArchivePanel active=\{active\} date=\{selected\}/)
+ assert.match(calendar,/showWorkoutArchive&&<WorkoutArchivePanel active=\{active&&showWorkoutArchive\} date=\{selected\}/)
  assert.doesNotMatch(calendar,/orcDay|<OrcTrackBuilder/)
  assert.match(panel,/Foto kostenlos lokal lesen/)
  assert.match(panel,/Manuell erfassen/)
