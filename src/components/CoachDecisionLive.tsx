@@ -75,18 +75,18 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
      </span>
     </div>
     <div className="cdl-choice-body">
-     <h4>{x.headline}</h4>
-     <p>{x.summary}</p>
-     <div className="cdl-swap">
-      <div><span>{x.state==='calendar'?'KALENDER':'BISHER'}</span>
-       <strong>{x.current}</strong><small>{x.state==='calendar'?'Bestehender Eintrag wird nicht überschrieben':
-        'Kein automatischer Eingriff in den Trainingsplan'}</small></div>
-      <span className="cdl-arrow" aria-hidden="true">↗</span>
-      <div><span>COACH-EMPFEHLUNG</span>
-       <strong>{x.proposal}</strong>
-       <small>{day.minutes!==null?day.minutes+' Minuten · ':''}
-        {x.actionable?'Nur nach Bestätigung als Entwurf':x.state==='calendar'?'Keine zweite Einheit':'Keine Kalenderänderung'}</small></div>
-     </div>
+     <span className="cdl-plan-kicker"><Icon name="activity"/> DEIN PLAN FÜR DIESEN TAG</span>
+     <h4>{day.title}</h4>
+     <p className="cdl-decision-note">{x.summary}</p>
+     {day.minutes!==null&&<div className="cdl-duration">
+      <span>COACH-UMFANG</span><strong>{day.minutes} Min.</strong>
+      <small>Vorschlag, noch kein freigegebenes Workout</small>
+     </div>}
+     {x.current!=='Kein Training eingetragen'&&<div className="cdl-context-line">
+      <span>{x.state==='calendar'?'IM KALENDER':'DEIN GRUPPENTERMIN'}</span>
+      <strong>{x.current}</strong>
+      {x.state==='calendar'&&<small>Bestehender Eintrag wird nicht überschrieben</small>}
+     </div>}
      <div className="cdl-actions">
       {alreadyDecided?
        <button className="cdl-primary" type="button" disabled={saving}
@@ -113,13 +113,9 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
       <button className="cdl-secondary cdl-week-link" type="button" onClick={onPlan}>
        Ganze Woche <Icon name="arrow-up-right"/></button>
      </div>
-     <p className="cdl-smallprint">{x.actionable?
-      '„Vorschlag prüfen“ öffnet die echte Entwurfsbestätigung des 7-Tage-Coaches. Erst danach folgt separat die Kalenderfreigabe.':
-      'Dieser Status ist eine Coach-Einordnung, kein automatisch erzeugter Trainingsplan.'}</p>
+     <p className="cdl-smallprint">Keine automatische Änderung deines Trainingsplans.
+      Deine Wahl wird gespeichert. Ein Workout bleibt ein Entwurf bis zur separaten Freigabe.</p>
     </div>
-    <div className="cdl-art" aria-hidden="true"><div className="cdl-orbit-one"/>
-     <div className="cdl-orbit-two"/><div className="cdl-orbit-three"/>
-     <div className="cdl-orbit-center"><Icon name="activity"/></div></div>
    </article>
    <article className="cdl-why">
     <div className="cdl-why-head"><span className="cdl-overline">THE REASONING / ECHTE DATEN</span>
