@@ -80,7 +80,7 @@ export function buildSevenDayCoach(input){
  const workoutFeedback=latestWorkoutFeedback(life.post_workout_feedback,today)
  const workoutAssessment=workoutFeedback?evaluateWorkoutFeedback(workoutFeedback):null
  const feedbackCaution=workoutAssessment?.avoidHard===true
- const caution=!!input.symptoms||signals.length>=2||volumeRise||feedbackCaution
+ const caution=!!input.symptoms||signals.length>=2||volumeRise
  const feedbackNextDay=(day)=>workoutFeedback&&day>=today&&
   day>workoutFeedback.activityDate&&day<=coachAddDays(workoutFeedback.activityDate,2)
  const lastRaceCheck=[...checks].filter(x=>typeof x.raceDate==='string'&&x.raceDate<=today)
@@ -134,6 +134,7 @@ export function buildSevenDayCoach(input){
    approvable:['easy','long','mobility','return_easy'].includes(kind)})
  let comebackCandidateUsed=false
  const items=days.map((day,i)=>{
+  const dayFeedbackCaution=feedbackCaution&&feedbackNextDay(day)
   const untilRace=raceDate?Math.round((Date.parse(raceDate+'T12:00:00Z')-Date.parse(day+'T12:00:00Z'))/ONE_DAY):null
   const existing=plans.find(p=>p.training_date===day)
   const done=activities.some(a=>a.start_time_local?.slice(0,10)===day)||
@@ -221,7 +222,7 @@ export function buildSevenDayCoach(input){
      'Subjektiv schon frischer ('+reportedExhaustion+'/10), aber '+daysPostRace+
      ' Tage nach '+(ultraRecovery?'einem langen Ultra':'dem Rennen')+
      ' noch keine Laufeinheit automatisch freigeben.')
-   if(!dataReady||caution)
+   if(!dataReady||caution||dayFeedbackCaution)
     return make(day,'recovery','Erholung & Garmin-Daten prüfen',null,
      'Barometer '+reportedExhaustion+'/10, aber Garmin-Verlauf oder Erholungssignale '+
      'reichen noch nicht für einen Laufvorschlag.')
@@ -243,7 +244,7 @@ export function buildSevenDayCoach(input){
   }
   // A short easy run is still a TRAINING recommendation; do not propose it
   // when Garmin evidence is incomplete or meaningful recovery flags exist.
-  if(untilRace!==null&&untilRace>0&&untilRace<=10&&(!dataReady||caution))
+  if(untilRace!==null&&untilRace>0&&untilRace<=10&&(!dataReady||caution||dayFeedbackCaution))
    return make(day,'recovery','Frische vor dem Rennen priorisieren',null,
     !dataReady?'Garmin-Daten unvollständig. Keine Laufeinheit freigeben, erst Daten prüfen.':
     'Aktuelle Erholungssignale / Umfang sprechen gegen zusätzliche Belastung. '+
@@ -292,7 +293,7 @@ export function buildSevenDayCoach(input){
   if(!dataReady)
    return make(day,'recovery','Keine belastbare Planung',null,
     'Garmin-Trainingsdaten fehlen oder sind unvollständig. Bitte zunächst synchronisieren.')
-  if(caution)
+  if(caution||dayFeedbackCaution)
    return i%2===0?make(day,'recovery','Erholung / lockere Bewegung',null,
     signals.length?signals.join(' · '):'Aktuelle Symptome oder Belastung erfordern Zurückhaltung.'):
     make(day,'easy','Lockerer Lauf · 20–30 Min.',25,
@@ -329,10 +330,11 @@ export function buildSevenDayCoach(input){
   return {...item,decision:choice,approvable:false}
  })
  return {today,days:items,signals,flags,
-  attention:ill||returning||postIllness||!!input.symptoms||caution||observationLimited,
+  attention:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||observationLimited,
   attentionText:ill||input.symptoms?'Krank-Modus aktiv: Trainingsvorschläge sind gesperrt, bis du deine Genesung meldest.':
    returning?'Wiedereinstieg aktiv: erste Läufe und deine Folgetag-Rückmeldungen haben Vorrang. Keine automatische Freigabe.':
    postIllness?'Nach dem Wiedereinstieg Belastung weiter schrittweise aufbauen; keine Nachholeinheiten.':
+   feedbackCaution?'Deine eigene Rückmeldung nach der Einheit spricht für mehr Ruhe. Die nächsten Tage werden vorsichtiger geplant.':
    caution?'Belastungs-/Erholungssignale sprechen für Zurückhaltung; keine Diagnostik.':
    observationLimited?'Datenlage ist eingeschränkt. Nur konservative Vorschläge.':
    'Vorschläge sind eine Planungshilfe, keine medizinische Freigabe.',
