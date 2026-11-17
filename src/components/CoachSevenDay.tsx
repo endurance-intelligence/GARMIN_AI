@@ -8,6 +8,7 @@ import type {CoachDay} from '../lib/coachSevenDay.mjs'
 import {Icon} from './Icon'
 import {CoachLifeContext} from './CoachLifeContext'
 import {CoachDecisionLive} from './CoachDecisionLive'
+import {CoachPostRaceBarometer} from './CoachPostRaceBarometer'
 import type {CoachContextPayload} from './CoachLifeContext'
 import '../styles/coach-seven-day.css'
 
@@ -27,7 +28,11 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
  const [startTime,setStartTime]=useState('18:00')
  const [saving,setSaving]=useState<string|null>(null)
  const [savedDay,setSavedDay]=useState<string|null>(null)
- const [showAllDays,setShowAllDays]=useState(false)
+ const [selectedDay,setSelectedDay]=useState(berlinDateToday)
+ const [customDate,setCustomDate]=useState<string|null>(null)
+ const [customKind,setCustomKind]=useState<'walk'|'mobility'|'rowing'|'run'>('walk')
+ const [customMinutes,setCustomMinutes]=useState(25)
+ const [customTitle,setCustomTitle]=useState('')
  const ids=useRef<Record<string,string>>({})
  const today=berlinDateToday()
  useEffect(()=>{
@@ -51,7 +56,7 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
   today,health:snapshot.health,options:snapshot.options,boards:snapshot.boards,
   plans:snapshot.plans,goal:snapshot.goal,life:snapshot.life
  }):null,[snapshot,today])
- async function updateLife(action:{action:string;[key:string]:string|boolean|null}){
+ async function updateLife(action:{action:string;[key:string]:string|number|boolean|null}){
   if(!garminSupabase||contextBusy||saving!==null)return
   setContextBusy(true);setError('');setNotice('')
   try{
@@ -71,13 +76,15 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
    setSnapshot(prev=>prev?{...prev,life:{context:result.context!,runs:result.runs!}}:prev)
    window.dispatchEvent(new Event('garmin-ai-coach-changed'))
    setReview(null)
+   setCustomDate(null)
    setSavedDay(null)
    setNotice('Deine Angaben wurden gespeichert und der 7-Tage-Coach neu berechnet. Keine Garmin-Änderung.')
   }catch(e){setError(e instanceof Error?e.message:'Coach-Kontext nicht gespeichert.')}
   finally{setContextBusy(false)}
  }
  async function accept(day:CoachDay){
-  if(!garminSupabase||saving||contextBusy||!plan||!snapshot||!day.approvable||review!==day.date)return
+  if(!garminSupabase||saving||contextBusy||!plan||!snapshot||
+   !(day.approvable||day.kind==='option')||review!==day.date)return
   if(plan.days.find(x=>x.date===day.date)!==day)return
   setSaving(day.date);setError('');setNotice('')
   try{
@@ -92,8 +99,8 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
    }:{
     action:'create',clientRequestId:requestId,date:day.date,
     title:day.title,sessionType:'event',sport:day.kind==='mobility'?'strength':day.sport,
-    notes:'Coach Intelligence · '+day.minutes+
-      ' Min. · Nur Kalendereintrag. Keine automatische Garmin-Übertragung.'
+    notes:'Coach Intelligence · '+(day.minutes===null?'Freiwillige Gruppenoption':day.minutes+' Min.')+
+      ' · Nur Kalendereintrag. Keine automatische Garmin-Übertragung.'
    }
    const res=await fetch(garminSupabaseUrl+'/functions/v1/garmin-training-plan',{
     method:'POST',cache:'no-store',
@@ -113,6 +120,7 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
     }]}
    }:prev)
    setReview(null)
+   setCustomDate(null)
    setSavedDay(day.date)
    window.dispatchEvent(new Event('garmin-ai-coach-changed'))
    setNotice((structured?
