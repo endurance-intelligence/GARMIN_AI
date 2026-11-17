@@ -2,6 +2,7 @@ import {latestWorkoutFeedback,evaluateWorkoutFeedback} from './postWorkoutFeedba
 import {analyzeWorkoutFeedbackTrend} from './feedbackTrend.mjs'
 import {summarizeLastCompletedWeek} from './completedWeekReview.mjs'
 import {applyPolarizedGuidance} from './polarizedTraining.mjs'
+import {analyzeGarminPerception} from './garminPerception.mjs'
 /** GARMIN_AI Coach Intelligence v1.0 — conservative, explainable seven-day preview.
  * No synthetic training readiness, direct Garmin write or automatic approval.
  */
@@ -80,15 +81,20 @@ export function buildSevenDayCoach(input){
  const blocks=Array.isArray(life.blocked_periods)?life.blocked_periods:[]
  const dayDecisions=Array.isArray(life.day_decisions)?life.day_decisions:[]
  const checks=Array.isArray(life.race_recovery_checks)?life.race_recovery_checks:[]
+ // Garmin already records RPE / feeling after a workout: never demand a second check.
+ const garminPerception=analyzeGarminPerception(input.boards,today)
  const feedbackTrend=analyzeWorkoutFeedbackTrend(life.post_workout_feedback,today)
  const trendReducing=feedbackTrend.kind==='reduce'
  const trendShortening=feedbackTrend.kind==='shorten'
  const workoutFeedback=latestWorkoutFeedback(life.post_workout_feedback,today)
  const workoutAssessment=workoutFeedback?evaluateWorkoutFeedback(workoutFeedback):null
- const feedbackCaution=workoutAssessment?.avoidHard===true
+ const feedbackCaution=workoutAssessment?.avoidHard===true||garminPerception.qualityCaution
  const caution=!!input.symptoms||signals.length>=2||volumeRise
  const feedbackNextDay=(day)=>workoutFeedback&&day>=today&&
   day>workoutFeedback.activityDate&&day<=coachAddDays(workoutFeedback.activityDate,2)
+ const garminNextDay=(day)=>garminPerception.qualityCaution&&
+  garminPerception.latest&&day>=today&&
+  day<=coachAddDays(garminPerception.latest.date,2)
  const lastRaceCheck=[...checks].filter(x=>typeof x.raceDate==='string'&&x.raceDate<=today)
   .sort((a,b)=>String(b.raceDate).localeCompare(String(a.raceDate))||
     String(b.reportedOn).localeCompare(String(a.reportedOn)))[0]||null
@@ -135,6 +141,9 @@ export function buildSevenDayCoach(input){
  if(completedWeek.status==='ready')flags.push(
   'Letzte abgeschlossene Trainingswoche ('+completedWeek.start+' bis '+completedWeek.end+'): '+
   completedWeek.summary+' '+completedWeek.next)
+ if(garminPerception.count14>0||garminPerception.feelingCount14>0)
+  flags.push('Garmin-Selbsteinschätzung (automatisch): '+
+   garminPerception.summary+' '+garminPerception.advice)
  if(feedbackTrend.count14>=3)flags.push(
   'Persönlicher Belastungsverlauf: '+feedbackTrend.count14+
   ' Rückmeldungen in 14 Tagen ('+feedbackTrend.count28+' in 28 Tagen). '+
@@ -151,7 +160,7 @@ export function buildSevenDayCoach(input){
    approvable:['easy','long','mobility','return_easy'].includes(kind)})
  let comebackCandidateUsed=false
  const items=days.map((day,i)=>{
-  const dayFeedbackCaution=feedbackCaution&&feedbackNextDay(day)
+  const dayFeedbackCaution=(feedbackCaution&&feedbackNextDay(day))||garminNextDay(day)
   const untilRace=raceDate?Math.round((Date.parse(raceDate+'T12:00:00Z')-Date.parse(day+'T12:00:00Z'))/ONE_DAY):null
   const existing=plans.find(p=>p.training_date===day)
   const done=activities.some(a=>a.start_time_local?.slice(0,10)===day)||
@@ -387,6 +396,7 @@ export function buildSevenDayCoach(input){
  const polarized=applyPolarizedGuidance(items,{
   today,raceDate,ill,returning,postIllness,caution,
   feedbackCaution,trendReducing,observationLimited,
+  qualityLocked:garminPerception.qualityCaution,
   boards:input.boards,feedback:life.post_workout_feedback
  })
  flags.push('Trainingsmethode: polarisiert (ca. vier locker / eine hart; '+
@@ -399,7 +409,10 @@ export function buildSevenDayCoach(input){
   attentionText:ill||input.symptoms?'Krank-Modus aktiv: Trainingsvorschläge sind gesperrt, bis du deine Genesung meldest.':
    returning?'Wiedereinstieg aktiv: erste Läufe und deine Folgetag-Rückmeldungen haben Vorrang. Keine automatische Freigabe.':
    postIllness?'Nach dem Wiedereinstieg Belastung weiter schrittweise aufbauen; keine Nachholeinheiten.':
-   feedbackCaution?'Deine eigene Rückmeldung nach der Einheit spricht für mehr Ruhe. Die nächsten Tage werden vorsichtiger geplant.':
+   feedbackCaution?(garminPerception.qualityCaution?
+    'Garmin-Bewertungen zeigen zuletzt hohe Belastung oder schwaches Gefühl. '+
+    'Weitere Intensität erst nach Erholung, keine zusätzliche Eingabe notwendig.':
+    'Deine bisherige Rückmeldung spricht für mehr Ruhe. Die nächsten Tage werden vorsichtiger geplant.'):
    trendReducing||trendShortening?'Dein Feedback aus mehreren Einheiten spricht für weniger Belastung. Vorschläge angepasst, nicht im Kalender geändert.':
    allowWeekAdjustment?'Dein Plan-Ist-Abgleich der letzten Woche spricht für einen kürzeren lockeren Lauf. Bitte selbst prüfen und freigeben.':
    caution?'Belastungs-/Erholungssignale sprechen für Zurückhaltung; keine Diagnostik.':
@@ -408,6 +421,7 @@ export function buildSevenDayCoach(input){
   basedOnActual:true,source:'Garmin & bestehender Kalender',raceDate,returning,ill,postIllness,concern,acknowledgedRuns:acknowledged.length,
   recoveryRaceDate,checkedRecently,reportedExhaustion,
   latestWorkoutFeedback:workoutFeedback?.activityId||null,
+  garminPerception,
   completedWeek,
   feedbackTrend:{level:feedbackTrend.level,kind:feedbackTrend.kind,
    count14:feedbackTrend.count14,count28:feedbackTrend.count28}}
