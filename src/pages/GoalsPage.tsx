@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {RaceGoalsPanel} from '../components/RaceGoalsPanel'
 import {CoachLongTermPlan} from '../components/CoachLongTermPlan'
+import {PolarizedMethodCard} from '../components/PolarizedMethodCard'
 import {RaceEventResearch} from '../components/RaceEventResearch'
 import {Icon} from '../components/Icon'
 import {garminSupabase} from '../lib/garminSupabase'
@@ -44,6 +45,7 @@ export function GoalsPage({active,onGo}:{active:boolean;onGo:(page:Page)=>void})
   </header>
   <CoachGoalPanel key={'primary-'+revision} active={active} onSaved={changed}/>
   <RaceGoalsPanel key={'portfolio-'+revision} active={active} onPrimaryChange={changed}/>
+  <PolarizedMethodCard/>
   {snapshot&&<CoachLongTermPlan today={berlinDateToday()} snapshot={snapshot}/>}
   <details className="goals-event-scout" onToggle={event=>setShowEventScout(event.currentTarget.open)}>
    <summary><span><strong>Veranstaltungsdaten &amp; Wettkampfarchiv</strong>
