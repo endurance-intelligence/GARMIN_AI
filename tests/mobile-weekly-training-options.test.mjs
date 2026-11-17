@@ -43,8 +43,8 @@ test('weather is sampled at the true start hour for each chosen reference place'
  assert.match(ui,/noch keine Stundenprognose/)
 })
 test('Coach and Calendar both see weekly options',()=>{
- assert.match(coach,/<WeeklyTrainingOptions active=\{active\}/)
- assert.match(calendar,/<WeeklyTrainingOptions active=\{active\}/)
+ assert.match(coach,/Gruppentermine und Wochenplanung im Kalender/)
+ assert.match(calendar,/<WeeklyTrainingOptions active=\{active&&showWeekOptions\}/)
  assert.match(ui,/option\.location_label/)
  assert.match(ui,/aria-pressed=\{choice==='selected'\}/)
  assert.match(ui,/Auslassen/)
