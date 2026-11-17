@@ -206,7 +206,8 @@ Deno.serve(async req=>{
       .upsert(value,{onConflict:'weigh_date'})
     if(writeError)throw Error('weight-write')
     return reply({saved:true,date:entry.date,kg:entry.kg,
-      transferStatus:'pending',garminUpdated:false},200,headers)
+      transferStatus:'pending',intervalsSyncStatus:value.intervals_sync_status,
+      garminUpdated:false},200,headers)
   } catch {
     return reply({error:'Private sync service unavailable'},502,headers)
   }
