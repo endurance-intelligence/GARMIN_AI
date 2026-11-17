@@ -232,3 +232,17 @@
 .co-extra-tools>summary:focus-visible{outline:2px solid #b6dbff;outline-offset:3px}
 .co-extra-tools[open]>summary{border-bottom:1px solid rgba(139,159,200,.17);margin-bottom:12px}
 @media(max-width:600px){.co-recovery-note{font-size:10px}.co-extra-tools{padding:8px 10px}}
+
+/* v0.9.76: position against the *visual viewport* explicitly.
+   Never inherit sheet alignment; the inline wheel remains in this one dialog. */
+body > .co-dialog-backdrop{position:fixed;inset:0;width:100vw;height:100dvh;
+ display:block;z-index:5000;margin:0;padding:0;box-sizing:border-box}
+body > .co-dialog-backdrop > .co-dialog{position:absolute;top:50%;left:50%;
+ transform:translate(-50%,-50%);margin:0;
+ width:min(440px,calc(100vw - 24px));
+ max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+ overflow-y:auto;overscroll-behavior:contain;border-radius:20px}
+@supports not (height:100dvh){
+ body > .co-dialog-backdrop{height:100vh}
+ body > .co-dialog-backdrop > .co-dialog{max-height:calc(100vh - 24px)}
+}
