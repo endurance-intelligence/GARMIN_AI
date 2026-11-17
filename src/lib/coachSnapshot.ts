@@ -31,7 +31,8 @@ export async function loadCoachSnapshot(session:Session,today:string,signal?:Abo
  // Coach / calendar retain their previous minimal fetch behavior.
  const back=Number.isInteger(historyWeeks)?Math.max(1,Math.min(4,historyWeeks)):1
  const older=Array.from({length:back},(_,i)=>coachAddDays(first,-7*(i+1)))
- const weeks=[...new Set([...older,previous,first,second,visible])]
+ const weeks=[...new Set([previous,first,second,visible])]
+ for(const olderWeek of older){if(!weeks.includes(olderWeek))weeks.push(olderWeek)}
  const [health,options,plans,goal,life,...boards]=await Promise.all([
   get('read-garmin-health'),get('garmin-weekly-options'),get('garmin-training-plan'),
   get('garmin-coach-goal'),get('garmin-coach-context'),
