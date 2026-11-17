@@ -101,3 +101,33 @@
 .c7-stale-plan{margin:10px 0;padding:10px 12px;border:1px solid rgba(219,173,107,.3);
  border-radius:10px;background:rgba(169,112,47,.1);color:#e7d1b3;font-size:11px;line-height:1.5}
 .c7-stale-plan button{margin:6px 0 0;display:flex;align-items:center;gap:5px}
+
+/* v0.9.76 · Pick any day; show only one action panel, never seven duplicate cards. */
+.c7-day-nav{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;margin:15px 0 7px;scroll-margin-top:25px}
+.c7-root .c7-day-nav button{display:grid;text-align:left;align-content:center;gap:7px;min-width:0;min-height:62px;padding:10px;
+ background:#192840;border:1px solid rgba(163,190,231,.2);border-radius:12px;color:#bac7de}
+.c7-day-nav button>span{font-size:11px;white-space:nowrap;font-weight:720}
+.c7-day-nav button>strong{font-size:11px;color:#e1e9fb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c7-root .c7-day-nav button.is-selected{background:#293a56;border-color:#c9ee92;box-shadow:inset 0 0 0 1px rgba(196,231,134,.32)}
+.c7-root .c7-day-nav button.is-selected>strong{color:#d9f79e}
+.c7-week:empty{display:none}
+.c7-week{grid-template-columns:minmax(0,1fr);margin-top:9px}
+.c7-day{background:#17263f}
+.c7-custom-form{border-top:1px solid rgba(170,194,238,.2);margin-top:12px;padding-top:13px}
+.c7-custom-form>strong{font-size:14px;color:#f0f3ff}
+.c7-custom-form>p{font-size:11px;line-height:1.55;color:#aac0df}
+.c7-custom-fields{display:grid;grid-template-columns:1fr 140px 1.2fr;gap:10px}
+.c7-custom-fields label{display:grid;gap:6px;font-size:11px;font-weight:790;color:#b7c8e2;min-width:0}
+.c7-custom-fields input,.c7-custom-fields select{width:100%;min-width:0;min-height:43px;
+ background:#121f35;border:1px solid rgba(170,196,239,.35);color:#fff;border-radius:9px;padding:9px;font-size:13px}
+.c7-custom-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+@media(max-width:820px){
+ .c7-day-nav{display:flex;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:5px;
+  scrollbar-width:thin;gap:7px}
+ .c7-root .c7-day-nav button{flex:0 0 100px;scroll-snap-align:start}
+ .c7-custom-fields{grid-template-columns:1fr 110px}
+ .c7-custom-fields label:last-child{grid-column:1/-1}
+}
+@media(max-width:500px){.c7-custom-fields{grid-template-columns:1fr 1fr}
+ .c7-custom-fields label:first-child{grid-column:1/-1}
+ .c7-custom-actions button{width:100%}}
