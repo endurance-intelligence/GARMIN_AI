@@ -266,27 +266,12 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot}:{
     }}
     onCalendar={onCalendar}
     onPlan={()=>document.getElementById('c7-week-overview')?.scrollIntoView({behavior:'smooth',block:'start'})}/>
-   <details className="c7-evidence">
-    <summary className="c7-evidence-summary">Alle zugrunde liegenden Messwerte und Datenqualität anzeigen</summary>
-    <div className="c7-evidence-label"><strong>Datenlage und Begründung</strong>
-     <span>{plan.attention?'Konservativer Modus':'Individuell eingeordnet'}</span></div>
-    <p>{plan.attentionText}</p>
-    <ul>{plan.flags.map((x,i)=><li key={i}>{x}</li>)}</ul>
-    {plan.signals.length>0&&<p><strong>Auffälligkeiten:</strong> {plan.signals.join(' · ')}</p>}
-    <p>Median: jeweils 14 Kalendertage vor dem letzten Messwert, erst ab 7 gültigen Werten.
-     Die Abweichungsgrenzen sind Vorsichtsregeln, keine medizinischen Grenzwerte.
-     Kein KI-Readiness-Score, keine Diagnose.</p>
-   </details>
    <div className="c7-week" role="list">
     {plan.days.filter(day=>day.date===selectedDay&&(review===day.date||customDate===day.date)).map(day=><article className={'c7-day c7-'+day.kind} id={'c7-day-'+day.date} key={day.date} role="listitem">
-     <div className="c7-day-main"><div className="c7-date">{formatDate(day.date)}</div>
-      <div className="c7-day-copy"><strong>{day.title}</strong>
-       <p>{day.reason}</p>
-       <small>{day.approvable?'Vorschlag · nicht im Kalender gespeichert':
-        ['chosen','option'].includes(day.kind)?'Freiwillige Trainingsoption':
-        day.kind==='existing'?'Bereits im Kalender':day.kind==='completed'?'Garmin-Aktivität vorhanden':
-        'Kein neuer Kalendereintrag'}</small>
-      </div></div>
+     <div className="c7-editor-head">
+      <span>{review===day.date?'ENTWURF PRÜFEN':'DEIN EIGENER VORSCHLAG'} · {formatDate(day.date)}</span>
+      <strong>{day.title}</strong>
+     </div>
      {review===day.date&&(day.approvable||day.kind==='option')&&!contextBusy&&<div className="c7-actions">
       {review===day.date?<div className="c7-confirm">
        <span>Nur diesen Vorschlag als Entwurf speichern?</span>
