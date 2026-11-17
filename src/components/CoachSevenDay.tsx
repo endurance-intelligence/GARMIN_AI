@@ -245,6 +245,10 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot}:{
      Vergangene Entwürfe im Kalender prüfen <Icon name="arrow-up-right"/></button>
    </p>}
   {plan&&<>
+   <p className="c7-polarized-method" role="note">
+    <Icon name="activity"/> Polarisiert · überwiegend locker · höchstens eine harte Bahnoption.
+    <span>{plan.trainingMethod?.message}</span>
+   </p>
    {plan.completedWeek&&<WeeklyPlanActualCard review={plan.completedWeek}
     onCalendar={()=>onCalendar()}/>}
    <div className="c7-day-nav" id="c7-week-overview" role="tablist"
