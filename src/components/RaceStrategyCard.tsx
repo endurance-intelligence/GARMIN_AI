@@ -131,6 +131,7 @@ export function RaceStrategyCard({active}:{active:boolean}){
    if(!session)throw Error('Bitte erneut anmelden.')
    const payload={
     user_id:session.user.id,race_date:goal.race_date,race_name:goal.race_name,
+    race_distance_km:Number(goal.distance_km),goal_target_hours:goal.target_hours,
     course_mode:draft.courseMode,
     loop_km:asNumber(draft.loopKm,0.01,100,false),
     moving_minutes_per_loop:asNumber(draft.movingMinutes,10,360),
