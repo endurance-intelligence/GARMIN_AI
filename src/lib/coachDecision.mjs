@@ -5,7 +5,8 @@
 export function selectCoachDecision(plan,context={}){
  if(!plan||!Array.isArray(plan.days)||plan.days.length===0)return null
  const today=plan.today
- const candidate=plan.days.find(d=>d.date>=today&&d.kind!=='completed')||
+ const candidate=(context.selectedDate&&plan.days.find(d=>d.date===context.selectedDate))||
+  plan.days.find(d=>d.date>=today&&d.kind!=='completed')||
   plan.days.find(d=>d.date>=today)||plan.days[0]
  if(!candidate)return null
  const source=Array.isArray(plan.flags)?plan.flags:[]
@@ -19,10 +20,11 @@ export function selectCoachDecision(plan,context={}){
   return_easy:'Behutsam zurück.',easy:'Ruhig trainieren.',long:'Ausdauer mit Maß.',
   race:'Heute zählt das Rennen.',existing:'Bereits eingeplant.',
   completed:'Bereits absolviert.',option:'Deine freie Entscheidung.',chosen:'Teilnahme ausgewählt.',
+  declined:'Du hast abgelehnt.',acknowledged:'Deine Entscheidung zählt.',
   mobility:'Stabil bleiben.'
  }
  const headline=labels[candidate.kind]||'Deine nächste Entscheidung.'
- const actionable=candidate.approvable===true
+ const actionable=candidate.approvable===true||candidate.kind==='option'
  const existing=candidate.kind==='existing'
  const proposal=actionable?candidate.title:
   candidate.title
@@ -38,6 +40,8 @@ export function selectCoachDecision(plan,context={}){
   existing?'Bereits im Kalender – keine neue Einheit':
   candidate.kind==='race'?'Wettkampftag – keine zusätzliche Einheit':
   candidate.kind==='illness'?'Kein Training während Beschwerden':
+  candidate.kind==='declined'?'Von dir bewusst abgelehnt':
+  candidate.kind==='acknowledged'?'Von dir ausdrücklich übernommen':
   'Einordnung · keine automatische Planänderung'
  const last=context.lastRun||null
  const review=context.review||null
