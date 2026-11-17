@@ -319,3 +319,37 @@
 .hc-race-priority p{margin:0;font-size:12px;color:#f0d7bb;line-height:1.55}
 .hc-race-priority small{font-size:10px;color:#cbbbaa;line-height:1.5}
 @media(max-width:600px){.hc-race-priority{padding:12px;border-radius:11px}}
+
+/* P0 v0.9.79: optional operational controls are not the first thing athletes see. */
+.hc-week-planner{margin:0 0 15px;padding:0;overflow:hidden}
+.hc-week-planner-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;
+ cursor:pointer;list-style:none;min-height:61px;padding:12px 16px;color:#e4edff}
+.hc-week-planner-summary::-webkit-details-marker{display:none}
+.hc-week-planner-summary>span:first-child{display:inline-flex;align-items:center;gap:9px;font-size:13px;font-weight:850}
+.hc-week-planner-summary>span:first-child small{color:#a9bddd;font-size:10px;font-weight:600}
+.hc-week-planner-summary>.hc-week-planner-count{font-size:10px;white-space:normal}
+.hc-week-planner-summary>.ic{width:16px;height:16px;color:#b8cceb}
+.hc-week-planner[open]>.hc-week-planner-summary>.ic{transform:rotate(180deg)}
+.hc-week-planner[open]{padding:0 15px 14px}
+.hc-week-planner[open]>.hc-week-planner-summary{margin:0 -15px 12px;border-bottom:1px solid rgba(163,190,231,.16)}
+.hc-week-planner-summary:focus-visible,.hc-day-extra>summary:focus-visible{
+ outline:2px solid #c0e993;outline-offset:2px}
+.hc-day-extra{margin:10px 0;border:1px solid rgba(145,177,233,.22);
+ background:rgba(24,39,65,.45);border-radius:12px;overflow:hidden}
+.hc-day-extra>summary{list-style:none;display:flex;gap:10px;align-items:center;
+ padding:12px 14px;min-height:48px;cursor:pointer;color:#dce8fc;font-size:12px;font-weight:770}
+.hc-day-extra>summary::-webkit-details-marker{display:none}
+.hc-day-extra>summary>.ic{width:16px;height:16px;color:#a9c1e9}
+.hc-day-extra>summary>small{margin-left:auto;color:#94a9c6;font-size:10px}
+.hc-day-extra[open]{padding-bottom:12px}
+.hc-day-extra[open]>summary{border-bottom:1px solid rgba(145,177,233,.15);margin-bottom:12px}
+.hc-day-extra>div,.hc-day-extra>section{margin-left:12px;margin-right:12px}
+.hc-coach-manual{margin:10px 0 0;padding:0;border-top:1px solid rgba(151,183,224,.18)}
+.hc-coach-manual>summary{cursor:pointer;padding:12px 2px;color:#aebfdc;font-size:11px}
+.hc-coach-manual>summary:focus-visible{outline:2px solid #c3ed92}
+@media(max-width:700px){
+ .hc-week-planner-summary{align-items:flex-start;flex-wrap:wrap;padding:12px}
+ .hc-week-planner-summary>span:first-child{width:100%}
+ .hc-week-planner-summary>.hc-week-planner-count{flex:1}
+ .hc-day-extra>summary{padding:12px}
+}
