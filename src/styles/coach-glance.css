@@ -246,3 +246,17 @@ body > .co-dialog-backdrop > .co-dialog{position:absolute;top:50%;left:50%;
  body > .co-dialog-backdrop{height:100vh}
  body > .co-dialog-backdrop > .co-dialog{max-height:calc(100vh - 24px)}
 }
+
+/* P0: optional weekly recap is a single compact entry, not another dashboard on first load. */
+.co-extra-tools{margin:12px 0 18px;border:1px solid rgba(147,178,227,.25);
+ border-radius:13px;background:#142039;padding:0;overflow:hidden}
+.co-extra-tools>summary{min-height:50px;padding:13px 16px;cursor:pointer;color:#e1eafe;
+ font-size:12px;font-weight:800;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.co-extra-tools>summary>span{color:#9ab0d0;font-size:10px}
+.co-extra-tools[open]{padding:0 13px 13px}
+.co-extra-tools[open]>summary{margin:0 -13px 13px;border-bottom:1px solid rgba(160,190,231,.15)}
+.co-extra-tools>summary:focus-visible{outline:2px solid #c4ec98}
+.co-extra-actions{display:grid;gap:10px}
+.co-extra-actions>button{display:flex;align-items:center;justify-content:space-between;gap:10px;
+ width:100%;min-height:46px;padding:12px;border:1px solid rgba(157,186,228,.25);
+ background:#1c2b44;color:#e4eeff;border-radius:10px;text-align:left;font-size:12px;font-weight:750}
