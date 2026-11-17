@@ -15,7 +15,7 @@ export function SettingsPage({ active }: { active: boolean; onGo: (page: Page) =
     </nav>
     <div className="sub-grid">
       <article><small>CONNECTIONS</small><h3>Garmin Personal API</h3><p>Garmin-Aktivitäten und Health-Werte werden serverseitig nach Supabase synchronisiert. Der persönliche Lesezugriff ist separat geschützt.</p><div className="empty-line">Datenquelle: Garmin / Supabase · Automatische Synchronisierung eingerichtet</div></article>
-      <article><small>COACH MODE</small><h3>Aktiver Coach mit Freigabe</h3><p>Trainingsempfehlungen sind derzeit eine Demo. Echte Änderungen am Plan werden nicht vorgenommen.</p><label className="toggle"><input type="checkbox" checked disabled/> Coach-Änderungen immer bestätigen</label></article>
+      <article><small>COACH MODE</small><h3>Aktiver Coach mit Freigabe</h3><p>Der Coach nutzt echte Garmin-Daten und erstellt Vorschläge. Nur du kannst Entwürfe freigeben und Workouts an Intervals.icu senden. Langfristige automatische Plananpassungen sind noch nicht umgesetzt.</p><label className="toggle"><input type="checkbox" checked disabled/> Coach-Änderungen immer bestätigen</label></article>
     </div>
     <div id="settings-sync" className="settings-anchor">
       <h2 className="settings-section-title">Synchronisierung</h2>
