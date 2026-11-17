@@ -6,5 +6,5 @@ export type CoachDecision={
  flags:string[];attentionText:string
 }
 export function selectCoachDecision(plan:SevenDayPlan|null|undefined,context?:{
- options?:any[];choices?:any[];lastRun?:any;review?:any;intervals?:any
+ options?:any[];choices?:any[];lastRun?:any;review?:any;intervals?:any;selectedDate?:string
 }):CoachDecision|null
