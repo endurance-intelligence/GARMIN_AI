@@ -10,6 +10,7 @@ import {CoachLifeContext} from './CoachLifeContext'
 import {CoachDecisionLive} from './CoachDecisionLive'
 import {CoachPostRaceBarometer} from './CoachPostRaceBarometer'
 import {PostWorkoutFeedbackCard} from './PostWorkoutFeedbackCard'
+import {FeedbackTrendCard} from './FeedbackTrendCard'
 import {assessCustomProposal} from '../lib/coachCustomProposal.mjs'
 import type {CoachContextPayload} from './CoachLifeContext'
 import '../styles/coach-seven-day.css'
@@ -226,6 +227,8 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot}:{
   </div>
   {snapshot&&<PostWorkoutFeedbackCard activities={recentActivities} life={snapshot.life}
    busy={contextBusy||saving!==null} onSave={updateLife}/>}
+  {snapshot&&<FeedbackTrendCard
+   feedback={snapshot.life.context.post_workout_feedback} today={today}/>}
   {snapshot&&<CoachPostRaceBarometer goal={snapshot.goal} life={snapshot.life}
     busy={contextBusy||saving!==null} onSave={updateLife}/>}
   {snapshot&&<details className="c7-settings" id="c7-life-settings">
