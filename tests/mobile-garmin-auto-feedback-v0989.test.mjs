@@ -115,7 +115,7 @@ test('Garmin dashboard takes ratings directly from the authenticated week board'
  assert.match(endpoint,/rpe_raw,feeling_raw/)
  assert.match(endpoint,/email_confirmed_at/)
  assert.match(endpoint,/Read only/)
- assert.match(coach,/<GarminFeedbackCard snapshot=\{snapshot\} today=\{today\}/>)
+ assert.ok(coach.includes('<GarminFeedbackCard snapshot={snapshot} today={today}/>'))
  assert.doesNotMatch(coach,/<PostWorkoutFeedbackCard|<FeedbackTrendCard/)
  assert.match(card,/Anstrengung/)
  assert.match(card,/Gefühl danach/)
