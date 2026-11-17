@@ -92,7 +92,7 @@ test('week overview remains a preview: no direct persistence, no automatic Garmi
  const module=read('src/lib/coachLongTermPlan.mjs')
  const ui=read('src/components/CoachLongTermPlan.tsx')
  assert.match(module,/no exact prescriptions|not exact prescriptions/i)
- assert.doesNotMatch(module,/fetch\(|supabase|updateCalendar|\\.insert\\(|\\.upsert\\(/)
+ assert.doesNotMatch(module,/fetch\(|supabase|updateCalendar|\.insert\(|\.upsert\(/)
  assert.match(ui,/<details className="cltp-root"/)
  assert.match(ui,/Nur Planungsrahmen/)
  assert.match(ui,/Keine automatischen Kalenderänderungen/)
