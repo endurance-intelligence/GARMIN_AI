@@ -36,14 +36,19 @@ type Period={id:string;start:string;end:string;reason:'vacation'|'unavailable'}
 type Review={activityId:string;assessment:'ok'|'concern';reviewedOn:string}
 type DayChoice={date:string;choice:'accepted'|'declined'}
 type RaceCheck={raceDate:string;raceName:string;reportedOn:string;fatigue:number;soreness:number;warning:boolean}
+type WorkoutFeedback={activityId:string;activityDate:string;activityName:string;reportedOn:string;rpe:number;
+ legs:'fresh'|'ok'|'tired'|'heavy'|'destroyed';symptoms:'none'|'light'|'clear';
+ feel:'easier'|'as_expected'|'harder';note:string}
 type Row={user_id:string;illness_state:'well'|'sick'|'returning';
  illness_started_on:string|null;illness_expected_end_on:string|null;
  illness_kind:'illness'|'pain'|'fatigue'|'other'|null;
  return_started_on:string|null;
- blocked_periods:Period[];run_reviews:Review[];day_decisions:DayChoice[];race_recovery_checks:RaceCheck[];updated_at:string}
+ blocked_periods:Period[];run_reviews:Review[];day_decisions:DayChoice[];race_recovery_checks:RaceCheck[];
+ post_workout_feedback:WorkoutFeedback[];updated_at:string}
 const empty=(id:string):Row=>({user_id:id,illness_state:'well',illness_started_on:null,
  illness_expected_end_on:null,illness_kind:null,
- return_started_on:null,blocked_periods:[],run_reviews:[],day_decisions:[],race_recovery_checks:[],updated_at:new Date().toISOString()})
+ return_started_on:null,blocked_periods:[],run_reviews:[],day_decisions:[],race_recovery_checks:[],
+ post_workout_feedback:[],updated_at:new Date().toISOString()})
 const isRun=(sport:unknown)=>typeof sport==='string'&&/run|jog|trail|treadmill/i.test(sport)
 const activityFields='activity_id,activity_name,start_time_local,sport_type,distance_m,duration_s,average_heart_rate,rpe_raw'
 type Run={activity_id:string;activity_name:string|null;start_time_local:string|null;
@@ -66,13 +71,14 @@ Deno.serve(async req=>{
    return respond(403,{error:'Zugriff nicht erlaubt'},h)
   const db=createClient(project,key('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
   const {data:current,error:readError}=await db.from('garmin_coach_context')
-   .select('user_id,illness_state,illness_started_on,illness_expected_end_on,illness_kind,return_started_on,blocked_periods,run_reviews,day_decisions,race_recovery_checks,updated_at')
+   .select('user_id,illness_state,illness_started_on,illness_expected_end_on,illness_kind,return_started_on,blocked_periods,run_reviews,day_decisions,race_recovery_checks,post_workout_feedback,updated_at')
    .eq('user_id',user.id).maybeSingle()
   if(readError)return respond(503,{error:'Coach-Kontext nicht abrufbar'},h)
   let row=(current||empty(user.id)) as Row
   row={...row,
    day_decisions:Array.isArray(row.day_decisions)?row.day_decisions:[],
-   race_recovery_checks:Array.isArray(row.race_recovery_checks)?row.race_recovery_checks:[]}
+   race_recovery_checks:Array.isArray(row.race_recovery_checks)?row.race_recovery_checks:[],
+   post_workout_feedback:Array.isArray(row.post_workout_feedback)?row.post_workout_feedback:[]}
   const today=berlinToday()
   const readRuns=async()=>{
    if(row.illness_state!=='returning'||!row.return_started_on)return [] as Run[]
@@ -142,6 +148,31 @@ Deno.serve(async req=>{
    row={...row,day_decisions:input.choice==='open'?other:
     [...other,{date:input.date,choice:input.choice as DayChoice['choice']}]
      .sort((a,b)=>a.date.localeCompare(b.date))}
+  }else if(input.action==='record_workout_feedback'){
+   const activityId=input.activityId,rpe=input.rpe,legs=input.legs,
+    symptoms=input.symptoms,feel=input.feel,note=input.note
+   if(typeof activityId!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(activityId)||
+    typeof rpe!=='number'||!Number.isInteger(rpe)||rpe<1||rpe>10||
+    !['fresh','ok','tired','heavy','destroyed'].includes(String(legs))||
+    !['none','light','clear'].includes(String(symptoms))||
+    !['easier','as_expected','harder'].includes(String(feel))||
+    typeof note!=='string'||note.length>280)
+    return respond(422,{error:'Bitte Anstrengung, Beine, Beschwerden und Notiz prüfen'},h)
+   // Only a real imported Garmin activity can receive a subjective review.
+   const {data:activity,error:activityError}=await db.from('garmin_activities')
+    .select('activity_id,activity_name,start_time_local').eq('activity_id',activityId).maybeSingle()
+   if(activityError)return respond(503,{error:'Garmin-Einheit derzeit nicht prüfbar'},h)
+   const activityDate=String(activity?.start_time_local||'').slice(0,10)
+   if(!activity||!day(activityDate)||activityDate>today||activityDate<plusDays(today,-28))
+    return respond(422,{error:'Feedback nur für echte Garmin-Einheiten der letzten 28 Tage'},h)
+   const record:WorkoutFeedback={activityId,activityDate,
+    activityName:String(activity.activity_name||'Garmin-Einheit').slice(0,120),
+    reportedOn:today,rpe,legs:legs as WorkoutFeedback['legs'],
+    symptoms:symptoms as WorkoutFeedback['symptoms'],
+    feel:feel as WorkoutFeedback['feel'],note:note.trim()}
+   row={...row,post_workout_feedback:[...row.post_workout_feedback
+    .filter(x=>x.activityId!==activityId&&day(x.activityDate)),record]
+    .sort((a,b)=>a.activityDate.localeCompare(b.activityDate)).slice(-40)}
   }else if(input.action==='record_race_recovery'){
    const raceDate=input.raceDate,raceName=input.raceName
    const fatigue=input.fatigue,soreness=input.soreness,warning=input.warning
@@ -174,7 +205,7 @@ Deno.serve(async req=>{
   }else return respond(422,{error:'Unbekannte Aktion'},h)
   const {data:saved,error:saveError}=await db.from('garmin_coach_context')
    .upsert({...row,user_id:user.id,updated_at:new Date().toISOString()},{onConflict:'user_id'})
-   .select('user_id,illness_state,illness_started_on,illness_expected_end_on,illness_kind,return_started_on,blocked_periods,run_reviews,day_decisions,race_recovery_checks,updated_at').single()
+   .select('user_id,illness_state,illness_started_on,illness_expected_end_on,illness_kind,return_started_on,blocked_periods,run_reviews,day_decisions,race_recovery_checks,post_workout_feedback,updated_at').single()
   if(saveError||!saved)return respond(503,{error:'Coach-Kontext konnte nicht gespeichert werden'},h)
   row=saved as Row
   return respond(200,{saved:true,context:row,runs:await readRuns(),
