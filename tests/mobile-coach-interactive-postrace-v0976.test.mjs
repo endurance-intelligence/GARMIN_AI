@@ -34,10 +34,17 @@ test('explicit decline and accept are persisted as user decisions, never as cale
  d.life.context.day_decisions=[{date:today,choice:'declined'},
   {date:coachAddDays(today,1),choice:'accepted'}]
  const result=buildSevenDayCoach(d)
- assert.equal(result.days[0].kind,'declined')
- assert.equal(result.days[1].kind,'acknowledged')
+ const original=sample()
+ original.goal.goal.race_date='2027-03-01'
+ const unchanged=buildSevenDayCoach(original)
+ assert.equal(result.days[0].kind,unchanged.days[0].kind)
+ assert.equal(result.days[1].kind,unchanged.days[1].kind)
+ assert.equal(result.days[0].title,unchanged.days[0].title)
+ assert.equal(result.days[1].title,unchanged.days[1].title)
+ assert.equal(result.days[0].decision,'declined')
+ assert.equal(result.days[1].decision,'accepted')
  assert.equal(result.days[0].approvable,false)
- assert.match(result.days[0].reason,/Kein Kalenderblock/)
+ assert.equal(result.days[1].approvable,false)
  const endpoint=read('supabase/functions/garmin-coach-context/index.ts')
  assert.match(endpoint,/input\.action==='set_day_decision'/)
  assert.match(endpoint,/day_decisions:input\.choice==='open'\?other/)
