@@ -90,7 +90,7 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather}: 
    savedWeightDelivery==='needs_review'?' Intervals.icu-Übertragung prüfen':' nur in GARMIN_AI gespeichert'}
   
  </p>}
- <CoachGoalPanel active={active} compact onEdit={()=>onGo('race')} onForecastOpen={onOpenRaceWeather}/>
+ <CoachGoalPanel active={active} compact onEdit={()=>onGo('goals')} onForecastOpen={onOpenRaceWeather}/>
  {snapshotLoading&&!sharedSnapshot&&!snapshotError&&<p className="co-data-note" role="status">
   Lade deine Garmin-, Kalender- und Coach-Daten gemeinsam …</p>}
  {snapshotError&&<p className="co-data-note" role="status">
