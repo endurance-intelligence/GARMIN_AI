@@ -9,8 +9,11 @@ import '../styles/coach-decision-live.css'
 const dated=(date:string)=>new Intl.DateTimeFormat('de-DE',{timeZone:'UTC',
  weekday:'long',day:'2-digit',month:'2-digit'}).format(new Date(date+'T12:00:00Z'))
 type Props={plan:SevenDayPlan;snapshot:CoachSnapshot;reviewDate:string|null;saving:boolean;
- onReview:(date:string)=>void;onCalendar:(date:string)=>void;onPlan:()=>void}
-export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCalendar,onPlan}:Props){
+ onReview:(date:string)=>void;onCalendar:(date:string)=>void;onPlan:()=>void;
+ selectedDate:string;onDecline:(date:string)=>void;onAcceptRest:(date:string)=>void;
+ onReset:(date:string)=>void;onCustom:(date:string)=>void}
+export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCalendar,onPlan,
+ selectedDate,onDecline,onAcceptRest,onReset,onCustom}:Props){
  const [review,setReview]=useState<Record<string,unknown>|null>(null)
  const [intervals,setIntervals]=useState<Record<string,unknown>|null>(null)
  const [evidenceLoading,setEvidenceLoading]=useState(false)
@@ -50,10 +53,12 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
  },[lastId])
  const options=Array.isArray(snapshot.options?.options)?snapshot.options.options:[]
  const choices=Array.isArray(snapshot.options?.choices)?snapshot.options.choices:[]
- const x=selectCoachDecision(plan,{options,choices,lastRun,review,intervals})
+ const x=selectCoachDecision(plan,{options,choices,lastRun,review,intervals,selectedDate})
  if(!x)return null
  const {day}=x
  const reviewIsOpen=reviewDate===day.date
+ const canChoose=!['illness','blocked','race','existing','completed'].includes(day.kind)
+ const alreadyDecided=['declined','acknowledged'].includes(day.kind)
  return <section className="cdl-root" aria-label="Echte Coach-Entscheidung mit Begründung">
   <header className="cdl-head">
    <div><span className="cdl-kicker"><Icon name="sparkles"/> COACH INTELLIGENCE · LIVE</span>
@@ -82,18 +87,29 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
         {x.actionable?'Nur nach Bestätigung als Entwurf':x.state==='calendar'?'Keine zweite Einheit':'Keine Kalenderänderung'}</small></div>
      </div>
      <div className="cdl-actions">
-      {x.actionable?
+      {alreadyDecided?
+       <button className="cdl-primary" type="button" disabled={saving}
+        onClick={()=>onReset(day.date)}><Icon name="rotate-ccw"/> Umentscheiden</button>:
+       x.actionable?
        <button className="cdl-primary" type="button" disabled={saving}
         onClick={()=>onReview(day.date)}>
-        <Icon name="check"/> {reviewIsOpen?'Freigabe unten fortsetzen':'Vorschlag prüfen'}
-        <Icon name="arrow-up-right"/>
-       </button>:
+        <Icon name="check"/> {reviewIsOpen?'Entwurf unten bestätigen':'Annehmen · Entwurf prüfen'}
+        <Icon name="arrow-up-right"/></button>:
        x.state==='calendar'?
        <button className="cdl-primary" type="button" onClick={()=>onCalendar(day.date)}>
         <Icon name="calendar-days"/> Im Kalender prüfen <Icon name="arrow-up-right"/></button>:
+       day.kind==='recovery'?
+       <button className="cdl-primary cdl-nonwrite" type="button" disabled={saving}
+        onClick={()=>onAcceptRest(day.date)}><Icon name="check"/> Erholungstag annehmen</button>:
        <button className="cdl-primary cdl-nonwrite" type="button" onClick={onPlan}>
-        <Icon name="calendar-days"/> 7-Tage-Plan ansehen <Icon name="arrow-up-right"/></button>}
-      <button className="cdl-secondary" type="button" onClick={onPlan}>
+        <Icon name="calendar-days"/> Wochenplan ansehen</button>}
+      {canChoose&&!alreadyDecided&&<>
+       <button className="cdl-secondary cdl-decline" type="button" disabled={saving}
+        onClick={()=>onDecline(day.date)}><Icon name="x"/> Ablehnen</button>
+       <button className="cdl-secondary cdl-custom" type="button" disabled={saving}
+        onClick={()=>onCustom(day.date)}><Icon name="pencil"/> Eigener Vorschlag</button>
+      </>}
+      <button className="cdl-secondary cdl-week-link" type="button" onClick={onPlan}>
        Ganze Woche <Icon name="arrow-up-right"/></button>
      </div>
      <p className="cdl-smallprint">{x.actionable?
@@ -110,6 +126,8 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
     <h4>Warum dieser<br/>Vorschlag?</h4>
     <div className="cdl-specific"><strong>Für {dated(day.date)}:</strong> {x.reason}</div>
     {evidenceLoading&&<p className="cdl-evidence-loading">Prüfe die letzte Garmin-Einheit und Intervals.icu …</p>}
+    <details className="cdl-why-detail">
+     <summary>Trainingsdaten und Begründung aufklappen <Icon name="chevron-down"/></summary>
     <div className="cdl-factors">
      {x.causes.map((c,i)=><div className="cdl-factor" key={c.key}>
       <span className="cdl-factor-number">{String(i+1).padStart(2,'0')}</span>
@@ -118,6 +136,7 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
      </div>)}
     </div>
     {x.flags.length>0&&<p className="cdl-flags"><strong>Zusätzliche Signale:</strong> {x.flags.join(' · ')}</p>}
+    </details>
     <p className="cdl-why-foot">{x.attentionText} Kein künstlicher Readiness-Wert und keine medizinische Freigabe.</p>
    </article>
   </div>
