@@ -118,3 +118,43 @@ test('calendar uses same target week throughout planning, optional club slots an
  assert.match(api,/\+13\*86400000/)
  assert.match(api,/coachWorkoutAllowed\(context,input\.kind,input\.date\)/)
 })
+
+test('accepted race-week rest and travel decisions preserve their original calendar content',()=>{
+ const source=fixture()
+ const original=buildSevenDayCoach(source)
+ source.life.context.day_decisions=[
+  {date:'2026-11-19',choice:'accepted'},
+  {date:'2026-11-20',choice:'accepted'},
+  {date:'2026-11-22',choice:'accepted'}
+ ]
+ const result=buildSevenDayCoach(source)
+ for(const [i,title] of [
+  [3,'Ruhetag'],[4,'Ruhetag / Anfahrt'],[6,'Regeneration nach dem Wettkampf']
+ ]){
+  assert.equal(result.days[i].date,['2026-11-19','2026-11-20','2026-11-22'][[3,4,6].indexOf(i)])
+  assert.equal(result.days[i].title,title)
+  assert.equal(result.days[i].kind,'recovery')
+  assert.equal(result.days[i].reason,original.days[i].reason)
+  assert.equal(result.days[i].decision,'accepted')
+  assert.equal(result.days[i].approvable,false)
+ }
+ const board=file('src/components/CalendarWeekBoard.tsx')
+ assert.match(board,/<strong>\{coach.title\}<\/strong>/)
+ assert.doesNotMatch(file('src/lib/coachSevenDay.mjs'),/Deine Entscheidung · übernommen/)
+})
+test('declining a proposed run does not generate a calendar blocker or display a rejected workout',()=>{
+ const data=fixture()
+ data.life.context.day_decisions=[{date:'2026-11-17',choice:'declined'}]
+ const result=buildSevenDayCoach(data)
+ const day=result.days[1]
+ assert.equal(day.kind,'easy')
+ assert.equal(day.title,'30 Min. locker statt Intervallen')
+ assert.equal(day.decision,'declined')
+ assert.equal(day.approvable,false)
+ const board=file('src/components/CalendarWeekBoard.tsx')
+ assert.match(board,/candidate\.decision==='declined'/)
+ assert.match(board,/\['easy','long','mobility','return_easy'\]/)
+ const decision=file('src/components/CoachDecisionLive.tsx')
+ assert.match(decision,/day\.decision==='accepted'|day\.decision==='declined'/)
+ assert.match(decision,/Umentscheiden/)
+})
