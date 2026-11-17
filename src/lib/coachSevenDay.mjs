@@ -1,5 +1,6 @@
 import {latestWorkoutFeedback,evaluateWorkoutFeedback} from './postWorkoutFeedback.mjs'
 import {analyzeWorkoutFeedbackTrend} from './feedbackTrend.mjs'
+import {summarizeLastCompletedWeek} from './completedWeekReview.mjs'
 /** GARMIN_AI Coach Intelligence v1.0 — conservative, explainable seven-day preview.
  * No synthetic training readiness, direct Garmin write or automatic approval.
  */
@@ -110,6 +111,10 @@ export function buildSevenDayCoach(input){
  const options=Array.isArray(input.options?.options)?input.options.options:[]
  const choices=Array.isArray(input.options?.choices)?input.options.choices:[]
  const plans=Array.isArray(input.plans?.entries)?input.plans.entries.filter(x=>x.state!=='cancelled'):[]
+ const completedWeek=summarizeLastCompletedWeek({today,boards:input.boards,plans:input.plans})
+ const allowWeekAdjustment=completedWeek.adjustment==='shorten'&&!ill&&!returning&&!postIllness&&
+  !caution&&!input.symptoms&&!feedbackCaution&&!trendReducing&&!trendShortening&&
+  (raceOffset===null||raceOffset>10)
  const last7=activities.filter(a=>String(a.start_time_local||'').slice(0,10)>=coachAddDays(today,-6)&&
    String(a.start_time_local||'').slice(0,10)<=today)
  const soccer7=last7.filter(a=>/soccer|football/i.test(String(a.sport_type||''))).length
@@ -126,6 +131,9 @@ export function buildSevenDayCoach(input){
   raceDate?'Wettkampfziel '+goal.race_name+' am '+raceDate:'Kein Wettkampfziel verfügbar',
   crossNote
  ]
+ if(completedWeek.status==='ready')flags.push(
+  'Letzte abgeschlossene Trainingswoche ('+completedWeek.start+' bis '+completedWeek.end+'): '+
+  completedWeek.summary+' '+completedWeek.next)
  if(feedbackTrend.count14>=3)flags.push(
   'Persönlicher Belastungsverlauf: '+feedbackTrend.count14+
   ' Rückmeldungen in 14 Tagen ('+feedbackTrend.count28+' in 28 Tagen). '+
@@ -356,20 +364,40 @@ export function buildSevenDayCoach(input){
      'Nur ein Vorschlag – Freigabe bleibt bei dir.'}
   }
   return item
+ }).map((item,_,all)=>{
+  // One evidence-based adjustment at most, to a still-open suggestion only.
+  // Race taper, illness, recovery, saved plans and athlete choices take priority.
+  if(!allowWeekAdjustment||item.decision||!item.approvable||
+   !['easy','long'].includes(item.kind)||item.date<today||
+   item.date>coachAddDays(today,6))return item
+  const eligible=all.find(d=>d.date>=today&&d.date<=coachAddDays(today,6)&&
+   d.approvable&&!d.decision&&['easy','long'].includes(d.kind))
+  if(eligible!==item)return item
+  const revised=Math.max(15,Math.round((item.minutes*.8)/5)*5)
+  if(revised>=item.minutes)return item
+  return {...item,kind:'easy',minutes:revised,
+   title:'Wochenrückblick · '+revised+' Min. locker',
+   reason:'Plan-Ist-Abgleich der letzten abgeschlossenen Woche: '+
+    completedWeek.overlongCount+' zeitlich plausibel zugeordnete Coach-Läufe '+
+    'dauerten deutlich länger als geplant. Deshalb diesen noch offenen Lauf von '+
+    item.minutes+' auf '+revised+' Minuten verkürzen. Nur Vorschlag; '+
+    'kein bestehender Kalendertermin und keine Garmin-Daten wurden geändert.'}
  })
  return {today,days:items,signals,flags,
-  attention:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||observationLimited,
+  attention:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||allowWeekAdjustment||observationLimited,
   attentionText:ill||input.symptoms?'Krank-Modus aktiv: Trainingsvorschläge sind gesperrt, bis du deine Genesung meldest.':
    returning?'Wiedereinstieg aktiv: erste Läufe und deine Folgetag-Rückmeldungen haben Vorrang. Keine automatische Freigabe.':
    postIllness?'Nach dem Wiedereinstieg Belastung weiter schrittweise aufbauen; keine Nachholeinheiten.':
    feedbackCaution?'Deine eigene Rückmeldung nach der Einheit spricht für mehr Ruhe. Die nächsten Tage werden vorsichtiger geplant.':
    trendReducing||trendShortening?'Dein Feedback aus mehreren Einheiten spricht für weniger Belastung. Vorschläge angepasst, nicht im Kalender geändert.':
+   allowWeekAdjustment?'Dein Plan-Ist-Abgleich der letzten Woche spricht für einen kürzeren lockeren Lauf. Bitte selbst prüfen und freigeben.':
    caution?'Belastungs-/Erholungssignale sprechen für Zurückhaltung; keine Diagnostik.':
    observationLimited?'Datenlage ist eingeschränkt. Nur konservative Vorschläge.':
    'Vorschläge sind eine Planungshilfe, keine medizinische Freigabe.',
   basedOnActual:true,source:'Garmin & bestehender Kalender',raceDate,returning,ill,postIllness,concern,acknowledgedRuns:acknowledged.length,
   recoveryRaceDate,checkedRecently,reportedExhaustion,
   latestWorkoutFeedback:workoutFeedback?.activityId||null,
+  completedWeek,
   feedbackTrend:{level:feedbackTrend.level,kind:feedbackTrend.kind,
    count14:feedbackTrend.count14,count28:feedbackTrend.count28}}
 }
