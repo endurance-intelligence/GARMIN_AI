@@ -11,6 +11,7 @@ const iconShapes: Record<string, ReactNode> = {
 "folder-open": <><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v2"/><path d="M3 17V9m0 8a2 2 0 0 0 2 2h13a2 2 0 0 0 2-1l2-5a2 2 0 0 0-2-3H7a2 2 0 0 0-2 1l-2 6Z"/></>,
 "check-circle": <><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></>,
 "chevron-down": <><path d="m6 9 6 6 6-6"/></>,
+"target": <><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></>,
 "calendar-range": <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 14h3m3 0h3M8 18h3"/></>,
 "info": <><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.3v.7"/></>,
 "calendar-days": <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/><path d="M8 14h2m4 0h2m-8 4h2"/></>,
