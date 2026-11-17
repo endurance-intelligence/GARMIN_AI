@@ -147,8 +147,8 @@ Deno.serve(async req=>{
    const fatigue=input.fatigue,soreness=input.soreness,warning=input.warning
    if(!day(raceDate)||raceDate>today||raceDate<plusDays(today,-30)||
     typeof raceName!=='string'||raceName.trim().length<1||raceName.length>100||
-    !Number.isInteger(fatigue)||Number(fatigue)<0||Number(fatigue)>10||
-    !Number.isInteger(soreness)||Number(soreness)<0||Number(soreness)>10||
+    typeof fatigue!=='number'||!Number.isInteger(fatigue)||fatigue<0||fatigue>10||
+    typeof soreness!=='number'||!Number.isInteger(soreness)||soreness<0||soreness>10||
     typeof warning!=='boolean')
     return respond(422,{error:'Renn-Datum, Erschöpfung oder Muskelgefühl ungültig'},h)
    const next:RaceCheck={raceDate,raceName:raceName.trim(),reportedOn:today,
