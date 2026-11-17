@@ -110,8 +110,10 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenRaceWeather}: {activ
      <button type="button" className="co-dialog-close" ref={closeRef}
       aria-label="Gewichtsfenster schließen" onClick={()=>setWeightOpen(false)}>×</button>
     </div>
-    <SyncCenter active={active&&weightOpen} mode="weight" inlineWheel onSaved={(kg,status)=>{
-      setSavedWeight(kg);setSavedWeightDelivery(status);setWeightOpen(false)
+    <SyncCenter active={active&&weightOpen} mode="weight" inlineWheel onSaved={(kg,status,deliveryAttemptFailed)=>{
+      setSavedWeight(kg);setSavedWeightDelivery(status)
+      // Keep the dialog visible on failed remote delivery so the error is readable.
+      if(!deliveryAttemptFailed)setWeightOpen(false)
     }}/>
    </div>
   </div>,document.body)}
