@@ -131,3 +131,27 @@
 @media(max-width:500px){.c7-custom-fields{grid-template-columns:1fr 1fr}
  .c7-custom-fields label:first-child{grid-column:1/-1}
  .c7-custom-actions button{width:100%}}
+
+/* v0.9.77: actual daily plan titles, decision only as small separate metadata. */
+.c7-root .c7-day-nav button{min-height:86px;align-content:start;gap:7px}
+.c7-day-nav button>strong{font-size:11px;line-height:1.4;white-space:normal;overflow:hidden;
+ display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;text-overflow:ellipsis}
+.c7-day-choice{display:inline-flex;font-style:normal;font-size:9px;font-weight:750;
+ color:#c4efb1;line-height:1.2}
+.c7-day-nav button:has(.c7-day-choice){border-color:rgba(185,223,170,.3)}
+.c7-custom-assessment{margin:14px 0 10px;border:1px solid rgba(160,185,230,.25);
+ background:#111d30;border-left:4px solid #9ab5dd;border-radius:12px;padding:13px}
+.c7-custom-assessment.is-aligned{border-left-color:#c8ee92}
+.c7-custom-assessment.is-review{border-left-color:#e7ba78}
+.c7-custom-assessment.is-against,.c7-custom-assessment.is-blocked{border-left-color:#ed8e8e}
+.c7-assessment-eyebrow{display:block;color:#aebde3;font-size:9px;font-weight:850;
+ letter-spacing:.075em;margin-bottom:6px}
+.c7-custom-assessment strong{display:block;font-size:15px;color:#f0f3ff}
+.c7-custom-assessment p{font-size:12px;line-height:1.65;color:#d4ddf0;margin:8px 0}
+.c7-custom-assessment small{font-size:10px;color:#9cadc7;line-height:1.5}
+.c7-custom-ack{display:flex;align-items:flex-start;gap:10px;font-size:11px;line-height:1.5;
+ margin:10px 0;color:#e9d8ba}
+.c7-custom-ack input{flex-shrink:0;width:18px;height:18px;accent-color:#c8ef8d}
+@media(max-width:820px){.c7-root .c7-day-nav button{flex:0 0 150px}}
+@media(max-width:500px){.c7-custom-assessment{padding:11px}
+ .c7-day-nav button>strong{font-size:12px}}
