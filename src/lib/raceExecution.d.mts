@@ -8,6 +8,13 @@ export function estimateRaceBudget(input:{
  distanceKm:number|null;targetHours:number|null;calculation:any;
  carbsPerHour:number|null;fluidPerHour:number|null;sodiumPerHour:number|null
 }):RaceBudget
+export type RaceLapCheckpoint={lap:number;km:number;arrivalMinutes:number;
+ stopMinutes:number;departureMinutes:number;last:boolean}
+export function buildRaceLapCheckpoints(input:{
+ distanceKm:number;loopKm:number|null;movingMinutes:number|null;
+ regularPauseMinutes:number|null;longStopEvery:number|null;
+ longStopMinutes:number|null
+}):RaceLapCheckpoint[]
 export type RaceReview={
  status:'unknown'|'upcoming'|'no-garmin-week'|'no-distance'|'ambiguous'|'not-matched'|'matched';
  message:string;race:any;garmin:null|{
