@@ -1,0 +1,67 @@
+/* v0.9.88 · factual race-specific progress, never fictional readiness percentages */
+.gpg-root{border:1px solid rgba(169,195,230,.28);border-radius:16px;
+ background:linear-gradient(135deg,#1b2943,#111f34);color:#ecf3ff;padding:17px;margin:16px 0}
+.gpg-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.gpg-eyebrow{display:flex;align-items:center;gap:7px;color:#d1bdf7;
+ letter-spacing:.09em;font-size:9px;font-weight:850}
+.gpg-eyebrow .ic{height:16px;width:16px}
+.gpg-title{min-width:0;flex:1}
+.gpg-title h3{font-size:19px;line-height:1.25;letter-spacing:-.03em;margin:7px 0 4px}
+.gpg-title p{font-size:11px;color:#b3c6df;line-height:1.6;margin:0}
+.gpg-window{display:grid;gap:4px;color:#e2edfc;font-size:11px;text-align:right;
+ white-space:nowrap;font-weight:780}
+.gpg-window small{color:#9fb0cf;font-size:9px;font-weight:650}
+.gpg-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:16px 0 13px}
+.gpg-metrics>div{display:grid;gap:5px;min-width:0;padding:13px;
+ border:1px solid rgba(163,191,236,.17);background:rgba(13,29,51,.56);border-radius:11px}
+.gpg-metrics span{color:#afbfde;font-size:10px}
+.gpg-metrics strong{color:#f4f8ff;font-size:24px;font-variant-numeric:tabular-nums;letter-spacing:-.035em}
+.gpg-metrics small{color:#9eb1cf;font-size:10px;line-height:1.45}
+.gpg-weekly{background:rgba(12,25,46,.42);border-radius:11px;padding:12px 13px;
+ border:1px solid rgba(160,187,230,.13)}
+.gpg-week{display:grid;grid-template-columns:54px minmax(0,1fr) 90px;
+ align-items:center;gap:10px;margin:6px 0}
+.gpg-week>span{font-size:10px;color:#afbfdb;font-variant-numeric:tabular-nums}
+.gpg-track{width:100%;height:9px;background:rgba(171,188,223,.11);
+ border-radius:999px;overflow:hidden}
+.gpg-fill{background:linear-gradient(90deg,#a9d57d,#d0efab);
+ height:100%;border-radius:999px;min-width:0}
+.gpg-week>strong{font-size:10px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+.gpg-weekly>p{font-size:9px;color:#8da5c5;margin:9px 0 0;line-height:1.55}
+.gpg-next{display:grid;gap:6px;border:1px solid rgba(195,221,164,.25);
+ background:rgba(122,158,114,.10);border-radius:11px;padding:12px;margin:13px 0}
+.gpg-next>span{display:flex;align-items:center;gap:7px;font-size:9px;
+ color:#c9e7ac;font-weight:850;letter-spacing:.07em}
+.gpg-next>span .ic{width:15px;height:15px}
+.gpg-next p{font-size:12px;line-height:1.5;color:#e4f0dc;margin:0}
+.gpg-details{border-top:1px solid rgba(150,187,229,.18);padding-top:11px}
+.gpg-details>summary{list-style:none;cursor:pointer;display:flex;gap:12px;
+ align-items:center;justify-content:space-between;color:#d9e5f9;font-size:11px;font-weight:770}
+.gpg-details>summary::-webkit-details-marker{display:none}
+.gpg-details>summary>.ic{width:16px;height:16px;color:#b6c8e6}
+.gpg-details[open]>summary>.ic{transform:rotate(180deg)}
+.gpg-details>summary:focus-visible,.gpg-raceprep:focus-visible{
+ outline:2px solid #c9eda3;outline-offset:3px}
+.gpg-pillars{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0}
+.gpg-pillar{background:#172741;border:1px solid rgba(158,184,220,.19);
+ padding:12px;border-radius:11px}
+.gpg-pillar>div{display:flex;align-items:baseline;justify-content:space-between;
+ gap:10px;flex-wrap:wrap}
+.gpg-pillar strong{font-size:12px;color:#edf3fc}
+.gpg-pillar>div span{font-size:9px;color:#b6c9e5}
+.gpg-pillar p{font-size:11px;line-height:1.55;color:#c9d7ec;margin:9px 0}
+.gpg-pillar small{font-size:10px;color:#9fb2cc;line-height:1.5}
+.gpg-source{font-size:10px;color:#9fb2ce;line-height:1.65}
+.gpg-source p{margin:6px 0 0}
+.gpg-raceprep{margin-top:14px;display:inline-flex;align-items:center;gap:8px;
+ border-radius:10px;border:1px solid rgba(168,196,230,.3);background:#273852;
+ color:#f1f5ff;font-size:11px;font-weight:770;padding:10px 13px;min-height:42px}
+.gpg-raceprep .ic{width:15px;height:15px}
+@media(max-width:640px){.gpg-root{padding:13px}.gpg-head{gap:9px}
+ .gpg-title h3{font-size:17px}.gpg-window{text-align:left}
+ .gpg-metrics>div{padding:10px}.gpg-metrics strong{font-size:20px}
+ .gpg-pillars{grid-template-columns:1fr}
+ .gpg-week{grid-template-columns:48px minmax(0,1fr) 78px;gap:7px}}
+@media(max-width:390px){.gpg-metrics{grid-template-columns:1fr}
+ .gpg-metrics>div{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+ .gpg-metrics strong{font-size:20px}}
