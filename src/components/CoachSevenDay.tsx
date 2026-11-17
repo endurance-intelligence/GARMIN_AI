@@ -187,6 +187,8 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
    <button type="button" className="c7-refresh" disabled={loading||saving!==null}
     onClick={()=>{setReload(x=>x+1);window.dispatchEvent(new Event('garmin-ai-coach-changed'));setReview(null);setSavedDay(null)}}><Icon name="refresh-cw"/> Aktualisieren</button>
   </div>
+  {snapshot&&<CoachPostRaceBarometer goal={snapshot.goal} life={snapshot.life}
+    busy={contextBusy||saving!==null} onSave={updateLife}/>}
   {snapshot&&<details className="c7-settings" id="c7-life-settings">
     <summary>Coach-Einstellungen · Pausen, Beschwerden und Verfügbarkeit</summary>
     <CoachLifeContext life={snapshot.life} busy={contextBusy||saving!==null} onAction={updateLife}/>
@@ -200,10 +202,34 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
      Vergangene Entwürfe im Kalender prüfen <Icon name="arrow-up-right"/></button>
    </p>}
   {plan&&<>
-   <CoachDecisionLive plan={plan} snapshot={snapshot!} reviewDate={review} saving={saving!==null||contextBusy}
+   <div className="c7-day-nav" id="c7-week-overview" role="tablist"
+    aria-label="Wähle einen Tag für deine persönliche Coach-Entscheidung">
+    {plan.days.map(day=><button type="button" key={day.date} role="tab"
+      aria-selected={selectedDay===day.date} className={selectedDay===day.date?'is-selected':''}
+      disabled={saving!==null||contextBusy}
+      onClick={()=>{setSelectedDay(day.date);setReview(null);setCustomDate(null);setNotice('')}}>
+     <span>{formatDate(day.date)}</span>
+     <strong>{day.kind==='declined'?'Abgelehnt':day.kind==='acknowledged'?'Übernommen':
+       day.kind==='existing'?'Im Kalender':day.kind==='completed'?'Erledigt':
+       day.kind==='race'?'Wettkampf':day.kind==='recovery'?'Erholung':
+       day.kind==='illness'?'Pause':day.kind==='easy'?'Locker':day.kind==='long'?'Langer Lauf':
+       day.kind==='option'?'Optional':day.kind==='blocked'?'Blockiert':'Training'}</strong>
+    </button>)}
+   </div>
+   <CoachDecisionLive plan={plan} snapshot={snapshot!} reviewDate={review}
+    selectedDate={selectedDay} saving={saving!==null||contextBusy}
     onReview={date=>{
-     setShowAllDays(true)
-     setReview(date);setStartTime('18:00')
+     setSelectedDay(date);setCustomDate(null);setReview(date);setStartTime('18:00')
+     requestAnimationFrame(()=>document.getElementById('c7-day-'+date)?.scrollIntoView({
+      behavior:'smooth',block:'center'
+     }))
+    }}
+    onDecline={date=>void updateLife({action:'set_day_decision',date,choice:'declined'})}
+    onAcceptRest={date=>void updateLife({action:'set_day_decision',date,choice:'accepted'})}
+    onReset={date=>void updateLife({action:'set_day_decision',date,choice:'open'})}
+    onCustom={date=>{
+     setSelectedDay(date);setReview(null);setCustomDate(date);setCustomKind('walk')
+     setCustomTitle('');setCustomMinutes(25)
      requestAnimationFrame(()=>document.getElementById('c7-day-'+date)?.scrollIntoView({
       behavior:'smooth',block:'center'
      }))
@@ -221,8 +247,8 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
      Die Abweichungsgrenzen sind Vorsichtsregeln, keine medizinischen Grenzwerte.
      Kein KI-Readiness-Score, keine Diagnose.</p>
    </details>
-   <div className="c7-week" id="c7-week-overview" role="list">
-    {plan.days.slice(0,showAllDays?7:3).map(day=><article className={'c7-day c7-'+day.kind} id={'c7-day-'+day.date} key={day.date} role="listitem">
+   <div className="c7-week" role="list">
+    {plan.days.filter(day=>day.date===selectedDay&&(review===day.date||customDate===day.date)).map(day=><article className={'c7-day c7-'+day.kind} id={'c7-day-'+day.date} key={day.date} role="listitem">
      <div className="c7-day-main"><div className="c7-date">{formatDate(day.date)}</div>
       <div className="c7-day-copy"><strong>{day.title}</strong>
        <p>{day.reason}</p>
@@ -231,7 +257,7 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
         day.kind==='existing'?'Bereits im Kalender':day.kind==='completed'?'Garmin-Aktivität vorhanden':
         'Kein neuer Kalendereintrag'}</small>
       </div></div>
-     {day.approvable&&!contextBusy&&<div className="c7-actions">
+     {review===day.date&&(day.approvable||day.kind==='option')&&!contextBusy&&<div className="c7-actions">
       {review===day.date?<div className="c7-confirm">
        <span>Nur diesen Vorschlag als Entwurf speichern?</span>
        {day.sport==='running'&&['easy','long','return_easy'].includes(day.kind)&&
@@ -258,11 +284,34 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
        <button type="button" disabled={saving!==null} onClick={()=>{setReview(day.date);setStartTime('18:00')}}>
         Vorschlag prüfen</button>}
      </div>}
+     {customDate===day.date&&<div className="c7-custom-form">
+      <strong>Dein eigener Vorschlag für {formatDate(day.date)}</strong>
+      <p>Wird nur als Entwurf gespeichert. Keine automatische Zusage und keine Garmin-Übertragung.</p>
+      <div className="c7-custom-fields">
+       <label>Aktivität
+        <select value={customKind} disabled={saving!==null}
+         onChange={e=>setCustomKind(e.target.value as typeof customKind)}>
+         <option value="walk">Spaziergang</option>
+         <option value="mobility">Stabi / Mobility</option>
+         <option value="rowing">Rudern locker</option>
+         <option value="run" disabled={!(day.approvable||day.kind==='option')}>Lockerer Lauf</option>
+        </select></label>
+       <label>Dauer in Minuten
+        <input type="number" min="10" max="120" step="5" value={customMinutes}
+         disabled={saving!==null} onChange={e=>setCustomMinutes(Number(e.target.value))}/></label>
+       <label>Titel (optional)
+        <input type="text" maxLength={120} value={customTitle} disabled={saving!==null}
+         placeholder="z. B. 30 Min. Spaziergang" onChange={e=>setCustomTitle(e.target.value)}/></label>
+      </div>
+      <div className="c7-custom-actions">
+       <button type="button" disabled={saving!==null} onClick={()=>void saveCustom(day)}>
+        {saving===day.date?'Speichere …':'Meinen Vorschlag als Entwurf speichern'}</button>
+       <button type="button" className="c7-secondary" disabled={saving!==null}
+        onClick={()=>setCustomDate(null)}>Abbrechen</button>
+      </div>
+     </div>}
     </article>)}
    </div>
-   <div className="c7-show-more"><button type="button" className="c7-secondary"
-    onClick={()=>setShowAllDays(v=>!v)}>{showAllDays?'Weniger anzeigen':'Alle 7 Tage anzeigen'}
-    <Icon name="arrow-up-right"/></button></div>
    {notice&&<div className="c7-saved-next" role="status">
     <p className="c7-ok">{notice}</p>
     {savedDay&&<button type="button" className="c7-next-calendar" onClick={()=>onCalendar(savedDay)}>
