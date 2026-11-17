@@ -27,6 +27,7 @@ const navActive=(page:Page,id:Page)=>page===id||
 
 function App() {
   const [calendarFocus,setCalendarFocus]=useState<{date:string;token:number}|null>(null)
+  const [coachFocus,setCoachFocus]=useState<{date:string;token:number}|null>(null)
   const [raceWeatherFocus,setRaceWeatherFocus]=useState(0)
   const [page,setPage]=useState<Page>(()=>{
    try{
@@ -40,6 +41,11 @@ function App() {
     setPage(next)
     try{sessionStorage.setItem('garmin-ai:last-page:v1',next)}catch{}
     window.scrollTo({top:0,behavior:'instant'})
+  }
+  function openCoach(date?:string){
+    if(date&&/^\d{4}-\d{2}-\d{2}$/.test(date))
+      setCoachFocus(prev=>({date,token:(prev?.token||0)+1}))
+    go('home')
   }
   function openRaceWeather(){
     setRaceWeatherFocus(n=>n+1)
@@ -59,13 +65,13 @@ function App() {
         {navigation.map(item=><button type="button" key={item.id} className={navActive(page,item.id)?'active':''} aria-current={navActive(page,item.id)?'page':undefined} onClick={()=>go(item.id)}><Icon name={item.icon}/><span>{item.name}</span></button>)}
       </nav>
       <div className="sidebar-fill"/>
-      <div className="sidebar-bottom"><span className="micro">● DESIGN LAB / 0.3 REACT</span><p>Garmin-Daten via Supabase.<br/>Coach derzeit teilweise Demo.<br/>Planänderungen nur nach Freigabe.</p></div>
+      <div className="sidebar-bottom"><span className="micro">● GARMIN_AI / PERSÖNLICHER COACH</span><p>Garmin-Daten live.<br/>Coach-Empfehlungen prüfbar.<br/>Planänderungen nur nach Freigabe.</p></div>
       <div className="profile"><div className="avatar">DK</div><div><b>Personal workspace</b><span>Single athlete · Privat</span></div></div>
     </aside>
     <main className="main"><div className="main-in">
-      <header className="topbar"><div className="crumbs"><span>WORKSPACE</span><span className="slash">/</span><strong>{(page==='gear'?'Equipment':page==='settings'?'Einstellungen':page==='strength'?'Stabi Studio':navigation.find(n=>n.id===page)?.name)}</strong></div><div className="top-actions"><div className="mobile-brand" style={{display:'none'}}><div className="brand-logo"><Icon name="activity"/></div>GARMIN_AI</div><span className="date">DESIGN CONCEPT / NOV 2026</span><span className="pill"><span className="pulse"/> LIVE DATA · COACH DEMO</span><div className="round-icon"><Icon name="bell"/></div></div></header>
-      <CoachPage active={page==='home'} onGo={go} onOpenCalendar={openCalendar} onOpenRaceWeather={openRaceWeather}/>
-      <CalendarPage active={page==='calendar'} focus={calendarFocus}/>
+      <header className="topbar"><div className="crumbs"><span>WORKSPACE</span><span className="slash">/</span><strong>{(page==='gear'?'Equipment':page==='settings'?'Einstellungen':page==='strength'?'Stabi Studio':navigation.find(n=>n.id===page)?.name)}</strong></div><div className="top-actions"><div className="mobile-brand" style={{display:'none'}}><div className="brand-logo"><Icon name="activity"/></div>GARMIN_AI</div><span className="date">GARMIN_AI / DEIN TRAINING</span><span className="pill"><span className="pulse"/> DATEN LIVE · FREIGABE DURCH DICH</span><div className="round-icon"><Icon name="bell"/></div></div></header>
+      <CoachPage active={page==='home'} focus={coachFocus} onGo={go} onOpenCalendar={openCalendar} onOpenRaceWeather={openRaceWeather}/>
+      <CalendarPage active={page==='calendar'} focus={calendarFocus} onOpenCoach={openCoach}/>
       <TrainingPage active={page==='training'} onGo={go}/>
       <StrengthPage active={page==='strength'}/>
       {import.meta.env.DEV && <LiveGarminActivities active={page==='training'}/>}
@@ -73,7 +79,7 @@ function App() {
       <GearPage active={page==='gear'} onGo={go}/>
       <SettingsPage active={page==='settings'} onGo={go}/>
       <MorePage active={page==='more'} onGo={go}/>
-      <div className="footer"><span>GARMIN_AI / HORIZON REACT v0.3.1</span><span>ECHTE GARMIN-DATEN · COACH TEILWEISE DEMO</span></div>
+      <div className="footer"><span>GARMIN_AI / PERSONAL TRAINING</span><span>GARMIN-DATEN · COACH MIT DEINER FREIGABE</span></div>
     </div></main>
   </div>
   <nav className="footmobile" aria-label="Mobile Navigation">
