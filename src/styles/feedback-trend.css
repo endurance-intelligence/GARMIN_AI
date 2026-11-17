@@ -1,0 +1,36 @@
+/* v0.9.81 · one concise Coach trend instead of another dashboard wall */
+.cft-root{border:1px solid rgba(165,191,233,.23);background:#18263e;
+ border-radius:13px;color:#e7efff;margin:10px 0 15px;overflow:hidden}
+.cft-head{list-style:none;display:flex;align-items:center;gap:11px;min-height:64px;
+ padding:12px 14px;cursor:pointer}
+.cft-head::-webkit-details-marker{display:none}
+.cft-head:focus-visible{outline:2px solid #c9ef93;outline-offset:-3px}
+.cft-head-icon{display:grid;place-items:center;width:35px;height:35px;flex:0 0 35px;
+ color:#d4c4ff;background:#293455;border-radius:10px}
+.cft-head-icon .ic{width:18px;height:18px}
+.cft-heading{flex:1;min-width:0;display:grid;gap:4px}
+.cft-heading small{font-size:9px;color:#a6b5e6;letter-spacing:.09em;font-weight:850}
+.cft-heading strong{font-size:14px;line-height:1.2}
+.cft-heading>span{font-size:11px;color:#c2d1e6;line-height:1.4}
+.cft-brief{display:grid;text-align:right;gap:3px;font-size:12px;font-weight:850;color:#e5edf9}
+.cft-brief small{font-size:9px;color:#9daed0;font-weight:650}
+.cft-head>.ic{flex:0 0 16px;color:#afc1df}
+.cft-root[open] .cft-head>.ic{transform:rotate(180deg)}
+.cft-root.is-high .cft-head-icon{background:#53373d;color:#f5bbb7}
+.cft-root.is-caution .cft-head-icon{background:#504131;color:#f5d1a5}
+.cft-root.is-stable .cft-head-icon{background:#234637;color:#baebc0}
+.cft-details{padding:0 14px 14px;border-top:1px solid rgba(170,197,231,.15)}
+.cft-advice{font-size:11px;line-height:1.55;color:#e4ebf9;padding:9px 0;margin:3px 0}
+.cft-advice strong{color:#d0eab3}
+.cft-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.cft-stats>div{min-width:0;display:grid;gap:4px;padding:9px;border-radius:9px;
+ background:#112138;border:1px solid rgba(173,196,231,.15)}
+.cft-stats span{font-size:10px;color:#b3c4dc}
+.cft-stats strong{font-size:20px;font-weight:850;color:#f3f6ff}
+.cft-stats small{font-size:9px;color:#9aabc8}
+.cft-foot{font-size:10px;color:#91a7c5;line-height:1.5;margin:10px 0 0}
+@media(max-width:560px){
+ .cft-head{padding:11px;gap:8px}
+ .cft-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .cft-brief{font-size:10px}.cft-heading strong{font-size:13px}
+}
