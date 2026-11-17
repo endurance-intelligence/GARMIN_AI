@@ -77,8 +77,8 @@ Deno.serve(async req=>{
             .select('checked_at,synced_at,gear_links_checked_at,gear_links_sync_source,activity_gear_scope')
             .eq('snapshot_key','primary').maybeSingle(),
           db.from('garmin_weight_outbox')
-            .select('weigh_date,weight_kg,state,updated_at,confirmed_at')
-            .order('weigh_date',{ascending:false}).limit(7),
+            .select('weigh_date,weight_kg,state,updated_at,confirmed_at,intervals_sync_status,intervals_synced_at')
+            .order('weigh_date',{ascending:false}).limit(90),
           Promise.all(['queued','retry','processing','paused','unavailable','complete']
             .map(async status=>{
               const result=await db.from('garmin_activity_details')
@@ -181,11 +181,14 @@ Deno.serve(async req=>{
     const entry=validWeightEntry(data)
     if(!entry)return reply({error:'Invalid date or weight'},422,headers)
     const {data:existing,error:readError}=await db.from('garmin_weight_outbox')
-      .select('weight_kg,state').eq('weigh_date',entry.date).maybeSingle()
+      .select('weight_kg,state,intervals_sync_status').eq('weigh_date',entry.date).maybeSingle()
     if(readError)throw Error('weight-read')
     if(existing&&existing.state!=='pending')
       return reply({error:'Entry already undergoing transfer or confirmed'},409,headers)
+    const unchanged=existing&&Math.abs(Number(existing.weight_kg)-entry.kg)<.005
     const value={weigh_date:entry.date,weight_kg:entry.kg,state:'pending',
+      intervals_sync_status:unchanged?existing.intervals_sync_status:'not_published',
+      intervals_synced_at:unchanged?undefined:null,
       updated_at:new Date().toISOString()}
     const {error:writeError}=await db.from('garmin_weight_outbox')
       .upsert(value,{onConflict:'weigh_date'})

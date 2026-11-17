@@ -1,0 +1,64 @@
+/* GARMIN_AI · deliberately compact Coach health entry and accessible status dialog */
+.co-header-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}
+.co-health-button{min-height:44px;border:1px solid rgba(150,174,227,.35);border-radius:11px;
+ padding:8px 12px;display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#25263d,#1c263d);
+ color:#eae9ff;font-size:12px;font-weight:800;cursor:pointer;transition:border-color .15s,transform .15s}
+.co-health-button .ic{height:17px;width:17px;color:#d9b9fe}
+.co-health-button:hover{border-color:rgba(186,171,255,.77);transform:translateY(-1px)}
+.co-health-button.co-health-sick{border-color:rgba(248,160,112,.5);color:#ffd8b7;
+ background:linear-gradient(110deg,rgba(135,69,60,.33),#1f2337)}
+.co-health-button.co-health-returning{border-color:rgba(119,210,184,.5);color:#b5e8cf}
+.co-health-button.co-health-sick .ic{color:#ffbc91}
+.co-health-button.co-health-returning .ic{color:#9eeaca}
+.co-health-backdrop{position:fixed;inset:0;z-index:9990;display:flex;align-items:center;justify-content:center;
+ background:rgba(2,7,20,.78);backdrop-filter:blur(9px);padding:16px;overflow:auto}
+.co-health-dialog{width:min(610px,100%);max-height:min(94dvh,900px);overflow:auto;
+ background:radial-gradient(ellipse 400px 250px at 110% -20%,rgba(148,114,246,.16),transparent 86%),
+ linear-gradient(145deg,#1c263e,#101929 77%);border:1px solid rgba(175,174,241,.36);
+ border-radius:20px;padding:22px;color:#eff3ff;box-shadow:0 28px 75px rgba(0,0,0,.52)}
+.co-health-dialog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:15px}
+.co-health-eyebrow{font-size:10px;font-weight:850;letter-spacing:.12em;color:#b3b0ff}
+.co-health-dialog h2{font-size:clamp(21px,3vw,28px);letter-spacing:-.05em;margin:7px 0 6px}
+.co-health-dialog p{font-size:12px;line-height:1.65;color:#b4c4df;margin:6px 0}
+.co-health-close{display:grid;place-items:center;flex:none;background:rgba(145,151,222,.11);
+ border:1px solid rgba(162,175,231,.26);border-radius:10px;color:#f4f5ff;
+ font-size:26px;width:40px;height:40px;cursor:pointer}
+.co-health-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0 14px}
+.co-health-fields label{display:flex;flex-direction:column;gap:8px;font-size:11px;font-weight:780;color:#c7d8f5}
+.co-health-fields label:first-child,.co-health-fields fieldset,.co-health-fields label:last-child:nth-child(4){grid-column:1/-1}
+.co-health-fields select,.co-health-fields input[type="date"]{min-height:45px;width:100%;
+ border:1px solid rgba(152,171,217,.34);border-radius:10px;
+ background:#101b31;color:#f3f6ff;font-size:13px;padding:10px}
+.co-health-fields input:focus-visible,.co-health-fields select:focus-visible{outline:2px solid #b6d6ff;outline-offset:2px}
+.co-health-fields fieldset{border:0;padding:0;margin:0}
+.co-health-fields legend{font-size:11px;font-weight:780;color:#c7d8f5;margin:0 0 9px}
+.co-health-duration{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.co-health-duration label{min-height:47px;display:flex;align-items:center;justify-content:center;
+ flex-direction:row;gap:6px;text-align:center;padding:9px 7px;font-size:11px;
+ background:rgba(73,90,140,.13);border:1px solid rgba(157,179,226,.25);border-radius:10px;
+ cursor:pointer}
+.co-health-duration label.is-selected{background:rgba(136,125,240,.18);border-color:#a69cff;color:#f2eaff}
+.co-health-duration input{accent-color:#c1aeff}
+.co-health-active{display:flex;align-items:center;gap:8px;margin-top:15px;padding:10px 12px;
+ color:#f8cead;background:rgba(171,104,67,.12);border:1px solid rgba(225,157,103,.23);border-radius:11px;font-size:12px}
+.co-health-active .ic{height:18px;width:18px;flex-shrink:0}
+.co-health-dialog .co-health-guidance{font-size:11px;color:#9fb5d4}
+.co-health-actions{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 8px}
+.co-health-primary,.co-health-secondary,.co-health-return button{min-height:44px;border-radius:10px;
+ padding:11px 14px;font-size:12px;font-weight:850;cursor:pointer}
+.co-health-primary,.co-health-return button{color:#1a2030;background:#d3f68a;border:1px solid #d3f68a}
+.co-health-secondary{background:rgba(96,112,162,.2);border:1px solid rgba(171,188,228,.3);color:#eaf0ff}
+.co-health-dialog button:disabled{opacity:.48;cursor:not-allowed}
+.co-health-dialog button:focus-visible,.co-health-button:focus-visible{outline:2px solid #b4d8ff;outline-offset:3px}
+.co-health-return{margin-top:13px;border:1px solid rgba(145,202,156,.28);border-radius:11px;padding:13px;
+ background:rgba(92,148,102,.1)}
+.co-health-return-mode{display:grid;gap:12px;margin-top:18px}
+.co-health-error{color:#ffd0c9!important;background:rgba(176,65,58,.15);border-radius:8px;padding:9px 12px}
+.co-health-dialog .co-health-disclaimer{border-top:1px solid rgba(154,175,221,.2);
+ padding-top:12px;margin-top:16px;font-size:10px}
+@media(max-width:650px){.co-header-actions{gap:6px}.co-health-button{font-size:11px;padding:7px 9px}
+ .co-health-dialog{padding:16px;border-radius:16px}.co-health-fields{grid-template-columns:1fr;gap:11px}
+ .co-health-duration{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+ .co-health-duration label{font-size:10px;padding:7px 4px}
+ .co-health-fields label{grid-column:1/-1}.co-health-actions button{width:100%}}
+@media(prefers-reduced-motion:reduce){.co-health-button{transition:none}.co-health-button:hover{transform:none}}

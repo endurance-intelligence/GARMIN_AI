@@ -35,9 +35,12 @@ function berlinToday(){
 type Period={id:string;start:string;end:string;reason:'vacation'|'unavailable'}
 type Review={activityId:string;assessment:'ok'|'concern';reviewedOn:string}
 type Row={user_id:string;illness_state:'well'|'sick'|'returning';
- illness_started_on:string|null;return_started_on:string|null;
+ illness_started_on:string|null;illness_expected_end_on:string|null;
+ illness_kind:'illness'|'pain'|'fatigue'|'other'|null;
+ return_started_on:string|null;
  blocked_periods:Period[];run_reviews:Review[];updated_at:string}
 const empty=(id:string):Row=>({user_id:id,illness_state:'well',illness_started_on:null,
+ illness_expected_end_on:null,illness_kind:null,
  return_started_on:null,blocked_periods:[],run_reviews:[],updated_at:new Date().toISOString()})
 const isRun=(sport:unknown)=>typeof sport==='string'&&/run|jog|trail|treadmill/i.test(sport)
 const activityFields='activity_id,activity_name,start_time_local,sport_type,distance_m,duration_s,average_heart_rate,rpe_raw'
@@ -61,7 +64,7 @@ Deno.serve(async req=>{
    return respond(403,{error:'Zugriff nicht erlaubt'},h)
   const db=createClient(project,key('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
   const {data:current,error:readError}=await db.from('garmin_coach_context')
-   .select('user_id,illness_state,illness_started_on,return_started_on,blocked_periods,run_reviews,updated_at')
+   .select('user_id,illness_state,illness_started_on,illness_expected_end_on,illness_kind,return_started_on,blocked_periods,run_reviews,updated_at')
    .eq('user_id',user.id).maybeSingle()
   if(readError)return respond(503,{error:'Coach-Kontext nicht abrufbar'},h)
   let row=(current||empty(user.id)) as Row
@@ -83,9 +86,21 @@ Deno.serve(async req=>{
   try{input=JSON.parse(raw)}catch{return respond(422,{error:'Ungültiges JSON'},h)}
   if(!input||typeof input!=='object'||Array.isArray(input))
    return respond(422,{error:'Ungültige Anfrage'},h)
-  if(input.action==='start_illness'){
-   row={...row,illness_state:'sick',illness_started_on:today,
-    return_started_on:null,run_reviews:[]}
+  if(input.action==='start_illness'||input.action==='update_illness'){
+   const updating=input.action==='update_illness'
+   if(updating&&row.illness_state!=='sick')
+    return respond(409,{error:'Keine aktive Trainingspause zur Aktualisierung'},h)
+   const start=updating?row.illness_started_on:input.startedOn
+   const kind=input.kind
+   const expected=input.expectedEnd===null?null:input.expectedEnd
+   if(!day(start)||start>today||start<plusDays(today,-14)||
+    !['illness','pain','fatigue','other'].includes(String(kind))||
+    (expected!==null&&(!day(expected)||expected<today||
+      expected<start||dayDiff(start,expected)>90)))
+    return respond(422,{error:'Beginn, Beschwerden oder Dauer ungültig (maximal 90 Tage)'},h)
+   row={...row,illness_state:'sick',illness_started_on:start,
+    illness_kind:kind as Row['illness_kind'],
+    illness_expected_end_on:expected,return_started_on:null,run_reviews:[]}
   }else if(input.action==='start_return'){
    if(row.illness_state!=='sick'||input.confirmRecovered!==true)
     return respond(409,{error:'Bitte Genesung ausdrücklich bestätigen'},h)
@@ -129,7 +144,7 @@ Deno.serve(async req=>{
   }else return respond(422,{error:'Unbekannte Aktion'},h)
   const {data:saved,error:saveError}=await db.from('garmin_coach_context')
    .upsert({...row,user_id:user.id,updated_at:new Date().toISOString()},{onConflict:'user_id'})
-   .select('user_id,illness_state,illness_started_on,return_started_on,blocked_periods,run_reviews,updated_at').single()
+   .select('user_id,illness_state,illness_started_on,illness_expected_end_on,illness_kind,return_started_on,blocked_periods,run_reviews,updated_at').single()
   if(saveError||!saved)return respond(503,{error:'Coach-Kontext konnte nicht gespeichert werden'},h)
   row=saved as Row
   return respond(200,{saved:true,context:row,runs:await readRuns(),

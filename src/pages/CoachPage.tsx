@@ -3,6 +3,7 @@ import {createPortal} from 'react-dom'
 import {SyncCenter} from '../components/SyncCenter'
 import {CoachTodayWeather} from '../components/CoachTodayWeather'
 import {CoachGlance} from '../components/CoachGlance'
+import {CoachHealthStatus} from '../components/CoachHealthStatus'
 import {WeeklyTrainingOptions,berlinToday,mondayOf} from '../components/WeeklyTrainingOptions'
 import {CrossTrainingCoachCard} from '../components/CrossTrainingCoachCard'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
@@ -18,6 +19,7 @@ import type {Page} from '../navigation'
 export function CoachPage({active,onGo,onOpenCalendar,onOpenRaceWeather}: {active:boolean; onGo:(page:Page)=>void;onOpenCalendar:(date?:string)=>void;onOpenRaceWeather:()=>void}) {
   const [weightOpen,setWeightOpen]=useState(false)
   const [savedWeight,setSavedWeight]=useState<number|null>(null)
+  const [savedWeightDelivery,setSavedWeightDelivery]=useState<'not_published'|'confirmed'|'needs_review'>('not_published')
   const [sharedSnapshot,setSharedSnapshot]=useState<CoachSnapshot|null>(null)
   const [snapshotError,setSnapshotError]=useState(false)
   const [snapshotLoading,setSnapshotLoading]=useState(true)
@@ -69,13 +71,20 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenRaceWeather}: {activ
    <h1>Dein Tag im Blick.</h1>
    <p>Training, Wetter und Erholung. Ohne unnötige Zahlen.</p>
   </div>
-  <button type="button" className="co-weight-action" aria-haspopup="dialog"
-   onClick={()=>setWeightOpen(true)} title="Gewicht hinzufügen">
-   <span className="co-plus" aria-hidden="true">+</span> Gewicht
-  </button>
+  <div className="co-header-actions">
+   <CoachHealthStatus active={active} life={sharedSnapshot?.life}
+    onChanged={()=>window.dispatchEvent(new Event('garmin-ai-coach-changed'))}/>
+   <button type="button" className="co-weight-action" aria-haspopup="dialog"
+    onClick={()=>setWeightOpen(true)} title="Gewicht hinzufügen">
+    <span className="co-plus" aria-hidden="true">+</span> Gewicht
+   </button>
+  </div>
  </header>
  {savedWeight!==null&&<p role="status" className="co-saved-note">
-  {savedWeight.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})} kg gespeichert · Garmin-Übertragung noch ausstehend
+  {savedWeight.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})} kg gespeichert ·
+  {savedWeightDelivery==='confirmed'?' Intervals.icu bestätigt, nicht Garmin Connect':
+   savedWeightDelivery==='needs_review'?' Intervals.icu-Übertragung prüfen':' nur in GARMIN_AI gespeichert'}
+  
  </p>}
  <CoachGoalPanel active={active} compact onEdit={()=>onGo('race')} onForecastOpen={onOpenRaceWeather}/>
  {snapshotLoading&&!sharedSnapshot&&!snapshotError&&<p className="co-data-note" role="status">
@@ -101,8 +110,8 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenRaceWeather}: {activ
      <button type="button" className="co-dialog-close" ref={closeRef}
       aria-label="Gewichtsfenster schließen" onClick={()=>setWeightOpen(false)}>×</button>
     </div>
-    <SyncCenter active={active&&weightOpen} mode="weight" inlineWheel onSaved={kg=>{
-      setSavedWeight(kg);setWeightOpen(false)
+    <SyncCenter active={active&&weightOpen} mode="weight" inlineWheel onSaved={(kg,status)=>{
+      setSavedWeight(kg);setSavedWeightDelivery(status);setWeightOpen(false)
     }}/>
    </div>
   </div>,document.body)}

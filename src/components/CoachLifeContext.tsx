@@ -8,6 +8,8 @@ export type CoachBlock={id:string;start:string;end:string;reason:'vacation'|'una
 export type CoachRunReview={activityId:string;assessment:'ok'|'concern';reviewedOn:string}
 export type CoachContext={
  illness_state:'well'|'sick'|'returning';illness_started_on:string|null;
+ illness_kind:'illness'|'pain'|'fatigue'|'other'|null;
+ illness_expected_end_on:string|null;
  return_started_on:string|null;blocked_periods:CoachBlock[];run_reviews:CoachRunReview[];
  updated_at:string
 }
@@ -16,7 +18,7 @@ export type CoachRun={
  distance_m:number|null;duration_s:number|null;average_heart_rate:number|null;rpe_raw:number|null
 }
 export type CoachContextPayload={context:CoachContext;runs:CoachRun[]}
-type Action={action:string;[key:string]:string|boolean}
+type Action={action:string;[key:string]:string|boolean|null}
 type Props={life:CoachContextPayload|null;busy:boolean;onAction:(action:Action)=>Promise<void>}
 const short=(day:string)=>day.slice(8,10)+'.'+day.slice(5,7)+'.'+day.slice(0,4)
 const valid=(n:number|null)=>typeof n==='number'&&Number.isFinite(n)
@@ -52,7 +54,7 @@ export function CoachLifeContext({life,busy,onAction}:Props){
    <div className="clc-card-title"><Icon name="heart-pulse"/> <strong>Krankheit & Wiedereinstieg</strong></div>
    {r.illness_state==='well'&&<>
     <p>Geht es dir nicht gut, pausiert der Coach neue Trainingsvorschläge, bis du die Genesung meldest.</p>
-    <button type="button" disabled={busy} onClick={()=>doAction({action:'start_illness'})}>Ich bin krank / habe Beschwerden</button>
+    <button type="button" disabled={busy} onClick={()=>doAction({action:'start_illness',startedOn:today,kind:'illness',expectedEnd:null})}>Ich bin krank / habe Beschwerden</button>
    </>}
    {r.illness_state==='sick'&&<>
     <p><strong>Trainingspause aktiv seit {r.illness_started_on?short(r.illness_started_on):'deiner Meldung'}.</strong>
@@ -101,7 +103,7 @@ export function CoachLifeContext({life,busy,onAction}:Props){
     </div>
     <div className="clc-return-actions">
      <button type="button" className="clc-secondary" disabled={busy}
-      onClick={()=>doAction({action:'start_illness'})}>Wieder in den Krank-Modus</button>
+      onClick={()=>doAction({action:'start_illness',startedOn:today,kind:'illness',expectedEnd:null})}>Wieder in den Krank-Modus</button>
      {ready&&!notOk&&<>
       <label className="clc-checkbox"><input type="checkbox" checked={finishCheck}
        onChange={e=>setFinishCheck(e.target.checked)}/>

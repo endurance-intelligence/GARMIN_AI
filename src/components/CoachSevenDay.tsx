@@ -51,7 +51,7 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
   today,health:snapshot.health,options:snapshot.options,boards:snapshot.boards,
   plans:snapshot.plans,goal:snapshot.goal,life:snapshot.life
  }):null,[snapshot,today])
- async function updateLife(action:{action:string;[key:string]:string|boolean}){
+ async function updateLife(action:{action:string;[key:string]:string|boolean|null}){
   if(!garminSupabase||contextBusy||saving!==null)return
   setContextBusy(true);setError('');setNotice('')
   try{
@@ -133,7 +133,7 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
    <button type="button" className="c7-refresh" disabled={loading||saving!==null}
     onClick={()=>{setReload(x=>x+1);window.dispatchEvent(new Event('garmin-ai-coach-changed'));setReview(null);setSavedDay(null)}}><Icon name="refresh-cw"/> Aktualisieren</button>
   </div>
-  {snapshot&&<details className="c7-settings">
+  {snapshot&&<details className="c7-settings" id="c7-life-settings">
     <summary>Coach-Einstellungen · Pausen, Beschwerden und Verfügbarkeit</summary>
     <CoachLifeContext life={snapshot.life} busy={contextBusy||saving!==null} onAction={updateLife}/>
    </details>} 

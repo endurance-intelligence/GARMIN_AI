@@ -1,4 +1,5 @@
-import {useEffect,useState} from 'react'
+import {useEffect,useMemo,useState} from 'react'
+import {weightTrend} from '../lib/weightTrend.mjs'
 import type {Session} from '@supabase/supabase-js'
 import {garminSupabase,garminSupabaseReady,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {WeightWheelPicker} from './WeightWheelPicker'
@@ -9,7 +10,8 @@ type Source={
   scope?:string;state?:string;syncSource?:'manual'|'cloud';reason?:string;ageMinutes?:number|null;
   pending?:number|null;counts?:Record<string,number>
 }
-type Weight={weigh_date:string;weight_kg:number;state:string;updated_at:string;confirmed_at:string|null}
+type Weight={weigh_date:string;weight_kg:number;state:string;updated_at:string;confirmed_at:string|null;
+ intervals_sync_status:'not_published'|'confirmed'|'needs_review';intervals_synced_at:string|null}
 type IntervalsPublication={
   id:string;revision:number;intervals_published_revision:number|null;
   intervals_sync_status:string;intervals_event_id:number|null;
@@ -68,7 +70,8 @@ function stateText(value?:string) {
   }
   return states[value||'']||'Status unbekannt'
 }
-export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boolean;mode:'weight'|'status';onSaved?:(kg:number)=>void;inlineWheel?:boolean}){
+export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boolean;mode:'weight'|'status';
+ onSaved?:(kg:number,intervalsStatus:'not_published'|'confirmed'|'needs_review')=>void;inlineWheel?:boolean}){
   const [session,setSession]=useState<Session|null>(null)
   const [data,setData]=useState<SyncPayload|null>(null)
   const [intervals,setIntervals]=useState<IntervalsStatus|null>(null)
@@ -81,6 +84,8 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
   const [refresh,setRefresh]=useState(0)
   const [connecting,setConnecting]=useState(false)
   const [cloudChecking,setCloudChecking]=useState(false)
+  const [sendToIntervals,setSendToIntervals]=useState(false)
+  const trend=useMemo(()=>weightTrend(data?.weightEntries||[],date),[data?.weightEntries,date])
 
   useEffect(()=>{
     if(!active||!garminSupabase)return
@@ -116,7 +121,7 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
   // Read existing, authenticated Intervals bridge status separately from the
   // historic Garmin Connect calendar snapshot. Never infer device delivery.
   useEffect(()=>{
-    if(!active||mode!=='status'||!session)return
+    if(!active||!session)return
     let mounted=true
     setIntervalsUnavailable(false)
     void fetch(garminSupabaseUrl+'/functions/v1/garmin-intervals',{
@@ -147,10 +152,35 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
       const answer=await api<{saved:boolean;transferStatus:string;garminUpdated:boolean}>(
         session,'POST',{date,kg})
       if(!answer.saved||answer.garminUpdated)throw Error('Unerwartete Antwort des Gewichtsdienstes.')
-      setNotice('Gewicht gespeichert. Übertragung zu Garmin Connect steht noch aus.')
+      let intervalsStatus:'not_published'|'confirmed'|'needs_review'='not_published'
+      if(sendToIntervals&&intervals?.configured){
+       try{
+        const response=await fetch(garminSupabaseUrl+'/functions/v1/garmin-weight-intervals',{
+         method:'POST',cache:'no-store',
+         headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey,
+          'content-type':'application/json'},body:JSON.stringify({date,kg})
+        })
+        const body=await response.json().catch(()=>({})) as {
+         intervalsConfirmed?:boolean;error?:string
+        }
+        if(!response.ok||body.intervalsConfirmed!==true){
+         intervalsStatus='needs_review'
+         setNotice('In GARMIN_AI gespeichert. Intervals.icu noch nicht bestätigt: '+
+          (body.error||'Bitte die Verbindung prüfen.'))
+        }else{
+         intervalsStatus='confirmed'
+         setNotice('In GARMIN_AI gespeichert und von Intervals.icu rückgelesen. Garmin Connect nicht bestätigt.')
+        }
+       }catch{
+        intervalsStatus='needs_review'
+        setNotice('Gewicht lokal gespeichert, aber Intervals.icu nicht erreichbar. Kein Garmin-Nachweis.')
+       }
+      }else{
+       setNotice('In GARMIN_AI gespeichert. Keine Übertragung zu Intervals.icu oder Garmin Connect.')
+      }
       setWeight(kg.toFixed(1))
       setRefresh(n=>n+1)
-      onSaved?.(kg)
+      onSaved?.(kg,intervalsStatus)
     }catch(err){
       setError(err instanceof Error?err.message:'Gewicht konnte nicht gespeichert werden.')
     }finally{setBusy(false)}
@@ -246,7 +276,7 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
     {mode==='weight'?<>
       <div className="sync-top sync-weight-top">
         <div className="sync-weight-heading">
-          <span className="micro-label">MORGENROUTINE / GARMIN</span>
+          <span className="micro-label">MORGENROUTINE / GARMIN_AI</span>
           <h3>Gewicht</h3>
         </div>
         {session&&<label className="sync-date-field">
@@ -275,13 +305,44 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
             value={weight} onChange={setWeight} disabled={busy} inline={inlineWheel}/>}
 
         </div>
+        <div className="sync-weight-delivery">
+          {intervals?.configured?
+           <label><input type="checkbox" checked={sendToIntervals} disabled={busy}
+            onChange={e=>setSendToIntervals(e.target.checked)}/>
+            Gewicht nach dem Speichern auch an Intervals.icu senden</label>:
+           <small>{intervalsUnavailable?'Intervals.icu-Verbindung gerade nicht prüfbar.':
+            'Optional: Intervals.icu unter Einstellungen verbinden, um Gewichte dort zu speichern.'}</small>}
+          <small>Intervals.icu ist nicht Garmin Connect. Die Garmin-Gewichtsübertragung bleibt unbestätigt.</small>
+        </div>
         <button type="button" className="sync-weight-save" onClick={()=>void save()}
           disabled={busy||!weight}>
           {busy?'Speichere …':'Gewicht speichern'}
         </button>
       </div>}
-      {today&&<p className="sync-hint">Eintrag {shortWeightDate(today.weigh_date)}: <strong>{Number(today.weight_kg).toLocaleString('de-DE')} kg</strong> · {today.state==='confirmed'?'In Garmin bestätigt':'Garmin-Übertragung ausstehend'}</p>}
-      <p className="sync-weight-note">In GARMIN_AI gespeichert · Garmin-Übertragung folgt nach Freigabe.</p>
+      {today&&<p className="sync-hint">Eintrag {shortWeightDate(today.weigh_date)}:
+       <strong> {Number(today.weight_kg).toLocaleString('de-DE')} kg</strong> ·
+       {today.intervals_sync_status==='confirmed'?' Intervals.icu bestätigt':
+        today.intervals_sync_status==='needs_review'?' Intervals.icu noch prüfen':
+        ' Nur in GARMIN_AI gespeichert'} · Garmin Connect nicht bestätigt.</p>}
+      {notice&&<p className="sync-hint" role="status">{notice}</p>}
+      <details className="sync-weight-trend">
+       <summary>Gewichtstrend · 7 und 28 Tage</summary>
+       <div className="sync-weight-trend-cards">
+        <div><small>Aktuelles Gewicht</small>
+         <strong>{trend?.latest?Number(trend.latest[1]).toLocaleString('de-DE',{maximumFractionDigits:1})+' kg':'–'}</strong></div>
+        <div><small>7 Tage · Median</small>
+         <strong>{trend?.seven?trend.seven.median.toLocaleString('de-DE',{maximumFractionDigits:1})+' kg':'Noch zu wenig Daten'}</strong></div>
+        <div><small>28 Tage · Median</small>
+         <strong>{trend?.month?trend.month.median.toLocaleString('de-DE',{maximumFractionDigits:1})+' kg':'Noch zu wenig Daten'}</strong></div>
+       </div>
+       {trend?.change&&<p>7-Tage-Median gegenüber der Vorwoche:
+         <strong> {trend.change.change>0?'+':''}{trend.change.change.toLocaleString('de-DE')} kg</strong>
+         ({trend.seven?.count} von 7 Tagen gemessen).</p>}
+       {!trend?.seven&&<p>Erst mit mehreren Messungen lassen sich verlässliche Trends erkennen.</p>}
+       <p>Tägliche Schwankungen hängen oft mit Flüssigkeit, Glykogen und Nahrungsaufnahme zusammen.
+        Gewicht allein löst keine Trainingsentscheidung aus.</p>
+      </details>
+      <p className="sync-weight-note">Privat in GARMIN_AI gespeichert. Keine automatische Garmin-Connect-Gewichtsübertragung.</p>
     </>:<>
       <div className="sync-top"><div><span className="micro-label">DATA / INTEGRATION</span><h3>Synchronisierungsstatus.</h3>
         <p>Echte Zeitstempel der bestehenden Datenquellen – keine künstlichen Scores.</p></div>
