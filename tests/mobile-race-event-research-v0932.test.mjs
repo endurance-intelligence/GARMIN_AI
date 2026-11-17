@@ -107,8 +107,8 @@ test('scanner never silently publishes any data; user explicitly confirms a save
  assert.match(sql,/unique \(user_id,race_date,event_url\)/)
 })
 test('Race Prep entry point and mobile styling exist',()=>{
- const race=file('src/pages/RacePage.tsx')
+ const goals=file('src/pages/GoalsPage.tsx')
  const style=file('src/styles/race-event-research.css')
- assert.match(race,/<RaceEventResearch active=\{active\} refreshKey=\{researchRefresh\}/)
+ assert.match(goals,/<RaceEventResearch active=\{active&&showEventScout\}/)
  assert.match(style,/@media\(max-width:640px\)/)
 })
