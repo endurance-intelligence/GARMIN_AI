@@ -18,7 +18,10 @@ const formatDate=(day:string)=>new Intl.DateTimeFormat('de-DE',{
  timeZone:'UTC',weekday:'short',day:'2-digit',month:'2-digit'
 }).format(new Date(day+'T12:00:00Z'))
 
-export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean;onCalendar:(date?:string)=>void;sharedSnapshot?:CoachSnapshot|null}){
+export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot}:{
+ active:boolean;focus?:{date:string;token:number}|null;
+ onCalendar:(date?:string)=>void;sharedSnapshot?:CoachSnapshot|null
+}){
  const [snapshot,setSnapshot]=useState<CoachSnapshot|null>(null)
  const [loading,setLoading]=useState(false)
  const [error,setError]=useState('')
@@ -36,6 +39,7 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
  const [customTitle,setCustomTitle]=useState('')
  const [customAcknowledged,setCustomAcknowledged]=useState(false)
  const ids=useRef<Record<string,string>>({})
+ const lastFocus=useRef<number|null>(null)
  const today=berlinDateToday()
  useEffect(()=>{
   if(!active||!garminSupabase)return
@@ -58,6 +62,16 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
   today,health:snapshot.health,options:snapshot.options,boards:snapshot.boards,
   plans:snapshot.plans,goal:snapshot.goal,life:snapshot.life
  }):null,[snapshot,today])
+ useEffect(()=>{
+  if(!active||!focus||lastFocus.current===focus.token||!plan)return
+  lastFocus.current=focus.token
+  // Never silently select a different day if the date is outside the visible 7 days.
+  if(!plan.days.some(day=>day.date===focus.date))return
+  setSelectedDay(focus.date);setReview(null);setCustomDate(null)
+  requestAnimationFrame(()=>document.getElementById('c7-week-overview')?.scrollIntoView({
+   behavior:'smooth',block:'start'
+  }))
+ },[active,focus,plan])
  const customDay=plan?.days.find(day=>day.date===customDate)||null
  const customAssessment=useMemo(()=>customDay&&plan?
   assessCustomProposal({day:customDay,plan,kind:customKind,minutes:customMinutes,
