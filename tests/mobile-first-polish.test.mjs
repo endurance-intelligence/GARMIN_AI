@@ -21,9 +21,9 @@ test('mobile layout has genuinely shrinkable one-column content and two-column m
   assert.match(css,/\.v3-session-switch\s*\{[^}]*overflow-x:\s*auto/s)
 })
 
-test('bottom navigation accounts for iOS safe area and five readable tabs',()=>{
+test('bottom navigation retains safe area and supports six readable tabs',()=>{
   const css=get('src/styles/mobile-first.css')
-  assert.match(css,/\.footmobile\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,1fr\)\)/s)
+  assert.match(get('src/styles/navigation-goals.css'),/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/)
   assert.match(css,/\.footmobile\s*\{[^}]*env\(safe-area-inset-bottom\)/s)
   assert.match(css,/\.footmobile button\s*\{[^}]*min-height:\s*48px/s)
   assert.match(css,/\.main\s*\{[^}]*calc\(110px \+ env\(safe-area-inset-bottom\)\)/s)
