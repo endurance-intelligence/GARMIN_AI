@@ -164,11 +164,9 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot}:{
     <div className="co-recovery-insight">
       <span className="co-recovery-insight-icon"><Icon name="activity"/></span>
       <div>
-        <strong>Dein Verlauf auf einen Blick</strong>
+        <strong>Deine Erholung – kurz erklärt</strong>
         <p>{recoveryNarrative(comparison)}</p>
-        <p className="co-recovery-reading">{weekTrend?weekTrend.summary:recoveryDashboardMeaning(comparison)}</p>
-        {weekTrend&&<p className="co-recovery-note">Heute separat: {recoveryDashboardMeaning(comparison)}
-         <small>{weekTrend.note}</small></p>}
+        <p className="co-recovery-reading">{recoveryDashboardMeaning(comparison)}</p>
       </div>
     </div>
     <div className="co-trend-grid" role="list" aria-label="Schlaf, HRV und Ruhepuls mit Verlauf der letzten sieben Tage">
@@ -193,23 +191,27 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot}:{
       </div>)}
     </div>
     <div className="co-recovery-context">
-      <span><span className="co-mini-marker"/> Linie: 7 Tage · gestrichelt: jüngster Median</span>
+      <span><span className="co-mini-marker"/> Linie: letzte 7 Tage · gestrichelt: dein üblicher Wert</span>
       <span>Werte allein sind keine Trainingsfreigabe.</span>
     </div>
     {(!view?.healthOk||!health)&&<p className="co-data-note">Garmin-Gesundheitsdaten sind momentan nicht verfügbar.</p>}
     {error&&<p className="co-data-note" role="alert">Einige Datenquellen sind gerade nicht erreichbar.</p>}
     <details className="co-recovery-details">
-      <summary>Was bedeuten diese Werte?</summary>
+      <summary>Mehr wissen? Die Werte einfach erklärt</summary>
       <div className="co-recovery-explanation">
-        <p><strong>Schlaf:</strong> Dauer, nicht Schlafqualität. <strong>HRV:</strong> individuelle Schwankung
-        des Herzrhythmus. <strong>Ruhepuls:</strong> ebenfalls im persönlichen Verlauf betrachten.</p>
-        <p><strong>Deine konkreten Werte:</strong> {recoveryDashboardMeaning(comparison)}</p>
-        <p>Die gestrichelte Linie zeigt den Median der 14 Tage vor der neuesten Messung –
-        nur bei mindestens sieben gültigen Werten. Das ist keine langfristige gesunde Baseline.
-        Krankheit, Trainingsbelastung und Befinden müssen für eine Empfehlung zusätzlich einfließen.</p>
+        <p><strong>Schlaf:</strong> Wie lange du geschlafen hast – nicht, wie gut der Schlaf war.
+        <strong> HRV:</strong> Die Zeit zwischen deinen Herzschlägen schwankt leicht. Diese Schwankung
+        kann Hinweise auf Belastung geben, ist aber kein Urteil über deine Fitness.
+        <strong> Ruhepuls:</strong> Wie schnell dein Herz in Ruhe schlägt. Am besten mit deinen eigenen
+        Werten vergleichen.</p>
+        {weekTrend&&<p><strong>Diese Woche im Vergleich zur Vorwoche:</strong> {weekTrend.summary}</p>}
+        <p><strong>So entsteht der Vergleich:</strong> Wir schauen auf deine Messungen aus den
+        14 Tagen vor dem neuesten Wert. Der gestrichelte Strich zeigt den Wert in der Mitte
+        dieser Messungen (Fachbegriff: Median). Dafür brauchen wir mindestens sieben Tage.
+        Ein einzelner Wert kann deine Erholung nicht sicher beurteilen.</p>
         {comparison&&<p className="co-recovery-reference">
-          Referenz {shortDay(comparison.referenceStart)}–{shortDay(comparison.referenceEnd)}
-          · gültige Werte: Schlaf {sleep?.sampleCount||0}, HRV {hrv?.sampleCount||0},
+          Vergleichszeitraum: {shortDay(comparison.referenceStart)}–{shortDay(comparison.referenceEnd)}
+          · Messungen: Schlaf {sleep?.sampleCount||0}, HRV {hrv?.sampleCount||0},
           Ruhepuls {rhr?.sampleCount||0}.
         </p>}
       </div>
