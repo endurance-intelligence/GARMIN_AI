@@ -40,8 +40,8 @@ test('no synthetic confidence: without at least three responses the Coach remain
  assert.deepEqual(partial.days,base.days)
 })
 test('three hard recent sessions trigger conservative suggestions for the next week',()=>{
- const reports=[feedback(1,9,{legs:'heavy'}),feedback(2,8,{legs:'heavy'}),
-  feedback(4,8),feedback(6,5),feedback(8,5)]
+ const reports=[feedback(3,9,{legs:'heavy'}),feedback(4,8,{legs:'heavy'}),
+  feedback(5,8),feedback(6,5),feedback(8,5)]
  const trend=analyzeWorkoutFeedbackTrend(reports,today)
  assert.equal(trend.level,'high')
  assert.equal(trend.kind,'reduce')
@@ -57,7 +57,7 @@ test('three hard recent sessions trigger conservative suggestions for the next w
  assert.ok(adapted.flags.some(x=>x.includes('Persönlicher Belastungsverlauf')))
 })
 test('repeated lighter warning signs shorten easy and long sessions, not intensify them',()=>{
- const reports=[feedback(1,6,{symptoms:'light'}),feedback(3,6,{symptoms:'light'}),
+ const reports=[feedback(3,6,{symptoms:'light'}),feedback(4,6,{symptoms:'light'}),
   feedback(5,5),feedback(9,5)]
  const trend=analyzeWorkoutFeedbackTrend(reports,today)
  assert.equal(trend.level,'caution')
@@ -91,8 +91,8 @@ test('stale feedback does not keep limiting training after seven days without ne
   buildSevenDayCoach(snapshot()).days)
 })
 test('race days, illness, existing calendar plans and user decisions are never overwritten',()=>{
- const reports=[feedback(1,9,{legs:'heavy'}),feedback(2,8,{legs:'heavy'}),
-  feedback(4,8)]
+ const reports=[feedback(3,9,{legs:'heavy'}),feedback(4,8,{legs:'heavy'}),
+  feedback(5,8)]
  const race=buildSevenDayCoach(snapshot(reports,today))
  assert.equal(race.days[0].kind,'race')
  const existing=snapshot(reports)
