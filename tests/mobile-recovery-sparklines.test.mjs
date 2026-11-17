@@ -47,7 +47,7 @@ test('empty measured history draws no phantom lines',()=>{
 test('summary uses measured prior median and never claims readiness',()=>{
  const comparison=interpretRecovery([...base.slice(0,8),...recent],'2026-11-09')
  const txt=recoveryNarrative(comparison)
- assert.match(txt,/Schlaf als zuletzt/)
+ assert.match(txt,/Schlaf als sonst/)
  assert.match(txt,/HRV niedriger als sonst/)
  assert.match(txt,/Ruhepuls niedriger als sonst/)
  assert.doesNotMatch(txt,/erholt|trainingsbereit|Score/i)
