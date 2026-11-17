@@ -6,11 +6,13 @@ import '../styles/coach-life-context.css'
 
 export type CoachBlock={id:string;start:string;end:string;reason:'vacation'|'unavailable'}
 export type CoachRunReview={activityId:string;assessment:'ok'|'concern';reviewedOn:string}
+export type CoachRaceCheck={raceDate:string;raceName:string;reportedOn:string;fatigue:number;soreness:number;warning:boolean}
 export type CoachContext={
  illness_state:'well'|'sick'|'returning';illness_started_on:string|null;
  illness_kind:'illness'|'pain'|'fatigue'|'other'|null;
  illness_expected_end_on:string|null;
  return_started_on:string|null;blocked_periods:CoachBlock[];run_reviews:CoachRunReview[];
+ declined_days?:string[];race_recovery_checks?:CoachRaceCheck[];
  updated_at:string
 }
 export type CoachRun={
