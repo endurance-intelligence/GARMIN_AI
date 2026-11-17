@@ -9,6 +9,7 @@ import {Icon} from './Icon'
 import {CoachLifeContext} from './CoachLifeContext'
 import {CoachDecisionLive} from './CoachDecisionLive'
 import {CoachPostRaceBarometer} from './CoachPostRaceBarometer'
+import {assessCustomProposal} from '../lib/coachCustomProposal.mjs'
 import type {CoachContextPayload} from './CoachLifeContext'
 import '../styles/coach-seven-day.css'
 
@@ -33,6 +34,7 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
  const [customKind,setCustomKind]=useState<'walk'|'mobility'|'rowing'|'run'>('walk')
  const [customMinutes,setCustomMinutes]=useState(25)
  const [customTitle,setCustomTitle]=useState('')
+ const [customAcknowledged,setCustomAcknowledged]=useState(false)
  const ids=useRef<Record<string,string>>({})
  const today=berlinDateToday()
  useEffect(()=>{
@@ -56,6 +58,11 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
   today,health:snapshot.health,options:snapshot.options,boards:snapshot.boards,
   plans:snapshot.plans,goal:snapshot.goal,life:snapshot.life
  }):null,[snapshot,today])
+ const customDay=plan?.days.find(day=>day.date===customDate)||null
+ const customAssessment=useMemo(()=>customDay&&plan?
+  assessCustomProposal({day:customDay,plan,kind:customKind,minutes:customMinutes,
+   goal:(snapshot?.goal?.goal||null) as {race_name?:string}|null}):null,
+  [customDay,plan,customKind,customMinutes,snapshot?.goal])
  async function updateLife(action:{action:string;[key:string]:string|number|boolean|null}){
   if(!garminSupabase||contextBusy||saving!==null)return
   setContextBusy(true);setError('');setNotice('')
@@ -135,6 +142,15 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
   if(!garminSupabase||saving||contextBusy||!snapshot||customDate!==day.date||
    ['illness','blocked','race','existing','completed'].includes(day.kind)||Boolean(day.decision))return
   const minutes=Number(customMinutes)
+  const assessment=customAssessment
+  if(!assessment?.canSave){
+   setError(assessment?.message||'Bitte Vorschlag und Datum prüfen.')
+   return
+  }
+  if(assessment.requiresAcknowledgment&&!customAcknowledged){
+   setError('Bitte zuerst die Coach-Einschätzung bestätigen oder den Vorschlag anpassen.')
+   return
+  }
   const runningAllowed=day.approvable||day.kind==='option'
   if(!Number.isInteger(minutes)||minutes<10||minutes>120||
    (customKind==='run'&&!runningAllowed)){
@@ -156,8 +172,9 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
    if(!session)throw Error('Bitte erneut anmelden.')
    const k='custom:'+day.date+':'+customKind+':'+minutes+':'+title
    const clientRequestId=ids.current[k]||(ids.current[k]=crypto.randomUUID())
-   const notes='Eigener Vorschlag · '+minutes+
-    ' Min. · GARMIN_AI Entwurf. Keine automatische Garmin-/Intervals-Übertragung.'
+   const notes='Eigener Vorschlag · '+minutes+' Min. · Coach: '+
+    assessment.title+'. '+assessment.message.slice(0,235)+
+    ' Nur Entwurf, keine Garmin-/Intervals-Übertragung.'
    const response=await fetch(garminSupabaseUrl+'/functions/v1/garmin-training-plan',{
     method:'POST',cache:'no-store',
     headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey,
@@ -207,13 +224,12 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
     {plan.days.map(day=><button type="button" key={day.date} role="tab"
       aria-selected={selectedDay===day.date} className={selectedDay===day.date?'is-selected':''}
       disabled={saving!==null||contextBusy}
-      onClick={()=>{setSelectedDay(day.date);setReview(null);setCustomDate(null);setNotice('')}}>
+      onClick={()=>{setSelectedDay(day.date);setReview(null);setCustomDate(null);
+       setCustomAcknowledged(false);setNotice('')}}>
      <span>{formatDate(day.date)}</span>
-     <strong>{day.decision==='declined'?'Abgelehnt':day.decision==='accepted'?'Bestätigt':
-       day.kind==='existing'?'Im Kalender':day.kind==='completed'?'Erledigt':
-       day.kind==='race'?'Wettkampf':day.kind==='recovery'?'Erholung':
-       day.kind==='illness'?'Pause':day.kind==='easy'?'Locker':day.kind==='long'?'Langer Lauf':
-       day.kind==='option'?'Optional':day.kind==='blocked'?'Blockiert':'Training'}</strong>
+     <strong title={day.title}>{day.title}</strong>
+     {day.decision&&<small className="c7-day-choice">
+      {day.decision==='accepted'?'✓ Angenommen':'× Abgelehnt'}</small>}
     </button>)}
    </div>
    <CoachDecisionLive plan={plan} snapshot={snapshot!} reviewDate={review}
@@ -229,7 +245,7 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
     onReset={date=>void updateLife({action:'set_day_decision',date,choice:'open'})}
     onCustom={date=>{
      setSelectedDay(date);setReview(null);setCustomDate(date);setCustomKind('walk')
-     setCustomTitle('');setCustomMinutes(25)
+     setCustomTitle('');setCustomMinutes(25);setCustomAcknowledged(false)
      requestAnimationFrame(()=>document.getElementById('c7-day-'+date)?.scrollIntoView({
       behavior:'smooth',block:'center'
      }))
@@ -290,7 +306,7 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
       <div className="c7-custom-fields">
        <label>Aktivität
         <select value={customKind} disabled={saving!==null}
-         onChange={e=>setCustomKind(e.target.value as typeof customKind)}>
+         onChange={e=>{setCustomKind(e.target.value as typeof customKind);setCustomAcknowledged(false)}}>
          <option value="walk">Spaziergang</option>
          <option value="mobility">Stabi / Mobility</option>
          <option value="rowing">Rudern locker</option>
@@ -298,14 +314,30 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
         </select></label>
        <label>Dauer in Minuten
         <input type="number" min="10" max="120" step="5" value={customMinutes}
-         disabled={saving!==null} onChange={e=>setCustomMinutes(Number(e.target.value))}/></label>
+         disabled={saving!==null} onChange={e=>{setCustomMinutes(Number(e.target.value));setCustomAcknowledged(false)}}/></label>
        <label>Titel (optional)
         <input type="text" maxLength={120} value={customTitle} disabled={saving!==null}
          placeholder="z. B. 30 Min. Spaziergang" onChange={e=>setCustomTitle(e.target.value)}/></label>
       </div>
+      {customAssessment&&<div className={'c7-custom-assessment is-'+customAssessment.level}
+       role="status" aria-live="polite">
+       <span className="c7-assessment-eyebrow">COACH-CHECK / VERGLEICH MIT DEM TAGESPLAN</span>
+       <strong>{customAssessment.title}</strong>
+       <p>{customAssessment.message}</p>
+       <small>Abgleich der eingegebenen Dauer mit Coach-Plan, Wettkampfphase und verfügbaren Garmin-Signalen.
+        Keine automatische Trainingsfreigabe.</small>
+      </div>}
+      {customAssessment?.requiresAcknowledgment&&<label className="c7-custom-ack">
+       <input type="checkbox" checked={customAcknowledged} disabled={saving!==null}
+        onChange={e=>setCustomAcknowledged(e.target.checked)}/>
+       Ich habe die Einschätzung gelesen und möchte die Abweichung bewusst als Entwurf speichern.
+      </label>}
       <div className="c7-custom-actions">
-       <button type="button" disabled={saving!==null} onClick={()=>void saveCustom(day)}>
-        {saving===day.date?'Speichere …':'Meinen Vorschlag als Entwurf speichern'}</button>
+       <button type="button" disabled={saving!==null||!customAssessment?.canSave||
+        (customAssessment.requiresAcknowledgment&&!customAcknowledged)}
+        onClick={()=>void saveCustom(day)}>
+        {saving===day.date?'Speichere …':customAssessment?.requiresAcknowledgment?
+         'Trotz Coach-Hinweis als Entwurf speichern':'Meinen Vorschlag als Entwurf speichern'}</button>
        <button type="button" className="c7-secondary" disabled={saving!==null}
         onClick={()=>setCustomDate(null)}>Abbrechen</button>
       </div>
