@@ -131,6 +131,52 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
   }catch(e){setError(e instanceof Error?e.message:'Speichern fehlgeschlagen.')}
   finally{setSaving(null)}
  }
+ async function saveCustom(day:CoachDay){
+  if(!garminSupabase||saving||contextBusy||!snapshot||customDate!==day.date||
+   ['illness','blocked','race','existing','completed','declined','acknowledged'].includes(day.kind))return
+  const minutes=Number(customMinutes)
+  const runningAllowed=day.approvable||day.kind==='option'
+  if(!Number.isInteger(minutes)||minutes<10||minutes>120||
+   (customKind==='run'&&!runningAllowed)){
+   setError('Bitte nur eine zulässige, leichte Einheit von 10–120 Minuten wählen.')
+   return
+  }
+  const choices={
+   walk:{title:'Spaziergang',sport:'other'},
+   mobility:{title:'Stabi & Mobility',sport:'strength'},
+   rowing:{title:'Rudern locker',sport:'other'},
+   run:{title:'Lockerer Lauf',sport:'running'}
+  } as const
+  const pick=choices[customKind]
+  const title=customTitle.trim()||pick.title+' · '+minutes+' Min.'
+  if(title.length>120){setError('Titel darf maximal 120 Zeichen haben.');return}
+  setSaving(day.date);setError('');setNotice('')
+  try{
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)throw Error('Bitte erneut anmelden.')
+   const k='custom:'+day.date+':'+customKind+':'+minutes+':'+title
+   const clientRequestId=ids.current[k]||(ids.current[k]=crypto.randomUUID())
+   const notes='Eigener Vorschlag · '+minutes+
+    ' Min. · GARMIN_AI Entwurf. Keine automatische Garmin-/Intervals-Übertragung.'
+   const response=await fetch(garminSupabaseUrl+'/functions/v1/garmin-training-plan',{
+    method:'POST',cache:'no-store',
+    headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey,
+     'content-type':'application/json'},
+    body:JSON.stringify({action:'create',clientRequestId,date:day.date,title,
+     sport:pick.sport,sessionType:'event',notes})
+   })
+   const answer=await response.json().catch(()=>({})) as SubmitResponse
+   if(!response.ok||!answer.saved)throw Error(answer.error||'Eigener Entwurf konnte nicht gespeichert werden.')
+   setSnapshot(prev=>prev?{...prev,plans:{entries:[...prev.plans.entries,{
+    id:answer.id,training_date:day.date,title,sport:pick.sport,
+    state:'draft',session_type:'event',revision:answer.revision||1,notes
+   }]}}:prev)
+   setSavedDay(day.date);setCustomDate(null);setReview(null)
+   window.dispatchEvent(new Event('garmin-ai-coach-changed'))
+   setNotice('Eigener Vorschlag als Kalenderentwurf gespeichert. Bitte im Kalender prüfen und freigeben. Keine automatische Übertragung an Garmin oder Intervals.icu.')
+  }catch(e){setError(e instanceof Error?e.message:'Eigener Vorschlag konnte nicht gespeichert werden.')}
+  finally{setSaving(null)}
+ }
  if(!active)return null
  return <section className="c7-root" aria-label="Coach Intelligence mit sieben Tagen Trainingsvorschlägen">
   <div className="c7-top">
