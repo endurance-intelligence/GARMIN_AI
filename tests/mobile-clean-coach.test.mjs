@@ -28,8 +28,8 @@ test('weight is one quick sheet with direct swipe wheels and verified save',()=>
  assert.match(picker,/<WheelColumn label="Kilogramm"/)
  assert.match(picker,/<WheelColumn label="Zehntel"/)
  assert.match(sync,/session,'POST',\{date,kg\}/)
- assert.match(sync,/onSaved\?\.\(kg\)/)
- assert.match(sync,/Garmin-Übertragung folgt nach Freigabe/)
+ assert.match(sync,/onSaved\?\.\(kg,intervalsStatus\)/)
+ assert.match(sync,/Keine automatische Garmin-Connect-Gewichtsübertragung/)
 })
 
 test('old simulated Coach prototype is retired and replaced by live decision panels',()=>{
