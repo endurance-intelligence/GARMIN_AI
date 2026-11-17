@@ -33,7 +33,7 @@ test('the previous seven-day recovery trend is stable even if latest HRV is indi
  }))
  const t=recoveryWeekTrend(raw,date)
  assert.ok(t)
- assert.match(t.summary,/ungefähr stabil/)
+ assert.match(t.summary,/ähnlich wie letzte Woche/)
  assert.equal(t.hrv.sampleCurrent,7)
  assert.equal(t.hrv.samplePrevious,7)
  assert.equal(recoveryWeekTrend([],date),null)
