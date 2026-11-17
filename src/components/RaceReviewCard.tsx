@@ -8,7 +8,8 @@ import type {CoachGoal} from '../lib/coachGoal'
 import {Icon} from './Icon'
 import '../styles/race-review.css'
 
-type Current={goal:CoachGoal;review:RaceReview|null;strategy:Record<string,unknown>|null}
+type GoalView=Pick<CoachGoal,'race_date'|'race_name'|'target_hours'> & {distance_km:number|null}
+type Current={goal:GoalView;review:RaceReview|null;strategy:Record<string,unknown>|null}
 const safe=(value:unknown)=>typeof value==='number'&&Number.isFinite(value)?value:null
 const minKm=(seconds:number|null)=>seconds===null?'–':
  Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+' min/km'
@@ -38,28 +39,49 @@ export function RaceReviewCard({active,onCoach}:{
     if(!response.ok)throw Error('Renn- und Coach-Daten nicht erreichbar ('+response.status+').')
     return await response.json() as Record<string,unknown>
    }
-   const result=await request('garmin-coach-goal')
-   const goal=(result.goal||null) as CoachGoal|null
+   const [result,pastPlanResult]=await Promise.all([
+    request('garmin-coach-goal'),
+    garminSupabase.from('garmin_race_strategy').select('*')
+     .eq('user_id',session.user.id).lte('race_date',today)
+     .gte('race_date',coachAddDays(today,-60))
+     .order('race_date',{ascending:false}).limit(1).maybeSingle()
+   ])
+   if(pastPlanResult.error)throw Error('Rennarchiv derzeit nicht erreichbar.')
    if(!live)return
+   const activeGoal=(result.goal||null) as CoachGoal|null
+   const pastPlan=(pastPlanResult.data||null) as Record<string,unknown>|null
+   const fromArchive:GoalView|null=pastPlan?{
+    race_date:String(pastPlan.race_date),race_name:String(pastPlan.race_name),
+    distance_km:safe(pastPlan.race_distance_km),
+    target_hours:safe(pastPlan.goal_target_hours)
+   }:null
+   const activeIsRecent=activeGoal&&activeGoal.race_date<=today&&
+    activeGoal.race_date>=coachAddDays(today,-60)
+   const goal:GoalView|null=fromArchive&&
+    (!activeIsRecent||fromArchive.race_date>=activeGoal!.race_date)?
+     {...fromArchive,
+      distance_km:fromArchive.distance_km??(
+       activeGoal?.race_date===fromArchive.race_date&&
+       activeGoal?.race_name===fromArchive.race_name?activeGoal.distance_km:null),
+      target_hours:fromArchive.target_hours??(
+       activeGoal?.race_date===fromArchive.race_date&&
+       activeGoal?.race_name===fromArchive.race_name?activeGoal.target_hours:null)}:
+     activeIsRecent?activeGoal:activeGoal||null
    if(!goal){setCurrent(null);return}
-   if(goal.race_date>today){setCurrent({goal,review:null,strategy:null});return}
-   if(goal.race_date<coachAddDays(today,-60)){
+   if(goal.race_date>today||goal.race_date<coachAddDays(today,-60)){
     setCurrent({goal,review:null,strategy:null});return
    }
    const week=coachMonday(goal.race_date)
-   const [board,contextResult,planResult]=await Promise.all([
+   const [board,contextResult]=await Promise.all([
     request('garmin-week-board?start='+encodeURIComponent(week)),
-    request('garmin-coach-context'),
-    garminSupabase.from('garmin_race_strategy').select('*')
-     .eq('user_id',session.user.id).eq('race_date',goal.race_date)
-     .eq('race_name',goal.race_name).maybeSingle()
+    request('garmin-coach-context')
    ])
-   if(planResult.error)throw Error('Gespeicherte Rennstrategie nicht erreichbar.')
-   const strategy=(planResult.data||null) as Record<string,unknown>|null
+   const strategy=pastPlan&&pastPlan.race_date===goal.race_date&&
+    pastPlan.race_name===goal.race_name?pastPlan:null
    const context=(contextResult.context||null) as Record<string,unknown>|null
    const review=buildRaceReview({today,
     race:{raceDate:goal.race_date,raceName:goal.race_name,
-     distanceKm:Number(goal.distance_km)},
+     distanceKm:goal.distance_km},
     strategy,board,context})
    if(live)setCurrent({goal,review,strategy})
   })().catch(e=>{
@@ -73,7 +95,7 @@ export function RaceReviewCard({active,onCoach}:{
  const report=current?.review
  const strategy=current?.strategy
  const budget=goal&&report?.plan?estimateRaceBudget({
-  distanceKm:Number(goal.distance_km),targetHours:goal.target_hours,
+  distanceKm:goal.distance_km,targetHours:goal.target_hours,
   calculation:report.plan,
   carbsPerHour:safe(strategy?.carbs_g_per_hour),
   fluidPerHour:safe(strategy?.fluid_ml_per_hour),
