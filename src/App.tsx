@@ -7,6 +7,7 @@ import {CalendarPage} from './pages/CalendarPage'
 import {MorePage} from './pages/MorePage'
 import {LiveGarminActivities} from './components/LiveGarminActivities'
 import {RacePage} from './pages/RacePage'
+import {GoalsPage} from './pages/GoalsPage'
 import {GearPage} from './pages/GearPage'
 import {SettingsPage} from './pages/SettingsPage'
 import {StrengthPage} from './pages/StrengthPage'
@@ -14,9 +15,11 @@ import type {Page} from './navigation'
 import './styles/horizon.css'
 import './styles/mobile-first.css'
 import './styles/mobile-ux-v084.css'
+import './styles/navigation-goals.css'
 
 const navigation: {id:Page; name:string; icon:string; mobile:string}[] = [
   {id:'home',name:'Coach',icon:'layout-dashboard',mobile:'Coach'},
+  {id:'goals',name:'Goals',icon:'target',mobile:'Goals'},
   {id:'calendar',name:'Kalender',icon:'calendar-days',mobile:'Kalender'},
   {id:'training',name:'Analyse',icon:'activity',mobile:'Training'},
   {id:'race',name:'Race Prep',icon:'flag',mobile:'Race'},
@@ -32,7 +35,7 @@ function App() {
   const [page,setPage]=useState<Page>(()=>{
    try{
     const last=sessionStorage.getItem('garmin-ai:last-page:v1')
-    if(last&&(['home','calendar','training','race','more','gear','settings','strength'] as string[]).includes(last))
+    if(last&&(['home','goals','calendar','training','race','more','gear','settings','strength'] as string[]).includes(last))
      return last as Page
    }catch{/* Private browsing can block session storage. */}
    return 'home'
@@ -72,6 +75,7 @@ function App() {
       <header className="topbar"><div className="crumbs"><span>WORKSPACE</span><span className="slash">/</span><strong>{(page==='gear'?'Equipment':page==='settings'?'Einstellungen':page==='strength'?'Stabi Studio':navigation.find(n=>n.id===page)?.name)}</strong></div><div className="top-actions"><div className="mobile-brand" style={{display:'none'}}><div className="brand-logo"><Icon name="activity"/></div>GARMIN_AI</div><span className="date">GARMIN_AI / DEIN TRAINING</span><span className="pill"><span className="pulse"/> DATEN LIVE · FREIGABE DURCH DICH</span><div className="round-icon"><Icon name="bell"/></div></div></header>
       <CoachPage active={page==='home'} focus={coachFocus} onGo={go} onOpenCalendar={openCalendar} onOpenRaceWeather={openRaceWeather}/>
       <CalendarPage active={page==='calendar'} focus={calendarFocus} onOpenCoach={openCoach}/>
+      <GoalsPage active={page==='goals'} onGo={go}/>
       <TrainingPage active={page==='training'} onGo={go}/>
       <StrengthPage active={page==='strength'}/>
       {import.meta.env.DEV && <LiveGarminActivities active={page==='training'}/>}
