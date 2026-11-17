@@ -1,3 +1,4 @@
+import {latestWorkoutFeedback,evaluateWorkoutFeedback} from './postWorkoutFeedback.mjs'
 /** GARMIN_AI Coach Intelligence v1.0 — conservative, explainable seven-day preview.
  * No synthetic training readiness, direct Garmin write or automatic approval.
  */
@@ -58,7 +59,6 @@ export function buildSevenDayCoach(input){
  const recentHealth=age!==null&&age<=2
  const observationLimited=!recentHealth||!dataReady||
   training.historyStatus!=='complete'||![hrv,pulse,sleep].some(x=>x?.median!=null)
- const caution=!!input.symptoms||signals.length>=2||volumeRise
  const life=input.life?.context||{illness_state:'well',blocked_periods:[],run_reviews:[]}
  const returning=life.illness_state==='returning'
  const ill=life.illness_state==='sick'
@@ -77,6 +77,12 @@ export function buildSevenDayCoach(input){
  const blocks=Array.isArray(life.blocked_periods)?life.blocked_periods:[]
  const dayDecisions=Array.isArray(life.day_decisions)?life.day_decisions:[]
  const checks=Array.isArray(life.race_recovery_checks)?life.race_recovery_checks:[]
+ const workoutFeedback=latestWorkoutFeedback(life.post_workout_feedback,today)
+ const workoutAssessment=workoutFeedback?evaluateWorkoutFeedback(workoutFeedback):null
+ const feedbackCaution=workoutAssessment?.avoidHard===true
+ const caution=!!input.symptoms||signals.length>=2||volumeRise||feedbackCaution
+ const feedbackNextDay=(day)=>workoutFeedback&&day>=today&&
+  day>workoutFeedback.activityDate&&day<=coachAddDays(workoutFeedback.activityDate,2)
  const lastRaceCheck=[...checks].filter(x=>typeof x.raceDate==='string'&&x.raceDate<=today)
   .sort((a,b)=>String(b.raceDate).localeCompare(String(a.raceDate))||
     String(b.reportedOn).localeCompare(String(a.reportedOn)))[0]||null
@@ -116,6 +122,10 @@ export function buildSevenDayCoach(input){
   raceDate?'Wettkampfziel '+goal.race_name+' am '+raceDate:'Kein Wettkampfziel verfügbar',
   crossNote
  ]
+ if(workoutFeedback&&workoutAssessment)flags.push(
+  'Letzte persönliche Rückmeldung ('+workoutFeedback.activityDate+'): '+
+  'Anstrengung '+workoutFeedback.rpe+'/10 · Beine '+workoutFeedback.legs+
+  ' · '+workoutAssessment.title)
  if(raceCheck)flags.push('Renn-Erholung: eigener Check-in vom '+raceCheck.reportedOn+
   ' · Erschöpfung '+raceCheck.fatigue+'/10 · Beine '+raceCheck.soreness+'/10'+
   (raceCheck.warning?' · Warnzeichen gemeldet':''))
@@ -152,8 +162,19 @@ export function buildSevenDayCoach(input){
    return make(day,'blocked',block.reason==='vacation'?'Urlaub · kein Training':'Nicht verfügbar',null,
     'Von dir geblockter Tag. Keine Nachholeinheit geplant.'+
     (existing?' Achtung: Bereits geplanter Termin bleibt bestehen – im Kalender prüfen.':''))
-  if(existing)return make(day,'existing',existing.title,null,'Bereits in GARMIN_AI geplant. Keine zweite Einheit erzeugen.',existing.sport||'running')
+  if(existing)return make(day,'existing',existing.title,null,
+   feedbackNextDay(day)&&feedbackCaution?
+    'Dein letztes Trainingsfeedback empfiehlt mehr Erholung. Den bestehenden Termin im Kalender prüfen; keine automatische Änderung.':
+    'Bereits in GARMIN_AI geplant. Keine zweite Einheit erzeugen.',existing.sport||'running')
   if(done)return make(day,'completed','Bereits trainiert',null,'Absolvierte Garmin-/Stabi-Aktivität; keine zusätzliche Planung.')
+  if(feedbackNextDay(day)&&workoutAssessment?.preferRest){
+   if(workoutFeedback.symptoms==='clear')return make(day,'illness',
+    'Beschwerden nach der Einheit · Pause',null,
+    'Du hast deutliche Beschwerden gemeldet. Keine weitere Belastung empfehlen; bei anhaltenden oder ungewöhnlichen Symptomen medizinisch abklären.')
+   return make(day,'recovery','Erholung nach harter Einheit',null,
+    'Dein Feedback: '+workoutFeedback.rpe+'/10 Anstrengung, Beine '+
+    workoutFeedback.legs+'. '+workoutAssessment.message+' Keine Nachholeinheit.')
+  }
   if(returning){
    if(concern)return make(day,'illness','Wiedereinstieg unterbrechen',null,
     'Nach einem Wiedereinstiegslauf wurden Beschwerden gemeldet. Nicht weitertrainieren; medizinisch klären.')
@@ -316,5 +337,6 @@ export function buildSevenDayCoach(input){
    observationLimited?'Datenlage ist eingeschränkt. Nur konservative Vorschläge.':
    'Vorschläge sind eine Planungshilfe, keine medizinische Freigabe.',
   basedOnActual:true,source:'Garmin & bestehender Kalender',raceDate,returning,ill,postIllness,concern,acknowledgedRuns:acknowledged.length,
-  recoveryRaceDate,checkedRecently,reportedExhaustion}
+  recoveryRaceDate,checkedRecently,reportedExhaustion,
+  latestWorkoutFeedback:workoutFeedback?.activityId||null}
 }
