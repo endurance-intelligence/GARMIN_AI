@@ -71,7 +71,7 @@ function stateText(value?:string) {
   return states[value||'']||'Status unbekannt'
 }
 export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boolean;mode:'weight'|'status';
- onSaved?:(kg:number,intervalsStatus:'not_published'|'confirmed'|'needs_review')=>void;inlineWheel?:boolean}){
+ onSaved?:(kg:number,intervalsStatus:'not_published'|'confirmed'|'needs_review',deliveryAttemptFailed:boolean)=>void;inlineWheel?:boolean}){
   const [session,setSession]=useState<Session|null>(null)
   const [data,setData]=useState<SyncPayload|null>(null)
   const [intervals,setIntervals]=useState<IntervalsStatus|null>(null)
@@ -149,10 +149,14 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
     }
     setBusy(true);setError('');setNotice('')
     try{
-      const answer=await api<{saved:boolean;transferStatus:string;garminUpdated:boolean}>(
+      const answer=await api<{saved:boolean;transferStatus:string;garminUpdated:boolean;
+       intervalsSyncStatus?:'not_published'|'confirmed'|'needs_review'}>(
         session,'POST',{date,kg})
       if(!answer.saved||answer.garminUpdated)throw Error('Unerwartete Antwort des Gewichtsdienstes.')
-      let intervalsStatus:'not_published'|'confirmed'|'needs_review'='not_published'
+      let intervalsStatus:'not_published'|'confirmed'|'needs_review'=
+       answer.intervalsSyncStatus==='confirmed'||answer.intervalsSyncStatus==='needs_review'
+        ?answer.intervalsSyncStatus:'not_published'
+      let deliveryAttemptFailed=false
       if(sendToIntervals&&intervals?.configured){
        try{
         const response=await fetch(garminSupabaseUrl+'/functions/v1/garmin-weight-intervals',{
@@ -165,6 +169,7 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
         }
         if(!response.ok||body.intervalsConfirmed!==true){
          intervalsStatus='needs_review'
+         deliveryAttemptFailed=true
          setNotice('In GARMIN_AI gespeichert. Intervals.icu noch nicht bestätigt: '+
           (body.error||'Bitte die Verbindung prüfen.'))
         }else{
@@ -173,14 +178,19 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
         }
        }catch{
         intervalsStatus='needs_review'
+        deliveryAttemptFailed=true
         setNotice('Gewicht lokal gespeichert, aber Intervals.icu nicht erreichbar. Kein Garmin-Nachweis.')
        }
       }else{
-       setNotice('In GARMIN_AI gespeichert. Keine Übertragung zu Intervals.icu oder Garmin Connect.')
+       setNotice(intervalsStatus==='confirmed'
+        ?'In GARMIN_AI gespeichert. Dieser unveränderte Eintrag war bereits bei Intervals.icu bestätigt; heute nicht erneut gesendet. Garmin Connect nicht bestätigt.'
+        :intervalsStatus==='needs_review'
+         ?'In GARMIN_AI gespeichert. Frühere Intervals.icu-Übertragung noch zu prüfen; heute nicht erneut gesendet. Garmin Connect nicht bestätigt.'
+         :'In GARMIN_AI gespeichert. Keine Übertragung zu Intervals.icu oder Garmin Connect.')
       }
       setWeight(kg.toFixed(1))
       setRefresh(n=>n+1)
-      onSaved?.(kg,intervalsStatus)
+      onSaved?.(kg,intervalsStatus,deliveryAttemptFailed)
     }catch(err){
       setError(err instanceof Error?err.message:'Gewicht konnte nicht gespeichert werden.')
     }finally{setBusy(false)}
