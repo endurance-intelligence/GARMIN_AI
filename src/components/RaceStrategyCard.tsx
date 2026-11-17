@@ -2,6 +2,7 @@ import {useEffect,useRef,useState} from 'react'
 import {Icon} from './Icon'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {estimateRaceStrategy} from '../lib/raceStrategyMath.mjs'
+import {estimateRaceBudget} from '../lib/raceExecution.mjs'
 import type {CoachGoal} from '../lib/coachGoal'
 import '../styles/race-strategy.css'
 
@@ -106,6 +107,17 @@ export function RaceStrategyCard({active}:{active:boolean}){
   loopKm:loop,movingMinutes:moving,regularPauseMinutes:regular,
   longStopEvery:every,longStopMinutes:long,paceSeconds:pace
  }):null
+ const budget=estimateRaceBudget({
+  distanceKm:goal?Number(goal.distance_km):null,
+  targetHours:goal?.target_hours??null,calculation,
+  carbsPerHour:get(draft.carbs),fluidPerHour:get(draft.fluid),
+  sodiumPerHour:get(draft.sodium)
+ })
+ const formatted=(value:number|null,unit:string)=>
+  value===null?'Noch nicht geplant':
+   value.toLocaleString('de-DE',{maximumFractionDigits:0})+' '+unit
+ const paceText=(seconds:number|null)=>seconds===null?'–':
+  String(Math.floor(seconds/60))+':'+String(seconds%60).padStart(2,'0')+' min/km'
  async function save(){
   if(busy||!goal||!garminSupabase)return
   setBusy(true);setError('');setNotice('')
@@ -188,6 +200,16 @@ export function RaceStrategyCard({active}:{active:boolean}){
       <small>Nur eine Rechnung aus deinen Eingaben. Wetter, Versorgung und unerwartete Stopps
        können die tatsächliche Zeit verändern.</small>
      </div>}
+     {calculation&&<div className="rsp-race-budget" aria-label="Rennziel und Zeitpuffer">
+      <div><span>Bewegungstempo ohne Pausen</span>
+       <strong>{paceText(budget.estimatedMovingPaceSeconds)}</strong></div>
+      {budget.targetMinutes!==null&&<div><span>Zielzeit inklusive Pausen</span>
+       <strong>{goal?.target_hours?.toLocaleString('de-DE')} h</strong></div>}
+      {budget.marginMinutes!==null&&<div><span>Rechnerischer Zeitpuffer</span>
+       <strong>{budget.marginMinutes>=0?'+'+budget.marginMinutes:
+        budget.marginMinutes} Min.</strong></div>}
+      <p>Richtwerte aus deinem Plan. Keine GPS-/Ergebnisprognose; Pausen sind eingerechnet.</p>
+     </div>}
      <label className="rsp-wide">Stopps, Kleidung, Schuhe oder Wechsel planen
       <textarea rows={2} maxLength={500} value={draft.stopsNotes} disabled={busy}
        placeholder="Wo und wann längere Stopps, Schuhwechsel oder Wechselkleidung?"
@@ -203,6 +225,17 @@ export function RaceStrategyCard({active}:{active:boolean}){
       <NumberField label="Natrium (mg/Stunde, optional)" value={draft.sodium}
        onChange={v=>update('sodium',v)} min={0} max={3000}/>
      </div>
+     {budget.totalMinutes!==null&&<div className="rsp-supply-budget"
+      aria-label="Verpflegungsmengen aus eingetragenen Stundenwerten">
+      <div><span>Kohlenhydrate gesamt</span>
+       <strong>{formatted(budget.plannedCarbsGrams,'g')}</strong></div>
+      <div><span>Getränke gesamt</span>
+       <strong>{budget.plannedFluidMl===null?'Noch nicht geplant':
+        (budget.plannedFluidMl/1000).toLocaleString('de-DE',{maximumFractionDigits:2})+' l'}</strong></div>
+      <div><span>Natrium gesamt</span>
+       <strong>{formatted(budget.plannedSodiumMg,'mg')}</strong></div>
+      <small>{budget.note}</small>
+     </div>}
      <label className="rsp-wide">Produkte und Verpflegungspunkte
       <textarea rows={2} maxLength={500} disabled={busy} value={draft.fuelNotes}
        placeholder="Welche Gels, Getränke, Lebensmittel und an welchem Versorgungspunkt?"
