@@ -110,7 +110,7 @@ test('calendar uses same target week throughout planning, optional club slots an
  assert.match(calendar,/raceInWeek=coachPlan\?\.days\.find\(d=>d\.kind==='race'\)/)
  assert.match(calendar,/HAUPTZIEL \/ RENNTAG/)
  assert.match(snap,/const visible=visibleWeek\?coachMonday\(visibleWeek\):first/)
- assert.match(snap,/const weeks=\[\.\.\.new Set\(\[first,second,visible\]\)\]/)
+ assert.match(snap,/const weeks=\[\.\.\.new Set\(\[previous,first,second,visible\]\)\]/)
  assert.match(board,/candidate\?\.kind!=='race'/)
  assert.match(board,/RENNTAG \/ HAUPTZIEL/)
  assert.match(board,/is-coach\.is-race|is-race/)
