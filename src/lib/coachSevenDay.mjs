@@ -189,7 +189,7 @@ export function buildSevenDayCoach(input){
      ' bitte Erschöpfung und Muskelgefühl im Renn-Barometer eintragen bzw. aktualisieren. '+
      'Bis dahin keine automatischen Laufeinheiten oder Trainingsblocker im Kalender.')
    if(raceCheck.warning)
-    return make(day,'recovery','Warnzeichen · Belastung abklären',null,
+    return make(day,'illness','Warnzeichen · Belastung abklären',null,
      'Du hast Warnzeichen gemeldet. Kein Laufvorschlag. Bei Brustschmerzen, Atemnot, '+
      'Schwindel oder starken Beschwerden medizinisch abklären.')
    if(!Number.isFinite(reportedExhaustion)||reportedExhaustion>=7)
