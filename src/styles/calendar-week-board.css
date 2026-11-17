@@ -93,3 +93,8 @@
 .hwb-day-hint{font-size:10px;font-weight:760;color:#b7d0ed;margin-top:2px}
 .hwb-day-header .hwb-health{display:none}
 .hwb-card.is-coach small{line-height:1.35}
+
+/* P0: removing health values also removes the formerly oversized health header. */
+.hwb-day-header{min-height:54px;flex-direction:row;align-items:flex-start}
+.hwb-days{min-height:255px}
+.hwb-day-cards{min-height:160px}
