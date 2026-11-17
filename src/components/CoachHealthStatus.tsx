@@ -81,10 +81,10 @@ export function CoachHealthStatus({active,life,onChanged}:{active:boolean;
  }
  if(!active)return null
  return <>
-  <button type="button" className={'co-health-button co-health-'+status} onClick={()=>setOpen(true)}
+  <button type="button" className={'co-health-button co-health-'+status} onClick={()=>setOpen(true)} disabled={!context}
    aria-haspopup="dialog" aria-label="Krankheit, Beschwerden und Wiedereinstieg verwalten">
    <Icon name="heart-pulse"/>
-   <span>{status==='sick'?'Trainingspause aktiv':status==='returning'?'Wiedereinstieg':'Krank / Beschwerden'}</span>
+   <span>{!context?'Status laden …':status==='sick'?'Trainingspause aktiv':status==='returning'?'Wiedereinstieg':'Krank / Beschwerden'}</span>
   </button>
   {open&&createPortal(<div className="co-health-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setOpen(false)}}>
    <section className="co-health-dialog" role="dialog" aria-modal="true" aria-labelledby="co-health-title">
