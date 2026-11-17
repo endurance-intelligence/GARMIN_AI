@@ -56,7 +56,7 @@ Deno.serve(async req=>{
   const db=createClient(project,key('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
   const [activities,health,manual]=await Promise.all([
    db.from('garmin_activities').select(
-     'activity_id,activity_name,start_time_local,sport_type,distance_m,duration_s,average_heart_rate,rpe_raw')
+     'activity_id,activity_name,start_time_local,sport_type,distance_m,duration_s,average_heart_rate,rpe_raw,feeling_raw')
     .gte('start_time_local',start).lt('start_time_local',end)
     .order('start_time_local',{ascending:true}).limit(250),
    db.from('garmin_daily_metrics').select(
