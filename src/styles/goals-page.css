@@ -1,0 +1,11 @@
+.goals-intro{align-items:center;gap:18px}
+.goals-race-link{display:inline-flex;align-items:center;justify-content:center;gap:9px;
+ min-height:43px;padding:10px 14px;border-radius:12px;border:1px solid rgba(165,189,230,.3);
+ background:#1c2942;color:#e6edff;font-size:11px;font-weight:780;white-space:nowrap}
+.goals-race-link .ic{width:15px;height:15px}
+.goals-race-link:focus-visible{outline:2px solid #c2ec95;outline-offset:2px}
+.goals-page .cltp-root{margin:17px 0}
+.goals-hint{font-size:11px;color:#94a9c9;line-height:1.7;margin:22px 0}
+.goals-status{font-size:11px;color:#bdcae4;padding:12px}
+@media(max-width:680px){.goals-intro{display:grid;gap:15px;justify-items:stretch}
+.goals-race-link{justify-self:start}}
