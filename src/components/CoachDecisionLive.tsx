@@ -1,14 +1,56 @@
+import {useEffect,useMemo,useState} from 'react'
 import type {SevenDayPlan} from '../lib/coachSevenDay.mjs'
+import type {CoachSnapshot} from '../lib/coachSnapshot'
+import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {selectCoachDecision} from '../lib/coachDecision.mjs'
 import {Icon} from './Icon'
 import '../styles/coach-decision-live.css'
 
 const dated=(date:string)=>new Intl.DateTimeFormat('de-DE',{timeZone:'UTC',
  weekday:'long',day:'2-digit',month:'2-digit'}).format(new Date(date+'T12:00:00Z'))
-type Props={plan:SevenDayPlan;reviewDate:string|null;saving:boolean;
+type Props={plan:SevenDayPlan;snapshot:CoachSnapshot;reviewDate:string|null;saving:boolean;
  onReview:(date:string)=>void;onCalendar:(date:string)=>void;onPlan:()=>void}
-export function CoachDecisionLive({plan,reviewDate,saving,onReview,onCalendar,onPlan}:Props){
- const x=selectCoachDecision(plan)
+export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCalendar,onPlan}:Props){
+ const [review,setReview]=useState<Record<string,unknown>|null>(null)
+ const [intervals,setIntervals]=useState<Record<string,unknown>|null>(null)
+ const [evidenceLoading,setEvidenceLoading]=useState(false)
+ const lastRun=useMemo(()=>{
+  const activities=snapshot.boards.flatMap(board=>Array.isArray(board.activities)?board.activities:[])
+  return activities.filter(a=>/run|jog|trail|treadmill/i.test(String(a.sport_type||''))&&
+   String(a.start_time_local||'').slice(0,10)<=plan.today)
+   .sort((a,b)=>String(b.start_time_local||'').localeCompare(String(a.start_time_local||'')))[0]||null
+ },[snapshot.boards,plan.today])
+ const lastId=String(lastRun?.activity_id||'')
+ useEffect(()=>{
+  if(!/^\d{6,20}$/.test(lastId)||!garminSupabase){setReview(null);setIntervals(null);return}
+  const controller=new AbortController()
+  let mounted=true
+  setEvidenceLoading(true);setReview(null);setIntervals(null)
+  void garminSupabase.auth.getSession().then(async({data:{session}})=>{
+   if(!session)throw Error('Not authenticated')
+   const headers={authorization:'Bearer '+session.access_token,apikey:garminPublishableKey}
+   const get=async(path:string)=>{
+    const response=await fetch(garminSupabaseUrl+'/functions/v1/'+path,{
+     cache:'no-store',headers,signal:controller.signal})
+    if(!response.ok)throw Error('Coach source unavailable')
+    return await response.json() as Record<string,unknown>
+   }
+   const [fit,icu]=await Promise.allSettled([
+    get('garmin-coach-review?id='+encodeURIComponent(lastId)),
+    get('garmin-intervals-insights?id='+encodeURIComponent(lastId))
+   ])
+   if(!mounted)return
+   if(fit.status==='fulfilled'){
+    const entries=fit.value.reviews
+    if(Array.isArray(entries))setReview((entries.find(x=>String(x.activityId)===lastId)||null) as Record<string,unknown>|null)
+   }
+   if(icu.status==='fulfilled')setIntervals(icu.value)
+  }).catch(()=>{}).finally(()=>{if(mounted)setEvidenceLoading(false)})
+  return ()=>{mounted=false;controller.abort()}
+ },[lastId])
+ const options=Array.isArray(snapshot.options?.options)?snapshot.options.options:[]
+ const choices=Array.isArray(snapshot.options?.choices)?snapshot.options.choices:[]
+ const x=selectCoachDecision(plan,{options,choices,lastRun,review,intervals})
  if(!x)return null
  const {day}=x
  const reviewIsOpen=reviewDate===day.date
@@ -67,6 +109,7 @@ export function CoachDecisionLive({plan,reviewDate,saving,onReview,onCalendar,on
      <span className="cdl-star" aria-hidden="true">✦</span></div>
     <h4>Warum dieser<br/>Vorschlag?</h4>
     <div className="cdl-specific"><strong>Für {dated(day.date)}:</strong> {x.reason}</div>
+    {evidenceLoading&&<p className="cdl-evidence-loading">Prüfe die letzte Garmin-Einheit und Intervals.icu …</p>}
     <div className="cdl-factors">
      {x.causes.map((c,i)=><div className="cdl-factor" key={c.key}>
       <span className="cdl-factor-number">{String(i+1).padStart(2,'0')}</span>

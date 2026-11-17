@@ -134,3 +134,10 @@
 .cg-home-weather:disabled .cg-home-weather-open{display:none}
 @media(max-width:830px){.cg-home-weather{min-height:65px}}
 @media(prefers-reduced-motion:reduce){.cg-home-weather{transition:none}.cg-home-weather:hover{transform:none}}
+
+/* v0.9.72 · keep compact race-weather legible with feels-like and rain intensity. */
+.cg-home-weather-content{min-width:0;flex:1}
+.cg-home-weather-data{gap:5px 9px}
+.cg-home-weather-data span{font-size:10px;white-space:normal}
+@media(max-width:600px){.cg-home-weather-data{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 10px}
+.cg-home-weather-data strong{font-size:18px;grid-column:1/-1}}

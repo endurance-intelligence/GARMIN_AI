@@ -4,7 +4,7 @@ import {findPlaces,getWeather,localToday} from '../lib/weatherIntelligence'
 import {raceForecastStatus} from '../lib/raceForecastShare.mjs'
 import '../styles/coach-goal.css'
 type GoalWeather={race_date:string;race_location:string;race_start_time:string|null;target_hours:number|null}
-type View={temperature:string;rain:number;gust:number;description:string;label:string}
+type View={temperature:string;feels:string;rain:number;precipitation:number;gust:number;description:string;label:string}
 export function CoachRaceWeatherMini({active,goal,onOpenDetails}:{active:boolean;goal:GoalWeather;onOpenDetails?:()=>void}){
  const [view,setView]=useState<View|null>(null)
  const [loading,setLoading]=useState(false)
@@ -29,11 +29,15 @@ export function CoachRaceWeatherMini({active,goal,onOpenDetails}:{active:boolean
    const hours=index>=0?report.hours.slice(index,index+duration):[]
    const complete=hours.length===duration&&hours.every((h,i)=>h.epoch===hours[0].epoch+i*3600)
    if(!complete){if(mounted)setMissing('Noch keine vollständige Stundenprognose für den Renntag');return}
-   const temp=hours.map(x=>x.temperature),rain=Math.max(...hours.map(x=>x.rainProbability)),
+   const temp=hours.map(x=>x.temperature),feel=hours.map(x=>x.feelsLike),
+    rain=Math.max(...hours.map(x=>x.rainProbability)),
+    precipitation=Math.max(...hours.map(x=>x.precipitation)),
     gust=Math.max(...hours.map(x=>x.gust))
    const state=raceForecastStatus(goal.race_date,day,true)
    if(mounted)setView({temperature:Math.round(Math.min(...temp))+'–'+Math.round(Math.max(...temp))+'°C',
-    rain:Math.round(rain),gust:Math.round(gust),label:state.label,description:state.description})
+    feels:Math.round(Math.min(...feel))+'–'+Math.round(Math.max(...feel))+'°C',
+    rain:Math.round(rain),precipitation:Math.round(precipitation*10)/10,
+    gust:Math.round(gust),label:state.label,description:state.description})
   })().catch(()=>{if(mounted)setMissing('Rennwetter momentan nicht abrufbar')})
    .finally(()=>{if(mounted)setLoading(false)})
   return ()=>{mounted=false}
@@ -46,7 +50,9 @@ export function CoachRaceWeatherMini({active,goal,onOpenDetails}:{active:boolean
   <div className="cg-home-weather-content">
    <span className="cg-home-weather-kicker">RENNWETTER · {goal.race_location||'Ort fehlt'}</span>
    {view?<><div className="cg-home-weather-data"><strong>{view.temperature}</strong>
-    <span>Regen bis {view.rain} %</span><span>Böen bis {view.gust} km/h</span></div>
+    <span>Gefühlt {view.feels}</span><span>Regen bis {view.rain} %</span>
+    <span>Regenstärke max. {view.precipitation.toLocaleString('de-DE')} mm/h</span>
+    <span>Böen bis {view.gust} km/h</span></div>
     <small title={view.description}>{view.label} · Prognose, keine Gewissheit</small></>:
     <small>{loading?'Prüfe Renntag-Prognose …':missing||'Noch keine Stundenprognose vorhanden'}</small>}
   </div>

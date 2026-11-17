@@ -24,7 +24,10 @@ export async function loadCoachSnapshot(session:Session,today:string,signal?:Abo
  // Fetch the visible week as well. A calendar navigating into race week
  // must not reuse only the rolling seven-day Coach preview.
  const visible=visibleWeek?coachMonday(visibleWeek):first
- const weeks=[...new Set([first,second,visible])]
+ // Include the previous completed calendar week: recent Saturday intervals
+ // must remain available in Tuesday's Coach reasoning.
+ const previous=coachAddDays(first,-7)
+ const weeks=[...new Set([previous,first,second,visible])]
  const [health,options,plans,goal,life,...boards]=await Promise.all([
   get('read-garmin-health'),get('garmin-weekly-options'),get('garmin-training-plan'),
   get('garmin-coach-goal'),get('garmin-coach-context'),

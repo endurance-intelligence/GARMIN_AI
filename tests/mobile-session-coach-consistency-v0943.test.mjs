@@ -39,7 +39,7 @@ test('training page focuses solely on the run coach; deep-dive code remains avai
 })
 test('Coach overview only treats explicitly selected club option as a fixed workout',()=>{
  const view=read('src/components/CoachGlance.tsx')
- assert.match(view,/coachTodayChoice\(rows\|\|\[\],choices\|\|\[\],planRows\|\|\[\],date,weekday\)/)
+ assert.match(view,/coachTodayChoice\(rows\|\|\[\],choices\|\|\[\],planRows\|\|\[\],date,weekday,todayActivities,todayManual\)/)
  assert.match(read('src/lib/coachTodayChoice.mjs'),/choiceFor\(o\)==='selected'/)
  assert.match(read('src/lib/coachTodayChoice.mjs'),/choiceFor\(o\)==='open'/)
  assert.match(view,/Optional:/)

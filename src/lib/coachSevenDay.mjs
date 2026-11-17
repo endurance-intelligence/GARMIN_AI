@@ -85,6 +85,12 @@ export function buildSevenDayCoach(input){
  const options=Array.isArray(input.options?.options)?input.options.options:[]
  const choices=Array.isArray(input.options?.choices)?input.options.choices:[]
  const plans=Array.isArray(input.plans?.entries)?input.plans.entries.filter(x=>x.state!=='cancelled'):[]
+ const last7=activities.filter(a=>String(a.start_time_local||'').slice(0,10)>=coachAddDays(today,-6)&&
+   String(a.start_time_local||'').slice(0,10)<=today)
+ const soccer7=last7.filter(a=>/soccer|football/i.test(String(a.sport_type||''))).length
+ const mobility7=last7.filter(a=>/mobility|strength|pilates|weight/i.test(String(a.sport_type||''))).length
+ const crossNote='Ergänzend in 7 Tagen: '+soccer7+' × Fußball, '+mobility7+
+  ' × Kraft/Mobility. Ohne Umrechnung in Laufkilometer.'
  const flags=[
   training?'Garmin: '+quant(training.runKm7,' km Laufumfang in 7 Tagen')+'; Vorwoche '+quant(training.previousRunKm7,' km'):'Trainingsumfang nicht verfügbar',
   latest?'Erholung: letzter Messwert '+latest+(age>2?' (veraltet)':''):'Erholungsdaten fehlen',
@@ -92,7 +98,8 @@ export function buildSevenDayCoach(input){
   latest&&pulse?.median!=null?'Ruhepuls '+quant(pulse.value,' bpm')+'; Median '+quant(pulse.median,' bpm'):'Ruhepuls: kein ausreichender Vergleich',
   latest&&sleep?.median!=null?'Schlaf '+quant(sleep.value===null?null:sleep.value/3600,' h')+
    '; Median '+quant(sleep.median/3600,' h'):'Schlaf: kein ausreichender Vergleich',
-  raceDate?'Wettkampfziel '+goal.race_name+' am '+raceDate:'Kein Wettkampfziel verfügbar'
+  raceDate?'Wettkampfziel '+goal.race_name+' am '+raceDate:'Kein Wettkampfziel verfügbar',
+  crossNote
  ]
  const make=(day,kind,title,minutes,reason,sport='running')=>
   ({date:day,kind,title,minutes,reason,sport,

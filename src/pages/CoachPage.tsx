@@ -8,12 +8,42 @@ import {CrossTrainingCoachCard} from '../components/CrossTrainingCoachCard'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {CoachSevenDay} from '../components/CoachSevenDay'
 import {CoachEvidenceSummary} from '../components/CoachEvidenceSummary'
+import {coachAddDays} from '../lib/coachSevenDay.mjs'
+import {garminSupabase} from '../lib/garminSupabase'
+import {loadCoachSnapshot} from '../lib/coachSnapshot'
+import type {CoachSnapshot} from '../lib/coachSnapshot'
 import '../styles/coach-glance.css'
 import type {Page} from '../navigation'
 
 export function CoachPage({active,onGo,onOpenCalendar,onOpenRaceWeather}: {active:boolean; onGo:(page:Page)=>void;onOpenCalendar:(date?:string)=>void;onOpenRaceWeather:()=>void}) {
   const [weightOpen,setWeightOpen]=useState(false)
   const [savedWeight,setSavedWeight]=useState<number|null>(null)
+  const [sharedSnapshot,setSharedSnapshot]=useState<CoachSnapshot|null>(null)
+  const [snapshotError,setSnapshotError]=useState(false)
+  const [snapshotLoading,setSnapshotLoading]=useState(true)
+  const [snapshotVersion,setSnapshotVersion]=useState(0)
+  useEffect(()=>{
+   const update=()=>setSnapshotVersion(v=>v+1)
+   window.addEventListener('garmin-ai-weekly-choice-changed',update)
+   window.addEventListener('garmin-ai-coach-changed',update)
+   return ()=>{
+    window.removeEventListener('garmin-ai-weekly-choice-changed',update)
+    window.removeEventListener('garmin-ai-coach-changed',update)
+   }
+  },[])
+  useEffect(()=>{
+   if(!active||!garminSupabase)return
+   const abort=new AbortController()
+   let mounted=true
+   setSnapshotLoading(true)
+   void garminSupabase.auth.getSession().then(({data:{session}})=>{
+    if(!session)throw Error('Login required')
+    return loadCoachSnapshot(session,berlinToday(),abort.signal)
+   }).then(next=>{if(mounted&&next){setSharedSnapshot(next);setSnapshotError(false)}})
+    .catch(err=>{if(mounted&&err?.name!=='AbortError')setSnapshotError(true)})
+    .finally(()=>{if(mounted)setSnapshotLoading(false)})
+   return ()=>{mounted=false;abort.abort()}
+  },[active,snapshotVersion])
   const closeRef=useRef<HTMLButtonElement|null>(null)
   useEffect(()=>{
     if(!weightOpen)return
@@ -48,13 +78,22 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenRaceWeather}: {activ
   {savedWeight.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})} kg gespeichert · Garmin-Übertragung noch ausstehend
  </p>}
  <CoachGoalPanel active={active} compact onEdit={()=>onGo('race')} onForecastOpen={onOpenRaceWeather}/>
- <CoachGlance active={active} onCalendar={()=>onOpenCalendar()}>
-  <CoachTodayWeather active={active}/>
- </CoachGlance>
- <CoachSevenDay active={active} onCalendar={onOpenCalendar}/>
- <CoachEvidenceSummary active={active} mode="weekly" weekStart={mondayOf(berlinToday())}/>
- <WeeklyTrainingOptions active={active} weekStart={mondayOf(berlinToday())} compact/>
- <CrossTrainingCoachCard active={active} onOpen={()=>onGo('strength')}/>
+ {snapshotLoading&&!sharedSnapshot&&!snapshotError&&<p className="co-data-note" role="status">
+  Lade deine Garmin-, Kalender- und Coach-Daten gemeinsam …</p>}
+ {snapshotError&&<p className="co-data-note" role="status">
+  Gemeinsamer Coach-Snapshot nicht vollständig erreichbar. Die einzelnen Bereiche prüfen ihre Daten separat.</p>}
+ {(!snapshotLoading||sharedSnapshot||snapshotError)&&<>
+  <CoachGlance active={active} onCalendar={()=>onOpenCalendar()} sharedSnapshot={sharedSnapshot}>
+   <CoachTodayWeather active={active}/>
+  </CoachGlance>
+  <CoachSevenDay active={active} onCalendar={onOpenCalendar} sharedSnapshot={sharedSnapshot}/>
+ </>}
+ <CoachEvidenceSummary active={active} mode="weekly" weekStart={coachAddDays(mondayOf(berlinToday()),-7)}/>
+ <details className="co-extra-tools">
+   <summary>Mehr: Trainingsoptionen, Kraft & Mobility</summary>
+   <WeeklyTrainingOptions active={active} weekStart={mondayOf(berlinToday())} compact/>
+   <CrossTrainingCoachCard active={active} onOpen={()=>onGo('strength')}/>
+  </details>
  {weightOpen&&createPortal(<div className="co-dialog-backdrop"
    onPointerDown={event=>{if(event.currentTarget===event.target)setWeightOpen(false)}}>
    <div className="co-dialog" role="dialog" aria-modal="true" aria-label="Gewicht speichern">

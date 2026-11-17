@@ -221,3 +221,14 @@
 .co-home .co-trend-tile{box-shadow:inset 0 1px rgba(249,249,255,.03)}
 @media(max-width:760px){.co-decision-chip{margin-top:8px;font-size:8px}
  .co-home .co-today .co-section-head h2{font-size:19px}}
+
+/* v0.9.72 – the daily signals are presented as trends, not readiness scores. */
+.co-recovery-note{font-size:11px;line-height:1.55;color:#aabdd8;margin:5px 0 0}
+.co-recovery-note small{display:block;font-size:10px;color:#8597b6;margin:4px 0 0}
+.co-extra-tools{margin-top:12px;padding:9px 13px;border:1px solid rgba(144,168,209,.2);
+ border-radius:14px;background:rgba(17,30,52,.5)}
+.co-extra-tools>summary{cursor:pointer;min-height:37px;display:flex;align-items:center;
+ color:#c0d2ec;font-size:11px;font-weight:850;letter-spacing:.025em}
+.co-extra-tools>summary:focus-visible{outline:2px solid #b6dbff;outline-offset:3px}
+.co-extra-tools[open]>summary{border-bottom:1px solid rgba(139,159,200,.17);margin-bottom:12px}
+@media(max-width:600px){.co-recovery-note{font-size:10px}.co-extra-tools{padding:8px 10px}}

@@ -16,7 +16,7 @@ const formatDate=(day:string)=>new Intl.DateTimeFormat('de-DE',{
  timeZone:'UTC',weekday:'short',day:'2-digit',month:'2-digit'
 }).format(new Date(day+'T12:00:00Z'))
 
-export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(date?:string)=>void}){
+export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean;onCalendar:(date?:string)=>void;sharedSnapshot?:CoachSnapshot|null}){
  const [snapshot,setSnapshot]=useState<CoachSnapshot|null>(null)
  const [loading,setLoading]=useState(false)
  const [error,setError]=useState('')
@@ -27,10 +27,12 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
  const [startTime,setStartTime]=useState('18:00')
  const [saving,setSaving]=useState<string|null>(null)
  const [savedDay,setSavedDay]=useState<string|null>(null)
+ const [showAllDays,setShowAllDays]=useState(false)
  const ids=useRef<Record<string,string>>({})
  const today=berlinDateToday()
  useEffect(()=>{
   if(!active||!garminSupabase)return
+  if(sharedSnapshot){setSnapshot(sharedSnapshot);setLoading(false);setError('');return}
   let mounted=true
   const controller=new AbortController()
   setLoading(true);setError('');setNotice('')
@@ -44,7 +46,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
     setError(e instanceof Error?e.message:'Coach-Daten nicht verfügbar.')
   }).finally(()=>{if(mounted)setLoading(false)})
   return ()=>{mounted=false;controller.abort()}
- },[active,today,reload])
+ },[active,today,reload,sharedSnapshot])
  const plan=useMemo(()=>snapshot?buildSevenDayCoach({
   today,health:snapshot.health,options:snapshot.options,boards:snapshot.boards,
   plans:snapshot.plans,goal:snapshot.goal,life:snapshot.life
@@ -67,6 +69,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
    if(!response.ok||result.saved!==true||!result.context||!Array.isArray(result.runs))
     throw Error(result.error||'Coach-Kontext konnte nicht gespeichert werden.')
    setSnapshot(prev=>prev?{...prev,life:{context:result.context!,runs:result.runs!}}:prev)
+   window.dispatchEvent(new Event('garmin-ai-coach-changed'))
    setReview(null)
    setSavedDay(null)
    setNotice('Deine Angaben wurden gespeichert und der 7-Tage-Coach neu berechnet. Keine Garmin-Änderung.')
@@ -111,6 +114,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
    }:prev)
    setReview(null)
    setSavedDay(day.date)
+   window.dispatchEvent(new Event('garmin-ai-coach-changed'))
    setNotice((structured?
     'Zeitgesteuertes Lauf-Workout ('+day.minutes+' Min., Start '+startTime+
     ') als Entwurf gespeichert. Nächster Schritt: im Kalender freigeben und danach bewusst an Intervals.icu senden.':
@@ -127,14 +131,24 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
     <p>Garmin-Daten, Erholung, Hauptziel und freiwillige Gruppentermine – erklärt statt bewertet.</p>
    </div>
    <button type="button" className="c7-refresh" disabled={loading||saving!==null}
-    onClick={()=>{setReload(x=>x+1);setReview(null);setSavedDay(null)}}><Icon name="refresh-cw"/> Aktualisieren</button>
+    onClick={()=>{setReload(x=>x+1);window.dispatchEvent(new Event('garmin-ai-coach-changed'));setReview(null);setSavedDay(null)}}><Icon name="refresh-cw"/> Aktualisieren</button>
   </div>
-  {snapshot&&<CoachLifeContext life={snapshot.life} busy={contextBusy||saving!==null} onAction={updateLife}/>} 
+  {snapshot&&<details className="c7-settings">
+    <summary>Coach-Einstellungen · Pausen, Beschwerden und Verfügbarkeit</summary>
+    <CoachLifeContext life={snapshot.life} busy={contextBusy||saving!==null} onAction={updateLife}/>
+   </details>} 
   {loading&&!plan&&<p className="c7-alert" role="status">Prüfe aktuelle Garmin- und Kalenderdaten …</p>}
   {error&&<p className="c7-error" role="alert">{error}</p>}
+  {snapshot&&snapshot.plans.entries.some(p=>p.training_date<today&&
+   ['draft','pending'].includes(String(p.state||'')))&&
+   <p className="c7-stale-plan">Ein älterer Trainingsentwurf ist noch offen.
+    <button type="button" className="c7-secondary" onClick={()=>onCalendar()}>
+     Vergangene Entwürfe im Kalender prüfen <Icon name="arrow-up-right"/></button>
+   </p>}
   {plan&&<>
-   <CoachDecisionLive plan={plan} reviewDate={review} saving={saving!==null||contextBusy}
+   <CoachDecisionLive plan={plan} snapshot={snapshot!} reviewDate={review} saving={saving!==null||contextBusy}
     onReview={date=>{
+     setShowAllDays(true)
      setReview(date);setStartTime('18:00')
      requestAnimationFrame(()=>document.getElementById('c7-day-'+date)?.scrollIntoView({
       behavior:'smooth',block:'center'
@@ -154,7 +168,7 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
      Kein KI-Readiness-Score, keine Diagnose.</p>
    </details>
    <div className="c7-week" id="c7-week-overview" role="list">
-    {plan.days.map(day=><article className={'c7-day c7-'+day.kind} id={'c7-day-'+day.date} key={day.date} role="listitem">
+    {plan.days.slice(0,showAllDays?7:3).map(day=><article className={'c7-day c7-'+day.kind} id={'c7-day-'+day.date} key={day.date} role="listitem">
      <div className="c7-day-main"><div className="c7-date">{formatDate(day.date)}</div>
       <div className="c7-day-copy"><strong>{day.title}</strong>
        <p>{day.reason}</p>
@@ -192,6 +206,9 @@ export function CoachSevenDay({active,onCalendar}:{active:boolean;onCalendar:(da
      </div>}
     </article>)}
    </div>
+   <div className="c7-show-more"><button type="button" className="c7-secondary"
+    onClick={()=>setShowAllDays(v=>!v)}>{showAllDays?'Weniger anzeigen':'Alle 7 Tage anzeigen'}
+    <Icon name="arrow-up-right"/></button></div>
    {notice&&<div className="c7-saved-next" role="status">
     <p className="c7-ok">{notice}</p>
     {savedDay&&<button type="button" className="c7-next-calendar" onClick={()=>onCalendar(savedDay)}>

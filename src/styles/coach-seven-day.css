@@ -86,3 +86,18 @@
 #c7-week-overview{scroll-margin-top:24px}
 .c7-day{scroll-margin-top:110px}
 @media(max-width:760px){.c7-day{scroll-margin-top:80px}}
+
+/* v0.9.72 compact Coach operational controls */
+.c7-settings{margin:10px 0 12px;border:1px solid rgba(138,168,214,.2);
+ background:rgba(11,23,42,.35);border-radius:12px}
+.c7-settings>summary{min-height:44px;cursor:pointer;display:flex;align-items:center;
+ padding:10px 14px;color:#bfccef;font-size:11px;font-weight:800}
+.c7-settings>summary:hover{color:#fff}
+.c7-settings>summary:focus-visible{outline:2px solid #b9d6ff;outline-offset:3px}
+.c7-settings .clc-root{margin:0 10px 10px}
+.c7-show-more{display:flex;justify-content:center;margin:11px 0}
+#c7-week-overview{scroll-margin-top:25px}
+
+.c7-stale-plan{margin:10px 0;padding:10px 12px;border:1px solid rgba(219,173,107,.3);
+ border-radius:10px;background:rgba(169,112,47,.1);color:#e7d1b3;font-size:11px;line-height:1.5}
+.c7-stale-plan button{margin:6px 0 0;display:flex;align-items:center;gap:5px}

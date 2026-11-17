@@ -46,5 +46,5 @@ test('Coach today uses a deliberately styled, finger-sized button and concise in
  assert.match(css,/\.co-home \.co-section-head\{display:flex/)
  assert.match(css,/\.co-home \.co-today\{/)
  assert.match(css,/@media\(max-width:600px\)/)
- assert.match(view,/!loading&&view\?\.availabilityOk&&!view\.blocked&&!view\.skipped&&children/)
+ assert.match(view,/!loading&&view\?\.availabilityOk&&!view\.blocked&&!view\.skipped&&!view\.completedCount&&children/)
 })

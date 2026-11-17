@@ -22,6 +22,7 @@ function todayBerlin(){
 }
 export function CoachEvidenceSummary({active,mode,weekStart,selectedDate,activityId}:Props){
  const start=weekStart||monday(todayBerlin())
+ const lastCompletedWeek=mode==='weekly'&&start<monday(todayBerlin())
  const [result,setResult]=useState<Result|null>(null)
  const [error,setError]=useState('')
  const [busy,setBusy]=useState(false)
@@ -57,7 +58,8 @@ export function CoachEvidenceSummary({active,mode,weekStart,selectedDate,activit
   {busy&&<div className="cr-meta" role="status">Coach wertet absolvierte Einheiten aus …</div>}
   {error&&<p className="cr-error" role="status">{error}</p>}
   {result&&showWeek&&<article className="cr-week">
-   <div className="cr-label">COACH / WOCHENRÜCKBLICK · GEMESSENE EINHEITEN</div>
+   <div className="cr-label">COACH / {lastCompletedWeek?'LETZTE ABGESCHLOSSENE WOCHE':'WOCHENZWISCHENSTAND'} · GEMESSENE EINHEITEN
+    <span className="cr-week-dates"> · ab {start.split('-').reverse().join('.')}</span></div>
    <h3>{result.week.runCount} {result.week.runCount===1?'Lauf':'Läufe'} · {result.week.distanceKm.toLocaleString('de-DE',{maximumFractionDigits:1})} km</h3>
    <p>{result.week.observation} {result.week.effort}</p>
    <p className="cr-next"><strong>Für die nächste Woche:</strong> {result.week.next}</p>
