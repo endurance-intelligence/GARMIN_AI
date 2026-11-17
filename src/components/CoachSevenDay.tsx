@@ -133,7 +133,7 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
  }
  async function saveCustom(day:CoachDay){
   if(!garminSupabase||saving||contextBusy||!snapshot||customDate!==day.date||
-   ['illness','blocked','race','existing','completed','declined','acknowledged'].includes(day.kind))return
+   ['illness','blocked','race','existing','completed'].includes(day.kind)||Boolean(day.decision))return
   const minutes=Number(customMinutes)
   const runningAllowed=day.approvable||day.kind==='option'
   if(!Number.isInteger(minutes)||minutes<10||minutes>120||
@@ -209,7 +209,7 @@ export function CoachSevenDay({active,onCalendar,sharedSnapshot}:{active:boolean
       disabled={saving!==null||contextBusy}
       onClick={()=>{setSelectedDay(day.date);setReview(null);setCustomDate(null);setNotice('')}}>
      <span>{formatDate(day.date)}</span>
-     <strong>{day.kind==='declined'?'Abgelehnt':day.kind==='acknowledged'?'Übernommen':
+     <strong>{day.decision==='declined'?'Abgelehnt':day.decision==='accepted'?'Bestätigt':
        day.kind==='existing'?'Im Kalender':day.kind==='completed'?'Erledigt':
        day.kind==='race'?'Wettkampf':day.kind==='recovery'?'Erholung':
        day.kind==='illness'?'Pause':day.kind==='easy'?'Locker':day.kind==='long'?'Langer Lauf':
