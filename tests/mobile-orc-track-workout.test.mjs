@@ -80,7 +80,7 @@ test('ORC poster remains accurately transcribed as an optional archived referenc
  const cal=read('src/pages/CalendarPage.tsx')
  assert.match(archive,/previousOrcFlyer\(\)/)
  assert.match(archive,/ORC_GROUPS\.map/)
- assert.match(cal,/<WorkoutArchivePanel active=\{active\}/)
+ assert.match(cal,/showWorkoutArchive&&<WorkoutArchivePanel active=\{active&&showWorkoutArchive\}/)
  assert.match(cal,/<details className="hc-plan-notes">/)
 })
 
