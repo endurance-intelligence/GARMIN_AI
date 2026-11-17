@@ -105,8 +105,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
  if(compact)return <section className="cg-root cg-compact cg-home-hero"
   aria-label="Aktuelles Hauptziel und Rennwetter">
   <div className="cg-home-race">
-   <div className="cg-home-race-head"><span className="cg-kicker">DEIN NÄCHSTES ZIEL</span>
-    <span className={'cg-state'+(goal?' is-active':'')}>{goal?'AKTIVES ZIEL':'NOCH NICHT BESTÄTIGT'}</span></div>
+   <div className="cg-home-race-head"><span className="cg-kicker">DEIN NÄCHSTES ZIEL</span></div>
    <div className="cg-home-race-main">
     <div className="cg-home-race-info">
      <div className="cg-goal-name">{goalBadge}<h2>{current.race_name}</h2></div>
