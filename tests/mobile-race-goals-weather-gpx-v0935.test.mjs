@@ -71,7 +71,7 @@ test('track editions keep previous geometry when route reused; owner verifies ev
 test('Race Prep uses compact goal-bound weather, not a large independent manual forecast',()=>{
  const race=read('src/pages/RacePage.tsx')
  const weather=read('src/components/RaceForecastCompact.tsx')
- assert.match(race,/<RaceGoalsPanel active=\{active\}/)
+ assert.match(read('src/pages/GoalsPage.tsx'),/<RaceGoalsPanel key=\{'portfolio-'\+revision\} active=\{active\}/)
  assert.match(race,/<RaceForecastCompact active=\{active\}/)
  assert.match(race,/<RaceRouteViewer active=\{active\}/)
  assert.doesNotMatch(race,/<WeatherPanel active=/)
