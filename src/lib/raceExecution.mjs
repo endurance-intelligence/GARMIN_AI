@@ -116,3 +116,32 @@ function monday(date){
  const d=new Date(date+'T12:00:00Z')
  return new Date(d.getTime()-((d.getUTCDay()+6)%7)*86400000).toISOString().slice(0,10)
 }
+
+/** Real lap-by-lap elapsed-time budget derived solely from the athlete's inputs. */
+export function buildRaceLapCheckpoints({distanceKm,loopKm,movingMinutes,
+ regularPauseMinutes,longStopEvery,longStopMinutes}={}){
+ const finite=n=>typeof n==='number'&&Number.isFinite(n)
+ if(!finite(distanceKm)||distanceKm<=0||distanceKm>500||
+  !finite(loopKm)||loopKm<=0||loopKm>100||
+  !finite(movingMinutes)||movingMinutes<10||movingMinutes>360)return []
+ const regular=finite(regularPauseMinutes)&&regularPauseMinutes>=0?
+  regularPauseMinutes:0
+ const longEvery=Number.isInteger(longStopEvery)&&longStopEvery>=2?longStopEvery:null
+ const long=finite(longStopMinutes)&&longStopMinutes>=0?longStopMinutes:0
+ const laps=Math.ceil(distanceKm/loopKm)
+ let elapsed=0
+ const checkpoints=[]
+ for(let lap=1;lap<=laps;lap++){
+  const distance=Math.min(loopKm,distanceKm-(lap-1)*loopKm)
+  const covered=Math.min(distanceKm,lap*loopKm)
+  elapsed+=distance/loopKm*movingMinutes
+  const arrivalMinutes=Math.round(elapsed)
+  const stops=lap<laps?regular+(longEvery!==null&&lap%longEvery===0?long:0):0
+  elapsed+=stops
+  checkpoints.push({
+   lap,km:Math.round(covered*100)/100,arrivalMinutes,
+   stopMinutes:stops,departureMinutes:Math.round(elapsed),last:lap===laps
+  })
+ }
+ return checkpoints
+}
