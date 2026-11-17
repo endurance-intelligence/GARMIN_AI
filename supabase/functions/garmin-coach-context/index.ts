@@ -34,15 +34,16 @@ function berlinToday(){
 }
 type Period={id:string;start:string;end:string;reason:'vacation'|'unavailable'}
 type Review={activityId:string;assessment:'ok'|'concern';reviewedOn:string}
+type DayChoice={date:string;choice:'accepted'|'declined'}
 type RaceCheck={raceDate:string;raceName:string;reportedOn:string;fatigue:number;soreness:number;warning:boolean}
 type Row={user_id:string;illness_state:'well'|'sick'|'returning';
  illness_started_on:string|null;illness_expected_end_on:string|null;
  illness_kind:'illness'|'pain'|'fatigue'|'other'|null;
  return_started_on:string|null;
- blocked_periods:Period[];run_reviews:Review[];declined_days:string[];race_recovery_checks:RaceCheck[];updated_at:string}
+ blocked_periods:Period[];run_reviews:Review[];day_decisions:DayChoice[];race_recovery_checks:RaceCheck[];updated_at:string}
 const empty=(id:string):Row=>({user_id:id,illness_state:'well',illness_started_on:null,
  illness_expected_end_on:null,illness_kind:null,
- return_started_on:null,blocked_periods:[],run_reviews:[],declined_days:[],race_recovery_checks:[],updated_at:new Date().toISOString()})
+ return_started_on:null,blocked_periods:[],run_reviews:[],day_decisions:[],race_recovery_checks:[],updated_at:new Date().toISOString()})
 const isRun=(sport:unknown)=>typeof sport==='string'&&/run|jog|trail|treadmill/i.test(sport)
 const activityFields='activity_id,activity_name,start_time_local,sport_type,distance_m,duration_s,average_heart_rate,rpe_raw'
 type Run={activity_id:string;activity_name:string|null;start_time_local:string|null;
@@ -65,12 +66,12 @@ Deno.serve(async req=>{
    return respond(403,{error:'Zugriff nicht erlaubt'},h)
   const db=createClient(project,key('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
   const {data:current,error:readError}=await db.from('garmin_coach_context')
-   .select('user_id,illness_state,illness_started_on,illness_expected_end_on,illness_kind,return_started_on,blocked_periods,run_reviews,declined_days,race_recovery_checks,updated_at')
+   .select('user_id,illness_state,illness_started_on,illness_expected_end_on,illness_kind,return_started_on,blocked_periods,run_reviews,day_decisions,race_recovery_checks,updated_at')
    .eq('user_id',user.id).maybeSingle()
   if(readError)return respond(503,{error:'Coach-Kontext nicht abrufbar'},h)
   let row=(current||empty(user.id)) as Row
   row={...row,
-   declined_days:Array.isArray(row.declined_days)?row.declined_days:[],
+   day_decisions:Array.isArray(row.day_decisions)?row.day_decisions:[],
    race_recovery_checks:Array.isArray(row.race_recovery_checks)?row.race_recovery_checks:[]}
   const today=berlinToday()
   const readRuns=async()=>{
@@ -133,11 +134,14 @@ Deno.serve(async req=>{
    row={...row,illness_state:'well'}
   }else if(input.action==='set_day_decision'){
    if(!day(input.date)||input.date<today||input.date>plusDays(today,13)||
-    !['declined','open'].includes(String(input.choice)))
+    !['declined','accepted','open'].includes(String(input.choice)))
     return respond(422,{error:'Nur eigene Entscheidungen für die nächsten 14 Tage erlaubt'},h)
-   const other=row.declined_days.filter(d=>day(d)&&d!==input.date&&d>=today&&d<=plusDays(today,13))
-   row={...row,declined_days:input.choice==='declined'?
-    [...other,input.date].sort():other}
+   const other=row.day_decisions.filter(d=>day(d.date)&&d.date!==input.date&&
+    d.date>=today&&d.date<=plusDays(today,13)&&
+    ['accepted','declined'].includes(d.choice))
+   row={...row,day_decisions:input.choice==='open'?other:
+    [...other,{date:input.date,choice:input.choice as DayChoice['choice']}]
+     .sort((a,b)=>a.date.localeCompare(b.date))}
   }else if(input.action==='record_race_recovery'){
    const raceDate=input.raceDate,raceName=input.raceName
    const fatigue=input.fatigue,soreness=input.soreness,warning=input.warning
@@ -170,7 +174,7 @@ Deno.serve(async req=>{
   }else return respond(422,{error:'Unbekannte Aktion'},h)
   const {data:saved,error:saveError}=await db.from('garmin_coach_context')
    .upsert({...row,user_id:user.id,updated_at:new Date().toISOString()},{onConflict:'user_id'})
-   .select('user_id,illness_state,illness_started_on,illness_expected_end_on,illness_kind,return_started_on,blocked_periods,run_reviews,declined_days,race_recovery_checks,updated_at').single()
+   .select('user_id,illness_state,illness_started_on,illness_expected_end_on,illness_kind,return_started_on,blocked_periods,run_reviews,day_decisions,race_recovery_checks,updated_at').single()
   if(saveError||!saved)return respond(503,{error:'Coach-Kontext konnte nicht gespeichert werden'},h)
   row=saved as Row
   return respond(200,{saved:true,context:row,runs:await readRuns(),
