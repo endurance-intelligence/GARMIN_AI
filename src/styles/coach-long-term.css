@@ -49,3 +49,5 @@
  .cltp-week-when{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
  .cltp-week-title{display:grid;gap:3px}
 }
+
+.cltp-week-content .cltp-polarized{color:#badaac;font-size:10px;line-height:1.5}
