@@ -20,16 +20,16 @@ export function recoveryWeekTrend(history,date){
   rhr=metric('resting_heart_rate',25,110)
  if(!hrv&&!sleep&&!rhr)return null
  const hrvChange=hrv?.previous>0?(hrv.current-hrv.previous)/hrv.previous:null
- const hrvSentence=hrvChange===null?'HRV-Wochentrend nicht ausreichend belegt.':
-  hrvChange<=-.15?'Der HRV-Median der letzten sieben Tage liegt deutlich unter der Vorwoche.':
-  hrvChange>=.15?'Der HRV-Median der letzten sieben Tage liegt deutlich über der Vorwoche.':
-  'Der HRV-Median der letzten sieben Tage ist ungefähr stabil.'
+ const hrvSentence=hrvChange===null?'Für deine HRV fehlen noch Vergleichstage.':
+  hrvChange<=-.15?'Deine HRV war niedriger als letzte Woche.':
+  hrvChange>=.15?'Deine HRV war höher als letzte Woche.':
+  'Deine HRV war ähnlich wie letzte Woche.'
  const rhrSentence=rhr?(Math.abs(rhr.current-rhr.previous)<=3?
-  'Der Ruhepuls-Median ist ähnlich.':
-  rhr.current>rhr.previous?'Der Ruhepuls-Median liegt höher.':'Der Ruhepuls-Median liegt niedriger.'):''
+  'Dein Ruhepuls blieb ähnlich.':
+  rhr.current>rhr.previous?'Dein Ruhepuls war etwas höher.':'Dein Ruhepuls war etwas niedriger.'):''
  const sleepSentence=sleep?(Math.abs(sleep.current-sleep.previous)<1800?
-  'Die mittlere Schlafdauer ist ähnlich.':
-  sleep.current>sleep.previous?'Der Schlaf-Median liegt höher.':'Der Schlaf-Median liegt niedriger.'):''
+  'Du hast ungefähr gleich lange geschlafen.':
+  sleep.current>sleep.previous?'Du hast etwas länger geschlafen.':'Du hast etwas kürzer geschlafen.'):''
  return {hrv,sleep,rhr,summary:[hrvSentence,rhrSentence,sleepSentence].filter(Boolean).join(' '),
-  note:'7-Tage-Mediane; die heutige Abweichung ist eine separate Beobachtung, keine Diagnose.'}
+  note:'Vergleich der letzten sieben Tage mit den sieben Tagen davor. Keine Aussage darüber, ob du trainieren solltest.'}
 }
