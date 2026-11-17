@@ -50,7 +50,7 @@ test('weight selection alone does not write to Supabase or Garmin',()=>{
   assert.doesNotMatch(picker,/fetch\(|garminSupabase|\.rpc\(|session,'POST'/i)
   assert.match(center,/session,'POST',\{date,kg\}/)
   assert.match(center,/onClick=\{\(\)=>void save\(\)\}/)
-  assert.match(center,/Gewicht gespeichert\. Übertragung zu Garmin Connect steht noch aus\./)
+  assert.match(center,/Keine Übertragung zu Intervals\.icu oder Garmin Connect/)
 })
 
 test('exact value conversion and upper range are retained',()=>{
