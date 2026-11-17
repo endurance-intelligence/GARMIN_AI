@@ -1,5 +1,6 @@
 import {coachAddDays,coachMonday} from './coachSevenDay.mjs'
 import {analyzeWorkoutFeedbackTrend} from './feedbackTrend.mjs'
+import {POLARIZED_METHOD} from './polarizedTraining.mjs'
 
 const DAY=86400000
 const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&
@@ -58,7 +59,8 @@ export function buildLongTermCoachPlan({today,goal,health,life}){
  if(!raceDate||between(today,raceDate)<-14)return {
   raceName:name||null,raceDate,baselineKm:baseKm,weeks:[],hasGoal:false,
   message:'Bitte zuerst ein aktuelles Hauptziel setzen. Danach entsteht dein individueller Trainingsfahrplan.',
-  notes,period:'12 Wochen',source:'Garmin + Ziel + deine Rückmeldungen'}
+  notes,period:'12 Wochen',source:'Garmin + Ziel + deine Rückmeldungen',
+  trainingMethod:POLARIZED_METHOD.id}
  const monday=startOfWeek(today)
  const weeks=[]
  const raceOffset=between(today,raceDate)
@@ -116,7 +118,14 @@ export function buildLongTermCoachPlan({today,goal,health,life}){
   if(feedback.kind==='reduce'&&i<2&&!sick&&!unavailable&&!returning){
    phase='paused';focus='Mehrere belastende Einheiten gemeldet. Kein neuer Umfangsvorschlag.';key='Feedback zuerst prüfen'
   }
+  const controlledQuality=baseKm!==null&&!hold&&
+   !['taper','race','recovery','paused'].includes(phase)&&i%4!==3
+  const polarization=controlledQuality?
+   'Polarisiert: alle anderen Lauftage im Sprechtempo, maximal ein harter Intervalltag '+
+   'nur bei guter Erholung und genügend lockeren Einheiten. Mittlere Intensität möglichst wenig.':
+   'Polarisiert: lockere Ausdauer und Erholung. Keine harte Einheit nur für eine 80/20-Quote.'
   weeks.push({index:i+1,start,end,phase,phaseLabel:phaseName[phase],
+   trainingMethod:'polarized',qualityOptions:controlledQuality?1:0,polarization,
    focus,key,targetKm,longRunMinutes,kind,
    isCurrent:i===0,isRaceWeek:raceWeek,
    status:hold?'caution':raceWeek?'race':'draft'})
@@ -128,7 +137,8 @@ export function buildLongTermCoachPlan({today,goal,health,life}){
   raceName:name||null,raceDate,baselineKm:baseKm,weeks,hasGoal:true,
   message:'Grober Fahrplan für dein Ziel. Die konkreten nächsten sieben Tage entscheidet der Coach mit dir.',
   notes:[...new Set(notes)],period:'Bis zu 12 Wochen',
-  source:'Garmin + Hauptziel + deine Rückmeldungen'
+  source:'Garmin + Hauptziel + deine Rückmeldungen',
+  trainingMethod:POLARIZED_METHOD.id
  }
 }
 function slotIsRecovery(index){return index%4===3}
