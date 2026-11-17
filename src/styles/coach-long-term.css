@@ -1,0 +1,51 @@
+/* P1 long-term plan: one small entry, complete 12-week view only if opened. */
+.cltp-root{margin:12px 0;border:1px solid rgba(154,182,229,.23);border-radius:14px;
+ background:linear-gradient(130deg,#1a2943,#131f33);color:#e5efff;overflow:hidden}
+.cltp-summary{list-style:none;display:flex;align-items:center;gap:12px;min-height:66px;padding:12px 15px;cursor:pointer}
+.cltp-summary::-webkit-details-marker{display:none}
+.cltp-summary:focus-visible{outline:2px solid #caec9b;outline-offset:-3px}
+.cltp-symbol{flex:0 0 37px;width:37px;height:37px;border-radius:11px;
+ background:rgba(187,176,253,.13);color:#c7bcf6;display:grid;place-items:center}
+.cltp-symbol .ic{width:18px;height:18px}
+.cltp-summary-text{display:grid;gap:4px;flex:1;min-width:0}
+.cltp-summary-text>small{color:#aea4ee;font-weight:850;font-size:9px;letter-spacing:.1em}
+.cltp-summary-text>strong{font-size:14px;line-height:1.2;color:#f4f5ff}
+.cltp-summary-text>span{color:#b8c9df;font-size:11px;line-height:1.5}
+.cltp-counter{display:grid;text-align:right;gap:4px;white-space:nowrap;font-size:12px;font-weight:850}
+.cltp-counter small{font-size:9px;color:#9fb5d1;font-weight:600}
+.cltp-summary>.ic{flex:0 0 16px;width:16px;height:16px;color:#aabfdf}
+.cltp-root[open] .cltp-summary>.ic{transform:rotate(180deg)}
+.cltp-body{padding:2px 14px 14px;border-top:1px solid rgba(161,186,229,.16)}
+.cltp-intro,.cltp-basis{color:#bfd0e8;font-size:11px;line-height:1.6;margin:10px 0}
+.cltp-basis strong{color:#e7f4d2}
+.cltp-weeks{display:grid;gap:8px;margin:13px 0}
+.cltp-week{display:grid;grid-template-columns:120px minmax(0,1fr);gap:13px;
+ background:#17263e;border:1px solid rgba(148,185,224,.19);border-left:3px solid #899ec9;
+ border-radius:11px;padding:12px}
+.cltp-phase-build,.cltp-phase-specific{border-left-color:#b6a9ee}
+.cltp-phase-peak,.cltp-phase-taper{border-left-color:#e4bd8a}
+.cltp-phase-race{border-left-color:#c0ee8b}
+.cltp-phase-recovery,.cltp-phase-paused{border-left-color:#a2bec9}
+.cltp-week-when{display:grid;align-content:start;gap:5px}
+.cltp-week-when small{font-size:9px;font-weight:850;color:#bcb9ed;letter-spacing:.06em}
+.cltp-week-when strong{font-size:12px;color:#e1ebf9;font-variant-numeric:tabular-nums}
+.cltp-week-when span{font-size:10px;font-weight:750;color:#c2e79c}
+.cltp-week-content{display:grid;gap:6px;min-width:0}
+.cltp-week-title{display:flex;flex-wrap:wrap;gap:5px 11px;align-items:baseline}
+.cltp-week-title strong{font-size:13px;color:#f2f6fd}
+.cltp-week-title span{font-size:11px;color:#cdd7e9}
+.cltp-week-content p{font-size:11px;line-height:1.55;margin:0;color:#b5c9e2}
+.cltp-week-content .cltp-week-target{color:#cbe9c0;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.cltp-week-target .ic{height:13px;width:13px}
+.cltp-no-target{font-size:10px;color:#b1c4dc;line-height:1.4}
+.cltp-notes{border-top:1px solid rgba(152,186,225,.18);padding-top:8px}
+.cltp-notes p{display:flex;align-items:flex-start;gap:8px;font-size:10px;
+ line-height:1.5;color:#b4c7df;margin:8px 0}
+.cltp-notes .ic{flex:0 0 14px;width:14px;height:14px}
+.cltp-disclaimer{color:#91a6c6;font-size:10px;line-height:1.6;margin:12px 0 0}
+@media(max-width:610px){
+ .cltp-summary{padding:11px;gap:9px}.cltp-counter{font-size:10px}
+ .cltp-week{grid-template-columns:1fr;gap:8px;padding:10px}
+ .cltp-week-when{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+ .cltp-week-title{display:grid;gap:3px}
+}
