@@ -11,6 +11,7 @@ import {CoachDecisionLive} from './CoachDecisionLive'
 import {CoachPostRaceBarometer} from './CoachPostRaceBarometer'
 import {PostWorkoutFeedbackCard} from './PostWorkoutFeedbackCard'
 import {FeedbackTrendCard} from './FeedbackTrendCard'
+import {WeeklyPlanActualCard} from './WeeklyPlanActualCard'
 import {assessCustomProposal} from '../lib/coachCustomProposal.mjs'
 import type {CoachContextPayload} from './CoachLifeContext'
 import '../styles/coach-seven-day.css'
@@ -244,6 +245,8 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot}:{
      Vergangene Entwürfe im Kalender prüfen <Icon name="arrow-up-right"/></button>
    </p>}
   {plan&&<>
+   {plan.completedWeek&&<WeeklyPlanActualCard review={plan.completedWeek}
+    onCalendar={()=>onCalendar()}/>}
    <div className="c7-day-nav" id="c7-week-overview" role="tablist"
     aria-label="Wähle einen Tag für deine persönliche Coach-Entscheidung">
     {plan.days.map(day=><button type="button" key={day.date} role="tab"
