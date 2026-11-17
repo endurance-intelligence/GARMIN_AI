@@ -205,3 +205,34 @@
  .cg-goal-name{gap:9px}.cg-home-race-info h2{font-size:17px!important}
  .cg-home-days{flex-basis:52px;min-height:57px}
 }
+
+/* v0.9.82 · larger countdown; the redundant "active goal" badge is gone. */
+.cg-root.cg-home-hero .cg-home-days{
+ flex:0 0 108px;min-height:108px;box-sizing:border-box;
+ padding:12px 8px;border-radius:18px;
+ grid-template-rows:1fr auto;align-content:center
+}
+.cg-root.cg-home-hero .cg-home-days strong{
+ font-size:54px;line-height:1;letter-spacing:-.065em;
+ font-variant-numeric:tabular-nums
+}
+.cg-root.cg-home-hero .cg-home-days small{
+ font-size:10px;line-height:1.25;letter-spacing:.02em;
+ max-width:85px
+}
+.cg-root.cg-home-hero .cg-home-race-main{gap:20px}
+@media(max-width:610px){
+ .cg-root.cg-home-hero .cg-home-days{
+  flex-basis:88px;min-height:88px;padding:9px 6px;border-radius:15px
+ }
+ .cg-root.cg-home-hero .cg-home-days strong{font-size:43px}
+ .cg-root.cg-home-hero .cg-home-days small{font-size:9px}
+ .cg-root.cg-home-hero .cg-home-race-main{gap:11px}
+}
+@media(max-width:385px){
+ .cg-root.cg-home-hero .cg-home-days{
+  flex-basis:76px;min-height:78px;padding:7px 5px;border-radius:13px
+ }
+ .cg-root.cg-home-hero .cg-home-days strong{font-size:38px}
+ .cg-root.cg-home-hero .cg-home-days small{font-size:8px}
+}
