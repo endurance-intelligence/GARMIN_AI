@@ -30,14 +30,14 @@ test('Goals exclusively owns goal edits, other goals and long-term training bloc
  assert.doesNotMatch(race,/<CoachGoalPanel|<RaceGoalsPanel|<CoachLongTermPlan/)
  assert.match(app,/<GoalsPage/)
 })
-test('Race Prep exclusively owns event research, forecast, route and strategy',()=>{
+test('Race Prep exclusively owns event-day dossier, forecast, route and strategy',()=>{
  const race=read('src/pages/RacePage.tsx'),app=read('src/App.tsx')
  assert.match(race,/<RaceStrategyCard active=\{active\}/)
- assert.match(race,/<RaceEventResearch active=\{active\}/)
+ assert.match(race,/<RaceEventDossier active=\{active\}/)
  assert.match(race,/<RaceForecastCompact active=\{active\}/)
  assert.match(race,/<RaceRouteViewer active=\{active\}/)
  assert.match(race,/onGo\('goals'\)/)
- assert.doesNotMatch(race,/Wie der Coach planen soll|Ziel wird gespeichert|<RaceGoalsPanel/)
+ assert.doesNotMatch(race,/Wie der Coach planen soll|Ziel wird gespeichert|<RaceGoalsPanel|<RaceEventResearch/)
  assert.match(app,/function openRaceWeather\(\)\{/)
  assert.match(race,/race-detailed-forecast/)
 })
