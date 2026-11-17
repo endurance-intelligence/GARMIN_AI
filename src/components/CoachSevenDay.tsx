@@ -11,6 +11,7 @@ import {CoachDecisionLive} from './CoachDecisionLive'
 import {CoachPostRaceBarometer} from './CoachPostRaceBarometer'
 import {PostWorkoutFeedbackCard} from './PostWorkoutFeedbackCard'
 import {FeedbackTrendCard} from './FeedbackTrendCard'
+import {CoachLongTermPlan} from './CoachLongTermPlan'
 import {assessCustomProposal} from '../lib/coachCustomProposal.mjs'
 import type {CoachContextPayload} from './CoachLifeContext'
 import '../styles/coach-seven-day.css'
@@ -225,6 +226,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot}:{
    <button type="button" className="c7-refresh" disabled={loading||saving!==null}
     onClick={()=>{setReload(x=>x+1);window.dispatchEvent(new Event('garmin-ai-coach-changed'));setReview(null);setSavedDay(null)}}><Icon name="refresh-cw"/> Aktualisieren</button>
   </div>
+  {snapshot&&<CoachLongTermPlan today={today} snapshot={snapshot}/>}
   {snapshot&&<PostWorkoutFeedbackCard activities={recentActivities} life={snapshot.life}
    busy={contextBusy||saving!==null} onSave={updateLife}/>}
   {snapshot&&<FeedbackTrendCard
