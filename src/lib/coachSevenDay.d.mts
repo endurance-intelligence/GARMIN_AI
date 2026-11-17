@@ -9,6 +9,7 @@ export type SevenDayPlan={
  recoveryRaceDate?:string|null;checkedRecently?:boolean;reportedExhaustion?:number|null;latestWorkoutFeedback?:string|null;
  feedbackTrend?:{level:string;kind:'none'|'reduce'|'shorten'|'maintain';count14:number;count28:number}
  completedWeek?:import('./completedWeekReview.mjs').CompletedWeekReview
+ trainingMethod?:{id:'polarized';qualityDay:string|null;status:string;plannedEasy:number;message:string}
 }
 export function coachAddDays(date:string,delta:number):string
 export function coachMonday(date:string):string
