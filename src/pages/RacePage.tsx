@@ -4,6 +4,7 @@ import {RaceEventDossier} from '../components/RaceEventDossier'
 import {RaceForecastCompact} from '../components/RaceForecastCompact'
 import {RaceRouteViewer} from '../components/RaceRouteViewer'
 import {RaceStrategyCard} from '../components/RaceStrategyCard'
+import {RaceReviewCard} from '../components/RaceReviewCard'
 import type {Forecast} from '../lib/weatherIntelligence'
 import type {Point} from '../lib/gpxRaceRoute.mjs'
 import type {Page} from '../navigation'
@@ -49,5 +50,6 @@ export function RacePage({active,onGo,focusWeatherToken=0}:{
    <RaceRouteViewer active={active} refreshKey={0}
     forecast={raceForecast} onTrack={setRoutePoints}/>
   </RaceEventDossier>
+  <RaceReviewCard active={active} onCoach={()=>onGo('home')}/>
  </section>
 }
