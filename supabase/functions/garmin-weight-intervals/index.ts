@@ -2,7 +2,19 @@
  * Explicit single-date consent, local outbox verification, post-write readback.
  */
 import {createClient} from 'npm:@supabase/supabase-js@2'
-import {validWeightEntry} from '../_shared/weight-entry.mjs'
+type WeightEntry={date:string;kg:number}
+function validWeightEntry(data:unknown,todayMs=Date.now()):WeightEntry|null{
+ if(!data||typeof data!=='object'||Array.isArray(data))return null
+ const {date,kg}=data as Record<string,unknown>
+ if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date))return null
+ const d=new Date(date+'T00:00:00.000Z')
+ if(!Number.isFinite(d.getTime())||d.toISOString().slice(0,10)!==date)return null
+ if(typeof kg!=='number'||!Number.isFinite(kg)||kg<30||kg>300||
+  Math.abs(kg*100-Math.round(kg*100))>.00001)return null
+ if(d.getTime()<todayMs-31*86400000||d.getTime()>todayMs+86400000)return null
+ return {date,kg}
+}
+
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
 const allow=(origin:string)=>origin==='https://endurance-intelligence.github.io'||
