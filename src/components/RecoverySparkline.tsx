@@ -11,7 +11,7 @@ export function RecoverySparkline({history,metric,day,median,label}:{
  return <div className="co-sparkline-wrap">
   <svg viewBox="0 0 180 66" preserveAspectRatio="none" className="co-sparkline"
     role="img" aria-label={label+': gemessener Verlauf der letzten sieben Tage mit Lücken für fehlende Werte'+
-     (median===null?'':'; gestrichelte Linie ist der Median der vorherigen 14 Tage')}>
+     (median===null?'':'; gestrichelte Linie zeigt deinen typischen Vergleichswert aus den letzten 14 Tagen')}>
     <line x1="7" y1="58" x2="173" y2="58" className="co-spark-axis"/>
     {trend.referenceY!==null&&<line x1="7" y1={trend.referenceY} x2="173" y2={trend.referenceY}
       className="co-spark-reference"/>}
