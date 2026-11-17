@@ -102,7 +102,7 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather}: 
   <CoachSevenDay active={active} focus={focus} onCalendar={onOpenCalendar} sharedSnapshot={sharedSnapshot}/>
  </>}
  <details className="co-extra-tools" onToggle={event=>setShowWeeklyReview(event.currentTarget.open)}>
-   <summary>Wochenrückblick &amp; weitere Trainingsoptionen <span>Bei Bedarf</span></summary>
+   <summary>Weitere Garmin-Analyse &amp; Gruppentermine <span>Bei Bedarf</span></summary>
    {showWeeklyReview&&<CoachEvidenceSummary active={active&&showWeeklyReview}
     mode="weekly" weekStart={coachAddDays(mondayOf(berlinToday()),-7)}/>}
    <div className="co-extra-actions">
