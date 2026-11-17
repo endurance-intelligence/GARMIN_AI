@@ -12,7 +12,7 @@ export type CoachContext={
  illness_kind:'illness'|'pain'|'fatigue'|'other'|null;
  illness_expected_end_on:string|null;
  return_started_on:string|null;blocked_periods:CoachBlock[];run_reviews:CoachRunReview[];
- declined_days?:string[];race_recovery_checks?:CoachRaceCheck[];
+ day_decisions?:Array<{date:string;choice:'accepted'|'declined'}>;race_recovery_checks?:CoachRaceCheck[];
  updated_at:string
 }
 export type CoachRun={
