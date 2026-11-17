@@ -37,14 +37,14 @@ test('recovery statements explain measured 7h46, 39ms HRV, 43 bpm individually',
   {metric:'hrv_ms',latest:39,median:51,difference:-12,sampleCount:12},
   {metric:'resting_heart_rate',latest:43,median:44,difference:-1,sampleCount:12}
  ]}
- assert.match(recoveryMetricMeaning(report.metrics[0]),/nahe deiner jüngsten Referenz/)
- assert.match(recoveryMetricMeaning(report.metrics[1]),/HRV deutlich unter/)
- assert.match(recoveryMetricMeaning(report.metrics[2]),/Ruhepuls nahe/)
+ assert.match(recoveryMetricMeaning(report.metrics[0]),/ungefähr so lange geschlafen wie sonst/)
+ assert.match(recoveryMetricMeaning(report.metrics[1]),/HRV ist niedriger als sonst/)
+ assert.match(recoveryMetricMeaning(report.metrics[2]),/Ruhepuls ist ungefähr so wie sonst/)
  const narrative=recoveryDashboardMeaning(report)
- assert.match(narrative,/HRV liegt klar unter/)
+ assert.match(narrative,/HRV ist heute niedriger als sonst/)
  assert.match(narrative,/Verlauf und dein Befinden/)
  assert.doesNotMatch(narrative,/trainingsbereit|freigegeben/i)
- assert.match(recoveryMetricMeaning({metric:'hrv_ms',latest:null,median:null,difference:null}),/Kein aktueller/)
+ assert.match(recoveryMetricMeaning({metric:'hrv_ms',latest:null,median:null,difference:null}),/Für heute fehlt noch ein Messwert/)
 })
 test('a daily skipped choice updates Coach and removes the wrong fixed weather forecast',()=>{
  const glance=read('src/components/CoachGlance.tsx')
