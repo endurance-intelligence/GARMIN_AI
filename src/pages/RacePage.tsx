@@ -1,14 +1,17 @@
 import {useEffect,useRef,useState} from 'react'
 import {Icon} from '../components/Icon'
-import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {RaceEventResearch} from '../components/RaceEventResearch'
-import {RaceGoalsPanel} from '../components/RaceGoalsPanel'
 import {RaceForecastCompact} from '../components/RaceForecastCompact'
 import {RaceRouteViewer} from '../components/RaceRouteViewer'
+import {RaceStrategyCard} from '../components/RaceStrategyCard'
 import type {Forecast} from '../lib/weatherIntelligence'
 import type {Point} from '../lib/gpxRaceRoute.mjs'
 import type {Page} from '../navigation'
-export function RacePage({active,onGo,focusWeatherToken=0}:{active:boolean;onGo:(page:Page)=>void;focusWeatherToken?:number}){
+import '../styles/race-prep-layout.css'
+
+export function RacePage({active,onGo,focusWeatherToken=0}:{
+ active:boolean;onGo:(page:Page)=>void;focusWeatherToken?:number
+}){
  const lastWeatherFocus=useRef(0)
  useEffect(()=>{
   if(!active||focusWeatherToken===0||focusWeatherToken===lastWeatherFocus.current)return
@@ -16,61 +19,37 @@ export function RacePage({active,onGo,focusWeatherToken=0}:{active:boolean;onGo:
   let frame=0
   const focus=()=>{
    const target=document.getElementById('race-detailed-forecast')
-   if(target){
-    target.scrollIntoView({behavior:'smooth',block:'start'})
-    target.focus({preventScroll:true})
-   }
+   if(target){target.scrollIntoView({behavior:'smooth',block:'start'})
+    target.focus({preventScroll:true})}
   }
   frame=requestAnimationFrame(()=>requestAnimationFrame(focus))
-  // Event dossier loads asynchronously and can move the forecast on the page.
   const settle=window.setTimeout(focus,650)
   return ()=>{cancelAnimationFrame(frame);window.clearTimeout(settle)}
  },[active,focusWeatherToken])
  const [researchRefresh,setResearchRefresh]=useState(0)
- const [eventLogo,setEventLogo]=useState<string|null>(null)
- const [goalRefresh,setGoalRefresh]=useState(0)
  const [raceForecast,setRaceForecast]=useState<Forecast|null>(null)
  const [eventCity,setEventCity]=useState<string|null>(null)
  const [course,setCourse]=useState<{courseType:string|null;finishCity:string|null}|null>(null)
  const [routePoints,setRoutePoints]=useState<Point[]|null>(null)
- return <section className={active?'page active':'page'}>
-  <div className="page-intro">
-   <div><div className="eyebrow">RACE INTELLIGENCE / DEIN NÄCHSTES ZIEL</div>
-    <h1>Ein Ziel. Ein klarer Weg<span style={{color:'var(--a)'}}>.</span></h1>
-    <p>Hier legst du fest, worauf dich dein Coach vorbereiten soll.
-     Das Ziel wird gespeichert und die Vorbereitungsphase automatisch aus dem Datum abgeleitet.</p></div>
-  </div>
-  <CoachGoalPanel key={goalRefresh} active={active} logoUrl={eventLogo} onSaved={()=>setResearchRefresh(n=>n+1)}/>
-  <RaceGoalsPanel active={active} onPrimaryChange={()=>{
-   setGoalRefresh(x=>x+1);setRaceForecast(null);setRoutePoints(null);setCourse(null)
-  }}/>
-  <RaceEventResearch active={active} refreshKey={researchRefresh+goalRefresh}
-   onLogoChange={setEventLogo} onEventSaved={()=>setResearchRefresh(n=>n+1)}
+ return <section className={active?'page active race-prep-page':'page race-prep-page'}
+  aria-label="Vorbereitung auf das kommende Event">
+  <header className="page-intro race-prep-intro">
+   <div><div className="eyebrow">GARMIN_AI / RACE PREP</div>
+    <h1>Bereit für den Start.</h1>
+    <p>Dein nächstes Event: Rennwetter, Strecke, Verpflegung, Trinkplan, Stopps und Ablauf.</p></div>
+   <button type="button" className="race-prep-goals-link" onClick={()=>onGo('goals')}>
+    <Icon name="target"/> Ziele verwalten <Icon name="arrow-up-right"/>
+   </button>
+  </header>
+  <RaceStrategyCard active={active}/>
+  <RaceEventResearch active={active} refreshKey={researchRefresh}
+   onEventSaved={()=>setResearchRefresh(n=>n+1)}
    onEventCityChange={setEventCity} onCourseChange={setCourse}>
-   <RaceForecastCompact active={active} eventCity={eventCity} course={course} routePoints={routePoints}
-    refreshKey={researchRefresh+goalRefresh} onForecast={setRaceForecast}/>
-   <RaceRouteViewer active={active} refreshKey={researchRefresh+goalRefresh}
+   <RaceForecastCompact active={active} eventCity={eventCity}
+    course={course} routePoints={routePoints} refreshKey={researchRefresh}
+    onForecast={setRaceForecast}/>
+   <RaceRouteViewer active={active} refreshKey={researchRefresh}
     forecast={raceForecast} onTrack={setRoutePoints}/>
   </RaceEventResearch>
-  <div className="sub-grid">
-   <article><small>WIE DER COACH PLANEN SOLL</small>
-    <h3>Alle sieben Tage sinnvoll nutzen.</h3>
-    <p>Fußball, ORC Track und ORC Run sind feste Optionen – keine Pflichttermine.
-     Die übrigen Tage sind für lockere Läufe, lange Einheiten, Stabi & Mobility oder Erholung verfügbar.</p>
-    <p>Die Vorschläge müssen zu deinem Ziel, deinen echten Garmin-Belastungsdaten,
-     dem Schlaf-/HRV-Trend und deinem aktuellen Befinden passen.
-     Änderungen am Kalender bleiben freigabepflichtig.</p>
-    <button type="button" className="secondary" onClick={()=>onGo('calendar')}>
-     Trainingswoche ansehen <Icon name="arrow-up-right"/></button>
-   </article>
-   <article><small>WETTKAMPFPHASE</small>
-    <h3>Datum ist nicht Trainingsfreigabe.</h3>
-    <p>Die Phase beschreibt nur die zeitliche Nähe zum Wettkampf. Krankheit,
-     ungewöhnliche Ermüdung, Schmerzen und absolvierte Belastung können eine
-     kurzfristige Anpassung erfordern.</p>
-    <p>Automatische Trainingsentscheidungen, Race-Pacing und Versorgungsstrategie
-     sind noch nicht als echte Coach-Logik freigeschaltet.</p>
-   </article>
-  </div>
  </section>
 }
