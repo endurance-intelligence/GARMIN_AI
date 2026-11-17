@@ -33,7 +33,7 @@ jobs:
       - name: Checkout reviewed mobile build
         uses: actions/checkout@v7
         with:
-          ref: 97bfd96ef05803ecb3597af0f80fdf48ad0980a7
+          ref: 708872bded38c0b31eb7ba8d4ee6ec1408b7a42d
           persist-credentials: false
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -71,7 +71,7 @@ jobs:
       - name: Check out exact reviewed mobile release
         uses: actions/checkout@v7
         with:
-          ref: 97bfd96ef05803ecb3597af0f80fdf48ad0980a7
+          ref: 708872bded38c0b31eb7ba8d4ee6ec1408b7a42d
           persist-credentials: false
 
       - name: Set up Node.js
