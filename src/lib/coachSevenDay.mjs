@@ -1,6 +1,7 @@
 import {latestWorkoutFeedback,evaluateWorkoutFeedback} from './postWorkoutFeedback.mjs'
 import {analyzeWorkoutFeedbackTrend} from './feedbackTrend.mjs'
 import {summarizeLastCompletedWeek} from './completedWeekReview.mjs'
+import {applyPolarizedGuidance} from './polarizedTraining.mjs'
 /** GARMIN_AI Coach Intelligence v1.0 — conservative, explainable seven-day preview.
  * No synthetic training readiness, direct Garmin write or automatic approval.
  */
@@ -383,7 +384,17 @@ export function buildSevenDayCoach(input){
     item.minutes+' auf '+revised+' Minuten verkürzen. Nur Vorschlag; '+
     'kein bestehender Kalendertermin und keine Garmin-Daten wurden geändert.'}
  })
- return {today,days:items,signals,flags,
+ const polarized=applyPolarizedGuidance(items,{
+  today,raceDate,ill,returning,postIllness,caution,
+  feedbackCaution,trendReducing,observationLimited,
+  boards:input.boards,feedback:life.post_workout_feedback
+ })
+ flags.push('Trainingsmethode: polarisiert (ca. vier locker / eine hart; '+
+  'mittlere Intensität möglichst wenig). '+polarized.message)
+ return {today,days:polarized.days,signals,flags,
+  trainingMethod:{id:'polarized',qualityDay:polarized.qualityDay,
+   status:polarized.status,plannedEasy:polarized.easyCount,
+   message:polarized.message},
   attention:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||allowWeekAdjustment||observationLimited,
   attentionText:ill||input.symptoms?'Krank-Modus aktiv: Trainingsvorschläge sind gesperrt, bis du deine Genesung meldest.':
    returning?'Wiedereinstieg aktiv: erste Läufe und deine Folgetag-Rückmeldungen haben Vorrang. Keine automatische Freigabe.':
