@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import {phaseForRace,suggestedGoal} from '../src/lib/coachGoal.ts'
 const src=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
-const race=src('src/pages/RacePage.tsx')
+const goals=src('src/pages/GoalsPage.tsx')
 const goal=src('src/components/CoachGoalPanel.tsx')
 const api=src('supabase/functions/garmin-coach-goal/index.ts')
 const sql=src('supabase/migrations/20261111093000_garmin_coach_goal.sql')
@@ -22,7 +22,7 @@ test('previously known Fulda 112km, 15h is an UNSAVED proposal until confirmed',
  assert.equal(suggestedGoal.target_hours,15)
  assert.match(goal,/NOCH NICHT GESPEICHERT/)
  assert.match(goal,/confirm:true/)
- assert.match(race,/<CoachGoalPanel key=\{goalRefresh\} active=\{active\}/)
+ assert.match(goals,/<CoachGoalPanel key=\{'primary-'\+revision\} active=\{active\}/)
  assert.match(coach,/<CoachGoalPanel active=\{active\} compact/)
 })
 test('phase is transparent and exact, including recovery and after-race state',()=>{
