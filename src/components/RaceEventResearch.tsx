@@ -1,5 +1,4 @@
 import {useCallback,useEffect,useRef,useState} from 'react'
-import type {ReactNode} from 'react'
 import {komootEmbedFromTour} from '../lib/komootEmbed.mjs'
 import {VenueAutocomplete} from './VenueAutocomplete'
 import type {VenueSuggestion} from './VenueAutocomplete'
@@ -53,10 +52,10 @@ function formatField(field:Field,value:string|number|null){
   return Number(value).toLocaleString('de-DE',{maximumFractionDigits:2})+' km'
  return String(value)
 }
-export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved,onEventCityChange,onCourseChange,children}:{
+export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved,onEventCityChange,onCourseChange}:{
  active:boolean;refreshKey?:number;onLogoChange?:(url:string|null)=>void;onEventSaved?:()=>void;
  onEventCityChange?:(city:string|null)=>void;
- onCourseChange?:(course:{courseType:string|null;finishCity:string|null}|null)=>void;children?:ReactNode
+ onCourseChange?:(course:{courseType:string|null;finishCity:string|null}|null)=>void
 }){
  const [goal,setGoal]=useState<GoalStatus['goal']|null>(null)
  const [url,setUrl]=useState('')
@@ -283,7 +282,7 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
  const chosen=scan&&details?details:null
  return <section className="rer-root" aria-label="Event-Webseite recherchieren und speichern">
   <div className="rer-head"><div>
-   <span className="rer-kicker">RACE PREP / EVENT SCOUT</span>
+   <span className="rer-kicker">GOALS / EVENT SCOUT</span>
    <h2>Veranstaltung automatisch recherchieren.</h2>
    <p>Nur die offizielle Webseite einfügen: Event Scout prüft diese und bis zu drei relevante Unterseiten.
     Alles Gefundene kannst du vor dem Speichern bearbeiten.</p>
@@ -433,20 +432,6 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
       Vorlage im Eventarchiv. Ältere Austragungen behalten ihre Strecke.</small>
     </div>}
    </article>)}
-   {children&&<div className="rer-event-dossier">
-    <div className="rer-event-dossier-head"><span className="rer-kicker">DEIN EVENT-DOSSIER</span>
-     <h3>{saved[0].event_title} · {saved[0].race_date.split('-').reverse().join('.')}</h3>
-     <p>Rennwetter, offizielle Strecke und Höhenprofil gehören zu dieser Austragung.</p>
-    </div>
-    {children}
-   </div>}
-  </div>}
-  {saved.length===0&&children&&<div className="rer-event-dossier rer-weather-standalone">
-   <div className="rer-event-dossier-head"><span className="rer-kicker">RENNWETTER</span>
-    <h3>Die Prognose für deinen Wettkampf</h3>
-    <p>Die ausführliche Wetteranalyse ist auch ohne gespeichertes Event-Dossier zugänglich.</p>
-   </div>
-   {children}
   </div>}
   {notice&&<p className="rer-notice" role="status">{notice}</p>}
   {error&&<p className="rer-error" role="alert">{error}</p>}
