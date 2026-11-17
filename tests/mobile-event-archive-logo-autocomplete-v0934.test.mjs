@@ -84,5 +84,6 @@ test('visible archive lets user reuse old route or edit it for new edition',()=>
  assert.match(ui,/Für aktuelles Ziel übernehmen/)
  assert.match(ui,/Diese Angaben und Quellen speichern/)
  assert.match(goal,/logoUrl\?:string\|null/)
- assert.match(race,/onLogoChange=\{setEventLogo\}/)
+ assert.match(goal,/garmin-race-research/)
+ assert.doesNotMatch(race,/setEventLogo|onLogoChange/)
 })
