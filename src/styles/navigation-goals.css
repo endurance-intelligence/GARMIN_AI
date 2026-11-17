@@ -1,0 +1,10 @@
+/* Six equally sized destinations including Goals, without clipping narrow iPhones. */
+@media(max-width:1024px){
+ .footmobile{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+  justify-content:stretch;gap:1px;padding-left:max(5px,env(safe-area-inset-left));
+  padding-right:max(5px,env(safe-area-inset-right))}
+ .footmobile button{min-width:0;width:100%;padding:7px 2px;gap:5px;
+  white-space:nowrap;overflow:hidden;font-size:9px}
+ .footmobile button .ic{flex:0 0 19px;width:19px;height:19px}
+}
+@media(max-width:360px){.footmobile button{font-size:8px;gap:4px}}
