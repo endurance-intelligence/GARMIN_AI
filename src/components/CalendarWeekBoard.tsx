@@ -96,7 +96,8 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
   // Even a conflicting local plan must never hide the real race goal.
   const coach=day>=today&&candidate&&
    (candidate.kind==='race'||(!local.length&&!acts.length&&!manual.length&&
-    !['existing','completed','chosen','option'].includes(candidate.kind)))?candidate:null
+    !['existing','completed','chosen','option'].includes(candidate.kind)&&
+    !(candidate.decision==='declined'&&['easy','long','mobility','return_easy'].includes(candidate.kind))))?candidate:null
   return {day,index,daily,acts,manual,local,slot,coach}
  })
  return <section className="hwb-root" aria-label="Wochenübersicht mit echten Garmin-Aktivitäten und Gesundheitsdaten">
