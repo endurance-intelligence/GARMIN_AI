@@ -71,8 +71,8 @@ async function ownerGet<T>(session:Session,endpoint:string):Promise<T>{
  return await res.json() as T
 }
 
-export function CalendarPage({active,focus}:{
- active:boolean;focus:{date:string;token:number}|null
+export function CalendarPage({active,focus,onOpenCoach}:{
+ active:boolean;focus:{date:string;token:number}|null;onOpenCoach:(date?:string)=>void
 }){
  const today=useMemo(todayBerlin,[])
  const [selected,setSelected]=useState(today)
@@ -97,6 +97,9 @@ export function CalendarPage({active,focus}:{
  const [weekTimes,setWeekTimes]=useState<Record<string,string>>({})
  const [weekWorking,setWeekWorking]=useState<'approve'|'publish'|null>(null)
  const [weekResult,setWeekResult]=useState('')
+ const [showDayEvidence,setShowDayEvidence]=useState(false)
+ const [showWeekOptions,setShowWeekOptions]=useState(false)
+ const [showWorkoutArchive,setShowWorkoutArchive]=useState(false)
  const coachRequestIds=useRef<Record<string,string>>({})
  const lastFocusToken=useRef<number|null>(null)
  const [refresh,setRefresh]=useState(0)
@@ -538,7 +541,7 @@ export function CalendarPage({active,focus}:{
   <div className="hc-intro">
    <div className="hc-eyebrow"><span className="hc-pulse"/> TRAININGSPLAN / HORIZON</div>
    <h1>Deine Woche.<br/><span>Dein Rhythmus.</span></h1>
-   <p>Alle Einheiten an einem Ort: Garmin-Läufe, Coach-Vorschläge, deine bestätigten Trainings und ORC-Optionen.</p>
+   <p>Deine Termine, absolvierten Einheiten und freigegebenen Workouts. Empfehlungen entscheidest du im Coach.</p>
   </div>
   <div className="hc-overview">
    <div><small>WOCHE</small><strong>{monthTitle(start)}</strong><span>{countInWeek} gespeicherte Trainings · {suggestionsInWeek} Coach-Vorschläge</span></div>
@@ -546,7 +549,12 @@ export function CalendarPage({active,focus}:{
     <Icon name="refresh-cw"/>{busy?'Prüfe …':'Aktualisieren'}
    </button>
   </div>
-  <section className="hc-week-planner" aria-label="Coach Woche in zwei Schritten planen">
+  <details className="hc-week-planner" aria-label="Freigaben, Sammelplanung und Intervals-Versand">
+   <summary className="hc-week-planner-summary">
+    <span><Icon name="check-circle"/> Freigaben &amp; Versand <small>Erweiterte Wochenplanung</small></span>
+    <span className="hc-week-planner-count">{coachDrafts.length} Entwürfe · {coachPending.length} zum Senden · {coachConfirmed.length} bestätigt</span>
+    <Icon name="chevron-down"/>
+   </summary>
    <div className="hc-week-planner-heading">
     <div>
      <span className="hc-week-planner-kicker"><Icon name="sparkles"/> COACH / WOCHENPLANUNG</span>
@@ -635,7 +643,7 @@ export function CalendarPage({active,focus}:{
    <small className="hc-week-planner-disclaimer">Nur bestätigte Garmin-Daten und dein aktueller Coach-Status.
     Echte Krankheiten, Urlaubstage und bereits belegte Tage sperren die Freigabe.
     Keine automatische externe Veröffentlichung und keine direkten Garmin-Schreibzugriffe.</small>
-  </section>
+  </details>
   {cleanupPending.length>0&&<div className="hc-remote-pending" role="status">
    <div><strong>Intervals.icu · {cleanupPending.length} offene Bereinigung{cleanupPending.length===1?'':'en'}</strong>
     <p>Diese Trainings sind aus GARMIN_AI ausgeblendet. Klicke auf „Bei Intervals.icu abgleichen“, um eine manuelle Löschung zu erkennen. Der Abgleich löscht nichts bei Intervals.icu.</p>
@@ -674,7 +682,11 @@ export function CalendarPage({active,focus}:{
      <div><span>AUSGEWÄHLTER TAG</span><h3>{longDate(selected)}</h3></div>
      <span className="hc-day-count">{matching.length} {matching.length===1?'gespeicherter Termin':'gespeicherte Termine'}{coachPreview?' · 1 Coach-Hinweis':''}</span>
     </div>
-    <CoachEvidenceSummary active={active} mode="calendar" weekStart={start} selectedDate={selected}/>
+    <details className="hc-day-extra" onToggle={event=>setShowDayEvidence(event.currentTarget.open)}>
+     <summary><Icon name="activity"/> Analyse des ausgewählten Tages <small>Optional</small></summary>
+     {showDayEvidence&&<CoachEvidenceSummary active={active&&showDayEvidence}
+      mode="calendar" weekStart={start} selectedDate={selected}/>}
+    </details>
     {coachLoading&&<p className="hc-coach-loading" role="status">Lade Coach-Empfehlungen …</p>}
     {coachError&&<p className="hc-coach-unavailable" role="status">
      Coach-Empfehlungen derzeit nicht erreichbar. Keine Trainingsvorgaben geschätzt.
@@ -689,13 +701,19 @@ export function CalendarPage({active,focus}:{
        'Nur Orientierung · keine automatische Planung'}</small>
      </div>
      <h4>{coachPreview.title}</h4>
-     <p>{coachPreview.reason}</p>
+     <p>Das ist eine Empfehlung, kein gespeicherter Termin. Du kannst sie im Coach annehmen, ablehnen oder ändern.</p>
+     {selected>=today&&selected<=moveDay(today,6)&&
+      <button type="button" className="hc-coach-accept" onClick={()=>onOpenCoach(selected)}>
+       <Icon name="arrow-up-right"/> Im Coach entscheiden
+      </button>}
      {coachPreview.minutes!==null&&<span className="hc-coach-minutes">
       {coachPreview.minutes} Minuten · {coachPreview.kind==='mobility'?'Stabi/Mobility':
        'Sprechtempo · ohne Pace- oder HF-Zwang'}
      </span>}
      {coachPreview.approvable&&selected>=today&&
-      (coachReview===selected?
+     <details className="hc-coach-manual">
+      <summary>Alternative: direkt im Kalender als Entwurf übernehmen</summary>
+      {coachReview===selected?
        <div className="hc-coach-confirm">
         <strong>Vorschlag als GARMIN_AI-Entwurf übernehmen?</strong>
         <p>Erst nach deiner Freigabe im Kalender lässt sich das Workout an Intervals.icu senden.</p>
@@ -720,7 +738,8 @@ export function CalendarPage({active,focus}:{
        <button type="button" className="hc-coach-accept"
         disabled={acting!==null} onClick={()=>{setCoachReview(selected);setCoachStartTime('18:00')}}>
         <Icon name="check"/> Vorschlag übernehmen
-       </button>)}
+       </button>}
+     </details>}
     </article>}
     {matching.length?
      <div className="hc-entries">
@@ -802,9 +821,16 @@ export function CalendarPage({active,focus}:{
        Freiwillige ORC-Angebote findest du in der Wochenübersicht.</span>
      </div>}
    </div>
-   <WeeklyTrainingOptions active={active} weekStart={start} selectedDate={selected} compact/>
-   <WorkoutArchivePanel active={active} date={selected}
-    onPlanned={()=>setRefresh(n=>n+1)}/>
+   <details className="hc-day-extra" onToggle={event=>setShowWeekOptions(event.currentTarget.open)}>
+    <summary><Icon name="calendar-days"/> Freiwillige Gruppentermine <small>Bei Bedarf</small></summary>
+    {showWeekOptions&&<WeeklyTrainingOptions active={active&&showWeekOptions}
+     weekStart={start} selectedDate={selected} compact/>}
+   </details>
+   <details className="hc-day-extra" onToggle={event=>setShowWorkoutArchive(event.currentTarget.open)}>
+    <summary><Icon name="folder-open"/> Workout-Bibliothek &amp; ORC-Import <small>Bei Bedarf</small></summary>
+    {showWorkoutArchive&&<WorkoutArchivePanel active={active&&showWorkoutArchive} date={selected}
+     onPlanned={()=>setRefresh(n=>n+1)}/>}
+   </details>
   </div>
   <div className="hc-source-grid">
    <article><div className="hc-source-icon"><Icon name="check"/></div>
@@ -818,8 +844,8 @@ export function CalendarPage({active,focus}:{
      <span>Übertragung und Löschen nur nach deiner Freigabe</span>
     </div></article>
   </div>
-  <p className="hc-footnote">Coach-Vorschläge erscheinen nur zur Orientierung – ohne automatische Speicherung.
-    Du übernimmst einen Vorschlag, gibst ihn selbst frei und sendest erst danach an Intervals.icu.
+  <p className="hc-footnote">Coach-Vorschläge entscheidest du im Coach – ohne automatische Speicherung.
+    Im Kalender kontrollierst du Entwürfe, gibst Workouts frei und sendest sie bei Bedarf an Intervals.icu.
     Garmin-Aktivitäten bleiben unverändert. Garmin-Kalendervorlagen werden ausgeblendet.</p>
  </section>
 }
