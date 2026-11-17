@@ -17,12 +17,12 @@ test('weekly activity API is owner-only and read-only',()=>{
  assert.match(api,/garmin_daily_metrics/)
  assert.doesNotMatch(api,/raw_activity/)
 })
-test('calendar weekly board shows all seven days and real recovery evidence',()=>{
+test('calendar weekly board shows all seven days without repeated recovery metrics',()=>{
  assert.match(calendar,/CalendarWeekBoard active=\{active\}/)
  assert.match(board,/Array\.from\(\{length:7\}/)
- assert.match(board,/metric\(daily\.hrv_ms/)
- assert.match(board,/metric\(daily\.resting_heart_rate/)
- assert.match(board,/daily\.sleep_seconds/)
+ assert.doesNotMatch(board,/metric\(daily\.hrv_ms/)
+ assert.doesNotMatch(board,/metric\(daily\.resting_heart_rate/)
+ assert.doesNotMatch(board,/daily\.sleep_seconds/)
  assert.match(board,/start_time_local/)
  assert.match(board,/actual/i)
  assert.match(styles,/grid-template-columns:repeat\(7/)
