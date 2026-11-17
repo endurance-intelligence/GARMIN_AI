@@ -58,7 +58,7 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
  const {day}=x
  const reviewIsOpen=reviewDate===day.date
  const canChoose=!['illness','blocked','race','existing','completed'].includes(day.kind)
- const alreadyDecided=['declined','acknowledged'].includes(day.kind)
+ const alreadyDecided=day.decision==='declined'||day.decision==='accepted'
  return <section className="cdl-root" aria-label="Echte Coach-Entscheidung mit Begründung">
   <header className="cdl-head">
    <div><span className="cdl-kicker"><Icon name="sparkles"/> COACH INTELLIGENCE · LIVE</span>
@@ -70,7 +70,8 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
     <div className="cdl-choice-top">
      <span className="cdl-overline"><span className="cdl-led"/> VORSCHLAG / {dated(day.date).toUpperCase()}</span>
      <span className={'cdl-status cdl-status-'+x.state}>
-      {x.actionable?'Prüfung offen':x.state==='calendar'?'Bereits eingetragen':'Kein Entwurf nötig'}
+      {day.decision==='accepted'?'Von dir angenommen':day.decision==='declined'?'Von dir abgelehnt':
+       x.actionable?'Prüfung offen':x.state==='calendar'?'Bereits eingetragen':'Kein Entwurf nötig'}
      </span>
     </div>
     <div className="cdl-choice-body">
