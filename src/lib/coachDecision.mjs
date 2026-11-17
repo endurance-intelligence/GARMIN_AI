@@ -24,7 +24,7 @@ export function selectCoachDecision(plan,context={}){
   mobility:'Stabil bleiben.'
  }
  const headline=labels[candidate.kind]||'Deine nächste Entscheidung.'
- const actionable=candidate.approvable===true||candidate.kind==='option'
+ const actionable=!candidate.decision&&(candidate.approvable===true||candidate.kind==='option')
  const existing=candidate.kind==='existing'
  const proposal=actionable?candidate.title:
   candidate.title
@@ -40,8 +40,8 @@ export function selectCoachDecision(plan,context={}){
   existing?'Bereits im Kalender – keine neue Einheit':
   candidate.kind==='race'?'Wettkampftag – keine zusätzliche Einheit':
   candidate.kind==='illness'?'Kein Training während Beschwerden':
-  candidate.kind==='declined'?'Von dir bewusst abgelehnt':
-  candidate.kind==='acknowledged'?'Von dir ausdrücklich übernommen':
+  candidate.decision==='declined'?'Du hast diesen Vorschlag abgelehnt; keine automatische Änderung.':
+  candidate.decision==='accepted'?'Du hast den Vorschlag übernommen; kein neuer Kalendereintrag.':
   'Einordnung · keine automatische Planänderung'
  const last=context.lastRun||null
  const review=context.review||null
