@@ -48,8 +48,8 @@ test('summary uses measured prior median and never claims readiness',()=>{
  const comparison=interpretRecovery([...base.slice(0,8),...recent],'2026-11-09')
  const txt=recoveryNarrative(comparison)
  assert.match(txt,/Schlaf als zuletzt/)
- assert.match(txt,/HRV unter dem jüngsten Median/)
- assert.match(txt,/Ruhepuls unter dem jüngsten Median/)
+ assert.match(txt,/HRV niedriger als sonst/)
+ assert.match(txt,/Ruhepuls niedriger als sonst/)
  assert.doesNotMatch(txt,/erholt|trainingsbereit|Score/i)
 })
 test('Coach shows colored SVG mini-trends rather than a data table',()=>{
