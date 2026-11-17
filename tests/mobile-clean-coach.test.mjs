@@ -73,19 +73,20 @@ test('all current project views keep owner gate and race weather untouched',()=>
  assert.match(race,/<RaceForecastCompact active=\{active\}/)
 })
 
+
 test('weight quick dialog is centered on desktop, iPhone and iPad and scrolls in short viewports',()=>{
  const css=read('src/styles/coach-glance.css')
- const modal=css.match(/\\.co-dialog-backdrop\\{([^}]+)\\}/)?.[1]||''
+ const modal=css.match(/\.co-dialog-backdrop\{([^}]+)\}/)?.[1]||''
  assert.match(modal,/position:fixed;inset:0/)
  assert.match(modal,/align-items:center;justify-content:center/)
  assert.doesNotMatch(modal,/align-items:flex-end/)
  assert.match(modal,/safe-area-inset-top/)
  assert.match(modal,/safe-area-inset-bottom/)
- assert.match(css,/\\.co-dialog\\{width:min\\(100%,440px\\);max-height:min\\(90dvh,calc\\(100dvh - 24px/)
+ assert.match(css,/\.co-dialog\{width:min\(100%,440px\);max-height:min\(90dvh,calc\(100dvh - 24px/)
  assert.match(css,/overflow-y:auto;overscroll-behavior:contain/)
- assert.match(css,/@media\\(max-width:760px\\)\\{[\\s\\S]*?\\.co-dialog\\{border-radius:22px;max-height:min\\(90dvh/)
- assert.doesNotMatch(css,/\\.co-dialog\\{border-radius:22px 22px 13px 13px/)
+ assert.match(css,/@media\(max-width:760px\)\{[\s\S]*?\.co-dialog\{border-radius:22px;max-height:min\(90dvh/)
+ assert.doesNotMatch(css,/\.co-dialog\{border-radius:22px 22px 13px 13px/)
  const page=read('src/pages/CoachPage.tsx')
- assert.match(page,/createPortal\\(<div className="co-dialog-backdrop"/)
+ assert.match(page,/createPortal\(<div className="co-dialog-backdrop"/)
  assert.match(page,/role="dialog" aria-modal="true"/)
 })
