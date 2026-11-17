@@ -1,3 +1,4 @@
+import {estimateRaceStrategy} from './raceStrategyMath.mjs'
 /** Athlete-entered pacing/fueling arithmetic. No nutritional prescription. */
 export function estimateRaceBudget({distanceKm,targetHours,calculation,
  carbsPerHour,fluidPerHour,sodiumPerHour}={}){
@@ -66,13 +67,9 @@ export function buildRaceReview({today,race,strategy,board,context}={}){
  }
  const laps=mode==='laps'&&numeric(base.loopKm)&&base.loopKm>0&&
   numeric(base.movingMinutes)&&base.movingMinutes>0
- const validPlan=mode!=='laps'&&numeric(base.paceSeconds)||laps
- let plan=null
- if(validPlan&&dist!==null){
-  // Estimate arithmetic in the same model used by Race Prep editing.
-  // Import remains a module dependency; no network operations.
-  plan={...base}
- }
+ const validPlan=(mode!=='laps'&&numeric(base.paceSeconds))||laps
+ const plan=validPlan&&dist!==null?
+  estimateRaceStrategy({...base}):null
  const hasBoard=board&&board.start===monday(race.raceDate)&&
   Array.isArray(board.activities)
  const runs=hasBoard?actualRuns(board,race.raceDate):[]
