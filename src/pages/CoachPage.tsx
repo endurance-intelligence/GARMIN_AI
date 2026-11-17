@@ -16,7 +16,10 @@ import type {CoachSnapshot} from '../lib/coachSnapshot'
 import '../styles/coach-glance.css'
 import type {Page} from '../navigation'
 
-export function CoachPage({active,onGo,onOpenCalendar,onOpenRaceWeather}: {active:boolean; onGo:(page:Page)=>void;onOpenCalendar:(date?:string)=>void;onOpenRaceWeather:()=>void}) {
+export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather}: {
+ active:boolean;focus?:{date:string;token:number}|null;
+ onGo:(page:Page)=>void;onOpenCalendar:(date?:string)=>void;onOpenRaceWeather:()=>void
+}) {
   const [weightOpen,setWeightOpen]=useState(false)
   const [savedWeight,setSavedWeight]=useState<number|null>(null)
   const [savedWeightDelivery,setSavedWeightDelivery]=useState<'not_published'|'confirmed'|'needs_review'>('not_published')
@@ -95,7 +98,7 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenRaceWeather}: {activ
   <CoachGlance active={active} onCalendar={()=>onOpenCalendar()} sharedSnapshot={sharedSnapshot}>
    <CoachTodayWeather active={active}/>
   </CoachGlance>
-  <CoachSevenDay active={active} onCalendar={onOpenCalendar} sharedSnapshot={sharedSnapshot}/>
+  <CoachSevenDay active={active} focus={focus} onCalendar={onOpenCalendar} sharedSnapshot={sharedSnapshot}/>
  </>}
  <CoachEvidenceSummary active={active} mode="weekly" weekStart={coachAddDays(mondayOf(berlinToday()),-7)}/>
  <details className="co-extra-tools">
