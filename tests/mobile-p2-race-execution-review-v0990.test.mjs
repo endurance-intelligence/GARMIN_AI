@@ -141,7 +141,7 @@ test('after-race report reuses original recovery barometer and can show archived
  const ui=read('src/components/RaceReviewCard.tsx')
  const page=read('src/pages/RacePage.tsx')
  const sql=read('supabase/migrations/20261117170000_race_plan_goal_snapshot_v0990.sql')
- assert.ok(page.includes('<RaceReviewCard active={active} onCoach={()=>onGo(\\'home\\')}/>'))
+ assert.ok(page.includes("<RaceReviewCard active={active} onCoach={()=>onGo('home')}/>"))
  assert.match(ui,/garmin-coach-context/)
  assert.match(ui,/garmin-week-board\?start=/)
  assert.match(ui,/garmin_race_strategy/)
