@@ -154,11 +154,6 @@ export function buildSevenDayCoach(input){
     (existing?' Achtung: Bereits geplanter Termin bleibt bestehen – im Kalender prüfen.':''))
   if(existing)return make(day,'existing',existing.title,null,'Bereits in GARMIN_AI geplant. Keine zweite Einheit erzeugen.',existing.sport||'running')
   if(done)return make(day,'completed','Bereits trainiert',null,'Absolvierte Garmin-/Stabi-Aktivität; keine zusätzliche Planung.')
-  const decision=dayDecisions.find(x=>x.date===day)
-  if(decision?.choice==='declined')return make(day,'declined','Deine Entscheidung · abgelehnt',null,
-   'Du hast die Empfehlung für diesen Tag abgelehnt. Kein Kalenderblock, keine automatische Nachholeinheit.')
-  if(decision?.choice==='accepted')return make(day,'acknowledged','Deine Entscheidung · übernommen',null,
-   'Du hast den ruhigen Tag bzw. die Planung bestätigt. Keine automatische Kalenderänderung.')
   if(returning){
    if(concern)return make(day,'illness','Wiedereinstieg unterbrechen',null,
     'Nach einem Wiedereinstiegslauf wurden Beschwerden gemeldet. Nicht weitertrainieren; medizinisch klären.')
@@ -184,10 +179,10 @@ export function buildSevenDayCoach(input){
    Math.round((Date.parse(day+'T12:00:00Z')-Date.parse(recoveryRaceDate+'T12:00:00Z'))/ONE_DAY):null
   if(daysPostRace!==null&&daysPostRace>0&&daysPostRace<=14){
    if(!raceCheck||!checkedRecently)
-    return make(day,'recovery','Renn-Erholung · Check-in fehlt',null,
-     'Nach '+(ultraRecovery?'dem Ultra':'dem Rennen')+
-     ' bitte Erschöpfung und Muskelgefühl im Renn-Barometer eintragen bzw. aktualisieren. '+
-     'Bis dahin keine automatischen Laufeinheiten oder Trainingsblocker im Kalender.')
+    return make(day,'recovery','Regeneration nach dem Wettkampf',null,
+     day>today?
+      'Nach dem Wettkampf ist Erholung vorgesehen. Das Renn-Barometer wird erst nach dem Zieleinlauf ausgefüllt. Keine zusätzliche Einheit.':
+      'Regeneration nach dem Wettkampf. Bitte Erschöpfung und Muskelgefühl im Renn-Barometer eintragen bzw. aktualisieren. Bis dahin keine neuen Laufvorschläge.')
    if(raceCheck.warning)
     return make(day,'illness','Warnzeichen · Belastung abklären',null,
      'Du hast Warnzeichen gemeldet. Kein Laufvorschlag. Bei Brustschmerzen, Atemnot, '+
@@ -251,10 +246,10 @@ export function buildSevenDayCoach(input){
      'Coach-Entscheidung: Gruppenlauf höchstens stark verkürzt und sehr locker. '+
      '25 Minuten genügen; keine Tempoeinheit, keine zusätzliche Belastung.')
    if(untilRace===2)
-    return make(day,'recovery','Ruhetag · optional Spaziergang',null,
+    return make(day,'recovery','Ruhetag',null,
      'Zwei Tage bis zum Rennen: kein Training nachholen. Bewegung nur bei Bedarf und ohne Ermüdung.')
    if(untilRace===1)
-    return make(day,'recovery','Ruhetag · Anreise und Rennvorbereitung',null,
+    return make(day,'recovery','Ruhetag / Anfahrt',null,
      'Morgen ist '+goal.race_name+'. Ausruhen, Ausrüstung, Verpflegung und Anreise organisieren. Kein ORC-Training.')
    if(untilRace>=6&&untilRace<=10){
     if(weekday(day)===6)
@@ -304,6 +299,13 @@ export function buildSevenDayCoach(input){
    'Leichte Kräftigung und Beweglichkeit; keine zusätzliche harte Einheit.','strength')
   return make(day,'recovery','Erholung / freier Tag',null,
    'Abstand zwischen Belastungen erhalten, optionale Vereinstrainings bleiben freiwillig.')
+ }).map(item=>{
+  // The coach decision is metadata, never a replacement for the original
+  // training/rest/travel recommendation shown in both Coach and Calendar.
+  const choice=dayDecisions.find(x=>x.date===item.date)?.choice
+  if(!['accepted','declined'].includes(choice)||
+    ['race','illness','blocked','existing','completed'].includes(item.kind))return item
+  return {...item,decision:choice,approvable:false}
  })
  return {today,days:items,signals,flags,
   attention:ill||returning||postIllness||!!input.symptoms||caution||observationLimited,
