@@ -158,3 +158,50 @@
 @media(max-width:610px){.cg-goal-name{gap:9px}
  .cg-goal-emblem,.cg-title-row>.cg-goal-emblem{flex-basis:44px;width:44px;height:44px;padding:4px}
  .cg-goal-emblem-fallback .ic{width:21px;height:21px}}
+
+/* v0.9.81: event logos are often black; give them a genuinely light canvas and more room. */
+.cg-home-hero .cg-goal-emblem,.cg-title-row>.cg-goal-emblem{
+ background:linear-gradient(160deg,#ffffff,#f0f3f9);
+ border:1px solid #d6deea;box-shadow:0 7px 20px rgba(4,12,25,.22);
+ border-radius:15px;box-sizing:border-box;overflow:hidden;
+ width:68px;height:68px;flex:0 0 68px;padding:9px
+}
+.cg-home-hero .cg-goal-emblem img,.cg-title-row>.cg-goal-emblem img{
+ width:100%;height:100%;object-fit:contain;background:transparent;padding:0;
+ border:0;border-radius:4px;max-width:100%;max-height:100%
+}
+.cg-home-hero .cg-goal-emblem-fallback{color:#556c91}
+.cg-root.cg-home-hero{
+ grid-template-columns:minmax(0,1.17fr) minmax(300px,.83fr);
+ column-gap:25px;padding:20px 23px;min-height:155px
+}
+.cg-home-race-head{margin-bottom:12px}
+.cg-home-race-main{gap:20px}
+.cg-home-race-info{min-width:0;flex:1}
+.cg-goal-name{gap:15px;align-items:center;margin-bottom:12px}
+.cg-goal-name h2{line-height:1.22!important;margin:0!important}
+.cg-home-race-meta{gap:7px}
+.cg-home-edit{margin:12px 0 0}
+.cg-home-days{flex:0 0 72px;min-height:72px}
+.cg-home-weather{padding:14px 16px}
+@media(max-width:860px){
+ .cg-root.cg-home-hero{grid-template-columns:minmax(0,1fr);gap:14px;padding:17px 18px}
+ .cg-home-weather{min-height:66px}
+}
+@media(max-width:610px){
+ .cg-root.cg-home-hero{padding:15px 14px;min-height:0}
+ .cg-home-hero .cg-goal-emblem,.cg-title-row>.cg-goal-emblem{
+  width:56px;height:56px;flex-basis:56px;padding:7px;border-radius:13px
+ }
+ .cg-goal-name{gap:12px;margin-bottom:10px}
+ .cg-home-race-main{gap:10px;align-items:center}
+ .cg-home-race-head{margin-bottom:10px}
+ .cg-home-race-meta{gap:6px}
+ .cg-home-edit{margin:10px 0 0}
+ .cg-home-days{flex:0 0 58px;min-height:64px}
+}
+@media(max-width:385px){
+ .cg-home-hero .cg-goal-emblem{width:48px;height:48px;flex-basis:48px;padding:6px}
+ .cg-goal-name{gap:9px}.cg-home-race-info h2{font-size:17px!important}
+ .cg-home-days{flex-basis:52px;min-height:57px}
+}
