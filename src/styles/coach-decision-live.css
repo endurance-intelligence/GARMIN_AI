@@ -82,3 +82,33 @@
 
 .cdl-evidence-loading{margin:8px 0;padding:7px 9px;color:#b2c4ea;font-size:10px;
  border:1px dashed rgba(146,178,232,.25);border-radius:8px}
+
+/* v0.9.76: compact day decision, expandable evidence rather than two oversized walls. */
+.cdl-choice,.cdl-why{align-self:start}
+.cdl-choice{padding:16px 18px}
+.cdl-why{padding:16px 18px}
+.cdl-choice h4{margin:10px 0 5px;font-size:clamp(22px,2.5vw,30px)}
+.cdl-swap{margin:9px 0 12px;padding:10px}
+.cdl-swap small{display:none}
+.cdl-why h4{font-size:20px;margin:8px 0}
+.cdl-specific{padding:9px 11px;margin:8px 0 10px}
+.cdl-why-foot{margin-top:9px}
+.cdl-actions{gap:7px}
+.cdl-root .cdl-decline{border-color:rgba(240,163,147,.3);color:#ffd5c9}
+.cdl-root .cdl-custom{border-color:rgba(189,205,252,.4);color:#e3edff}
+.cdl-week-link{opacity:.72}
+.cdl-why-detail{margin-top:9px;border-top:1px solid rgba(169,190,232,.16);padding-top:8px}
+.cdl-why-detail>summary{display:flex;align-items:center;justify-content:space-between;gap:9px;
+ list-style:none;cursor:pointer;font-size:11px;font-weight:800;color:#cbd8fc;padding:6px 0}
+.cdl-why-detail>summary::-webkit-details-marker{display:none}
+.cdl-why-detail>summary .ic{height:15px;width:15px}
+.cdl-why-detail[open]>summary .ic{transform:rotate(180deg)}
+.cdl-why-detail>summary:focus-visible{outline:2px solid #bcafff;outline-offset:3px}
+@media(max-width:700px){
+ .cdl-choice,.cdl-why{padding:13px}
+ .cdl-grid{gap:8px}
+ .cdl-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .cdl-root .cdl-actions button{width:auto;min-width:0;min-height:44px}
+ .cdl-root .cdl-actions .cdl-primary{grid-column:1/-1}
+ .cdl-root .cdl-actions .cdl-week-link{grid-column:1/-1}
+}
