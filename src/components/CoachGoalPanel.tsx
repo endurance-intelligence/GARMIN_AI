@@ -4,6 +4,7 @@ import {phaseForRace,berlinDateToday,suggestedGoal} from '../lib/coachGoal'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import '../styles/coach-goal.css'
 import {CoachRaceWeatherMini} from './CoachRaceWeatherMini'
+import {Icon} from './Icon'
 
 async function goalRequest(body?:Record<string,unknown>):Promise<{goal:CoachGoal|null;saved?:boolean}>{
  if(!garminSupabase)throw Error('Bitte zuerst anmelden.')
@@ -34,6 +35,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
  const [ready,setReady]=useState(false)
+ const [savedLogo,setSavedLogo]=useState<string|null>(null)
  useEffect(()=>{
   if(!active)return
   let mounted=true
@@ -47,6 +49,26 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
    .finally(()=>{if(mounted)setLoading(false)})
   return ()=>{mounted=false}
  },[active])
+ useEffect(()=>{
+  if(!active||!goal||!garminSupabase)return
+  let mounted=true
+  const controller=new AbortController()
+  setSavedLogo(null)
+  void (async()=>{
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)return
+   const response=await fetch(garminSupabaseUrl+'/functions/v1/garmin-race-research',{
+    method:'GET',cache:'no-store',signal:controller.signal,
+    headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey}
+   })
+   if(!response.ok)return
+   const data=await response.json() as {saved?:Array<{race_date:string;details?:{logoUrl?:unknown}}>}
+   const match=data.saved?.find(x=>x.race_date===goal.race_date)
+   const value=match?.details?.logoUrl
+   if(mounted)setSavedLogo(typeof value==='string'&&/^https:\/\//i.test(value)?value:null)
+  })().catch(()=>{if(mounted)setSavedLogo(null)})
+  return ()=>{mounted=false;controller.abort()}
+ },[active,goal?.race_date,goal?.race_name])
  async function save(){
   if(saving)return
   setError('');setNotice('');setSaving(true)
@@ -73,6 +95,13 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
  const phase=phaseForRace(current.race_date,berlinDateToday())
  const distanceText=Number(current.distance_km).toLocaleString('de-DE',{maximumFractionDigits:1})
  const days=Math.max(0,phase.daysUntil)
+ const eventLogo=logoUrl&&/^https:\/\//i.test(logoUrl)?logoUrl:savedLogo
+ const goalBadge=<span className="cg-goal-emblem" aria-label={'Rennlogo '+current.race_name}>
+  {eventLogo?<img src={eventLogo} alt={'Logo '+current.race_name}
+   loading="lazy" referrerPolicy="no-referrer"
+   onError={()=>setSavedLogo(null)}/>:
+   <span className="cg-goal-emblem-fallback" aria-hidden="true"><Icon name="flag"/></span>}
+ </span>
  if(compact)return <section className="cg-root cg-compact cg-home-hero"
   aria-label="Aktuelles Hauptziel und Rennwetter">
   <div className="cg-home-race">
@@ -80,7 +109,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
     <span className={'cg-state'+(goal?' is-active':'')}>{goal?'AKTIVES ZIEL':'NOCH NICHT BESTÄTIGT'}</span></div>
    <div className="cg-home-race-main">
     <div className="cg-home-race-info">
-     <h2>{current.race_name}</h2>
+     <div className="cg-goal-name">{goalBadge}<h2>{current.race_name}</h2></div>
      <div className="cg-home-race-meta">
       <span>{current.race_date.split('-').reverse().join('.')}</span>
       <span>{distanceText} km</span>
@@ -104,7 +133,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
    <span className={'cg-state'+(goal?' is-active':'')}>{goal?'AKTIVES ZIEL':'VORSCHLAG · NOCH NICHT GESPEICHERT'}</span>
   </div>
   <div className="cg-summary">
-   <div><div className="cg-title-row">{logoUrl&&<img src={logoUrl} alt={'Logo '+current.race_name} referrerPolicy="no-referrer" loading="lazy"/>}<h2>{current.race_name}</h2></div>
+   <div><div className="cg-title-row">{goalBadge}<h2>{current.race_name}</h2></div>
     <p>{current.race_date.split('-').reverse().join('.')} · {current.race_location||'Ort nicht festgelegt'}</p>
     <div className="cg-tags"><span>{distanceText} km</span>
      {current.target_hours&&<span>Ziel {Number(current.target_hours).toLocaleString('de-DE')} h</span>}
