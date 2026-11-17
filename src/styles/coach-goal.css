@@ -236,3 +236,20 @@
  .cg-root.cg-home-hero .cg-home-days strong{font-size:38px}
  .cg-root.cg-home-hero .cg-home-days small{font-size:8px}
 }
+
+/* v0.9.83: center numeral AND label as one unit instead of split grid rows. */
+.cg-root.cg-home-hero .cg-home-days{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:3px;text-align:center;grid-template-rows:none;
+ margin-right:clamp(3px,1.6vw,18px)
+}
+.cg-root.cg-home-hero .cg-home-days strong{
+ display:block;margin:0;line-height:.98;text-align:center;
+ transform:none
+}
+.cg-root.cg-home-hero .cg-home-days small{
+ display:block;max-width:100%;margin:0;text-align:center;line-height:1.25
+}
+@media(max-width:610px){
+ .cg-root.cg-home-hero .cg-home-days{margin-right:0;gap:2px}
+}
