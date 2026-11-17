@@ -10,7 +10,7 @@ export type CoachSnapshot={
  options:Record<string,unknown>;plans:{entries:Array<Record<string,unknown>>};
  goal:Record<string,unknown>;life:CoachContextPayload
 }
-export async function loadCoachSnapshot(session:Session,today:string,signal?:AbortSignal,visibleWeek?:string):Promise<CoachSnapshot>{
+export async function loadCoachSnapshot(session:Session,today:string,signal?:AbortSignal,visibleWeek?:string,historyWeeks=1):Promise<CoachSnapshot>{
  const get=async(endpoint:string):Promise<Record<string,unknown>>=>{
   const response=await fetch(garminSupabaseUrl+'/functions/v1/'+endpoint,{
    cache:'no-store',signal,headers:{
@@ -27,7 +27,11 @@ export async function loadCoachSnapshot(session:Session,today:string,signal?:Abo
  // Include the previous completed calendar week: recent Saturday intervals
  // must remain available in Tuesday's Coach reasoning.
  const previous=coachAddDays(first,-7)
- const weeks=[...new Set([previous,first,second,visible])]
+ // Goals can request four *completed* ISO weeks for its evidence-only progress view.
+ // Coach / calendar retain their previous minimal fetch behavior.
+ const back=Number.isInteger(historyWeeks)?Math.max(1,Math.min(4,historyWeeks)):1
+ const older=Array.from({length:back},(_,i)=>coachAddDays(first,-7*(i+1)))
+ const weeks=[...new Set([...older,previous,first,second,visible])]
  const [health,options,plans,goal,life,...boards]=await Promise.all([
   get('read-garmin-health'),get('garmin-weekly-options'),get('garmin-training-plan'),
   get('garmin-coach-goal'),get('garmin-coach-context'),
