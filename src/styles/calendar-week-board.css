@@ -87,3 +87,9 @@
  background:rgba(112,74,57,.055);opacity:.8}
 .hwb-card.is-option.is-discouraged .hwb-card-label{color:#f0af9d}
 .hwb-card.is-option.is-discouraged small{color:#e1b5a9}
+
+/* P0: day headers are for dates and appointments; recovery belongs on Coach. */
+.hwb-day-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.hwb-day-hint{font-size:10px;font-weight:760;color:#b7d0ed;margin-top:2px}
+.hwb-day-header .hwb-health{display:none}
+.hwb-card.is-coach small{line-height:1.35}
