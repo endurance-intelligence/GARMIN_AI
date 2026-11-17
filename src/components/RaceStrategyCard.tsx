@@ -60,7 +60,7 @@ export function RaceStrategyCard({active}:{active:boolean}){
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
  const loadedKey=useRef<string|null>(null)
- const update=<K extends keyof Draft>(name:K,value:Draft[K])=>{
+ const update=<K extends keyof Draft,>(name:K,value:Draft[K])=>{
   setDraft(old=>({...old,[name]:value}));setNotice('')
  }
  useEffect(()=>{
