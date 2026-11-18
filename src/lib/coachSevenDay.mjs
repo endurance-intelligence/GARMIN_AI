@@ -284,7 +284,8 @@ export function buildSevenDayCoach(input){
      'Spaziergang oder sanfte Mobility statt Trainingskilometern; morgen erneut prüfen.')
    // Objective Garmin warning signals can only make the plan more conservative.
    // Athlete-submitted exhaustion is already protected by the branches above.
-   if(activeRaceRecovery&&autoRaceRecovery.signals.some(x=>
+   if(activeRaceRecovery&&autoRaceRecovery.recoveryCaution&&
+    autoRaceRecovery.signals.some(x=>
     /Garmin|HRV|Ruhepuls|Schlafdauer/i.test(x)))
     return make(day,'recovery','Garmin-Erholungssignale · Regeneration',null,
      autoRaceRecovery.signals.join(' · ')+'. '+
