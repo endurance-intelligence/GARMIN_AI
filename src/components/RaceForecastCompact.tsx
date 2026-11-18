@@ -23,6 +23,7 @@ const minmax=(values:number[])=>values.length?
  [Math.round(Math.min(...values)),Math.round(Math.max(...values))]:null
 const summary=(hours:WeatherHour[])=>{
  const temp=minmax(hours.map(x=>x.temperature))
+ const feels=minmax(hours.map(x=>x.feelsLike))
  const rain=Math.max(...hours.map(x=>x.rainProbability))
  const gust=Math.max(...hours.map(x=>x.gust))
  const changes=[]
@@ -31,7 +32,7 @@ const summary=(hours:WeatherHour[])=>{
  if(temp&&temp[0]<=3)changes.push('Kältephasen')
  if(temp&&temp[1]>=25)changes.push('Wärmebelastung möglich')
  if(hours.some(x=>!x.isDay))changes.push('Dunkelheit')
- return {temp,rain,gust,changes}
+ return {temp,feels,rain,gust,changes}
 }
 type CourseInfo={courseType:string|null;finishCity:string|null}
 type RaceStage={label:string;fraction:number;km?:number;where:string;weather:WeatherHour}
@@ -184,6 +185,9 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity,co
     <div className="rfc-metric"><Icon name="thermometer"/>
      <div><strong>{info.temp?.[0]}–{info.temp?.[1]}°C</strong>
       <small>{stageComplete?'Temperatur · Streckenpunkte':'Temperaturverlauf'}</small></div></div>
+    <div className="rfc-metric rfc-feels"><Icon name="thermometer"/>
+     <div><strong>{info.feels?.[0]}–{info.feels?.[1]}°C</strong>
+      <small>Gefühlte Temperatur</small></div></div>
     <div className="rfc-metric"><Icon name="droplets"/>
      <div><strong>{info.rain} %</strong><small>{stageComplete?'Regen · Streckenpunkte':'Max. Regenwahrscheinlichkeit'}</small></div></div>
     <div className="rfc-metric"><Icon name="wind"/>
@@ -199,8 +203,8 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity,co
     <div className="rfc-course-points">{stages.map(stage=>
      <div key={stage.fraction} className="rfc-course-point">
       <span>{stage.label} · {stage.where}</span>
-      <strong>{Math.round(stage.weather.temperature)}°C · {weatherLabel(stage.weather.code)}</strong>
-      <small>{String(stage.weather.hour).padStart(2,'0')}:00 Uhr · Regen {Math.round(stage.weather.rainProbability)} % · Böen {Math.round(stage.weather.gust)} km/h</small>
+      <strong>{Math.round(stage.weather.temperature)}°C · gefühlt {Math.round(stage.weather.feelsLike)}°C</strong>
+      <small>{weatherLabel(stage.weather.code)} · {String(stage.weather.hour).padStart(2,'0')}:00 Uhr · Regen {Math.round(stage.weather.rainProbability)} % · Böen {Math.round(stage.weather.gust)} km/h</small>
      </div>)}
     </div>
    </div>}
@@ -208,8 +212,8 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity,co
     <summary>Wetterverlauf über {duration} Stunden ansehen</summary>
     <div className="rfc-timeline">
      {full.segments.map(h=><div key={h.epoch}><b>{String(h.hour).padStart(2,'0')}:00</b>
-      <strong>{Math.round(h.temperature)}°C · {weatherLabel(h.code)}</strong>
-      <span>Regen {Math.round(h.rainProbability)} % · Böen {Math.round(h.gust)} km/h</span>
+      <strong>{Math.round(h.temperature)}°C · gefühlt {Math.round(h.feelsLike)}°C</strong>
+      <span>{weatherLabel(h.code)} · Regen {Math.round(h.rainProbability)} % · Böen {Math.round(h.gust)} km/h</span>
      </div>)}
     </div>
    </details>}
