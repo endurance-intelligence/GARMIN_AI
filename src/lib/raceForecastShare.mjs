@@ -53,6 +53,7 @@ export function formatRaceWeatherShare({race,info,status,place,finish,pointToPoi
   '',
   '🔎 '+status.label,
   '🌡️ Temperatur: '+info.temp[0]+'–'+info.temp[1]+' °C',
+  ...(info.feels?['🧥 Gefühlt: '+info.feels[0]+'–'+info.feels[1]+' °C']:[]),
   '🌧️ Regenwahrscheinlichkeit: bis '+round(info.rain)+' %',
   '💨 Windböen: bis '+round(info.gust)+' km/h'
  ]
@@ -60,7 +61,7 @@ export function formatRaceWeatherShare({race,info,status,place,finish,pointToPoi
  if(stages.length>=2){
   lines.push('','📍 Wetter entlang der Strecke (Durchgangszeiten geschätzt):')
   for(const s of stages)lines.push('• '+s.label+' · '+pad(s.weather.hour)+':00 Uhr: '+
-   round(s.weather.temperature)+' °C, Regen '+round(s.weather.rainProbability)+
+   round(s.weather.temperature)+' °C (gefühlt '+round(s.weather.feelsLike)+' °C), Regen '+round(s.weather.rainProbability)+
    ' %, Böen '+round(s.weather.gust)+' km/h')
  }
  lines.push('','🎒 Darauf solltest du dich einstellen:')
