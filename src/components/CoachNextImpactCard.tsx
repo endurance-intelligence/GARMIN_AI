@@ -1,8 +1,8 @@
 import type {RecentCoachImpact} from '../lib/coachNextImpact.mjs'
 import '../styles/coach-next-impact.css'
 
-const fmt=n=>n===null?'–':n.toLocaleString('de-DE',{maximumFractionDigits:1})
-const dt=d=>d.slice(8,10)+'.'+d.slice(5,7)+'.'
+const fmt=(n:number|null)=>n===null?'–':n.toLocaleString('de-DE',{maximumFractionDigits:1})
+const dt=(d:string)=>d.slice(8,10)+'.'+d.slice(5,7)+'.'
 export function CoachNextImpactCard({impact}:{impact:RecentCoachImpact|null|undefined}){
  if(!impact?.latest)return null
  const item=impact.latest
