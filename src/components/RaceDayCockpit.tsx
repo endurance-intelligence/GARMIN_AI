@@ -6,6 +6,7 @@ import {buildRaceDayCockpit,formatRaceElapsed,parseRaceElapsed,raceElapsedNow,
  recordRaceMark,sanitizeRaceMarks,undoLastRaceMark,raceDayLogText} from '../lib/raceDayCockpit.mjs'
 import {clockAt} from '../lib/gelTiming.mjs'
 import {Icon} from './Icon'
+import {RaceRunnerFocus} from './RaceRunnerFocus'
 import '../styles/race-day-cockpit.css'
 
 type Input={distanceKm:number;courseMode:string;loopKm:number|null;
@@ -23,6 +24,7 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
  fuelSchedule:GelPlanEvent[]|null;feelsLike:[number,number]|null
 }){
  const [marks,setMarks]=useState<RaceMarks>({})
+ const [runnerCompleted,setRunnerCompleted]=useState(0)
  const [startTime,setStartTime]=useState(goal.race_start_time?.slice(0,5)||'')
  const [startInput,setStartInput]=useState(goal.race_start_time?.slice(0,5)||'')
  const [editIndex,setEditIndex]=useState(1)
@@ -49,21 +51,24 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
    const value=typeof from?.startTime==='string'&&clockOK(from.startTime)?
     from.startTime:goal.race_start_time?.slice(0,5)||''
    setMarks(actual)
+   setRunnerCompleted(Number.isInteger(from?.runnerCompleted)&&from.runnerCompleted>=0&&
+    from.runnerCompleted<=model.plan.checkpoints.length?from.runnerCompleted:0)
    setStartTime(value);setStartInput(value)
    setLoaded(true)
   }catch{
-   setMarks({});setStartTime(goal.race_start_time?.slice(0,5)||'')
+   setMarks({});setRunnerCompleted(0);setStartTime(goal.race_start_time?.slice(0,5)||'')
    setStartInput(goal.race_start_time?.slice(0,5)||'');setLoaded(true)
    setError('Lokaler Rennspeicher nicht lesbar. Einträge erst nach Überprüfung neu erfassen.')
   }
  },[active,key,viewerId,goal.race_date,goal.race_name,goal.race_start_time])
- const persist=(next:RaceMarks,nextStart=startTime)=>{
+ const persist=(next:RaceMarks,nextStart=startTime,nextCompleted=runnerCompleted)=>{
   if(!loaded||!viewerId){setError('Bitte zuerst anmelden und Rennplan laden.');return false}
   try{
    const values=sanitizeRaceMarks(next,model.plan.checkpoints)
    localStorage.setItem(key,JSON.stringify({version:1,raceDate:goal.race_date,
-    raceName:goal.race_name,startTime:nextStart,marks:values}))
-   setMarks(values);setStartTime(nextStart);setError('')
+    raceName:goal.race_name,startTime:nextStart,marks:values,
+    runnerCompleted:nextCompleted}))
+   setMarks(values);setStartTime(nextStart);setRunnerCompleted(nextCompleted);setError('')
    return true
   }catch{
    setError('Auf diesem Gerät konnte nicht gespeichert werden. Bitte Browser-Speicher prüfen.')
@@ -93,7 +98,7 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
  }
  const reset=()=>{
   if(!window.confirm('Alle selbst erfassten Renn-Zwischenzeiten für dieses Event auf diesem Gerät löschen?'))return
-  if(persist({})){setStatus('Renn-Zwischenzeiten auf diesem Gerät zurückgesetzt.');setBackupOpen(false)}
+  if(persist({},startTime,0)){setStatus('Renn-Zwischenzeiten auf diesem Gerät zurückgesetzt.');setBackupOpen(false)}
  }
  const saveStart=()=>{
   const raw=startInput.trim()
@@ -102,7 +107,25 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
    'Die Startuhrzeit ändern? Bereits erfasste Zeiten seit Start bleiben unverändert.'))return
   if(persist(model.marks,raw))setStatus('Startuhrzeit '+raw+' für dieses Rennen lokal hinterlegt.')
  }
- const exportText=raceDayLogText({goal,model,startTime:clockOK(startTime)?startTime:null})
+ const completeRunner=()=>{
+  const done=Math.max(model.recorded,runnerCompleted)
+  if(done>=model.rows.length||!loaded)return
+  if(persist(model.marks,startTime,done+1))
+   setStatus('Runde '+(done+1)+' als geschafft markiert.')
+ }
+ const undoRunner=()=>{
+  if(!loaded)return
+  if(runnerCompleted<=model.recorded){
+   setError('Diese Runde hat bereits eine Zwischenzeit. Korrektur nur im Crew-Bereich.');return
+  }
+  if(window.confirm('Letzte bestätigte Runde zurücknehmen?')&&
+   persist(model.marks,startTime,runnerCompleted-1))
+   setStatus('Letzte Runde korrigiert.')
+ }
+ const runnerCount=Math.max(model.recorded,runnerCompleted)
+ const exportText='RUNNER MODE: '+runnerCount+' von '+model.rows.length+
+  ' Runden manuell bestätigt.\nOhne GPS-Distanz und ohne erfundene Zwischenzeiten.\n\n'+
+  raceDayLogText({goal,model,startTime:clockOK(startTime)?startTime:null})
  const copy=async()=>{
   try{await navigator.clipboard.writeText(exportText)
    setStatus('Rennprotokoll kopiert. Du kannst es als Nachricht oder Notiz sichern.')
@@ -116,7 +139,14 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
  const recentPause=latest&&!latest.finish&&latest.departure===null?latest:null
  const manualPoint=rows.find(r=>r.index===editIndex)
  const planBuffer=plan.target?.remaining??null
- return <section className="rdc-root" aria-label="Race Day Cockpit mit manuell erfassten Zwischenzeiten">
+ return <>
+  <RaceRunnerFocus active={active} goal={goal} checkpoints={model.plan.checkpoints}
+   completed={Math.max(model.recorded,runnerCompleted)} fuelSchedule={fuelSchedule}
+   startTime={startTime} loaded={loaded}
+   onComplete={completeRunner} onUndo={undoRunner}/>
+  <details className="rrf-crew">
+   <summary>Für die Crew: Zeiten, Puffer und erweiterte Erfassung anzeigen</summary>
+  <section className="rdc-root" aria-label="Race Day Cockpit mit manuell erfassten Zwischenzeiten">
   <header className="rdc-head">
    <div><span className="rdc-kicker"><Icon name="flag"/> RACE PREP / RACE DAY COCKPIT</span>
     <h2>{goal.race_name} · {fmt(input.distanceKm)} km</h2>
@@ -244,10 +274,12 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
     <button type="button" onClick={()=>setBackupOpen(x=>!x)}>
      {backupOpen?'Protokoll ausblenden':'Protokoll anzeigen'}</button>
     <button type="button" disabled={!model.recorded} onClick={undo}>Letzten Eintrag rückgängig</button>
-    <button type="button" disabled={!model.recorded} onClick={reset}>Rennlog zurücksetzen</button>
+    <button type="button" disabled={!model.recorded&&runnerCompleted===0} onClick={reset}>Rennlog zurücksetzen</button>
    </div>
    {backupOpen&&<textarea readOnly aria-label="Kopierbares Rennprotokoll"
     className="rdc-backup" value={exportText} rows={10}/>}
   </div>
  </section>
+  </details>
+ </>
 }
