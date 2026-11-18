@@ -133,7 +133,7 @@ test('presentation is read-only, transparent and wired to visible Coach recommen
  const app=read('src/components/CoachSevenDay.tsx')
  const pure=read('src/lib/coachNextImpact.mjs')
  assert.match(coach,/applyRecentCoachImpact\(items,recentImpact/)
- assert.match(coach,/applyPolarizedGuidance\(adapted.days/)
+ assert.match(coach,/applyPolarizedGuidance\(volumeStep.days/)
  assert.match(coach,/nextImpact:adapted.impact/)
  assert.match(app,/<CoachNextImpactCard impact=\{plan.nextImpact\}/)
  assert.match(ui,/Kein Nachweis|kein Nachweis/)
