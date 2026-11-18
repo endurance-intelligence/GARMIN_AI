@@ -1,0 +1,15 @@
+.cni-root{background:linear-gradient(135deg,rgba(22,48,72,.8),rgba(31,37,65,.85));border:1px solid rgba(154,187,227,.23);border-radius:13px;padding:14px;margin:12px 0;color:#eaf1fd}
+.cni-root.is-adjusted{border-left:3px solid #b6df9a}
+.cni-head{display:flex;justify-content:space-between;align-items:flex-start;gap:9px}
+.cni-head small{font-size:9px;letter-spacing:.09em;font-weight:800;color:#adbee4}
+.cni-head h3{font-size:14px;line-height:1.35;margin:5px 0 0;letter-spacing:-.02em}
+.cni-status{font-size:9px;line-height:1.4;text-align:center;border:1px solid #466782;border-radius:100px;padding:6px 9px;color:#c7e0f9;flex-shrink:0}
+.cni-activity{font-size:11px;color:#b7cde6;margin:10px 0}
+.cni-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.cni-metrics>div{border:1px solid #344e68;border-radius:9px;background:rgba(11,28,47,.55);padding:9px;display:grid;gap:6px;min-width:0}
+.cni-metrics span{font-size:9px;font-weight:750;letter-spacing:.04em;color:#a2b8d0}
+.cni-metrics strong{font-size:14px;line-height:1.25;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.cni-sub,.cni-interpretation,.cni-result,.cni-note{font-size:11px;line-height:1.6;margin:9px 0 0;color:#bfcfe0}
+.cni-result{color:#e6f2d8}
+.cni-note{font-size:10px;color:#9fb2ca}
+@media(max-width:530px){.cni-root{padding:12px}.cni-head{flex-wrap:wrap}.cni-metrics strong{font-size:12px}}
