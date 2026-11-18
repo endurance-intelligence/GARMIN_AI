@@ -67,7 +67,8 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
  },[active,today,reload,sharedSnapshot])
  const plan=useMemo(()=>snapshot?buildSevenDayCoach({
   today,health:snapshot.health,options:snapshot.options,boards:snapshot.boards,
-  plans:snapshot.plans,goal:snapshot.goal,life:snapshot.life
+  plans:snapshot.plans,goal:snapshot.goal,life:snapshot.life,
+  racePortfolio:snapshot.racePortfolio
  }):null,[snapshot,today])
  useEffect(()=>{
   if(!active||!focus||lastFocus.current===focus.token||!plan)return
