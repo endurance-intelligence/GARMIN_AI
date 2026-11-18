@@ -136,7 +136,9 @@ test('protected Coach quality guard never changes existing or selected workouts'
  ]
  const locked=applyPolarizedGuidance(template,{today,raceDate:null,
   qualityLocked:analyze().qualityCaution,observationLimited:false})
- assert.equal(locked.qualityDay,null)
+ // Selected ORC Track keeps the reserved slot, but no NEW hard session is suggested.
+ assert.equal(locked.qualityDay,'2026-11-19')
+ assert.equal(locked.status,'protected')
  assert.equal(locked.days[1].kind,'chosen')
  assert.equal(locked.days[2].title,'Freigegebenes Workout')
  assert.equal(locked.days[0].intensityIntent,'low-option')
