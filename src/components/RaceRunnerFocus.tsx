@@ -9,9 +9,10 @@ import '../styles/race-runner-focus.css'
 
 /** Athlete-facing view: deliberately no mileage, pace, ETA, split deltas or time budget. */
 export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
- startTime,loaded,onComplete,onUndo}:{
+ startTime,loaded,storageReady,planSaved,notice,warning,onComplete,onUndo}:{
  active:boolean;goal:CoachGoal;checkpoints:RaceCheckpoint[];completed:number;
  fuelSchedule:GelPlanEvent[]|null;startTime:string;loaded:boolean;
+ storageReady:boolean;planSaved:boolean;notice:string;warning:string;
  onComplete:()=>void;onUndo:()=>void
 }){
  const [clockTick,setClockTick]=useState(()=>Date.now())
@@ -32,6 +33,21 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
    <span><Icon name="flag"/> RUNNER MODE</span>
    <small>Nur die nächste Runde zählt.</small>
   </header>
+  <div className="rrf-readiness" aria-label="Renntag-Vorbereitung">
+   <span className={storageReady&&loaded?'is-ready':'is-pending'}>
+    <Icon name={storageReady&&loaded?'check-circle':'alert-circle'}/>
+    {storageReady&&loaded?'Rundenspeicher geprüft':'Rundenspeicher nicht bereit'}
+   </span>
+   <span className={fuelSchedule!==null?'is-ready':'is-pending'}>
+    <Icon name={fuelSchedule!==null?'check-circle':'info'}/>
+    {fuelSchedule===null?'Gel Buddy noch nicht geladen':
+     fuelSchedule.length?'Gel Buddy bereit':'Noch kein Gel eingeplant'}
+   </span>
+   {!planSaved&&<span className="is-pending"><Icon name="info"/>
+    Rennplan noch nicht dauerhaft gespeichert</span>}
+  </div>
+  {warning&&<p className="rrf-alert" role="alert">{warning}</p>}
+  {!warning&&notice&&<p className="rrf-confirmation" role="status">{notice}</p>}
   <div className="rrf-center" aria-live="polite" aria-atomic="true">
    <span className="rrf-eyebrow">{view.finished?'RUNDEN ALS GESCHAFFT MARKIERT':'DEINE NÄCHSTE RUNDE'}</span>
    <strong className="rrf-round">{view.finished?'Geschafft!':'Runde '+view.nextIndex+' von '+view.total}</strong>
@@ -68,8 +84,9 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
    {view.completed>0&&<button type="button" className="rrf-undo" disabled={!loaded}
     onClick={onUndo}>Letzte Runde korrigieren</button>}
   </div>
-  <p className="rrf-footer">Die Rundenzahl wird von dir bestätigt und nur in diesem Browser gespeichert.
-   Keine automatische Garmin- oder Zeitnahme-Verbindung. Die ausführlichen Rennzeiten
-   findest du ausschließlich im Crew-Bereich.</p>
+  <p className="rrf-footer">Die Runden werden nach deinem Tipp lokal gesichert.
+   Keine Garmin- oder Zeitnahme-Verbindung. Bei Verbindungsproblemen die bereits
+   geöffnete App offen halten: Ein vollständiger Neustart ohne Internet ist wegen
+   der sicheren Anmeldung nicht garantiert. Crew-Details bleiben eingeklappt.</p>
  </section>
 }

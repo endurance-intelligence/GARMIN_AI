@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useState} from 'react'
+import {useEffect,useMemo,useRef,useState} from 'react'
 import type {CoachGoal} from '../lib/coachGoal'
 import type {GelPlanEvent} from '../lib/gelTiming.mjs'
 import type {RaceMarks} from '../lib/raceDayCockpit.mjs'
@@ -7,6 +7,7 @@ import {buildRaceDayCockpit,formatRaceElapsed,parseRaceElapsed,raceElapsedNow,
 import {clockAt} from '../lib/gelTiming.mjs'
 import {Icon} from './Icon'
 import {RaceRunnerFocus} from './RaceRunnerFocus'
+import {assessRunnerAdvance,assessRunnerCorrection,validateRunnerSnapshot} from '../lib/raceRunnerSafety.mjs'
 import '../styles/race-day-cockpit.css'
 
 type Input={distanceKm:number;courseMode:string;loopKm:number|null;
@@ -25,6 +26,13 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
 }){
  const [marks,setMarks]=useState<RaceMarks>({})
  const [runnerCompleted,setRunnerCompleted]=useState(0)
+ const [runnerTapAt,setRunnerTapAt]=useState<number|null>(null)
+ const lastTapRef=useRef<number|null>(null)
+ const [storageReady,setStorageReady]=useState(false)
+ const [needsRepair,setNeedsRepair]=useState(false)
+ const [runnerNotice,setRunnerNotice]=useState('')
+ const [runnerError,setRunnerError]=useState('')
+ const [correctCount,setCorrectCount]=useState('0')
  const [startTime,setStartTime]=useState(goal.race_start_time?.slice(0,5)||'')
  const [startInput,setStartInput]=useState(goal.race_start_time?.slice(0,5)||'')
  const [editIndex,setEditIndex]=useState(1)
@@ -41,36 +49,55 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
  }),[input,marks,startTime])
  useEffect(()=>{
   if(!active||!viewerId)return
-  setLoaded(false);setError('');setStatus('')
+  setLoaded(false);setStorageReady(false);setNeedsRepair(false)
+  setError('');setStatus('');setRunnerNotice('');setRunnerError('')
   try{
+   const probe=key+':probe'
+   localStorage.setItem(probe,'ok')
+   if(localStorage.getItem(probe)!=='ok')throw Error('Rennspeicher nicht verfügbar.')
+   localStorage.removeItem(probe)
+   setStorageReady(true)
    const raw=localStorage.getItem(key)
    const stored=raw?JSON.parse(raw):null
-   const from=stored&&stored.version===1&&stored.raceDate===goal.race_date&&
-    stored.raceName===goal.race_name?stored:null
-   const actual=from?.marks&&typeof from.marks==='object'?from.marks:{}
-   const value=typeof from?.startTime==='string'&&clockOK(from.startTime)?
+   const from=validateRunnerSnapshot(stored,{
+    raceDate:goal.race_date,raceName:goal.race_name,total:model.plan.checkpoints.length
+   })
+   if(!from.ok){
+    setNeedsRepair(true);setRunnerError(from.reason||'Lokaler Rennstand beschädigt.')
+    return // Originalen Eintrag erhalten. Nur explizites Zurücksetzen darf ihn entfernen.
+   }
+   const value=from.startTime&&clockOK(from.startTime)?
     from.startTime:goal.race_start_time?.slice(0,5)||''
-   setMarks(actual)
-   setRunnerCompleted(Number.isInteger(from?.runnerCompleted)&&from.runnerCompleted>=0&&
-    from.runnerCompleted<=model.plan.checkpoints.length?from.runnerCompleted:0)
+   setMarks(from.marks||{})
+   setRunnerCompleted(from.completed??0)
+   setRunnerTapAt(from.lastTapAt??null)
+   lastTapRef.current=from.lastTapAt??null
    setStartTime(value);setStartInput(value)
    setLoaded(true)
   }catch{
-   setMarks({});setRunnerCompleted(0);setStartTime(goal.race_start_time?.slice(0,5)||'')
-   setStartInput(goal.race_start_time?.slice(0,5)||'');setLoaded(true)
-   setError('Lokaler Rennspeicher nicht lesbar. Einträge erst nach Überprüfung neu erfassen.')
+   setStorageReady(false);setLoaded(false);setNeedsRepair(true)
+   setRunnerError('Der lokale Speicher ist nicht lesbar. Keine Runden erfassen, bis der Browser-Speicher funktioniert.')
   }
  },[active,key,viewerId,goal.race_date,goal.race_name,goal.race_start_time])
- const persist=(next:RaceMarks,nextStart=startTime,nextCompleted=runnerCompleted)=>{
-  if(!loaded||!viewerId){setError('Bitte zuerst anmelden und Rennplan laden.');return false}
+ const persist=(next:RaceMarks,nextStart=startTime,nextCompleted=runnerCompleted,
+  nextTapAt=runnerTapAt)=>{
+  if(!loaded||!viewerId||!storageReady){
+   setRunnerError('Runde NICHT übernommen: Speicher nicht bereit.')
+   setError('Bitte zuerst anmelden und Rennspeicher prüfen.')
+   return false
+  }
   try{
    const values=sanitizeRaceMarks(next,model.plan.checkpoints)
-   localStorage.setItem(key,JSON.stringify({version:1,raceDate:goal.race_date,
+   const text=JSON.stringify({version:1,raceDate:goal.race_date,
     raceName:goal.race_name,startTime:nextStart,marks:values,
-    runnerCompleted:nextCompleted}))
-   setMarks(values);setStartTime(nextStart);setRunnerCompleted(nextCompleted);setError('')
+    runnerCompleted:nextCompleted,runnerTapAt:nextTapAt})
+   localStorage.setItem(key,text)
+   if(localStorage.getItem(key)!==text)throw Error('Rennspeicher konnte nicht überprüft werden.')
+   setMarks(values);setStartTime(nextStart);setRunnerCompleted(nextCompleted)
+   setRunnerTapAt(nextTapAt);setRunnerError('');setError('')
    return true
   }catch{
+   setRunnerError('Runde NICHT gespeichert! Lokalen Browser-Speicher prüfen.')
    setError('Auf diesem Gerät konnte nicht gespeichert werden. Bitte Browser-Speicher prüfen.')
    return false
   }
@@ -97,8 +124,23 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
    persist(update.marks))setStatus('Letzte Zwischenzeit zurückgenommen.')
  }
  const reset=()=>{
-  if(!window.confirm('Alle selbst erfassten Renn-Zwischenzeiten für dieses Event auf diesem Gerät löschen?'))return
-  if(persist({},startTime,0)){setStatus('Renn-Zwischenzeiten auf diesem Gerät zurückgesetzt.');setBackupOpen(false)}
+  if(!window.confirm('Alle erfassten Runden und Crew-Zeiten für dieses Event auf diesem Gerät löschen?'))return
+  if(needsRepair){
+   try{
+    localStorage.removeItem(key)
+    setMarks({});setRunnerCompleted(0);setRunnerTapAt(null);lastTapRef.current=null
+    setLoaded(true);setNeedsRepair(false);setStorageReady(true)
+    setRunnerError('');setRunnerNotice('Rennlog bewusst zurückgesetzt.')
+    setBackupOpen(false)
+   }catch{setRunnerError('Rennspeicher konnte nicht zurückgesetzt werden.')}
+   return
+  }
+  if(persist({},startTime,0,null)){
+   lastTapRef.current=null
+   setStatus('Renn-Zwischenzeiten auf diesem Gerät zurückgesetzt.')
+   setRunnerNotice('Rennlog bewusst zurückgesetzt.')
+   setBackupOpen(false)
+  }
  }
  const saveStart=()=>{
   const raw=startInput.trim()
@@ -109,18 +151,42 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
  }
  const completeRunner=()=>{
   const done=Math.max(model.recorded,runnerCompleted)
-  if(done>=model.rows.length||!loaded)return
-  if(persist(model.marks,startTime,done+1))
-   setStatus('Runde '+(done+1)+' als geschafft markiert.')
+  const decision=assessRunnerAdvance({
+   completed:done,total:model.rows.length,lastTapAt:lastTapRef.current,now:Date.now()
+  })
+  if(!decision.ok){setRunnerError(decision.reason||'Rundenzähler nicht bereit.');return}
+  if(!loaded||!storageReady){setRunnerError('Runde NICHT übernommen: Speicher nicht bereit.');return}
+  if(persist(model.marks,startTime,decision.next!,decision.stamp!)){
+   lastTapRef.current=decision.stamp!
+   setRunnerNotice('Runde '+decision.next+' lokal gespeichert. Weiter geht es mit der nächsten Runde.')
+   setStatus('Runde '+decision.next+' als geschafft markiert.')
+  }
  }
  const undoRunner=()=>{
   if(!loaded)return
   if(runnerCompleted<=model.recorded){
-   setError('Diese Runde hat bereits eine Zwischenzeit. Korrektur nur im Crew-Bereich.');return
+   setRunnerError('Diese Runde besitzt bereits eine Crew-Zwischenzeit. Bitte im Crew-Bereich korrigieren.')
+   return
   }
   if(window.confirm('Letzte bestätigte Runde zurücknehmen?')&&
-   persist(model.marks,startTime,runnerCompleted-1))
+   persist(model.marks,startTime,runnerCompleted-1,null)){
+   lastTapRef.current=null
+   setRunnerNotice('Letzte Runde zurückgenommen. Der Rundenzähler ist korrigiert.')
    setStatus('Letzte Runde korrigiert.')
+  }
+ }
+ const correctRunner=()=>{
+  const decision=assessRunnerCorrection({
+   count:Number(correctCount),total:model.rows.length,recorded:model.recorded
+  })
+  if(!decision.ok){setError(decision.reason||'Rundenzahl ungültig.');return}
+  if(!window.confirm('Den Rundenzähler bewusst auf '+decision.count+
+   ' abgeschlossene Runden setzen?'))return
+  if(persist(model.marks,startTime,decision.count!,null)){
+   lastTapRef.current=null
+   setRunnerNotice('Rundenzähler auf '+decision.count+' abgeschlossen korrigiert.')
+   setStatus('Rundenzähler korrigiert.')
+  }
  }
  const runnerCount=Math.max(model.recorded,runnerCompleted)
  const exportText='RUNNER MODE: '+runnerCount+' von '+model.rows.length+
@@ -142,7 +208,9 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
  return <>
   <RaceRunnerFocus active={active} goal={goal} checkpoints={model.plan.checkpoints}
    completed={Math.max(model.recorded,runnerCompleted)} fuelSchedule={fuelSchedule}
-   startTime={startTime} loaded={loaded}
+   startTime={startTime} loaded={loaded&&storageReady}
+   storageReady={storageReady} planSaved={saved}
+   notice={runnerNotice} warning={runnerError}
    onComplete={completeRunner} onUndo={undoRunner}/>
   <details className="rrf-crew">
    <summary>Für die Crew: Zeiten, Puffer und erweiterte Erfassung anzeigen</summary>
@@ -274,10 +342,26 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
     <button type="button" onClick={()=>setBackupOpen(x=>!x)}>
      {backupOpen?'Protokoll ausblenden':'Protokoll anzeigen'}</button>
     <button type="button" disabled={!model.recorded} onClick={undo}>Letzten Eintrag rückgängig</button>
-    <button type="button" disabled={!model.recorded&&runnerCompleted===0} onClick={reset}>Rennlog zurücksetzen</button>
+    <button type="button" disabled={!needsRepair&&!model.recorded&&runnerCompleted===0} onClick={reset}>Rennlog zurücksetzen</button>
    </div>
    {backupOpen&&<textarea readOnly aria-label="Kopierbares Rennprotokoll"
     className="rdc-backup" value={exportText} rows={10}/>}
+    <details className="rdc-correction" onToggle={event=>{
+     if(event.currentTarget.open)setCorrectCount(String(runnerCount))
+    }}>
+     <summary>Rundenzähler im Notfall korrigieren</summary>
+     <div className="rdc-correction-body">
+      <label>Abgeschlossene Runden
+       <input type="number" min={model.recorded} max={model.rows.length} step={1}
+        inputMode="numeric" value={correctCount}
+        onChange={e=>setCorrectCount(e.target.value)}/></label>
+      <button type="button" disabled={!loaded||!storageReady} onClick={correctRunner}>
+       Rundenzahl nach Bestätigung übernehmen
+      </button>
+      <p>Nur bei Bedarf korrigieren. Die Zahl wird nicht aus Garmin-Kilometern abgeleitet.
+       Crew-Zwischenzeiten bleiben erhalten. Es wird keine Uhrzeit erfunden.</p>
+     </div>
+    </details>
   </div>
  </section>
   </details>

@@ -144,7 +144,7 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
     const cachedGoal=cache?.goal as CoachGoal|undefined
     const cachedDraft=cache?.draft as Draft|undefined
     if(cache?.version!==1||!cachedGoal||!cachedDraft||
-     !/^\\d{4}-\\d{2}-\\d{2}$/.test(cachedGoal.race_date)||
+     !/^\d{4}-\d{2}-\d{2}$/.test(cachedGoal.race_date)||
      typeof cachedGoal.race_name!=='string'||
      !['laps','point_to_point','other'].includes(cachedDraft.courseMode))
      throw Error('No valid verified cache')
