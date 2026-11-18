@@ -67,11 +67,19 @@ export function RaceAfterActionCard({goal,plannedMinutes,onCoach}:{
      'Mehrere Garmin-Läufe passen zu Datum und Distanz. Keine automatische Ergebniszuordnung.':
      'Noch kein eindeutig passender Garmin-Lauf für den Wettkampf gefunden.'}
     {' '}Deine Rennaufzeichnung kann später nachsynchronisiert werden.</p>}
+   {outcome.matchStatus==='unique'&&(outcome.garminRpe!==null||
+     outcome.garminFeeling!==null)&&<p className="raa-note">
+    Dein Garmin-Feedback zum Rennen:
+    {outcome.garminRpe!==null?' Anstrengung '+outcome.garminRpe+'/10.':''}
+    {outcome.garminFeeling!==null?' Gefühl '+
+     ({0:'sehr schwach',25:'schwach',50:'normal',75:'gut',100:'sehr gut'} as Record<number,string>)[outcome.garminFeeling]+'.':''}
+    {' '}Automatisch übernommen, keine zweite Bewertung nötig.
+   </p>}
    {outcome.raceCheck?<p className="raa-note">
     Dein Erholungs-Check vom {outcome.raceCheck.reportedOn.split('-').reverse().join('.')}:
     Erschöpfung {outcome.raceCheck.fatigue}/10 · Beine {outcome.raceCheck.soreness}/10.
     {outcome.raceCheck.warning?' Warnzeichen gemeldet – medizinisch abklären.':''}
-   </p>:<p className="raa-note">Für dieses Rennen ist noch kein eigener Erholungs-Check vorhanden.</p>}
+   </p>:<p className="raa-note">Kein persönlicher Erholungs-Check vorhanden – dieser ist optional. Garmin-RPE und -Gefühl werden unabhängig davon berücksichtigt.</p>}
    <p className="raa-note">{outcome.caveat}</p>
   </>}
   <button type="button" className="raa-coach" onClick={onCoach}>
