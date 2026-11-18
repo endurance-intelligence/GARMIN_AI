@@ -103,7 +103,8 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
   </CoachGlance>
   {sharedSnapshot&&<CoachSessionBridge snapshot={sharedSnapshot} today={berlinToday()}
    onOpenSession={onOpenSession}/>}
-  <CoachSevenDay active={active} focus={focus} onCalendar={onOpenCalendar} sharedSnapshot={sharedSnapshot}/>
+  <CoachSevenDay active={active} focus={focus} onCalendar={onOpenCalendar} sharedSnapshot={sharedSnapshot}
+   onRacePrep={()=>onGo('race')}/>
  </>}
  <details className="co-extra-tools" onToggle={event=>setShowWeeklyReview(event.currentTarget.open)}>
    <summary>Weitere Garmin-Analyse &amp; Gruppentermine <span>Bei Bedarf</span></summary>
