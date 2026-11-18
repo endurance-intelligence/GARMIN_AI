@@ -2,6 +2,8 @@ import {useEffect,useRef,useState} from 'react'
 import {Icon} from './Icon'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {estimateRaceStrategy} from '../lib/raceStrategyMath.mjs'
+import {recommendRacePlan} from '../lib/raceAutoPlan.mjs'
+import type {Forecast} from '../lib/weatherIntelligence'
 import {RaceExecutionCard} from './RaceExecutionCard'
 import {RaceAfterActionCard} from './RaceAfterActionCard'
 import type {CoachGoal} from '../lib/coachGoal'
@@ -53,8 +55,9 @@ function NumberField({label,value,onChange,min,max,step='1',placeholder}:{
   min={min} max={max} step={step} placeholder={placeholder||'Optional'}
   onChange={e=>onChange(e.target.value)}/></label>
 }
-export function RaceStrategyCard({active,onCoach}:{active:boolean;onCoach:()=>void}){
+export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoach:()=>void;forecast?:Forecast|null}){
  const [goal,setGoal]=useState<CoachGoal|null>(null)
+ const [weightKg,setWeightKg]=useState<number|null>(null)
  const [draft,setDraft]=useState<Draft>(blank)
  const [saved,setSaved]=useState(false)
  const [busy,setBusy]=useState(false)
@@ -82,6 +85,9 @@ export function RaceStrategyCard({active,onCoach}:{active:boolean;onCoach:()=>vo
    if(!live)return
    const nextGoal=result.goal
    setGoal(nextGoal)
+   void garminSupabase.from('garmin_weight_outbox').select('weight_kg')
+    .order('weigh_date',{ascending:false}).limit(1).maybeSingle()
+    .then(({data})=>{const kg=Number(data?.weight_kg);if(live&&data&&kg>=30&&kg<=250)setWeightKg(kg)})
    if(!nextGoal){setSaved(false);loadedKey.current=null;return}
    const key=nextGoal.race_date+'|'+nextGoal.race_name
    // Preserve unsaved changes when switching tabs; a different event gets its own draft.
@@ -91,8 +97,11 @@ export function RaceStrategyCard({active,onCoach}:{active:boolean;onCoach:()=>vo
     .eq('race_name',nextGoal.race_name).maybeSingle()
    if(dbError)throw Error('Rennstrategie derzeit nicht verfügbar: '+dbError.message)
    if(!live)return
-   setDraft(data?asDraft(data as Record<string,unknown>):blank)
-   setSaved(Boolean(data));setNotice('');loadedKey.current=key
+   const suggested=recommendRacePlan(nextGoal)
+   setDraft(data?asDraft(data as Record<string,unknown>):suggested??blank)
+   setSaved(Boolean(data))
+   setNotice(data?'':suggested?'Aus deinem gespeicherten Ziel automatisch vorbereitet. Du kannst den Vorschlag anpassen.':'')
+   loadedKey.current=key
   })().catch(e=>{if(live&&e?.name!=='AbortError')setError(
    e instanceof Error?e.message:'Rennstrategie konnte nicht geladen werden.')})
    .finally(()=>{if(live)setLoading(false)})
@@ -103,6 +112,14 @@ export function RaceStrategyCard({active,onCoach}:{active:boolean;onCoach:()=>vo
  const every=get(draft.longStopEvery),long=get(draft.longStopMinutes)
  let pace:number|null=null
  try{pace=asPace(draft.pace)}catch{/* Only show estimate for valid inputs. */}
+ const startHour=goal?.race_start_time?Number(goal.race_start_time.slice(0,2)):null
+ const firstWeather=forecast&&goal&&startHour!==null?
+  forecast.hours.findIndex(h=>h.date===goal.race_date&&h.hour===startHour):-1
+ const raceHours=forecast&&goal&&firstWeather>=0&&goal.target_hours?
+  forecast.hours.slice(firstWeather,firstWeather+Math.ceil(goal.target_hours)):[]
+ const feels=raceHours.length&&raceHours.every((h,i)=>h.epoch===raceHours[0].epoch+i*3600)?
+  [Math.round(Math.min(...raceHours.map(h=>h.feelsLike))),
+   Math.round(Math.max(...raceHours.map(h=>h.feelsLike)))]:null
  const calculation=goal?estimateRaceStrategy({
   distanceKm:Number(goal.distance_km),courseMode:draft.courseMode,
   loopKm:loop,movingMinutes:moving,regularPauseMinutes:regular,
@@ -139,7 +156,7 @@ export function RaceStrategyCard({active,onCoach}:{active:boolean;onCoach:()=>vo
   finally{setBusy(false)}
  }
  if(!active)return null
- return <details className="rsp-root" aria-label="Deine Rennstrategie und Verpflegung">
+ return <details className="rsp-root" open aria-label="Deine Rennstrategie und Verpflegung">
   <summary className="rsp-heading">
    <span className="rsp-heading-icon"><Icon name="flag"/></span>
    <span className="rsp-heading-copy">
@@ -148,15 +165,27 @@ export function RaceStrategyCard({active,onCoach}:{active:boolean;onCoach:()=>vo
     <span>{goal?goal.race_name+' · '+goal.race_date.split('-').reverse().join('.'):
      'Bitte zuerst dein Hauptziel unter Goals festlegen.'}</span>
    </span>
-   <span className="rsp-state">{saved?'Gespeichert':loading?'Lädt …':'Entwurf'}</span>
+   <span className="rsp-state">{saved?'Gespeichert':loading?'Lädt …':goal&&recommendRacePlan(goal)?'Auto-Plan':'Entwurf'}</span>
    <Icon name="chevron-down"/>
   </summary>
   <div className="rsp-body">
    {error&&<p className="rsp-error" role="alert">{error}</p>}
    {notice&&<p className="rsp-success" role="status">{notice}</p>}
    {goal&&<>
-    <p className="rsp-context">Deine Einstellungen für <strong>{goal.race_name}</strong> ({Number(goal.distance_km).toLocaleString('de-DE')} km).
-     Nur deine Angaben werden gespeichert. Du kannst sie jederzeit ändern.</p>
+    <p className="rsp-context"><strong>{goal.race_name}</strong> · {Number(goal.distance_km).toLocaleString('de-DE')} km.
+     Aus Hauptziel, bisherigen Rennabsprachen und gespeicherter Strategie vorbereitet.
+     Anpassungen sind optional; Trainings- und Garmin-Daten werden nicht verändert.</p>
+    {feels&&<p className="rsp-weather">🌡️ Rennwetter: gefühlt <strong>{feels[0]}–{feels[1]} °C</strong>.
+     Trinkmenge und Kleidung nach tatsächlichem Wetter, Durst und Verträglichkeit anpassen.</p>}
+    {calculation&&<RaceExecutionCard saved={saved} weightKg={weightKg} input={{
+      distanceKm:Number(goal.distance_km),courseMode:draft.courseMode,loopKm:loop,
+      movingMinutes:moving,regularPauseMinutes:regular,longStopEvery:every,
+      longStopMinutes:long,paceSeconds:pace,targetHours:goal.target_hours,
+      carbsGPerHour:get(draft.carbs),fluidMlPerHour:get(draft.fluid),
+      sodiumMgPerHour:get(draft.sodium)
+     }}/>}
+    <details className="rsp-edit">
+     <summary><Icon name="settings"/> Planwerte, Produkte und Stopps bei Bedarf bearbeiten</summary>
     <div className="rsp-section">
      <h3><Icon name="clock"/> Renn- und Pausenstrategie</h3>
      <div className="rsp-grid">
@@ -181,13 +210,6 @@ export function RaceStrategyCard({active,onCoach}:{active:boolean;onCoach:()=>vo
        disabled={busy} inputMode="text" placeholder="z. B. 06:50"
        onChange={e=>update('pace',e.target.value)}/></label>}
      </div>
-     {calculation&&<RaceExecutionCard saved={saved} input={{
-      distanceKm:Number(goal.distance_km),courseMode:draft.courseMode,loopKm:loop,
-      movingMinutes:moving,regularPauseMinutes:regular,longStopEvery:every,
-      longStopMinutes:long,paceSeconds:pace,targetHours:goal.target_hours,
-      carbsGPerHour:get(draft.carbs),fluidMlPerHour:get(draft.fluid),
-      sodiumMgPerHour:get(draft.sodium)
-     }}/>}
      {calculation&&<div className="rsp-estimate" role="status">
       <strong>Deine grobe Zeitrechnung: {calculation.formattedTotal}</strong>
       <span>{calculation.rounds!==null?calculation.rounds+' Runden (letzte ggf. kürzer) · ':''}
@@ -224,6 +246,7 @@ export function RaceStrategyCard({active,onCoach}:{active:boolean;onCoach:()=>vo
        placeholder="Wechselkleidung, Ersatzschuhe, Stirnlampe, Anreise usw."
        onChange={e=>update('gearNotes',e.target.value)}/></label>
     </div>
+    </details>
     <RaceAfterActionCard goal={goal} plannedMinutes={calculation?.totalMinutes??null}
      onCoach={onCoach}/>
     <div className="rsp-actions">
