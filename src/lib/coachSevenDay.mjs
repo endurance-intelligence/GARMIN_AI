@@ -5,6 +5,7 @@ import {applyPolarizedGuidance} from './polarizedTraining.mjs'
 import {analyzeGarminPerception} from './garminPerception.mjs'
 import {analyzeCoachFourWeeks} from './coachFourWeeks.mjs'
 import {analyzeAdaptiveVolume,applyAdaptiveVolume} from './coachAdaptiveVolume.mjs'
+import {analyzeAutoRaceRecovery} from './raceRecoveryIntelligence.mjs'
 import {analyzeRecentCoachImpact,applyRecentCoachImpact} from './coachNextImpact.mjs'
 /** GARMIN_AI Coach Intelligence v1.0 — conservative, explainable seven-day preview.
  * No synthetic training readiness, direct Garmin write or automatic approval.
@@ -116,6 +117,11 @@ export function buildSevenDayCoach(input){
  const checkedRecently=checkAge!==null&&checkAge>=0&&checkAge<=2
  const reportedExhaustion=raceCheck?Math.max(Number(raceCheck.fatigue),Number(raceCheck.soreness)):null
  const ultraRecovery=raceDate===recoveryRaceDate&&Number(goal?.distance_km)>=42
+ const autoRaceRecovery=analyzeAutoRaceRecovery({
+  today,goal,boards:input.boards,health,life:input.life
+ })
+ const activeRaceRecovery=autoRaceRecovery.raceDate===recoveryRaceDate&&
+  ['matched','ambiguous','awaiting-sync'].includes(autoRaceRecovery.status)
  const activities=(input.boards||[]).flatMap(x=>Array.isArray(x?.activities)?x.activities:[])
  const manual=(input.boards||[]).flatMap(x=>Array.isArray(x?.manual)?x.manual:[])
  const options=Array.isArray(input.options?.options)?input.options.options:[]
@@ -145,6 +151,11 @@ export function buildSevenDayCoach(input){
   raceDate?'Wettkampfziel '+goal.race_name+' am '+raceDate:'Kein Wettkampfziel verfügbar',
   crossNote
  ]
+ if(activeRaceRecovery)flags.push(
+  'Wettkampfnachbereitung: '+(autoRaceRecovery.status==='matched'?
+   'Eindeutig passende Garmin-Aufzeichnung zugeordnet. ':
+   'Garmin-Rennaufzeichnung noch nicht eindeutig zugeordnet. ')+
+  autoRaceRecovery.next)
  if(fourWeekReview.qualityCaution)flags.push('Vierwochen-Verlauf: '+
   fourWeekReview.explanation+' '+fourWeekReview.suggestion)
  if(completedWeek.status==='ready')flags.push(
@@ -235,11 +246,21 @@ export function buildSevenDayCoach(input){
   const daysPostRace=recoveryRaceDate?
    Math.round((Date.parse(day+'T12:00:00Z')-Date.parse(recoveryRaceDate+'T12:00:00Z'))/ONE_DAY):null
   if(daysPostRace!==null&&daysPostRace>0&&daysPostRace<=14){
+   // Real Garmin race RPE, feeling and recent recovery measurements can
+   // strengthen the conservative recommendation, never automatically clear training.
+   if(activeRaceRecovery&&autoRaceRecovery.recoveryCaution)
+    return make(day,'recovery','Garmin-Erholungssignale · Regeneration',null,
+     autoRaceRecovery.signals.join(' · ')+'. '+
+     'Belastung zurücknehmen und Warnzeichen beachten. '+
+     'Bestehende Kalendereinträge bitte selbst prüfen.')
    if(!raceCheck||!checkedRecently)
     return make(day,'recovery','Regeneration nach dem Wettkampf',null,
      day>today?
-      'Nach dem Wettkampf ist Erholung vorgesehen. Das Renn-Barometer wird erst nach dem Zieleinlauf ausgefüllt. Keine zusätzliche Einheit.':
-      'Regeneration nach dem Wettkampf. Bitte Erschöpfung und Muskelgefühl im Renn-Barometer eintragen bzw. aktualisieren. Bis dahin keine neuen Laufvorschläge.')
+      'Nach dem Wettkampf ist Erholung vorgesehen. Keine zusätzliche Einheit einplanen.':
+      (activeRaceRecovery&&autoRaceRecovery.status==='matched'?
+       'Die Garmin-Aufzeichnung ist erkannt. '+autoRaceRecovery.next+' ':
+       'Keine eindeutige Garmin-Rennaufzeichnung verfügbar. Regeneration vor weiteren Laufvorschlägen. ')+
+      'Das persönliche Erholungs-Barometer ist freiwillig; fehlende Angaben gelten niemals als gute Erholung.')
    if(raceCheck.warning)
     return make(day,'illness','Warnzeichen · Belastung abklären',null,
      'Du hast Warnzeichen gemeldet. Kein Laufvorschlag. Bei Brustschmerzen, Atemnot, '+
@@ -446,6 +467,7 @@ export function buildSevenDayCoach(input){
   garminPerception,
   completedWeek,
   fourWeekReview,
+  autoRaceRecovery,
   nextImpact:adapted.impact,
   adaptiveVolume:{...volume,appliedDate:volumeStep.appliedDate},
   feedbackTrend:{level:feedbackTrend.level,kind:feedbackTrend.kind,
