@@ -142,12 +142,16 @@ Deno.serve(async req=>{
    if(!day(input.date)||input.date<today||input.date>plusDays(today,13)||
     !['declined','accepted','open'].includes(String(input.choice)))
     return respond(422,{error:'Nur eigene Entscheidungen für die nächsten 14 Tage erlaubt'},h)
+   // Keep a bounded history for four-week comparisons. Older versions
+   // discarded previous decisions on every new choice; missing past values
+   // cannot be reconstructed and must never be guessed.
+   const oldest=plusDays(today,-119)
    const other=row.day_decisions.filter(d=>day(d.date)&&d.date!==input.date&&
-    d.date>=today&&d.date<=plusDays(today,13)&&
+    d.date>=oldest&&d.date<=plusDays(today,13)&&
     ['accepted','declined'].includes(d.choice))
    row={...row,day_decisions:input.choice==='open'?other:
     [...other,{date:input.date,choice:input.choice as DayChoice['choice']}]
-     .sort((a,b)=>a.date.localeCompare(b.date))}
+     .sort((a,b)=>a.date.localeCompare(b.date)).slice(-120)}
   }else if(input.action==='record_workout_feedback'){
    const activityId=input.activityId,rpe=input.rpe,legs=input.legs,
     symptoms=input.symptoms,feel=input.feel,note=input.note
