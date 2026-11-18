@@ -158,7 +158,7 @@ test('switching the main Goal preserves Heartbeat recovery via the existing race
 test('Coach snapshot fetches the archived race optionally without compromising the primary data fetch',()=>{
  const snapshot=read('src/lib/coachSnapshot.ts')
  const ui=read('src/components/CoachSevenDay.tsx')
- assert.match(snapshot,/get\('garmin-race-goals'\)\.catch\(\(\)=>\(\{\}\)\)/)
+ assert.match(snapshot,/get\('garmin-race-goals'\)\.catch\(\(\)=>\(\{\} as Record/)
  assert.match(snapshot,/racePortfolio:/)
  assert.match(ui,/racePortfolio:snapshot.racePortfolio/)
 })
