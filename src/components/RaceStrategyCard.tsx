@@ -227,7 +227,7 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
    <span className="rsp-heading-icon"><Icon name="flag"/></span>
    <span className="rsp-heading-copy">
     <small>DEIN NÄCHSTES EVENT / RENNPLAN</small>
-    <strong>Tempo, Verpflegung &amp; Pausen</strong>
+    <strong>Runner Mode · nächste Runde</strong>
     <span>{goal?goal.race_name+' · '+goal.race_date.split('-').reverse().join('.'):
      'Bitte zuerst dein Hauptziel unter Goals festlegen.'}</span>
    </span>
@@ -238,17 +238,19 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
    {error&&<p className="rsp-error" role="alert">{error}</p>}
    {notice&&<p className="rsp-success" role="status">{notice}</p>}
    {goal&&<>
-    <p className="rsp-context"><strong>{goal.race_name}</strong> · {Number(goal.distance_km).toLocaleString('de-DE')} km.
-     Aus Hauptziel, bisherigen Rennabsprachen und gespeicherter Strategie vorbereitet.
-     Anpassungen sind optional; Trainings- und Garmin-Daten werden nicht verändert.</p>
+    <p className="rsp-context"><strong>{goal.race_name}</strong> · heute zählt nur die nächste Runde.
+     Die ausführlichen Daten bleiben für dich und deine Crew einklappbar.</p>
     {offlineMode&&<p className="rsp-weather">Lokale Sicherung geladen. Gel-Vorrat und Wetter können veraltet sein.
      Für einen vollständigen Neustart ohne Internet ist keine App-Offline-Installation eingerichtet.</p>}
-    {feels&&<p className="rsp-weather">🌡️ Rennwetter: gefühlt <strong>{feels[0]}–{feels[1]} °C</strong>.
-     Trinkmenge und Kleidung nach tatsächlichem Wetter, Durst und Verträglichkeit anpassen.</p>}
     {executionInput&&viewerId&&<RaceDayCockpit active={active} goal={goal}
      input={executionInput} saved={saved} viewerId={viewerId}
      fuelSchedule={fuelSchedule}
      feelsLike={feels?[feels[0],feels[1]]:null}/>}
+    <details className="rsp-details">
+     <summary>Rennplan, Gel Buddy und weitere Einstellungen öffnen</summary>
+     <div>
+      {feels&&<p className="rsp-weather">🌡️ Rennwetter: gefühlt <strong>{feels[0]}–{feels[1]} °C</strong>.
+       Kleidung und Trinkmenge an Wetter, Durst und Verträglichkeit anpassen.</p>}
     {calculation&&executionInput&&<RaceExecutionCard saved={saved} weightKg={weightKg} input={executionInput}/>}
     {!offlineMode?<GelInventoryPlanner active={active} goal={goal}
       durationMinutes={calculation?.totalMinutes??null} carbsGPerHour={get(draft.carbs)}
@@ -330,7 +332,8 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
      <button type="button" disabled={busy||loading||offlineMode} onClick={()=>void save()}>
       <Icon name="check"/> {busy?'Speichere …':'Rennplan speichern'}
      </button>
-    </div>
+     </div>
+    </details>
    </>}
    {!goal&&!loading&&<p>Lege zuerst dein Hauptziel unter <strong>Goals</strong> fest.</p>}
   </div>
