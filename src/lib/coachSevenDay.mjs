@@ -107,18 +107,28 @@ export function buildSevenDayCoach(input){
  const raceDate=typeof goal?.race_date==='string'&&
   /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(goal.race_date)?goal.race_date:null
  const raceOffset=raceDate?Math.round((Date.parse(raceDate+'T12:00:00Z')-Date.parse(today+'T12:00:00Z'))/ONE_DAY):null
+ // When a new primary Goal is chosen, the previous event is still present
+ // in the owner-scoped Goals portfolio. Preserve its postrace recovery window.
+ const history=Array.isArray(input.racePortfolio?.others)?
+  input.racePortfolio.others.filter(x=>x&&typeof x.race_date==='string'&&
+   /^\\d{4}-\\d{2}-\\d{2}$/.test(x.race_date)&&x.race_date<=today&&
+   Number(x.distance_km)>0&&x.race_date>=coachAddDays(today,-21))
+   .sort((a,b)=>b.race_date.localeCompare(a.race_date)):[]
+ const historicGoal=history[0]||null
  // A previously recorded finish stays relevant even after the next goal is selected.
  const recoveryRaceDate=raceDate&&raceDate<=today?raceDate:
-  lastRaceCheck?.raceDate||raceDate
+  historicGoal?.race_date||lastRaceCheck?.raceDate||raceDate
+ const recoveryGoal=recoveryRaceDate===raceDate?goal:
+  history.find(x=>x.race_date===recoveryRaceDate)||null
  const raceCheck=[...checks].filter(x=>x.raceDate===recoveryRaceDate&&x.reportedOn<=today)
   .sort((a,b)=>String(b.reportedOn).localeCompare(String(a.reportedOn)))[0]||null
  const checkAge=raceCheck?Math.round((Date.parse(today+'T12:00:00Z')-
   Date.parse(raceCheck.reportedOn+'T12:00:00Z'))/ONE_DAY):null
  const checkedRecently=checkAge!==null&&checkAge>=0&&checkAge<=2
  const reportedExhaustion=raceCheck?Math.max(Number(raceCheck.fatigue),Number(raceCheck.soreness)):null
- const ultraRecovery=raceDate===recoveryRaceDate&&Number(goal?.distance_km)>=42
+ const ultraRecovery=Number(recoveryGoal?.distance_km)>=42
  const autoRaceRecovery=analyzeAutoRaceRecovery({
-  today,goal,boards:input.boards,health,life:input.life
+  today,goal:recoveryGoal||goal,boards:input.boards,health,life:input.life
  })
  const activeRaceRecovery=autoRaceRecovery.raceDate===recoveryRaceDate&&
   ['matched','ambiguous','awaiting-sync'].includes(autoRaceRecovery.status)
