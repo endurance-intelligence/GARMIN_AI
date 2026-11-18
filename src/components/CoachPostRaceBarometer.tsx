@@ -38,7 +38,7 @@ export function CoachPostRaceBarometer({goal,life,busy,onSave}:Props){
  return <section className="prb-root" aria-label="Dein persönlicher Erholungs-Check nach dem Wettkampf">
   <div className="prb-top">
    <div><span className="prb-eyebrow"><Icon name="activity"/> RACE RECOVERY / DEIN CHECK-IN</span>
-    <h3>Wie fühlen sich Körper und Beine an?</h3>
+    <h3>Wie sehr bist du im Arsch?</h3>
     <p>{raceName} · {dateText(raceDate)} · {age===0?'Renntag':age+' Tage danach'}</p></div>
    <span className={'prb-status prb-level-'+(warning?'alert':current===null?'pending':current>=7?'high':current>=4?'mid':'low')}>
     {warning?'Warnzeichen gemeldet':current===null?'Noch nicht eingeschätzt':label(current)}</span>
