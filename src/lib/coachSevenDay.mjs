@@ -111,7 +111,7 @@ export function buildSevenDayCoach(input){
  // in the owner-scoped Goals portfolio. Preserve its postrace recovery window.
  const history=Array.isArray(input.racePortfolio?.others)?
   input.racePortfolio.others.filter(x=>x&&typeof x.race_date==='string'&&
-   /^\\d{4}-\\d{2}-\\d{2}$/.test(x.race_date)&&x.race_date<=today&&
+   /^\d{4}-\d{2}-\d{2}$/.test(x.race_date)&&x.race_date<=today&&
    Number(x.distance_km)>0&&x.race_date>=coachAddDays(today,-21))
    .sort((a,b)=>b.race_date.localeCompare(a.race_date)):[]
  const historicGoal=history[0]||null
