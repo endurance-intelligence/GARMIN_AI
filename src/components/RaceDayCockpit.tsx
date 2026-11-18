@@ -12,8 +12,8 @@ type Input={distanceKm:number;courseMode:string;loopKm:number|null;
  movingMinutes:number|null;regularPauseMinutes:number|null;longStopEvery:number|null;
  longStopMinutes:number|null;paceSeconds:number|null;targetHours:number|null;
  carbsGPerHour:number|null;fluidMlPerHour:number|null;sodiumMgPerHour:number|null}
-const clockOK=s=>/^([01]\d|2[0-3]):[0-5]\d$/.test(s)
-const fmt=n=>n.toLocaleString('de-DE',{maximumFractionDigits:1})
+const clockOK=(s:string)=>/^([01]\d|2[0-3]):[0-5]\d$/.test(s)
+const fmt=(n:number)=>n.toLocaleString('de-DE',{maximumFractionDigits:1})
 const signed=(n:number)=>n===0?'genau im Plan':Math.abs(n)+' Min. '+(n>0?'Vorsprung':'Rückstand')
 const fuelName=(e:GelPlanEvent)=>e.brand+' · '+e.name
 
