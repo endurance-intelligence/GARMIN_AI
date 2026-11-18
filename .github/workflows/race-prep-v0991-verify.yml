@@ -1,0 +1,27 @@
+name: Race Prep v0.9.91 verification
+
+on:
+  push:
+    branches: [feature/race-prep-auto-feels-v0991]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GITHUB_PAGES: 'true'
+      VITE_GARMIN_SUPABASE_URL: https://eurgupsebxypjqvyizci.supabase.co
+      VITE_GARMIN_SUPABASE_PUBLISHABLE_KEY: ${{ vars.GARMIN_SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-race-auto-weather-feels-v0991.test.mjs tests/mobile-p2-race-execution-recovery-v0990.test.mjs tests/mobile-race-forecast-share-v0940.test.mjs
+      - run: npm run build
