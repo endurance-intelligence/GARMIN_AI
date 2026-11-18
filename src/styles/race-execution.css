@@ -29,3 +29,7 @@
 
 /* v0.9.91: show carbohydrate kcal alongside grams, fluid and sodium. */
 @media(max-width:760px){.rex-fuel-items{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.rex-splits{margin:12px 0;border-top:1px solid rgba(154,188,225,.15);padding-top:9px}
+.rex-splits>summary{padding:7px 1px;color:#c4dcff;font-size:11px;font-weight:750;cursor:pointer}
+.rex-splits .rex-table-wrap{margin-top:8px}
