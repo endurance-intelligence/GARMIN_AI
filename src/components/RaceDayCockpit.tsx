@@ -23,8 +23,8 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
  fuelSchedule:GelPlanEvent[]|null;feelsLike:[number,number]|null
 }){
  const [marks,setMarks]=useState<RaceMarks>({})
- const [startTime,setStartTime]=useState(goal.race_start_time||'')
- const [startInput,setStartInput]=useState(goal.race_start_time||'')
+ const [startTime,setStartTime]=useState(goal.race_start_time?.slice(0,5)||'')
+ const [startInput,setStartInput]=useState(goal.race_start_time?.slice(0,5)||'')
  const [editIndex,setEditIndex]=useState(1)
  const [editKind,setEditKind]=useState<'arrival'|'departure'>('arrival')
  const [editValue,setEditValue]=useState('')
@@ -47,13 +47,13 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
     stored.raceName===goal.race_name?stored:null
    const actual=from?.marks&&typeof from.marks==='object'?from.marks:{}
    const value=typeof from?.startTime==='string'&&clockOK(from.startTime)?
-    from.startTime:goal.race_start_time||''
+    from.startTime:goal.race_start_time?.slice(0,5)||''
    setMarks(actual)
    setStartTime(value);setStartInput(value)
    setLoaded(true)
   }catch{
-   setMarks({});setStartTime(goal.race_start_time||'')
-   setStartInput(goal.race_start_time||'');setLoaded(true)
+   setMarks({});setStartTime(goal.race_start_time?.slice(0,5)||'')
+   setStartInput(goal.race_start_time?.slice(0,5)||'');setLoaded(true)
    setError('Lokaler Rennspeicher nicht lesbar. Einträge erst nach Überprüfung neu erfassen.')
   }
  },[active,key,viewerId,goal.race_date,goal.race_name,goal.race_start_time])
