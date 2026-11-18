@@ -1,0 +1,28 @@
+.rex-root{margin:13px 0 3px;border-radius:13px;overflow:hidden;border:1px solid rgba(155,192,235,.28);background:#14253d;color:#ecf3ff}
+.rex-summary{display:flex;align-items:center;gap:10px;list-style:none;cursor:pointer;padding:12px 13px}
+.rex-summary::-webkit-details-marker{display:none}
+.rex-summary:focus-visible{outline:2px solid #c7ed93;outline-offset:-2px}
+.rex-icon{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:10px;background:#273f5c;color:#cae7f9}
+.rex-icon .ic{height:18px;width:18px}
+.rex-summary-text{flex:1;min-width:0;display:grid;gap:4px}
+.rex-summary-text small,.rex-kicker{font-size:9px;color:#bac7e5;font-weight:800;letter-spacing:.07em}
+.rex-summary-text strong{font-size:13px}
+.rex-summary-text span{font-size:10px;color:#a9bad3;line-height:1.5}
+.rex-summary>.ic{width:16px;height:16px;flex:0 0 16px;color:#a8bfe1}
+.rex-root[open] .rex-summary>.ic{transform:rotate(180deg)}
+.rex-body{border-top:1px solid rgba(152,188,229,.2);padding:12px}
+.rex-target{padding:11px;display:grid;gap:5px;border-radius:10px;background:rgba(141,190,126,.12);border:1px solid rgba(183,222,160,.23)}
+.rex-target.is-over{background:rgba(230,147,101,.09);border-color:rgba(244,156,113,.36)}
+.rex-target strong{font-size:13px}.rex-target small{font-size:10px;color:#aebed8;line-height:1.6}
+.rex-fuel{margin:12px 0;background:#1a3147;border-radius:11px;padding:11px}
+.rex-fuel-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
+.rex-fuel-items>div{display:grid;gap:3px}
+.rex-fuel-items strong{font-size:18px}.rex-fuel-items small{font-size:10px;color:#b9cbe1}
+.rex-fuel p,.rex-tip,.rex-foot,.rex-point{font-size:10px;line-height:1.6;color:#aebfd9;margin:9px 0}
+.rex-table-wrap{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+.rex-table{width:100%;min-width:470px;border-collapse:collapse;text-align:left;font-size:11px}
+.rex-table th{font-size:10px;color:#b5c6e2;padding:9px 7px;border-bottom:1px solid rgba(151,187,226,.22)}
+.rex-table td{padding:9px 7px;border-bottom:1px solid rgba(150,185,224,.11);color:#e0e9f8}
+.rex-table tr.is-long td{background:rgba(186,163,232,.11)}
+.rex-foot{border-top:1px solid rgba(154,188,225,.15);padding-top:10px}
+@media(max-width:560px){.rex-body{padding:9px}.rex-fuel-items strong{font-size:16px}}
