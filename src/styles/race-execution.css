@@ -15,7 +15,7 @@
 .rex-target.is-over{background:rgba(230,147,101,.09);border-color:rgba(244,156,113,.36)}
 .rex-target strong{font-size:13px}.rex-target small{font-size:10px;color:#aebed8;line-height:1.6}
 .rex-fuel{margin:12px 0;background:#1a3147;border-radius:11px;padding:11px}
-.rex-fuel-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
+.rex-fuel-items{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}
 .rex-fuel-items>div{display:grid;gap:3px}
 .rex-fuel-items strong{font-size:18px}.rex-fuel-items small{font-size:10px;color:#b9cbe1}
 .rex-fuel p,.rex-tip,.rex-foot,.rex-point{font-size:10px;line-height:1.6;color:#aebfd9;margin:9px 0}
@@ -26,3 +26,6 @@
 .rex-table tr.is-long td{background:rgba(186,163,232,.11)}
 .rex-foot{border-top:1px solid rgba(154,188,225,.15);padding-top:10px}
 @media(max-width:560px){.rex-body{padding:9px}.rex-fuel-items strong{font-size:16px}}
+
+/* v0.9.91: show carbohydrate kcal alongside grams, fluid and sodium. */
+@media(max-width:760px){.rex-fuel-items{grid-template-columns:repeat(2,minmax(0,1fr))}}
