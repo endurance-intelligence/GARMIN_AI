@@ -25,6 +25,6 @@ export function CoachNextImpactCard({impact}:{impact:RecentCoachImpact|null|unde
   <p className="cni-result"><strong>Konsequenz:</strong> {impact.message||'Keine zusätzliche Planänderung.'}
    {impact.appliedDate?' Betroffener Vorschlag: '+dt(impact.appliedDate)+'.':''}</p>
   <p className="cni-note">Nur eine zeitlich plausible Zuordnung, kein Nachweis der exakt absolvierten
-   Intervalle. Vorhandene Termine und bestätigte Trainings werden nicht geändert.</p>
+   Intervalle. Keine Kalender- oder Garmin-Änderung. Vorhandene Termine und bestätigte Trainings bleiben bestehen.</p>
  </article>
 }
