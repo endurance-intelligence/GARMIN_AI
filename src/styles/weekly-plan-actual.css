@@ -1,0 +1,41 @@
+/* P1: evidence-based weekly Plan vs Actual, condensed until requested */
+.wpa-root{margin:11px 0 15px;border:1px solid rgba(151,182,227,.24);
+ border-radius:14px;background:linear-gradient(130deg,#1a2944,#111f35);color:#e8f1fd;overflow:hidden}
+.wpa-root.is-adjusted{border-color:rgba(221,182,129,.45)}
+.wpa-head{list-style:none;display:flex;align-items:center;gap:12px;padding:13px 16px;
+ min-height:65px;cursor:pointer}
+.wpa-head::-webkit-details-marker{display:none}
+.wpa-head:focus-visible{outline:2px solid #c5ed96;outline-offset:-2px}
+.wpa-icon{width:38px;height:38px;flex:0 0 38px;display:grid;place-items:center;
+ border-radius:11px;background:#273958;color:#bbd0f9}
+.wpa-icon .ic{width:19px;height:19px}
+.wpa-title{display:grid;gap:4px;flex:1;min-width:0}
+.wpa-title small{font-size:9px;font-weight:860;letter-spacing:.09em;color:#b8afe8}
+.wpa-title strong{font-size:14px;color:#f1f5ff}
+.wpa-title>span{font-size:11px;line-height:1.5;color:#b7cce5}
+.wpa-head>.ic{width:17px;height:17px;flex:0 0 17px;color:#acc2e0}
+.wpa-root[open] .wpa-head>.ic{transform:rotate(180deg)}
+.wpa-body{border-top:1px solid rgba(152,186,227,.18);padding:13px 16px}
+.wpa-period{font-size:10px;font-weight:780;color:#aab9d7}
+.wpa-body>p{font-size:11px;color:#bccbe2;line-height:1.65}
+.wpa-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.wpa-stats>div{display:grid;gap:5px;background:#14263c;padding:10px;border:1px solid rgba(154,187,224,.16);border-radius:10px}
+.wpa-stats span{font-size:10px;color:#aebfda}
+.wpa-stats strong{font-size:17px;color:#f0f4ff}
+.wpa-stats small{font-size:10px;color:#aebfde}
+.wpa-matches{border-top:1px solid rgba(155,182,225,.17);padding:10px 0}
+.wpa-matches>strong{font-size:11px;color:#e3ebfc}
+.wpa-matches p{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;
+ font-size:11px;color:#c3d1e6;line-height:1.5}
+.wpa-next{padding:12px;border:1px solid rgba(176,207,173,.25);background:#1b3141;
+ border-radius:11px}
+.wpa-next>span{font-size:9px;font-weight:850;letter-spacing:.05em;color:#bbe4b6}
+.wpa-next p{margin:6px 0 0;font-size:12px;line-height:1.5;color:#e3f0e7}
+.wpa-body>.wpa-caution{font-size:10px;color:#99adca;line-height:1.55}
+.wpa-open{display:inline-flex;align-items:center;gap:9px;margin-top:7px;padding:10px 13px;
+ border:1px solid rgba(163,190,231,.33);border-radius:9px;background:#243550;
+ color:#f0f5ff;font-size:11px;font-weight:750;min-height:40px}
+.wpa-open .ic{width:14px;height:14px}
+@media(max-width:550px){.wpa-head{padding:11px;gap:8px}.wpa-title strong{font-size:13px}
+ .wpa-body{padding:11px}.wpa-stats{grid-template-columns:1fr}
+ .wpa-stats>div{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap}}

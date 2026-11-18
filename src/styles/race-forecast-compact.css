@@ -1,0 +1,94 @@
+.rfc-root{padding:18px;margin:14px 0;border:1px solid rgba(146,183,226,.22);border-radius:18px;background:linear-gradient(125deg,#14213a,#101a2f);color:#ecf1ff}
+.rfc-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:start}
+.rfc-head small{font-size:9px;font-weight:840;letter-spacing:.12em;color:#b8adf5}
+.rfc-head h2{font-size:20px;letter-spacing:-.04em;margin:5px 0}
+.rfc-head p{font-size:11px;color:#9bb3d0;margin:0}
+.rfc-head>span{font-size:9px;font-weight:800;color:#a9c2db;border:1px solid rgba(161,186,222,.25);border-radius:100px;padding:6px 9px}
+.rfc-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:15px 0 9px}
+.rfc-summary>div{display:flex;flex-direction:column;gap:6px;background:#1d2c49;border:1px solid rgba(148,173,215,.18);border-radius:12px;padding:12px;min-width:0}
+.rfc-summary strong{font-size:clamp(16px,2.6vw,24px);letter-spacing:-.03em;line-height:1.1}
+.rfc-summary small{font-size:10px;color:#a7b8d2;line-height:1.35}
+.rfc-hints{font-size:11px;line-height:1.6;color:#c8d7e7;margin:10px 0}
+.rfc-details{border-top:1px solid rgba(158,179,219,.18);padding-top:9px}
+.rfc-details summary{cursor:pointer;font-size:11px;font-weight:750;color:#c5c9ff;padding:9px 0}
+.rfc-timeline{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;padding:8px 0}
+.rfc-timeline>div{display:flex;flex-direction:column;gap:5px;border-radius:10px;background:#1b2944;padding:10px}
+.rfc-timeline b{font-size:12px;color:#a7b9ea}
+.rfc-timeline strong{font-size:11px}.rfc-timeline span{font-size:10px;color:#9eb5d4}
+.rfc-info,.rfc-error,.rfc-foot{font-size:11px;line-height:1.6;color:#9faccc}
+.rfc-error{color:#ffa9a5}.rfc-foot{margin:10px 0 0}
+@media(max-width:540px){.rfc-root{padding:14px}.rfc-summary{gap:6px}.rfc-summary>div{padding:9px}.rfc-summary small{font-size:9px}}
+
+
+/* Explain peak gusts in plain German; not a weather warning or readiness score. */
+.rfc-wind-label{display:inline-flex;align-self:flex-start;width:fit-content;border-radius:7px;
+ border:1px solid rgba(163,184,227,.28);background:rgba(100,125,169,.14);
+ padding:4px 7px;font-size:10px;font-weight:790;line-height:1.3;color:#b9ddda}
+.rfc-wind-label.notice{color:#dfcfac}
+.rfc-wind-label.caution{color:#f4cb99}
+.rfc-wind-label.warning{color:#f8aba7}
+.rfc-wind-explanation{font-size:11px;line-height:1.6;color:#bccce2;margin:5px 0 8px}
+.rfc-wind-explanation strong{color:#e1e8fa}
+
+
+/* Horizon weather v0.9.39: three quiet, small and unmistakable metrics. */
+.rfc-root{padding:14px}
+.rfc-summary{margin:10px 0 7px;gap:8px}
+.rfc-summary>.rfc-metric{display:flex;flex-direction:row;align-items:center;gap:11px;
+ min-height:0;padding:9px 12px;border-radius:11px}
+.rfc-metric>.ic{display:block;width:19px;height:19px;flex-shrink:0;color:#a6b9ff;stroke-width:1.8}
+.rfc-metric:nth-child(2)>.ic{color:#8cc8f4}
+.rfc-metric:nth-child(3)>.ic{color:#b6c1e8}
+.rfc-metric>div{min-width:0;display:flex;flex-direction:column;gap:3px}
+.rfc-metric strong{font-size:clamp(16px,2.3vw,21px);line-height:1.15}
+.rfc-metric small{font-size:10px;line-height:1.2}
+.rfc-metric .rfc-wind-label{font-size:9px;padding:3px 5px;margin-top:1px}
+.rfc-course{margin:12px 0 9px;padding:11px;border:1px solid rgba(143,174,226,.18);
+ border-radius:12px;background:rgba(21,36,62,.64)}
+.rfc-course-title{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:9px}
+.rfc-course-title strong{font-size:12px}
+.rfc-course-title small{font-size:10px;color:#9eb4d2}
+.rfc-course-points{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px}
+.rfc-course-point{display:flex;flex-direction:column;gap:5px;border-radius:10px;padding:10px;
+ border:1px solid rgba(150,171,220,.12);background:#1c2a47}
+.rfc-course-point span{font-size:10px;color:#bac8ee}
+.rfc-course-point strong{font-size:12px}
+.rfc-course-point small{font-size:10px;color:#9eb2d0;line-height:1.5}
+@media(max-width:580px){.rfc-summary{gap:5px}.rfc-summary>.rfc-metric{gap:6px;padding:8px;align-items:flex-start}
+ .rfc-metric>.ic{width:15px;height:15px}.rfc-metric strong{font-size:16px}
+ .rfc-metric small{font-size:9px}.rfc-course-points{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:370px){.rfc-course-points{grid-template-columns:1fr}}
+
+/* v0.9.40: forecast confidence and native share stay compact on iPhone. */
+.rfc-head-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;max-width:100%}
+.rfc-status{border:1px solid rgba(162,185,223,.32);border-radius:20px;padding:6px 10px;
+ font-size:10px;font-weight:800;line-height:1.35;color:#d1d9eb;background:#21314b;text-align:center}
+.rfc-status.near{color:#bde9d7;background:rgba(32,111,90,.22);border-color:rgba(123,212,176,.42)}
+.rfc-status.medium{color:#f3d9a2;background:rgba(151,104,28,.2);border-color:rgba(232,174,83,.36)}
+.rfc-status.far{color:#c2c7ff;background:rgba(86,88,162,.25);border-color:rgba(159,160,230,.4)}
+.rfc-status.missing,.rfc-status.past{color:#c5cee0}
+.rfc-share{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+ border:1px solid rgba(162,189,237,.37);background:#23385b;color:#f0f4ff;
+ border-radius:9px;font-size:11px;font-weight:750;padding:7px 11px;cursor:pointer}
+.rfc-share:hover{background:#304a74}
+.rfc-share:focus-visible{outline:2px solid #96c7ff;outline-offset:2px}
+.rfc-share .ic{width:15px;height:15px}
+.rfc-confidence{font-size:10px;line-height:1.5;color:#aabbd2;margin:8px 0 0}
+@media(max-width:540px){.rfc-head{flex-wrap:nowrap;align-items:flex-start}
+ .rfc-head>div:first-child{min-width:0}
+ .rfc-head h2{font-size:18px}
+ .rfc-head-side{min-width:112px;gap:7px}
+ .rfc-status{padding:6px 8px;font-size:9px}
+ .rfc-share{padding:7px 8px;font-size:10px}
+}
+
+/* v0.9.70 · focus target reached from Coach dashboard weather preview. */
+#race-detailed-forecast{scroll-margin-top:25px}
+#race-detailed-forecast:focus{outline:none}
+#race-detailed-forecast:focus-visible{outline:2px solid #a4d0ff;outline-offset:3px}
+@media(max-width:760px){#race-detailed-forecast{scroll-margin-top:15px}}
+
+/* v0.9.91: apparent temperature visible alongside measured temperature. */
+.rfc-summary{grid-template-columns:repeat(4,minmax(0,1fr))}
+.rfc-feels>.ic{color:#d5c5ff}
+@media(max-width:650px){.rfc-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}

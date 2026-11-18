@@ -23,7 +23,7 @@ function key(kind: 'publishable' | 'secret'): string {
 
 function cors(origin: string | null): Record<string, string> {
   // Vite development environment ONLY. Production requires a new allowlist.
-  const permitted = !!origin && /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin)
+  const permitted = origin==='https://endurance-intelligence.github.io' || (!!origin && /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin))
   return {
     ...(permitted ? { 'Access-Control-Allow-Origin': origin, 'Vary': 'Origin' } : {}),
     'Access-Control-Allow-Methods': 'GET, OPTIONS',

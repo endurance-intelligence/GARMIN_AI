@@ -1,0 +1,255 @@
+/* GARMIN_AI Race Objective – dark Horizon, iPhone first, no fake readiness */
+.cg-root{margin:16px 0 24px;padding:22px;border:1px solid rgba(146,161,231,.25);
+ border-radius:21px;background:linear-gradient(145deg,#18223b,#10192e);min-width:0;color:#eaf0ff}
+.cg-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.cg-kicker{font-size:10px;font-weight:820;letter-spacing:.14em;color:#bcb2ff}
+.cg-state{border:1px solid rgba(237,194,127,.3);padding:6px 9px;border-radius:100px;font-size:9px;font-weight:800;color:#e7ba81;letter-spacing:.05em}
+.cg-state.is-active{color:#9ce8c3;border-color:rgba(123,223,163,.32)}
+.cg-summary{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:17px 0 12px}
+.cg-summary>div:first-child{min-width:0}
+.cg-summary h2{font-size:clamp(21px,3vw,32px);line-height:1.1;letter-spacing:-.05em;margin:0 0 10px}
+.cg-summary p{margin:0;color:#a8b9d9;font-size:12px;line-height:1.6}
+.cg-tags{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0 11px}
+.cg-tags span{padding:7px 10px;border-radius:10px;border:1px solid rgba(150,164,221,.24);background:#222e4b;font-size:11px;font-weight:750}
+.cg-summary .cg-guidance{font-size:12px;color:#c0c9e3}
+.cg-countdown{flex:0 0 118px;display:flex;align-items:center;justify-content:center;flex-direction:column;
+ min-height:118px;border:1px solid rgba(171,148,255,.3);border-radius:19px;background:rgba(103,98,190,.14)}
+.cg-countdown strong{font-size:51px;line-height:1;font-weight:900;letter-spacing:-.07em;color:#e1d8ff}
+.cg-countdown small{font-size:9px;text-align:center;color:#b6b8ee;margin-top:8px}
+.cg-disclaimer{font-size:11px;color:#9cabca;line-height:1.5;margin:10px 0 14px}
+.cg-edit{border-top:1px solid rgba(150,164,221,.2);padding-top:20px}
+.cg-edit-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline;margin-bottom:13px}
+.cg-edit-head strong{font-size:16px}.cg-edit-head small{font-size:11px;color:#a3b5d2}
+.cg-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.cg-fields label{display:flex;flex-direction:column;gap:7px;min-width:0;font-size:11px;font-weight:700;color:#b5c2df}
+.cg-fields input,.cg-fields textarea{box-sizing:border-box;max-width:100%;min-width:0;width:100%;font:inherit;color:#f1f5ff;
+ background:#0e192e;border:1px solid rgba(158,179,222,.29);border-radius:12px;padding:12px}
+.cg-fields input{min-height:44px}.cg-fields textarea{resize:vertical;min-height:78px}
+.cg-fields input:focus,.cg-fields textarea:focus{outline:2px solid #9b9ef5;outline-offset:2px}
+.cg-wide{grid-column:1/-1}
+.cg-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:17px}
+.cg-actions button,.cg-link{min-height:44px;border-radius:12px;border:1px solid rgba(186,176,248,.4);
+ color:#f6f5ff;background:#5557b4;padding:11px 16px;font:inherit;font-weight:780;cursor:pointer}
+.cg-actions button:disabled{opacity:.5;cursor:not-allowed}
+.cg-actions small{font-size:10px;color:#99abc9;max-width:350px}
+.cg-error{color:#fcb6b5;font-size:12px}.cg-notice{color:#93edb9;font-size:12px}
+.cg-info{font-size:12px;color:#aab9d4}
+.cg-compact{margin:12px 0;padding:16px 18px}
+.cg-compact .cg-summary{margin:10px 0}
+.cg-compact .cg-summary h2{font-size:22px}
+.cg-compact .cg-countdown{flex-basis:89px;min-height:89px}
+.cg-compact .cg-countdown strong{font-size:35px}.cg-compact .cg-countdown small{font-size:7px}
+.cg-compact .cg-link{background:rgba(101,93,187,.15);margin-top:6px}
+@media(max-width:610px){.cg-root{padding:15px}.cg-fields{grid-template-columns:minmax(0,1fr)}
+.cg-summary{gap:8px}.cg-countdown{flex-basis:84px;min-height:90px;border-radius:14px}
+.cg-countdown strong{font-size:39px}.cg-countdown small{font-size:8px}
+.cg-summary h2{font-size:23px}.cg-tags{gap:5px}.cg-tags span{font-size:10px;padding:6px 7px}
+.cg-compact .cg-countdown{flex-basis:72px;min-height:76px}
+.cg-compact .cg-countdown strong{font-size:30px}}
+
+
+/* Fixed-session weather in CoachGlance */
+.co-fixed-weather{display:flex;flex-direction:column;gap:8px;padding:12px 14px;margin:10px 0;
+ border:1px solid rgba(126,175,198,.27);border-radius:14px;
+ background:linear-gradient(135deg,rgba(38,91,121,.25),rgba(37,43,73,.5))}
+.co-fixed-slot{display:flex;gap:4px;flex-direction:column;min-width:0}
+.co-fixed-slot strong{font-size:12px;color:#e6f3ff;line-height:1.45}
+.co-fixed-weather>small{font-size:10px;color:#8eacc6}
+
+/* Original event identity is linked, never re-created. */
+.cg-title-row{display:flex;gap:12px;align-items:center;min-width:0;margin-bottom:9px}
+.cg-title-row img{height:55px;width:55px;border-radius:12px;object-fit:contain;background:#f6f5f4;flex-shrink:0;padding:4px;box-sizing:border-box}
+.cg-title-row h2{margin:0!important;min-width:0;overflow-wrap:anywhere}
+.cg-compact .cg-title-row img{height:43px;width:43px}
+@media(max-width:480px){.cg-title-row img{height:44px;width:44px}.cg-title-row{gap:8px}}
+
+/* v0.9.69 - the race goal is the compact, weather-aware Coach hero, NOT a huge card. */
+.cg-root.cg-home-hero{margin:0 0 13px;padding:14px 18px;border-radius:16px;
+ display:grid;grid-template-columns:minmax(0,1.1fr) minmax(250px,.75fr);align-items:center;gap:17px;
+ background:linear-gradient(120deg,#1a2540,#101b30 75%);border:1px solid rgba(145,165,231,.27)}
+.cg-home-race{min-width:0}
+.cg-home-race-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.cg-home-hero .cg-kicker{font-size:9px;letter-spacing:.13em}
+.cg-home-hero .cg-state{font-size:8px;padding:4px 7px;white-space:nowrap}
+.cg-home-race-main{display:flex;justify-content:space-between;align-items:center;gap:14px;min-width:0}
+.cg-home-race-info{min-width:0}
+.cg-home-race-info h2{margin:0 0 8px!important;line-height:1.15;font-size:clamp(17px,2.3vw,23px)!important;
+ font-weight:870;letter-spacing:-.035em;color:#f2f6ff}
+.cg-home-race-meta{display:flex;gap:6px;flex-wrap:wrap;color:#c1d2f0}
+.cg-home-race-meta>span{font-size:10px;padding:4px 8px;border:1px solid rgba(152,173,218,.25);border-radius:7px;
+ background:rgba(72,97,151,.16);font-weight:700}
+.cg-home-edit{min-height:30px;margin:8px 0 0;padding:0;border:0;background:transparent!important;
+ color:#bdc5ff;font-size:10px;font-weight:780;text-decoration:underline;text-underline-offset:3px}
+.cg-home-days{flex:0 0 68px;min-height:68px;display:grid;place-items:center;gap:0;
+ border:1px solid rgba(162,147,255,.29);border-radius:12px;background:rgba(107,95,197,.12);padding:7px}
+.cg-home-days strong{font-size:31px;font-weight:900;line-height:1;letter-spacing:-.065em;color:#e8ddff}
+.cg-home-days small{font-size:8px;text-align:center;font-weight:750;color:#afaee9}
+.cg-home-weather{align-self:stretch;min-width:0;display:flex;gap:10px;align-items:center;
+ padding:12px 14px;border:1px solid rgba(101,156,211,.24);border-radius:12px;
+ background:linear-gradient(110deg,rgba(47,79,118,.21),rgba(17,32,56,.42))}
+.cg-home-weather-icon{width:28px;height:28px;flex:0 0 28px;display:grid;place-items:center;
+ border-radius:9px;background:rgba(103,176,217,.12);color:#b5dffe;font-size:17px}
+.cg-home-weather-content{display:grid;gap:5px;min-width:0}
+.cg-home-weather-kicker{color:#9dbdec;font-size:9px;font-weight:850;letter-spacing:.09em}
+.cg-home-weather-data{display:flex;align-items:baseline;flex-wrap:wrap;gap:5px 10px}
+.cg-home-weather-data strong{font-size:19px;color:#f1faff;white-space:nowrap}
+.cg-home-weather-data span{color:#c7dbf0;font-size:11px;white-space:nowrap}
+.cg-home-weather-content small{font-size:10px;color:#a5b8d1;line-height:1.4}
+.cg-home-loading{font-size:10px;color:#acbdd6;grid-column:1/-1}
+.cg-home-error{font-size:10px;color:#efbac1;grid-column:1/-1}
+@media(max-width:830px){.cg-root.cg-home-hero{grid-template-columns:minmax(0,1fr);gap:9px;padding:13px 14px}
+ .cg-home-weather{padding:9px 12px}.cg-home-race-head{margin-bottom:6px}}
+@media(max-width:420px){.cg-home-race-main{gap:8px}.cg-home-days{flex-basis:57px;min-height:57px}
+ .cg-home-days strong{font-size:27px}.cg-home-race-info h2{font-size:18px!important}
+ .cg-home-race-meta{gap:4px}.cg-home-race-meta>span{font-size:9px;padding:4px 5px}
+ .cg-home-weather-data{gap:4px 8px}.cg-home-weather-data strong{font-size:17px}}
+
+/* v0.9.70 · take the original Horizon concept's orbital atmosphere into REAL race data. */
+.cg-root.cg-home-hero{isolation:isolate;position:relative;overflow:hidden;
+ border:1px solid rgba(166,151,255,.32);
+ background:radial-gradient(ellipse 350px 230px at 93% -55%,rgba(150,125,247,.23),transparent 90%),
+ radial-gradient(ellipse 300px 170px at 12% 140%,rgba(54,176,220,.11),transparent 85%),
+ linear-gradient(122deg,#22253f,#171f35 67%,#121c30);
+ box-shadow:0 14px 42px rgba(5,12,29,.18),inset 0 1px rgba(247,239,255,.04)}
+.cg-root.cg-home-hero:before{content:'';position:absolute;pointer-events:none;z-index:-1;
+ width:275px;height:275px;right:-135px;top:-155px;border:1px solid rgba(178,170,255,.2);
+ border-radius:50%;box-shadow:0 0 0 38px rgba(165,146,237,.03),0 0 0 82px rgba(165,146,237,.025)}
+.cg-home-race-info h2{color:#f1f1ff!important;text-shadow:0 3px 22px rgba(156,142,255,.09)}
+.cg-home-days{background:radial-gradient(circle at 45% 36%,rgba(168,152,255,.35),rgba(74,64,140,.10) 70%);
+ box-shadow:0 0 23px rgba(139,126,255,.14),inset 0 1px rgba(230,216,255,.11)}
+.cg-home-weather{position:relative;text-align:left;appearance:none;cursor:pointer;color:#f1f6ff;
+ font:inherit;width:100%;min-height:81px;transition:background .18s,border-color .18s,transform .18s;
+ border:1px solid rgba(116,177,235,.34);
+ background:radial-gradient(ellipse at 87% -20%,rgba(122,159,247,.16),transparent 70%),rgba(14,32,56,.62)}
+.cg-home-weather:not(:disabled):hover{transform:translateY(-1px);
+ background:radial-gradient(ellipse at 87% -20%,rgba(122,159,247,.26),transparent 70%),rgba(20,45,80,.71);
+ border-color:rgba(160,210,255,.65)}
+.cg-home-weather:not(:disabled):focus-visible{outline:2px solid #b5d9ff;outline-offset:3px}
+.cg-home-weather:disabled{cursor:default}
+.cg-home-weather-icon{background:linear-gradient(145deg,rgba(165,145,251,.21),rgba(63,183,225,.16));
+ box-shadow:0 0 21px rgba(100,169,238,.1)}
+.cg-home-weather-open{margin-left:auto;align-self:center;flex:0 0 auto;width:27px;height:27px;
+ display:grid;place-items:center;border-radius:9px;color:#b4c5ff;background:rgba(160,162,255,.1);
+ border:1px solid rgba(155,186,243,.16);font-size:18px}
+.cg-home-weather:disabled .cg-home-weather-open{display:none}
+@media(max-width:830px){.cg-home-weather{min-height:65px}}
+@media(prefers-reduced-motion:reduce){.cg-home-weather{transition:none}.cg-home-weather:hover{transform:none}}
+
+/* v0.9.72 · keep compact race-weather legible with feels-like and rain intensity. */
+.cg-home-weather-content{min-width:0;flex:1}
+.cg-home-weather-data{gap:5px 9px}
+.cg-home-weather-data span{font-size:10px;white-space:normal}
+@media(max-width:600px){.cg-home-weather-data{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 10px}
+.cg-home-weather-data strong{font-size:18px;grid-column:1/-1}}
+
+/* v0.9.80 · reuse the organizer's saved race logo, always keep a graceful fallback */
+.cg-goal-name{display:flex;align-items:center;gap:12px;min-width:0}
+.cg-goal-name h2{min-width:0;overflow-wrap:anywhere;margin:0}
+.cg-goal-emblem{display:grid;place-items:center;flex:0 0 56px;width:56px;height:56px;
+ padding:5px;border:1px solid rgba(190,193,248,.2);border-radius:13px;
+ background:rgba(255,255,255,.065);box-sizing:border-box;overflow:hidden}
+.cg-goal-emblem img{display:block;object-fit:contain;max-width:100%;max-height:100%;
+ width:100%;height:100%;border-radius:4px}
+.cg-goal-emblem-fallback{display:grid;place-items:center;width:100%;height:100%;
+ color:#d4dafa}
+.cg-goal-emblem-fallback .ic{width:24px;height:24px}
+.cg-title-row>.cg-goal-emblem{height:55px;width:55px;flex-basis:55px}
+.cg-title-row>.cg-goal-emblem img{background:transparent}
+@media(max-width:610px){.cg-goal-name{gap:9px}
+ .cg-goal-emblem,.cg-title-row>.cg-goal-emblem{flex-basis:44px;width:44px;height:44px;padding:4px}
+ .cg-goal-emblem-fallback .ic{width:21px;height:21px}}
+
+/* v0.9.81: event logos are often black; give them a genuinely light canvas and more room. */
+.cg-home-hero .cg-goal-emblem,.cg-title-row>.cg-goal-emblem{
+ background:linear-gradient(160deg,#ffffff,#f0f3f9);
+ border:1px solid #d6deea;box-shadow:0 7px 20px rgba(4,12,25,.22);
+ border-radius:15px;box-sizing:border-box;overflow:hidden;
+ width:68px;height:68px;flex:0 0 68px;padding:9px
+}
+.cg-home-hero .cg-goal-emblem img,.cg-title-row>.cg-goal-emblem img{
+ width:100%;height:100%;object-fit:contain;background:transparent;padding:0;
+ border:0;border-radius:4px;max-width:100%;max-height:100%
+}
+.cg-home-hero .cg-goal-emblem-fallback{color:#556c91}
+.cg-root.cg-home-hero{
+ grid-template-columns:minmax(0,1.17fr) minmax(300px,.83fr);
+ column-gap:25px;padding:20px 23px;min-height:155px
+}
+.cg-home-race-head{margin-bottom:12px}
+.cg-home-race-main{gap:20px}
+.cg-home-race-info{min-width:0;flex:1}
+.cg-goal-name{gap:15px;align-items:center;margin-bottom:12px}
+.cg-goal-name h2{line-height:1.22!important;margin:0!important}
+.cg-home-race-meta{gap:7px}
+.cg-home-edit{margin:12px 0 0}
+.cg-home-days{flex:0 0 72px;min-height:72px}
+.cg-home-weather{padding:14px 16px}
+@media(max-width:860px){
+ .cg-root.cg-home-hero{grid-template-columns:minmax(0,1fr);gap:14px;padding:17px 18px}
+ .cg-home-weather{min-height:66px}
+}
+@media(max-width:610px){
+ .cg-root.cg-home-hero{padding:15px 14px;min-height:0}
+ .cg-home-hero .cg-goal-emblem,.cg-title-row>.cg-goal-emblem{
+  width:56px;height:56px;flex-basis:56px;padding:7px;border-radius:13px
+ }
+ .cg-goal-name{gap:12px;margin-bottom:10px}
+ .cg-home-race-main{gap:10px;align-items:center}
+ .cg-home-race-head{margin-bottom:10px}
+ .cg-home-race-meta{gap:6px}
+ .cg-home-edit{margin:10px 0 0}
+ .cg-home-days{flex:0 0 58px;min-height:64px}
+}
+@media(max-width:385px){
+ .cg-home-hero .cg-goal-emblem{width:48px;height:48px;flex-basis:48px;padding:6px}
+ .cg-goal-name{gap:9px}.cg-home-race-info h2{font-size:17px!important}
+ .cg-home-days{flex-basis:52px;min-height:57px}
+}
+
+/* v0.9.82 · larger countdown; the redundant "active goal" badge is gone. */
+.cg-root.cg-home-hero .cg-home-days{
+ flex:0 0 108px;min-height:108px;box-sizing:border-box;
+ padding:12px 8px;border-radius:18px;
+ grid-template-rows:1fr auto;align-content:center
+}
+.cg-root.cg-home-hero .cg-home-days strong{
+ font-size:54px;line-height:1;letter-spacing:-.065em;
+ font-variant-numeric:tabular-nums
+}
+.cg-root.cg-home-hero .cg-home-days small{
+ font-size:10px;line-height:1.25;letter-spacing:.02em;
+ max-width:85px
+}
+.cg-root.cg-home-hero .cg-home-race-main{gap:20px}
+@media(max-width:610px){
+ .cg-root.cg-home-hero .cg-home-days{
+  flex-basis:88px;min-height:88px;padding:9px 6px;border-radius:15px
+ }
+ .cg-root.cg-home-hero .cg-home-days strong{font-size:43px}
+ .cg-root.cg-home-hero .cg-home-days small{font-size:9px}
+ .cg-root.cg-home-hero .cg-home-race-main{gap:11px}
+}
+@media(max-width:385px){
+ .cg-root.cg-home-hero .cg-home-days{
+  flex-basis:76px;min-height:78px;padding:7px 5px;border-radius:13px
+ }
+ .cg-root.cg-home-hero .cg-home-days strong{font-size:38px}
+ .cg-root.cg-home-hero .cg-home-days small{font-size:8px}
+}
+
+/* v0.9.83: center numeral AND label as one unit instead of split grid rows. */
+.cg-root.cg-home-hero .cg-home-days{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:3px;text-align:center;grid-template-rows:none;
+ margin-right:clamp(3px,1.6vw,18px)
+}
+.cg-root.cg-home-hero .cg-home-days strong{
+ display:block;margin:0;line-height:.98;text-align:center;
+ transform:none
+}
+.cg-root.cg-home-hero .cg-home-days small{
+ display:block;max-width:100%;margin:0;text-align:center;line-height:1.25
+}
+@media(max-width:610px){
+ .cg-root.cg-home-hero .cg-home-days{margin-right:0;gap:2px}
+}

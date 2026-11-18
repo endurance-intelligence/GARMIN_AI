@@ -1,0 +1,11 @@
+/* GARMIN_AI 0.7.1 — one finding first, technical evidence one click away. */
+.cfb-panel{border:1px solid #34536e;border-left:3px solid #81c9f6;border-radius:12px;background:#102039;padding:15px 17px;margin:19px 0 12px}
+.cfb-attention{border-color:#685037;border-left-color:#f3bc76;background:#1d2334}
+.cfb-eyebrow{font-size:10px;font-weight:800;letter-spacing:.12em;color:#a3bcde}
+.cfb-panel h4{margin:7px 0 6px;font-size:17px;letter-spacing:-.025em;color:#f1f5ff}
+.cfb-panel p{font-size:12px;line-height:1.65;color:#d3deef;margin:0 0 8px}
+.cfb-panel small{font-size:10px;line-height:1.5;color:#97a9c2}
+.cfb-more{margin:12px 0 0;border-top:1px solid #2c3a56;padding-top:13px}
+.cfb-more>summary{font-size:12px;cursor:pointer;color:#b6c7df;list-style-position:inside}
+.cfb-more>summary:focus-visible{outline:2px solid #c7fc77;outline-offset:3px;border-radius:4px}
+.cfb-more .lsi-signals{margin-top:13px}

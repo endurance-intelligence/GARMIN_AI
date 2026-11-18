@@ -28,3 +28,29 @@ verify_jwt = false
 # Owner JWT verified inside the private Edge Function.
 [functions.read-garmin-aerobic]
 verify_jwt = false
+
+# v0.7.5: JWT validated by the private sync-center function with auth.getUser,
+# owner e-mail checked on every request. Required for publishable-key projects.
+[functions.garmin-sync-center]
+verify_jwt = false
+
+# One-time owner-only Garmin OAuth bootstrap. Function itself verifies the
+# logged-in owner via Supabase Auth and stores tokens only in Vault.
+[functions.garmin-connect-bootstrap]
+verify_jwt = false
+
+# v0.7.6.2 owner-authenticated (auth.getUser) read-only Cloud Garmin
+# connectivity check. Calls Garmin once; no OAuth refresh or Garmin writes.
+[functions.garmin-connect-cloud-check]
+verify_jwt = false
+
+# Only the signed GitHub Actions OIDC identity for the exact trusted workflow
+# on refs/heads/main may access this endpoint. No Supabase JWT at gateway;
+# cryptographic OIDC verification and exact claims happen in the function.
+[functions.garmin-cloud-worker]
+verify_jwt = false
+
+# Public GitHub Pages UI, but requests are owner JWT verified server-side.
+# The function returns no Garmin records; never turn it into anonymous access.
+[functions.garmin-app-access]
+verify_jwt = false

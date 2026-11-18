@@ -1,0 +1,2 @@
+export type RaceAutoDraft={courseMode:'laps'|'point_to_point'|'other';loopKm:string;movingMinutes:string;regularPause:string;longStopEvery:string;longStopMinutes:string;pace:string;carbs:string;fluid:string;sodium:string;fuelNotes:string;stopsNotes:string;gearNotes:string}
+export declare function recommendRacePlan(goal:{race_name:string;distance_km:number|string}|null|undefined):RaceAutoDraft|null

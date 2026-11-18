@@ -1,0 +1,121 @@
+/* v0.9.53 – native, original illustrated 24-exercise guide */
+.ec-figure{display:block;width:100%;max-width:100%;margin:10px auto 12px;
+ padding:0;overflow:hidden;border-radius:16px;
+ border:1px solid rgba(173,175,248,.25);
+ background:#14213a;box-shadow:0 12px 32px rgba(5,11,27,.2)}
+.ec-figure img{display:block;width:100%;height:auto;object-fit:contain;aspect-ratio:15/8}
+.ec-figure.is-compact{border-radius:9px;margin:0;box-shadow:none}
+.ec-missing{padding:12px;color:#bccce7;font-size:12px;background:#1a2b43;border-radius:11px}
+.ss-exercise-art{grid-column:1/-1;overflow:hidden;border-radius:11px}
+.ss-exercise-art .ec-figure{margin:0}
+.ss-player-art{width:min(100%,520px);margin:0 auto;position:relative}
+.ss-player-art .ec-figure{margin:0}
+.ss-player-timer{font-size:clamp(54px,11vw,84px);font-weight:850;
+ line-height:1;letter-spacing:-.08em;font-variant-numeric:tabular-nums;
+ background:linear-gradient(95deg,#c6b7ff,#8ce5d7);
+ color:transparent;background-clip:text;-webkit-background-clip:text;margin:12px 0}
+.ss-player-guide{display:grid;gap:4px;max-width:580px;margin:7px auto 14px;
+ padding:10px 13px;border-radius:12px;
+ background:rgba(83,101,146,.13);border:1px solid rgba(156,175,219,.18);
+ text-align:left}
+.ss-player-guide span{display:block;font-size:12px;line-height:1.5;color:#d3def0}
+.ss-player-guide small{color:#afa9f8;font-size:10px;font-weight:760;letter-spacing:.06em}
+.ss-player-next{font-size:12px;color:#c0cef0;line-height:1.5}
+.ss-player-next strong{color:#e4f0ff}
+.ss-detail-illustration{margin:11px 0 18px}
+.ss-detail-illustration .ec-figure{margin:0}
+@media(max-width:500px){
+ .ec-figure{border-radius:11px}
+ .ss-player-art{width:100%}
+ .ss-player-timer{font-size:clamp(45px,14vw,67px);margin:9px 0}
+ .ss-player-guide{padding:9px 11px}
+ .ss-detail-illustration{margin:10px 0}
+}
+
+/* v0.9.54: premium 4:5 coaching cards (the 16 remaining SVGs stay in 15:8). */
+.ec-figure.is-premium{max-width:min(100%,400px);margin-inline:auto;background:#12213b}
+.ec-figure.is-premium img{width:100%;height:auto;aspect-ratio:4/5;object-fit:contain}
+.ss-detail-illustration .ec-figure.is-premium{max-width:min(100%,450px)}
+/* Session artwork is large enough to learn the pose but never pushes the
+   timer off an iPhone viewport. No crop of technique or incorrect/correct inset. */
+.ss-player-art .ec-figure.is-premium{
+ width:min(100%,calc(42dvh * 0.8),355px);max-width:355px;margin-inline:auto}
+.ss-player-art .ec-figure.is-premium img{aspect-ratio:4/5;object-fit:contain}
+.ss-exercise-art .ec-figure.is-premium{width:100%;max-width:100%;height:154px;
+ margin:0;overflow:hidden}
+.ss-exercise-art .ec-figure.is-premium img{
+ width:100%;height:100%;aspect-ratio:auto;object-fit:cover;object-position:center 52%}
+@media(max-width:600px){
+ .ss-player-art .ec-figure.is-premium{width:min(100%,calc(37dvh * 0.8),290px)}
+ .ss-exercise-art .ec-figure.is-premium{height:128px}
+}
+
+/* v0.9.57: audible countdown and visible screen wake lock state */
+.ms-device-status{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px 12px;
+ font-size:11px;color:#b8d8e6;margin:4px auto 12px}
+.ms-device-status button{border:1px solid rgba(159,180,236,.3);border-radius:10px;
+ background:#1b2b46;color:#e9efff;padding:7px 11px;font-size:11px;font-weight:700}
+.ms-countdown{font-size:14px;font-weight:800;color:#e8d5ff;letter-spacing:.04em}
+
+/* v0.9.58: clear halfway alert for unilateral movements and mobile sound probe */
+.ms-side-prompt{margin:0 auto 9px;padding:8px 12px;text-align:center;
+ border:1px solid rgba(158,198,242,.25);border-radius:12px;
+ background:rgba(28,54,78,.55);color:#cfe9ff;font-size:12px;font-weight:750}
+.ms-side-prompt.is-switching{background:rgba(132,90,228,.34);
+ border-color:rgba(190,149,255,.9);color:white;font-size:15px;letter-spacing:.02em}
+.ms-device-status small{color:#acbbd4;font-size:10px}
+
+/* v0.9.59: strong, explicit workout-phase indication on iPhone / iPad.
+   Work=green; recovery=amber; last-five-second setup=purple; paused=grey. */
+.ms-phase-banner{display:flex;align-items:center;justify-content:center;text-align:left;gap:12px;
+ border:2px solid transparent;border-radius:16px;padding:12px 16px;margin:12px 0 10px}
+.ms-phase-banner>div{display:grid;gap:3px;min-width:0}
+.ms-phase-banner strong{display:block;font-size:clamp(18px,4vw,26px);font-weight:900;
+ line-height:1.16;letter-spacing:-.025em;color:#fff}
+.ms-phase-banner small{display:block;font-size:12px;font-weight:700;line-height:1.4}
+.ms-phase-symbol{display:grid;place-items:center;flex:0 0 44px;height:44px;
+ border-radius:12px;background:rgba(255,255,255,.15);font-size:24px;color:inherit}
+.ms-phase-work .ms-phase-banner{border-color:#5bd9ab;background:#164c40;color:#e0fff3}
+.ms-phase-work .ms-phase-banner small{color:#b6f5dc}
+.ms-phase-rest .ms-phase-banner{border-color:#ffc76b;background:#69441a;color:#fff1d2}
+.ms-phase-rest .ms-phase-banner small{color:#ffe3a5}
+.ms-phase-switch .ms-phase-banner{border-color:#b3a3ff;background:#49357b;color:#f0eaff}
+.ms-phase-switch .ms-phase-banner small{color:#eee1ff}
+.ms-phase-prepare .ms-phase-banner{border-color:#80c5ff;background:#244c70;color:#e6f5ff}
+.ms-phase-prepare .ms-phase-banner small{color:#cce7ff}
+.ms-phase-paused .ms-phase-banner{border-color:#a2afc1;background:#344054;color:#e4eaf4}
+.ms-phase-paused .ms-phase-banner small{color:#c7d2de}
+.ms-phase-done .ms-phase-banner{border-color:#5bd9ab;background:#164c40;color:#e0fff3}
+.ms-phase-done .ms-phase-banner small{color:#b6f5dc}
+.ms-phase-rest .ss-player-timer{background:linear-gradient(90deg,#ffe7ab,#ffbf65);
+ color:transparent;background-clip:text;-webkit-background-clip:text}
+.ms-phase-switch .ss-player-timer{background:linear-gradient(90deg,#e0c7ff,#ac92ff);
+ color:transparent;background-clip:text;-webkit-background-clip:text}
+.ms-phase-work .ss-player-timer{background:linear-gradient(90deg,#b3ffe5,#66d9ae);
+ color:transparent;background-clip:text;-webkit-background-clip:text}
+.ms-phase-rest .ss-player-art .ec-figure.is-premium,
+.ms-phase-switch .ss-player-art .ec-figure.is-premium{width:min(100%,calc(32dvh * .8),270px)}
+@media(max-width:600px){
+ .ms-phase-banner{gap:10px;padding:10px 12px;margin:8px 0}
+ .ms-phase-banner strong{font-size:clamp(18px,5vw,23px)}
+ .ms-phase-banner small{font-size:11px}
+ .ms-phase-symbol{flex-basis:38px;height:38px;font-size:22px}
+ .ms-phase-rest .ss-player-art .ec-figure.is-premium,
+ .ms-phase-switch .ss-player-art .ec-figure.is-premium{width:min(100%,calc(27dvh * .8),220px)}
+}
+
+/* v0.9.60: prominent workout status immediately beneath the running clock. */
+.ss-player-timer+.ms-phase-banner{margin:4px auto 12px;max-width:560px}
+@media(max-width:600px){
+ .ss-player-timer+.ms-phase-banner{margin:2px auto 9px}
+}
+
+/* v0.9.60: an actual five-second side/leg changeover (not exercise time). */
+.ms-phase-side-change .ms-phase-banner{border-color:#91d6ff;background:#254d70;color:#f1fbff}
+.ms-phase-side-change .ms-phase-banner small{color:#c9ecff}
+.ms-phase-side-change .ss-player-timer{background:linear-gradient(90deg,#d5f1ff,#89cfff);
+ color:transparent;background-clip:text;-webkit-background-clip:text}
+.ms-phase-side-change .ss-player-art .ec-figure.is-premium{width:min(100%,calc(32dvh * .8),270px)}
+@media(max-width:600px){
+ .ms-phase-side-change .ss-player-art .ec-figure.is-premium{width:min(100%,calc(27dvh * .8),220px)}
+}

@@ -4,6 +4,7 @@
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { parseGarminHrProfile } from './profileParser.ts'
+import { allowedHrProfileOrigin } from './corsPolicy.mjs'
 
 const base = 'https://personal.connectapi.garmin.com'
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
@@ -19,7 +20,7 @@ function key(type: 'publishable'|'secret'): string {
   return Deno.env.get(legacy) ?? ''
 }
 function cors(origin: string | null): Record<string,string> {
-  const allow = !!origin && /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin)
+  const allow = allowedHrProfileOrigin(origin)
   return {
     ...(allow ? {'Access-Control-Allow-Origin':origin!,Vary:'Origin'} : {}),
     'Access-Control-Allow-Methods':'GET, POST, OPTIONS',

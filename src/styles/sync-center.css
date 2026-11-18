@@ -1,0 +1,301 @@
+/* Mobile-first GARMIN_AI sync controls. Forms have large touch targets. */
+.sync-center{margin:20px 0 28px;padding:22px;border:1px solid rgba(161,177,217,.22);
+  border-radius:20px;background:linear-gradient(135deg,#1a2238,#101725 80%);color:#f2f5ff}
+.sync-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.sync-top h3{font-size:clamp(19px,2vw,26px);letter-spacing:-.035em;margin:7px 0}
+.sync-top p{font-size:12px;color:#aab8d0;line-height:1.6;margin:0;max-width:640px}
+.sync-weigh-form{display:grid;grid-template-columns:minmax(145px,1fr) minmax(160px,1fr) auto;
+  gap:12px;align-items:end;margin-top:20px}
+.sync-weigh-form label{font-size:12px;font-weight:750;color:#cdd9ee;min-width:0}
+.sync-weigh-form input{display:block;margin-top:9px;width:100%;min-height:49px;
+  background:#0b1324;border:1px solid #405074;border-radius:12px;color:#fff;
+  padding:12px;font-size:16px;outline-offset:2px}
+.sync-weigh-form button{min-height:49px;white-space:nowrap;padding:12px 17px;
+  font-size:13px;font-weight:780;color:#10171d;background:#c8ef86;border:0;border-radius:12px}
+.sync-weigh-form button:disabled{opacity:.5;cursor:wait}
+.sync-source-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:20px}
+.sync-source{padding:14px;border:1px solid rgba(158,177,216,.17);background:#11192b;border-radius:12px;
+  display:flex;flex-direction:column;gap:7px;min-width:0}
+.sync-source strong{font-size:13px}.sync-source span{color:#e4ecfc;font-size:12px}
+.sync-source small{font-size:11px;line-height:1.5;color:#91a2ba}
+.sync-hint,.sync-weight-note,.sync-notice,.sync-error{font-size:12px;line-height:1.65;margin:15px 0 0}
+.sync-hint{color:#b9c8e5}.sync-weight-note{color:#8c9eb8}.sync-notice{color:#c8f3a1}
+.sync-error{color:#ffbdab}
+@media(max-width:720px){
+  .sync-center{padding:18px 15px;margin:15px 0 22px;border-radius:16px}
+  .sync-weigh-form{grid-template-columns:1fr 1fr;gap:10px}
+  .sync-weigh-form button{grid-column:1/-1;width:100%}
+  .sync-source-list{grid-template-columns:1fr;gap:8px}
+}
+@media(max-width:360px){.sync-weigh-form{grid-template-columns:1fr}}
+
+/* v0.7.5 operational states: never substitute a synthetic score for real data */
+.sync-source-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.sync-state{font-size:11px;color:#a8b5d0;font-weight:750;white-space:normal}
+.sync-state-ok{color:#c7ec9d}.sync-state-failed,.sync-state-attention{color:#ffc4ae}
+.sync-state-stale,.sync-state-partial{color:#f5d48b}
+.sync-state-manual,.sync-state-unknown{color:#9fb1d5}
+.sync-technical{padding:14px;margin-top:12px;border:1px solid rgba(158,177,216,.17);
+  background:#11192b;border-radius:12px;display:flex;flex-direction:column;gap:9px}
+.sync-technical strong{font-size:13px}
+.sync-technical p{font-size:12px;color:#cfdbec;margin:0;line-height:1.5}
+.sync-technical small{font-size:11px;color:#91a2ba;line-height:1.5}
+
+/* v0.7.6.1: one-time Cloud Connect setup, comfortable touch target */
+.sync-cloud-bootstrap{display:flex;gap:12px;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;padding:13px 14px;margin:4px 0;border-radius:12px;
+  background:rgba(128,151,194,.075);border:1px solid rgba(168,184,224,.18)}
+.sync-cloud-bootstrap p{margin:0;flex:1 1 270px;font-size:12px;color:#b9c9e2;line-height:1.55}
+.sync-cloud-bootstrap button{min-height:46px;padding:12px 16px;border-radius:10px;cursor:pointer;
+  font-size:12px;font-weight:780;border:1px solid rgba(181,230,143,.4);
+  background:#263b2e;color:#def7b7}
+.sync-cloud-bootstrap button:hover{background:#335139}
+.sync-cloud-bootstrap button:disabled{opacity:.6;cursor:wait}
+@media(max-width:720px){.sync-cloud-bootstrap button{width:100%;min-height:50px}}
+
+/* v0.8.2: date is a real full-width iOS field; never let its intrinsic
+   WebKit minimum push the weight card beyond the viewport. */
+.sync-weigh-form {min-width:0}
+.sync-weigh-form > * {min-width:0;max-width:100%}
+.sync-weigh-form .sync-date-field{
+  display:block;min-width:0;width:100%;max-width:100%;overflow:visible
+}
+.sync-date-field input[type="date"]{
+  display:block;box-sizing:border-box;min-width:0;max-width:100%;width:100%;
+  -webkit-min-logical-width:0;
+}
+.sync-weight-field {min-width:0;max-width:100%}
+.sync-weight-label {
+  display:block;color:#cdd9ee;font-size:12px;font-weight:750;
+  margin-bottom:9px
+}
+@media (max-width:760px) {
+  .sync-center{min-width:0;width:100%;max-width:100%}
+  .sync-weigh-form{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:14px;
+    width:100%;
+    max-width:100%;
+  }
+  .sync-weigh-form > button {
+    grid-column:1/-1;
+    width:100%;
+    min-width:0;
+    min-height:52px
+  }
+}
+
+/* v0.8.3: independent weight form for mobile-first iPhone/iPad.
+   The native date picker is an invisible full-card hit target. Its often
+   oversized WebKit date text never participates in layout. */
+.sync-center-weight{
+  width:min(100%,620px);max-width:620px;min-width:0;
+  margin-inline:auto;
+  padding:clamp(18px,4vw,28px);
+}
+.sync-center-weight .sync-weigh-form{
+  display:grid;grid-template-columns:minmax(0,1fr);
+  width:100%;max-width:100%;min-width:0;
+  gap:17px;margin-top:22px;align-items:stretch
+}
+.sync-center-weight .sync-weigh-form > *{min-width:0;max-width:100%;width:100%}
+.sync-center-weight .sync-date-field{
+  position:relative;display:block;min-width:0;width:100%;
+  max-width:100%;overflow:hidden;
+  cursor:pointer
+}
+.sync-center-weight .sync-weight-label{display:block;font-size:12px;font-weight:750;color:#cdd9ee;margin-bottom:8px}
+.sync-center-weight .sync-date-display{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  width:100%;min-width:0;max-width:100%;min-height:60px;
+  padding:14px 16px;border-radius:15px;
+  color:#eaf2fe;background:#111c31;border:1px solid rgba(151,179,220,.3)
+}
+.sync-center-weight .sync-date-display strong{
+  display:block;min-width:0;max-width:100%;
+  overflow-wrap:anywhere;font-weight:760;font-size:15px;line-height:1.35;
+  font-variant-numeric:tabular-nums
+}
+.sync-center-weight .sync-date-action{
+  flex:0 0 auto;font-size:12px;font-weight:750;color:#b7b5ff;
+  padding:8px 10px;background:rgba(165,159,255,.09);border-radius:9px
+}
+/* Clickable native date control has no visible intrinsic width. */
+.sync-center-weight .sync-date-field input[type="date"]{
+  position:absolute;inset:0;z-index:2;display:block;
+  width:100%;height:100%;min-width:0;max-width:100%;
+  margin:0;padding:0;border:0;opacity:0;cursor:pointer;
+  box-sizing:border-box;
+  -webkit-appearance:none;appearance:none
+}
+.sync-center-weight .sync-date-field:focus-within .sync-date-display{
+  outline:2px solid #8fc6ff;outline-offset:3px
+}
+.sync-center-weight .sync-weigh-form > button{
+  grid-column:1/-1;
+  width:100%;max-width:100%;min-width:0;min-height:55px;
+  font-size:15px;line-height:1.2;border-radius:14px;
+  margin-top:3px
+}
+.sync-center-weight .sync-top h3{font-size:clamp(23px,4.5vw,30px)}
+.sync-center-weight .sync-top p{font-size:13px;line-height:1.6}
+.sync-center-weight .sync-hint,.sync-center-weight .sync-weight-note{
+  overflow-wrap:anywhere;line-height:1.65
+}
+@media(max-width:760px){
+  .sync-center-weight{width:100%;padding:20px 16px;margin-inline:0}
+  .sync-center-weight .sync-weigh-form{grid-template-columns:minmax(0,1fr);gap:15px}
+}
+@media(max-width:375px){
+  .sync-center-weight{padding:17px 12px}
+  .sync-center-weight .sync-date-display{padding:11px 12px}
+  .sync-center-weight .sync-date-display strong{font-size:13px}
+  .sync-center-weight .sync-date-action{padding:7px}
+}
+
+/* v0.8.5 – Coach quick-entry, not a full-screen weight editor.
+   Scope EVERY override to weight mode; status cards remain unchanged. */
+.sync-center.sync-center-weight {
+  width:min(100%,520px);max-width:520px;
+  padding:16px 18px 14px;
+  margin:14px auto 20px;border-radius:17px;
+}
+.sync-center-weight .sync-weight-top {
+  display:flex;justify-content:space-between;align-items:center;
+  gap:12px;flex-wrap:nowrap;min-width:0;
+}
+.sync-center-weight .sync-weight-heading {min-width:0;flex:1 1 auto}
+.sync-center-weight .sync-weight-heading .micro-label {font-size:9px}
+.sync-center-weight .sync-weight-heading h3 {
+  font-size:clamp(20px,2.7vw,23px);
+  line-height:1.2;margin:5px 0 0;letter-spacing:-.045em
+}
+.sync-center-weight .sync-weight-top .sync-date-field {
+  flex:0 0 166px;width:166px;max-width:166px;
+  min-width:0;overflow:hidden;
+}
+.sync-center-weight .sync-date-caption {
+  display:block;color:#9eafce;font-size:10px;
+  font-weight:720;margin-bottom:4px
+}
+.sync-center-weight .sync-weight-top .sync-date-display {
+  min-height:42px;padding:7px 9px;gap:5px;border-radius:11px
+}
+.sync-center-weight .sync-weight-top .sync-date-display strong {
+  font-size:12px;white-space:nowrap;overflow:visible;
+  line-height:1.3
+}
+.sync-center-weight .sync-weight-top .sync-date-action {
+  padding:5px 7px;font-size:10px
+}
+.sync-center-weight .sync-weigh-form {
+  display:grid;grid-template-columns:minmax(0,1fr) 148px;
+  gap:10px;margin-top:12px;align-items:center;
+  width:100%;max-width:100%;
+}
+.sync-center-weight .sync-weight-field {min-width:0;max-width:100%}
+.sync-center-weight .sync-weigh-form > .sync-weight-save {
+  grid-column:auto;width:100%;min-width:0;max-width:100%;
+  min-height:54px;margin:0;padding:10px 9px;
+  border-radius:12px;font-size:12px;line-height:1.25
+}
+/* Override the generic '.sync-weigh-form button' lime style that
+   unintentionally colored the weight selector like a second save button. */
+.sync-center-weight .sync-weigh-form .weight-control-trigger {
+  min-height:54px;height:54px;
+  padding:10px 12px;border-radius:12px;
+  border:1px solid #3c5073;
+  background:linear-gradient(112deg,#1d2a42,#121b2b);
+  color:#f8faff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  text-align:left
+}
+.sync-center-weight .weight-control-value {
+  font-size:clamp(18px,3.2vw,23px);
+  font-weight:790;letter-spacing:-.04em;
+  color:#f5f7ff
+}
+.sync-center-weight .weight-control-unit{color:#b7c7e7}
+.sync-center-weight .weight-control-arrow {
+  flex:0 0 30px;width:30px;height:30px;
+  color:#c9c2ff;border-radius:9px;
+  background:rgba(153,149,255,.12);font-size:23px
+}
+.sync-center-weight .weight-control-help{display:none}
+.sync-center-weight .sync-hint,.sync-center-weight .sync-weight-note{
+  margin:9px 0 0;font-size:10px;line-height:1.5;
+}
+@media(max-width:570px){
+  .sync-center.sync-center-weight {
+    width:100%;max-width:520px;
+    padding:14px 14px 13px;margin:12px auto 16px
+  }
+  .sync-center-weight .sync-weight-top .sync-date-field {
+    flex:0 0 146px;width:146px;max-width:146px
+  }
+  .sync-center-weight .sync-weigh-form {
+    grid-template-columns:minmax(0,1fr);
+    gap:8px;margin-top:10px
+  }
+  .sync-center-weight .sync-weigh-form > .sync-weight-save {
+    min-height:44px;font-size:13px;
+    padding:9px 10px
+  }
+  .sync-center-weight .sync-weigh-form .weight-control-trigger {
+    height:52px;min-height:52px
+  }
+}
+@media(max-width:350px){
+  .sync-center.sync-center-weight{padding-inline:11px}
+  .sync-center-weight .sync-weight-top{gap:7px}
+  .sync-center-weight .sync-weight-heading h3{font-size:19px}
+  .sync-center-weight .sync-weight-top .sync-date-field {
+    flex:0 0 134px;width:134px;max-width:134px
+  }
+  .sync-center-weight .sync-weight-top .sync-date-display{padding:6px}
+  .sync-center-weight .sync-weight-top .sync-date-display strong{font-size:11px}
+  .sync-center-weight .sync-weight-top .sync-date-action{font-size:9px;padding:5px}
+}
+
+/* v0.9.42 – distinguish verified Intervals exports from optional Garmin reads. */
+.sync-intervals{display:flex;flex-direction:column;gap:8px;margin-top:12px;padding:14px;
+  background:#11192b;border:1px solid rgba(158,177,216,.17);border-radius:12px}
+.sync-intervals strong{font-size:13px}
+.sync-intervals p{font-size:12px;color:#cfdbec;line-height:1.55;margin:0}
+.sync-intervals small{color:#a3b2d0;font-size:11px;line-height:1.65}
+.sync-intervals .sync-intervals-count strong{color:#e2edf9}
+
+/* v0.9.43 – optional manual imports no longer masquerade as failed automatic sync. */
+.sync-manual-imports{margin:12px 0 2px;padding:12px 14px;border:1px solid rgba(159,176,219,.2);
+ border-radius:11px;background:rgba(126,152,202,.055);color:#c7d5ee}
+.sync-manual-imports summary{font-size:12px;font-weight:760;line-height:1.45;cursor:pointer}
+.sync-manual-imports p{margin:10px 0 0;font-size:11px;color:#aebed6;line-height:1.55}
+.sync-manual-imports .sync-source-list{margin-top:11px}
+
+/* 0.9.46 · Verified, server-stored Garmin OAuth 429 cooldown */
+.sync-garmin-backoff{border:1px solid rgba(216,163,108,.38);border-radius:12px;
+ padding:12px 14px;margin:12px 0;background:rgba(157,104,58,.085);color:#f2dbbc}
+.sync-garmin-backoff strong{display:block;font-size:12px;line-height:1.4}
+.sync-garmin-backoff p{font-size:11px;line-height:1.65;color:#dec8ae;margin:6px 0 0}
+
+/* Private and explicitly opted-in Intervals weight delivery */
+.sync-weight-delivery{display:grid;gap:6px;padding:9px 11px;margin:3px 0 7px;
+ border:1px solid rgba(139,161,224,.25);background:rgba(86,117,176,.08);
+ border-radius:11px}
+.sync-weight-delivery label{display:flex;align-items:center;gap:9px;font-size:11px;
+ font-weight:800;color:#d4e4ff;cursor:pointer;line-height:1.5}
+.sync-weight-delivery input{accent-color:#d4f68a;width:16px;height:16px;flex-shrink:0}
+.sync-weight-delivery small{font-size:10px;color:#abbad6;line-height:1.4}
+.sync-weight-trend{padding:10px;border:1px solid rgba(137,167,220,.18);border-radius:12px;
+ background:rgba(22,36,61,.5);margin-top:11px}
+.sync-weight-trend>summary{cursor:pointer;font-size:11px;font-weight:850;color:#d2daf7;min-height:27px}
+.sync-weight-trend>summary:focus-visible{outline:2px solid #a9d5ff;outline-offset:2px}
+.sync-weight-trend-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}
+.sync-weight-trend-cards>div{display:grid;gap:4px;padding:9px;border-radius:9px;
+ background:rgba(125,150,201,.08);border:1px solid rgba(154,176,233,.18)}
+.sync-weight-trend-cards small{font-size:9px;color:#9eb5dd}
+.sync-weight-trend-cards strong{font-size:12px;line-height:1.3;color:#f3f4ff;overflow-wrap:anywhere}
+.sync-weight-trend p{font-size:10px;line-height:1.55;color:#b6c7df}
+@media(max-width:520px){.sync-weight-trend-cards{grid-template-columns:1fr 1fr}
+ .sync-weight-trend-cards>div:last-child{grid-column:1/-1}}

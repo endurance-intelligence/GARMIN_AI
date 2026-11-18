@@ -1,0 +1,15 @@
+/* GARMIN_AI v0.9.61 – Short evidence-based post-run and weekly coach reviews */
+.cr-wrap{display:grid;gap:12px;margin:14px 0 20px;color:#e8f1ff}
+.cr-card,.cr-week{padding:17px 19px;border-radius:16px;border:1px solid rgba(117,159,209,.33);
+ background:linear-gradient(125deg,rgba(23,47,68,.93),rgba(13,23,42,.96))}
+.cr-week{border-color:rgba(141,139,215,.48);background:linear-gradient(125deg,#252844,#18253c)}
+.cr-label{font-size:10px;font-weight:850;letter-spacing:.1em;color:#8ecdf6;margin:0 0 9px}
+.cr-card h3,.cr-week h3{font-size:clamp(17px,3vw,21px);font-weight:850;letter-spacing:-.02em;line-height:1.25;margin:0 0 10px;color:#fff}
+.cr-card p,.cr-week p{font-size:13px;line-height:1.58;color:#d0def3;margin:6px 0}
+.cr-headline{display:block;color:#b8f7d2;font-size:14px;margin-bottom:7px}
+.cr-attention{border-left:3px solid #f5bc71;padding-left:10px}
+.cr-goal,.cr-next{border-radius:9px;padding:10px 12px;background:rgba(138,154,245,.10)}
+.cr-goal strong,.cr-next strong{color:#e6deff}
+.cr-card small,.cr-meta{color:#afc1db;font-size:12px;line-height:1.6}
+.cr-error{color:#f7bfae;font-size:12px;margin:0}
+@media(max-width:600px){.cr-card,.cr-week{padding:14px;border-radius:13px}.cr-wrap{gap:9px}}

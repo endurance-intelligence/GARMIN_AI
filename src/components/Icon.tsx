@@ -1,6 +1,22 @@
 import type { ReactNode } from 'react'
 
 const iconShapes: Record<string, ReactNode> = {
+"calendar-off": <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M4 4l16 16"/></>,
+"plane": <><path d="M17.5 21.5 12.4 13 4 8.5l-2 2 8.3 5.5 5.7 8.3 2-2-4.5-8.4 8.5-5.1a2.2 2.2 0 0 0 0-3.1 2.2 2.2 0 0 0-3.1 0L13 12"/><path d="M3.5 3.5 9 9"/></>,
+
+"thermometer": <><path d="M14 14.8V5a4 4 0 0 0-8 0v9.8a6 6 0 1 0 8 0Z"/><path d="M10 9v9"/><circle cx="10" cy="18" r="2"/></>,
+"droplets": <><path d="M12 3c-3 5-6 8-6 12a6 6 0 0 0 12 0c0-4-3-7-6-12Z"/><path d="M9 16a3 3 0 0 0 3 3"/></>,
+"wind": <><path d="M3 8h12a3 3 0 1 0-3-3M2 12h17a3 3 0 1 1-3 3M3 17h7a3 3 0 1 1-3 3"/></>,
+"share-2": <><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.6 6.6-4.2m-6.6 7.7 6.6 4.1"/></>,
+"folder-open": <><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v2"/><path d="M3 17V9m0 8a2 2 0 0 0 2 2h13a2 2 0 0 0 2-1l2-5a2 2 0 0 0-2-3H7a2 2 0 0 0-2 1l-2 6Z"/></>,
+"check-circle": <><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></>,
+"chevron-down": <><path d="m6 9 6 6 6-6"/></>,
+"target": <><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></>,
+"calendar-range": <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 14h3m3 0h3M8 18h3"/></>,
+"info": <><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.3v.7"/></>,
+"calendar-days": <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/><path d="M8 14h2m4 0h2m-8 4h2"/></>,
+"more-horizontal": <><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></>,
+"refresh-cw": <><path d="M20 7a9 9 0 0 0-15-2L3 7m0-4v4h4M4 17a9 9 0 0 0 15 2l2-2m0 4v-4h-4"/></>,
 "activity": <><path d="M22 12h-4l-3 9-6-18-3 9H2" /></>,
 "layout-dashboard": <><rect x="3" y="3" width="7" height="9" rx="1" /><rect x="14" y="3" width="7" height="5" rx="1" /><rect x="14" y="12" width="7" height="9" rx="1" /><rect x="3" y="16" width="7" height="5" rx="1" /></>,
 "flag": <><path d="M4 22V4m0 0c4-3 7 3 11 0s6 0 6 0v11c-4-3-7 3-11 0s-6 0-6 0" /></>,
@@ -12,6 +28,7 @@ const iconShapes: Record<string, ReactNode> = {
 "heart-pulse": <><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8ZM2 12h6l2-4 3 8 2-4h7" /></>,
 "moon": <><path d="M20.5 13A8.5 8.5 0 0 1 11 3.5 8.5 8.5 0 1 0 20.5 13Z" /></>,
 "waves": <><path d="M2 8c3-4 5 4 8 0s5-4 8 0 3 1 4 0M2 16c3-4 5 4 8 0s5-4 8 0 3 1 4 0" /></>,
+"trash-2": <><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15M10 10v7M14 10v7"/></>,
 "x": <><path d="M18 6 6 18M6 6l12 12" /></>,
 "check": <><path d="m5 12 4 4L19 6" /></>
 }

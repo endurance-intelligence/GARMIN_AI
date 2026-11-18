@@ -1,0 +1,129 @@
+/* GARMIN_AI Event Scout: reviewed research with evidence, not automated guesswork */
+.rer-root{padding:21px;margin:16px 0 24px;border:1px solid rgba(149,174,235,.25);
+ border-radius:20px;background:linear-gradient(145deg,#18233c,#111a2e);min-width:0;color:#eaf0ff}
+.rer-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.rer-kicker{font-size:10px;font-weight:830;letter-spacing:.12em;color:#bdb1ff}
+.rer-head h2{font-size:clamp(21px,3vw,28px);letter-spacing:-.04em;margin:8px 0}
+.rer-head p{font-size:12px;line-height:1.65;color:#a7b8d5;margin:0;max-width:630px}
+.rer-flag{padding:6px 10px;border:1px solid rgba(155,170,248,.32);border-radius:100px;
+ font-size:10px;font-weight:800;letter-spacing:.04em;color:#bfc8ff;white-space:nowrap}
+.rer-entry{margin:19px 0 8px}
+.rer-entry>label{display:block;font-size:12px;font-weight:750;color:#d4d9ef;margin-bottom:8px}
+.rer-url-row{display:flex;gap:9px;align-items:stretch;min-width:0}
+.rer-url-row input{flex:1;min-width:0;min-height:45px;border:1px solid rgba(169,180,235,.3);
+ border-radius:12px;background:#0d182d;padding:12px;color:#f2f5ff;font:inherit;font-size:13px}
+.rer-url-row button,.rer-save{min-height:45px;border-radius:12px;border:1px solid rgba(166,158,244,.34);
+ background:#5756ae;color:#fff;font:inherit;font-size:12px;font-weight:800;padding:12px 16px;cursor:pointer}
+.rer-url-row button:disabled,.rer-save:disabled{opacity:.5;cursor:default}
+.rer-entry p{font-size:11px;color:#a1b1ce;margin:9px 0}
+.rer-result{margin:18px 0 10px;border:1px solid rgba(117,174,173,.27);border-radius:15px;
+ background:rgba(15,27,44,.78);padding:17px}
+.rer-result-title{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:9px;margin-bottom:15px}
+.rer-result-title strong{font-size:15px}
+.rer-result-title p{font-size:11px;color:#b7c6d9;margin:5px 0 0}
+.rer-result-title>span{color:#f4c58d;font-size:9px;font-weight:850;letter-spacing:.08em}
+.rer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.rer-field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.rer-field>span{font-size:11px;font-weight:750;color:#c4d2e7}
+.rer-field input,.rer-field textarea{min-width:0;box-sizing:border-box;width:100%;
+ color:#f3f5ff;background:#14213a;border:1px solid rgba(160,176,218,.26);
+ border-radius:11px;padding:11px;font-size:12px;line-height:1.45;font-family:inherit}
+.rer-field input:focus,.rer-field textarea:focus{outline:2px solid #9e9cef;outline-offset:2px}
+.rer-wide{grid-column:1/-1}
+.rer-evidence{display:flex;flex-wrap:wrap;gap:5px;font-size:10px;line-height:1.35;color:#9bb0cd;overflow-wrap:anywhere}
+.rer-evidence a,.rer-links a{color:#a5c0ff;text-decoration:underline;text-underline-offset:3px}
+.rer-evidence span{overflow-wrap:anywhere}
+.rer-manual{color:#ddc19c;font-size:10px}
+.rer-missing{color:#8797b0;font-size:10px}
+.rer-disclaimer{font-size:11px;line-height:1.6;color:#a4b4cb;margin:15px 0}
+.rer-warnings{margin:10px 0;padding:10px;border-radius:10px;background:rgba(191,116,76,.09);color:#ecc3a5}
+.rer-warnings p{font-size:11px;line-height:1.5;margin:4px 0}
+.rer-saved{margin:17px 0 0;border-top:1px solid rgba(144,173,233,.2);padding-top:15px}
+.rer-saved>strong{font-size:13px}
+.rer-saved article{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+ padding:12px;margin-top:9px;border:1px solid rgba(160,181,229,.15);border-radius:12px;background:rgba(19,30,52,.6)}
+.rer-saved article b{font-size:13px}
+.rer-saved article p{font-size:11px;margin:5px 0 0;color:#aec1d9}
+.rer-saved article .rer-muted{font-size:10px;color:#8196b3}
+.rer-links{display:flex;gap:13px;flex-wrap:wrap;font-size:11px}
+.rer-error{color:#ffb0a7;font-size:12px}.rer-notice{color:#9ce5b9;font-size:12px}
+@media(max-width:640px){.rer-root{padding:15px}.rer-grid{grid-template-columns:1fr}
+.rer-url-row{flex-direction:column}.rer-url-row button{width:100%}.rer-flag{font-size:8px;padding:5px 8px}}
+
+.rer-auto-address{font-size:10px;line-height:1.4;color:#9aebc7;font-weight:750}
+.rer-geocode-note{font-size:10px;line-height:1.55;color:#a4b9d1;margin:12px 0}
+.rer-geocode-note a{color:#b0c8ff;text-decoration:underline;text-underline-offset:2px}
+
+
+/* Reusable race archive – premium cards, compact touch controls */
+.rer-archive{margin:17px 0;padding:17px;border:1px solid rgba(156,174,239,.18);border-radius:16px;
+ background:linear-gradient(135deg,rgba(100,91,188,.11),rgba(17,30,48,.4))}
+.rer-archive-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.rer-archive-head h3{font-size:18px;letter-spacing:-.03em;margin:7px 0}
+.rer-archive-head p,.rer-empty-archive{font-size:11px;line-height:1.6;color:#a9b9d3;margin:0}
+.rer-archive-count{font-size:10px;color:#c3bafe;border:1px solid rgba(186,172,252,.3);
+ border-radius:100px;padding:6px 10px;white-space:nowrap}
+.rer-archive-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:14px}
+.rer-archive-cards article{display:flex;flex-wrap:wrap;align-items:center;gap:10px;min-width:0;padding:12px;
+ border:1px solid rgba(168,183,235,.2);border-radius:14px;background:#182540}
+.rer-archive-cards img{width:47px;height:47px;object-fit:contain;background:white;border-radius:10px;padding:4px;box-sizing:border-box}
+.rer-archive-cards article>div{display:flex;flex-direction:column;gap:4px;flex:1 1 120px;min-width:0}
+.rer-archive-cards strong{font-size:12px}
+.rer-archive-cards small,.rer-archive-cards span{font-size:10px;color:#adbed8;line-height:1.35}
+.rer-archive-cards button{min-height:39px;padding:9px 10px;font-size:11px;border-radius:10px;
+ border:1px solid rgba(178,164,255,.4);background:#383b73;color:#e5e6ff;font-weight:770;cursor:pointer}
+.rer-empty-archive{margin-top:12px}
+.rer-reuse-note{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-bottom:14px;
+ border:1px solid rgba(149,210,186,.25);background:rgba(45,104,84,.14);padding:12px;border-radius:12px}
+.rer-reuse-note strong{font-size:12px;color:#b9ead5}
+.rer-reuse-note span{font-size:11px;line-height:1.5;color:#afc8c5;flex:1 1 190px}
+.rer-reuse-note button{border:1px solid rgba(145,220,184,.34);border-radius:9px;
+ background:rgba(23,84,76,.55);color:#d4f9e9;padding:10px;font-size:11px;font-weight:770}
+.rer-logo-preview{display:flex;align-items:center;gap:13px;border:1px solid rgba(153,170,219,.23);
+ border-radius:12px;padding:10px;margin-bottom:14px;background:rgba(38,49,83,.25)}
+.rer-logo-preview img{width:76px;height:66px;object-fit:contain;background:#f4f3ef;border-radius:10px;padding:7px;box-sizing:border-box}
+.rer-logo-preview>div{display:flex;flex-direction:column;gap:6px}
+.rer-logo-preview strong{font-size:12px;color:#f0f2ff}
+.rer-logo-preview small{font-size:11px;color:#9badc9;line-height:1.5}
+.rer-autocomplete{position:relative;min-width:0}
+.rer-autocomplete>input{box-sizing:border-box;width:100%}
+.rer-suggest-list{position:absolute;top:calc(100% - 14px);left:0;right:0;z-index:20;
+ padding:5px;border:1px solid rgba(151,178,239,.55);border-radius:12px;
+ background:#1a2948;box-shadow:0 18px 36px rgba(0,0,0,.44);max-height:260px;overflow-y:auto}
+.rer-suggest-list button{display:flex;align-items:center;justify-content:space-between;gap:10px;
+ width:100%;min-height:45px;border:0;border-radius:8px;background:transparent;color:#eaf0ff;
+ text-align:left;padding:10px;font-family:inherit;cursor:pointer}
+.rer-suggest-list button:hover,.rer-suggest-list button:focus{background:#31436a;outline:none}
+.rer-suggest-list button>span:first-child{display:flex;flex-direction:column;gap:5px;min-width:0}
+.rer-suggest-list b{font-size:12px}.rer-suggest-list small{font-size:10px;color:#a7bcd9}
+.rer-suggest-origin{font-size:10px;color:#a3e6c2;flex-shrink:0}
+.rer-suggest-status{padding:12px;font-size:11px;color:#b2c2dd}
+.rer-suggest-help{display:block;margin:6px 0 0;font-size:10px;color:#92a9ca;line-height:1.45}
+@media(max-width:620px){.rer-archive{padding:12px}.rer-archive-cards{grid-template-columns:minmax(0,1fr)}
+.rer-archive-cards button{width:100%}.rer-logo-preview img{width:58px;height:58px}
+.rer-reuse-note button{width:100%}}
+
+
+/* Event-scoped briefing: one edition owns course, profile and weather. */
+.rer-event-dossier{width:100%;margin:18px 0 0;padding:15px;border:1px solid rgba(151,183,235,.22);
+ background:linear-gradient(135deg,rgba(38,52,86,.38),rgba(17,27,49,.45));
+ border-radius:15px;box-sizing:border-box;min-width:0}
+.rer-event-dossier-head{margin:1px 2px 13px}
+.rer-event-dossier-head h3{font-size:17px;line-height:1.35;letter-spacing:-.035em;margin:7px 0 4px}
+.rer-event-dossier-head p{font-size:11px;color:#acbed8;line-height:1.55;margin:0}
+.rer-event-dossier .rfc-root,.rer-event-dossier .rrv-root{margin:12px 0 0}
+.rer-route-editor{flex:1 1 100%;box-sizing:border-box;padding:13px;border:1px solid rgba(159,169,241,.22);
+ background:#101b33;border-radius:11px;min-width:0}
+.rer-route-editor label{display:block;font-size:11px;font-weight:800;margin-bottom:9px;color:#cbd7f4}
+.rer-route-editor>div{display:flex;gap:9px;align-items:stretch}
+.rer-route-editor input{box-sizing:border-box;background:#1c2947;border:1px solid rgba(160,176,221,.35);
+ border-radius:9px;padding:11px;color:#eff3ff;flex:1;min-width:0;font-size:12px}
+.rer-route-editor button,.rer-links button{background:#3c447e;border:1px solid rgba(166,158,239,.36);
+ border-radius:9px;color:#f0efff;font:inherit;font-size:11px;font-weight:800;padding:9px 12px;cursor:pointer}
+.rer-route-editor button:disabled{opacity:.5;cursor:default}
+.rer-route-editor small{font-size:10px;color:#9db1cf;line-height:1.55;display:block;margin-top:8px}
+@media(max-width:640px){.rer-event-dossier{padding:10px}.rer-route-editor>div{flex-direction:column}
+.rer-route-editor button{min-height:42px}.rer-event-dossier .rfc-root,.rer-event-dossier .rrv-root{padding:12px}}
+
+.rer-field select{box-sizing:border-box;width:100%;min-width:0;border:1px solid rgba(160,176,218,.26);border-radius:11px;padding:11px;background:#14213a;color:#f3f5ff;font:inherit;font-size:12px;min-height:44px}
+.rer-field select:focus{outline:2px solid #9e9cef;outline-offset:2px}
