@@ -15,7 +15,7 @@ const monday=s=>add(s,-((new Date(s+'T12:00:00Z').getUTCDay()+6)%7))
 const number=x=>typeof x==='number'&&Number.isFinite(x)
 const dayOf=x=>typeof x==='string'?x.slice(0,10):''
 const empty=(start,end)=>({start,end,available:false,runs:null,distanceKm:null,
- rated:null,hard:null,weak:null,approved:null,matched:null,overlong:null,
+ rated:null,hard:null,weak:null,longestRunMinutes:null,approved:null,matched:null,overlong:null,
  accepted:null,declined:null,planCoverage:false})
 
 export function analyzeCoachFourWeeks({today,boards,plans,life}={}){
@@ -53,6 +53,8 @@ export function analyzeCoachFourWeeks({today,boards,plans,life}={}){
    avgHr:number(a.average_heart_rate)?a.average_heart_rate:null,
    distanceM:number(a.distance_m)?a.distance_m:null
   }))
+  const timed=runRows.filter(a=>number(a.duration_s)&&a.duration_s>=300&&a.duration_s<=86400)
+  const longestRunMinutes=timed.length?Math.round(Math.max(...timed.map(a=>a.duration_s))/60):null
   const measured=runRows.filter(a=>number(a.distance_m)&&a.distance_m>=0)
   const km=measured.length===runRows.length?
    Math.round(measured.reduce((total,a)=>total+a.distance_m,0)/100)/10:null
@@ -79,7 +81,7 @@ export function analyzeCoachFourWeeks({today,boards,plans,life}={}){
    m.plan.durationDeltaMinutes>=Math.max(15,Math.ceil(m.plan.plannedMinutes*.3)))
   const choices=decisionRows.filter(x=>x&&x.date>=start&&x.date<=end)
   return {start,end,available:true,runs:runs.length,distanceKm:km,rated:rated.length,
-   hard:hard.length,weak:weak.length,approved:approved?.length??null,
+   hard:hard.length,weak:weak.length,longestRunMinutes,approved:approved?.length??null,
    matched:covered?unique.length:null,overlong:covered?overlong.length:null,
    accepted:choices.filter(x=>x.choice==='accepted').length,
    declined:choices.filter(x=>x.choice==='declined').length,planCoverage:covered}
