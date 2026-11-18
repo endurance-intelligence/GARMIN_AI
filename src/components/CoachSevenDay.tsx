@@ -9,6 +9,7 @@ import {Icon} from './Icon'
 import {CoachLifeContext} from './CoachLifeContext'
 import {CoachDecisionLive} from './CoachDecisionLive'
 import {CoachPostRaceBarometer} from './CoachPostRaceBarometer'
+import {CoachRaceRecoveryCard} from './CoachRaceRecoveryCard'
 import {GarminFeedbackCard} from './GarminFeedbackCard'
 import {WeeklyPlanActualCard} from './WeeklyPlanActualCard'
 import {CoachNextImpactCard} from './CoachNextImpactCard'
@@ -23,9 +24,10 @@ const formatDate=(day:string)=>new Intl.DateTimeFormat('de-DE',{
  timeZone:'UTC',weekday:'short',day:'2-digit',month:'2-digit'
 }).format(new Date(day+'T12:00:00Z'))
 
-export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot}:{
+export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep}:{
  active:boolean;focus?:{date:string;token:number}|null;
- onCalendar:(date?:string)=>void;sharedSnapshot?:CoachSnapshot|null
+ onCalendar:(date?:string)=>void;sharedSnapshot?:CoachSnapshot|null;
+ onRacePrep?:()=>void
 }){
  const [snapshot,setSnapshot]=useState<CoachSnapshot|null>(null)
  const [loading,setLoading]=useState(false)
@@ -224,8 +226,15 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot}:{
     onClick={()=>{setReload(x=>x+1);window.dispatchEvent(new Event('garmin-ai-coach-changed'));setReview(null);setSavedDay(null)}}><Icon name="refresh-cw"/> Aktualisieren</button>
   </div>
   {snapshot&&<GarminFeedbackCard snapshot={snapshot} today={today}/>} 
-  {snapshot&&<CoachPostRaceBarometer goal={snapshot.goal} life={snapshot.life}
-    busy={contextBusy||saving!==null} onSave={updateLife}/>}
+  {plan?.autoRaceRecovery&&<CoachRaceRecoveryCard review={plan.autoRaceRecovery}
+    onRacePrep={onRacePrep}/>}
+  {snapshot&&plan?.autoRaceRecovery&&plan.autoRaceRecovery.daysSince!==null&&
+   plan.autoRaceRecovery.daysSince>=0&&plan.autoRaceRecovery.daysSince<=21&&
+   <details className="c7-settings">
+    <summary>Optional: persönliches Erholungs-Barometer ergänzen</summary>
+    <CoachPostRaceBarometer goal={snapshot.goal} life={snapshot.life}
+     busy={contextBusy||saving!==null} onSave={updateLife}/>
+   </details>}
   {snapshot&&<details className="c7-settings" id="c7-life-settings">
     <summary>Coach-Einstellungen · Pausen, Beschwerden und Verfügbarkeit</summary>
     <CoachLifeContext life={snapshot.life} busy={contextBusy||saving!==null} onAction={updateLife}/>
