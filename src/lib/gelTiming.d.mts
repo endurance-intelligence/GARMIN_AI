@@ -1,0 +1,5 @@
+export type GelStock={id:string;name:string;brand:string;flavor?:string;carbsG:number;caffeineMg:number|null;quantity:number;priority:number;isBulk?:boolean}
+export type GelPlanEvent={minute:number;clock:string|null;id:string;name:string;brand:string;flavor:string;carbsG:number;caffeineMg:number;cumulativeCarbsG:number}
+export type GelPlan={status:'ready'|'invalid';events:GelPlanEvent[];used:{id:string;quantity:number}[];reserve:{id:string;name:string;brand:string;quantity:number}[];gelTargetPerHour?:number;requestedGelCarbsG?:number;plannedCarbsG?:number;plannedKcal?:number;uncoveredG?:number;coveragePercent?:number;caffeineMg?:number}
+export declare function clockAt(startTime:string|null|undefined,elapsedMinutes:number):string|null
+export declare function buildGelPlan(input:{durationMinutes:number;targetCarbsGPerHour:number;drinkCarbsGPerHour?:number;inventory:GelStock[];allowCaffeine?:boolean;startTime?:string|null}):GelPlan
