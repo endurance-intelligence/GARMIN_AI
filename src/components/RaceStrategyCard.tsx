@@ -1,10 +1,12 @@
-import {useEffect,useRef,useState} from 'react'
+import {useCallback,useEffect,useRef,useState} from 'react'
 import {Icon} from './Icon'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {estimateRaceStrategy} from '../lib/raceStrategyMath.mjs'
 import {recommendRacePlan} from '../lib/raceAutoPlan.mjs'
 import type {Forecast} from '../lib/weatherIntelligence'
 import {RaceExecutionCard} from './RaceExecutionCard'
+import {RaceDayCockpit} from './RaceDayCockpit'
+import type {GelPlanEvent} from '../lib/gelTiming.mjs'
 import {GelInventoryPlanner} from './GelInventoryPlanner'
 import {RaceAfterActionCard} from './RaceAfterActionCard'
 import type {CoachGoal} from '../lib/coachGoal'
@@ -58,6 +60,9 @@ function NumberField({label,value,onChange,min,max,step='1',placeholder}:{
 }
 export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoach:()=>void;forecast?:Forecast|null}){
  const [goal,setGoal]=useState<CoachGoal|null>(null)
+ const [viewerId,setViewerId]=useState('')
+ const [offlineMode,setOfflineMode]=useState(false)
+ const [fuelSchedule,setFuelSchedule]=useState<GelPlanEvent[]|null>(null)
  const [weightKg,setWeightKg]=useState<number|null>(null)
  const [draft,setDraft]=useState<Draft>(blank)
  const [saved,setSaved]=useState(false)
@@ -66,17 +71,33 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
  const loadedKey=useRef<string|null>(null)
+ const cacheKey=(id:string)=>'garmin-ai:race-prep:v1:'+encodeURIComponent(id)
+ const onGelSchedule=useCallback((events:GelPlanEvent[]|null)=>{
+  if(offlineMode)return
+  setFuelSchedule(events)
+  if(!viewerId||!goal||!Array.isArray(events))return
+  try{
+   const key=cacheKey(viewerId),raw=localStorage.getItem(key)
+   const cache=raw?JSON.parse(raw):null
+   if(cache?.version===1&&cache.goal?.race_date===goal.race_date&&
+    cache.goal?.race_name===goal.race_name)
+    localStorage.setItem(key,JSON.stringify({...cache,fuelSchedule:events}))
+  }catch{/* The verified inventory still works without browser cache. */}
+ },[viewerId,goal,offlineMode])
  const update=<K extends keyof Draft,>(name:K,value:Draft[K])=>{
   setDraft(old=>({...old,[name]:value}));setSaved(false);setNotice('Änderung noch nicht gespeichert.')
  }
  useEffect(()=>{
   if(!active||!garminSupabase)return
   let live=true
+  let sessionUserId=''
   const controller=new AbortController()
   setLoading(true);setError('')
   void (async()=>{
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)throw Error('Bitte anmelden.')
+   sessionUserId=session.user.id
+   if(live)setViewerId(session.user.id)
    const response=await fetch(garminSupabaseUrl+'/functions/v1/garmin-coach-goal',{
     method:'GET',cache:'no-store',signal:controller.signal,
     headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey}
@@ -99,12 +120,43 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
    if(dbError)throw Error('Rennstrategie derzeit nicht verfügbar: '+dbError.message)
    if(!live)return
    const suggested=recommendRacePlan(nextGoal)
-   setDraft(data?asDraft(data as Record<string,unknown>):suggested??blank)
-   setSaved(Boolean(data))
+   const resolved=data?asDraft(data as Record<string,unknown>):suggested??blank
+   setDraft(resolved)
+   setSaved(Boolean(data));setOfflineMode(false)
+   try{
+    const key=cacheKey(sessionUserId)
+    const previousRaw=localStorage.getItem(key)
+    const previous=previousRaw?JSON.parse(previousRaw):null
+    const cachedGels=previous?.goal?.race_date===nextGoal.race_date&&
+     previous?.goal?.race_name===nextGoal.race_name&&
+     Array.isArray(previous.fuelSchedule)?previous.fuelSchedule:null
+    localStorage.setItem(key,JSON.stringify({version:1,
+     goal:nextGoal,draft:resolved,saved:Boolean(data),fuelSchedule:cachedGels}))
+   }catch{/* Browser caching is optional; online source stays authoritative. */}
    setNotice(data?'':suggested?'Aus deinem gespeicherten Ziel automatisch vorbereitet. Du kannst den Vorschlag anpassen.':'')
    loadedKey.current=key
-  })().catch(e=>{if(live&&e?.name!=='AbortError')setError(
-   e instanceof Error?e.message:'Rennstrategie konnte nicht geladen werden.')})
+  })().catch(e=>{
+   if(!live||e?.name==='AbortError')return
+   try{
+    if(!sessionUserId)throw Error('Missing authenticated session')
+    const raw=localStorage.getItem(cacheKey(sessionUserId))
+    const cache=raw?JSON.parse(raw):null
+    const cachedGoal=cache?.goal as CoachGoal|undefined
+    const cachedDraft=cache?.draft as Draft|undefined
+    if(cache?.version!==1||!cachedGoal||!cachedDraft||
+     !/^\\d{4}-\\d{2}-\\d{2}$/.test(cachedGoal.race_date)||
+     typeof cachedGoal.race_name!=='string'||
+     !['laps','point_to_point','other'].includes(cachedDraft.courseMode))
+     throw Error('No valid verified cache')
+    setGoal(cachedGoal);setDraft(cachedDraft);setSaved(Boolean(cache.saved))
+    setFuelSchedule(Array.isArray(cache.fuelSchedule)?cache.fuelSchedule:null)
+    setOfflineMode(true);setError('')
+    setNotice('Netzverbindung fehlt: zuletzt lokal gesicherter Rennplan. Zwischenzeiten bleiben lokal nutzbar, solange die App geöffnet ist.')
+    loadedKey.current=cachedGoal.race_date+'|'+cachedGoal.race_name
+   }catch{
+    setError(e instanceof Error?e.message:'Rennstrategie konnte nicht geladen werden.')
+   }
+  })
    .finally(()=>{if(live)setLoading(false)})
   return ()=>{live=false;controller.abort()}
  },[active])
@@ -126,6 +178,13 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
   loopKm:loop,movingMinutes:moving,regularPauseMinutes:regular,
   longStopEvery:every,longStopMinutes:long,paceSeconds:pace
  }):null
+ const executionInput=goal?{
+  distanceKm:Number(goal.distance_km),courseMode:draft.courseMode,loopKm:loop,
+  movingMinutes:moving,regularPauseMinutes:regular,longStopEvery:every,
+  longStopMinutes:long,paceSeconds:pace,targetHours:goal.target_hours,
+  carbsGPerHour:get(draft.carbs),fluidMlPerHour:get(draft.fluid),
+  sodiumMgPerHour:get(draft.sodium)
+ }:null
  async function save(){
   if(busy||!goal||!garminSupabase)return
   setBusy(true);setError('');setNotice('')
@@ -152,7 +211,13 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
    const {data,error:dbError}=await garminSupabase.from('garmin_race_strategy')
     .upsert(payload,{onConflict:'user_id,race_date,race_name'}).select('race_date').single()
    if(dbError||!data)throw Error(dbError?.message||'Speicherung nicht bestätigt.')
-   setSaved(true);setNotice('Dein Rennplan ist gespeichert. Keine automatischen Trainings- oder Garmin-Änderungen.')
+   setSaved(true);setOfflineMode(false)
+   try{
+    const key=cacheKey(session.user.id)
+    localStorage.setItem(key,JSON.stringify({version:1,goal,draft,saved:true,
+     fuelSchedule}))
+   }catch{/* Successful online save is still canonical. */}
+   setNotice('Dein Rennplan ist gespeichert. Keine automatischen Trainings- oder Garmin-Änderungen.')
   }catch(e){setError(e instanceof Error?e.message:'Rennplan nicht gespeichert.')}
   finally{setBusy(false)}
  }
@@ -176,17 +241,20 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
     <p className="rsp-context"><strong>{goal.race_name}</strong> · {Number(goal.distance_km).toLocaleString('de-DE')} km.
      Aus Hauptziel, bisherigen Rennabsprachen und gespeicherter Strategie vorbereitet.
      Anpassungen sind optional; Trainings- und Garmin-Daten werden nicht verändert.</p>
+    {offlineMode&&<p className="rsp-weather">Lokale Sicherung geladen. Gel-Vorrat und Wetter können veraltet sein.
+     Für einen vollständigen Neustart ohne Internet ist keine App-Offline-Installation eingerichtet.</p>}
     {feels&&<p className="rsp-weather">🌡️ Rennwetter: gefühlt <strong>{feels[0]}–{feels[1]} °C</strong>.
      Trinkmenge und Kleidung nach tatsächlichem Wetter, Durst und Verträglichkeit anpassen.</p>}
-    {calculation&&<RaceExecutionCard saved={saved} weightKg={weightKg} input={{
-      distanceKm:Number(goal.distance_km),courseMode:draft.courseMode,loopKm:loop,
-      movingMinutes:moving,regularPauseMinutes:regular,longStopEvery:every,
-      longStopMinutes:long,paceSeconds:pace,targetHours:goal.target_hours,
-      carbsGPerHour:get(draft.carbs),fluidMlPerHour:get(draft.fluid),
-      sodiumMgPerHour:get(draft.sodium)
-     }}/>}
-    <GelInventoryPlanner active={active} goal={goal}
-      durationMinutes={calculation?.totalMinutes??null} carbsGPerHour={get(draft.carbs)}/>
+    {executionInput&&viewerId&&<RaceDayCockpit active={active} goal={goal}
+     input={executionInput} saved={saved} viewerId={viewerId}
+     fuelSchedule={fuelSchedule}
+     feelsLike={feels?[feels[0],feels[1]]:null}/>}
+    {calculation&&executionInput&&<RaceExecutionCard saved={saved} weightKg={weightKg} input={executionInput}/>}
+    {!offlineMode?<GelInventoryPlanner active={active} goal={goal}
+      durationMinutes={calculation?.totalMinutes??null} carbsGPerHour={get(draft.carbs)}
+      onScheduleChange={onGelSchedule}/>:
+     <p className="rsp-context">Gel Buddy nutzt offline den zuletzt gesicherten
+      Einnahmeplan. Vorrat wird ohne Netz nicht verändert.</p>}
     <div className="rsp-ready-notes" aria-label="Vorbereitete Versorgung und Ausrüstung">
      {draft.fuelNotes&&<article><strong>🥤 Verpflegung und KH</strong><p>{draft.fuelNotes}</p></article>}
      {draft.stopsNotes&&<article><strong>⏱️ Stopps und Wechsel</strong><p>{draft.stopsNotes}</p></article>}
@@ -259,7 +327,7 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
      onCoach={onCoach}/>
     <div className="rsp-actions">
      <p>Deine Rennstrategie bleibt privat in GARMIN_AI. Keine automatische Trainingsfreigabe.</p>
-     <button type="button" disabled={busy||loading} onClick={()=>void save()}>
+     <button type="button" disabled={busy||loading||offlineMode} onClick={()=>void save()}>
       <Icon name="check"/> {busy?'Speichere …':'Rennplan speichern'}
      </button>
     </div>

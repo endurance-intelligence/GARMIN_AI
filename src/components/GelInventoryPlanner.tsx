@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useState} from 'react'
 import {garminSupabase} from '../lib/garminSupabase'
 import {buildGelPlan} from '../lib/gelTiming.mjs'
-import type {GelStock} from '../lib/gelTiming.mjs'
+import type {GelStock,GelPlanEvent} from '../lib/gelTiming.mjs'
 import type {CoachGoal} from '../lib/coachGoal'
 import {Icon} from './Icon'
 import '../styles/gel-inventory.css'
@@ -23,8 +23,9 @@ const clampInt=(n:number,min:number,max:number)=>Number.isFinite(n)?Math.max(min
 function display(p:Product){return p.name+' · '+p.flavor+' · '+
  (p.carbs_g===null?'KH noch nicht verifiziert':fmt(Number(p.carbs_g))+' g KH')+
  (Number(p.caffeine_mg)>0?' · '+p.caffeine_mg+' mg Koffein':'')}
-export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour}:{
- active:boolean;goal:CoachGoal;durationMinutes:number|null;carbsGPerHour:number|null
+export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,onScheduleChange}:{
+ active:boolean;goal:CoachGoal;durationMinutes:number|null;carbsGPerHour:number|null;
+ onScheduleChange?:(events:GelPlanEvent[]|null)=>void
 }){
  const [catalog,setCatalog]=useState<Product[]>([])
  const [inventory,setInventory]=useState<Inventory[]>([])
@@ -94,6 +95,11 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour}:
   drinkCarbsGPerHour:Number(settings.drink_carbs_g_per_hour),
   allowCaffeine:settings.allow_caffeine,inventory:stock,startTime:goal.race_start_time
  }),[durationMinutes,carbsGPerHour,settings,stock,goal.race_start_time])
+ useEffect(()=>{
+  if(!onScheduleChange)return
+  onScheduleChange(!loading&&loadedKey===key&&racePlan.status==='ready'?
+   racePlan.events:null)
+ },[onScheduleChange,loading,loadedKey,key,racePlan])
  const ordered=[...inventory].sort((a,b)=>a.priority-b.priority||
   (byId.get(a.catalog_id||'')?.brand||a.custom_brand||'').localeCompare(
   byId.get(b.catalog_id||'')?.brand||b.custom_brand||''))

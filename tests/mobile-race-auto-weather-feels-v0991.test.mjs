@@ -35,7 +35,7 @@ test('Race Prep shows feels-like summary, course points, timeline, and shared we
  assert.match(w,/h.feelsLike/)
  assert.match(s,/info.feels/)
  assert.match(r,/recommendRacePlan\(nextGoal\)/)
- assert.match(r,/setDraft\(data\?asDraft/)
+ assert.match(r,/const resolved=data\?asDraft/)
  assert.match(r,/garmin_weight_outbox/)
  assert.match(card,/data.nutrition.carbsG\*4/)
 })
