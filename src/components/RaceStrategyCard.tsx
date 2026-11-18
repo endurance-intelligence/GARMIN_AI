@@ -3,6 +3,7 @@ import {Icon} from './Icon'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {estimateRaceStrategy} from '../lib/raceStrategyMath.mjs'
 import {RaceExecutionCard} from './RaceExecutionCard'
+import {RaceAfterActionCard} from './RaceAfterActionCard'
 import type {CoachGoal} from '../lib/coachGoal'
 import '../styles/race-strategy.css'
 
@@ -52,7 +53,7 @@ function NumberField({label,value,onChange,min,max,step='1',placeholder}:{
   min={min} max={max} step={step} placeholder={placeholder||'Optional'}
   onChange={e=>onChange(e.target.value)}/></label>
 }
-export function RaceStrategyCard({active}:{active:boolean}){
+export function RaceStrategyCard({active,onCoach}:{active:boolean;onCoach:()=>void}){
  const [goal,setGoal]=useState<CoachGoal|null>(null)
  const [draft,setDraft]=useState<Draft>(blank)
  const [saved,setSaved]=useState(false)
@@ -223,6 +224,8 @@ export function RaceStrategyCard({active}:{active:boolean}){
        placeholder="Wechselkleidung, Ersatzschuhe, Stirnlampe, Anreise usw."
        onChange={e=>update('gearNotes',e.target.value)}/></label>
     </div>
+    <RaceAfterActionCard goal={goal} plannedMinutes={calculation?.totalMinutes??null}
+     onCoach={onCoach}/>
     <div className="rsp-actions">
      <p>Deine Rennstrategie bleibt privat in GARMIN_AI. Keine automatische Trainingsfreigabe.</p>
      <button type="button" disabled={busy||loading} onClick={()=>void save()}>
