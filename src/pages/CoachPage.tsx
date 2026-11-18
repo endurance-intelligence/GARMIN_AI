@@ -46,7 +46,7 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
    setSnapshotLoading(true)
    void garminSupabase.auth.getSession().then(({data:{session}})=>{
     if(!session)throw Error('Login required')
-    return loadCoachSnapshot(session,berlinToday(),abort.signal)
+    return loadCoachSnapshot(session,berlinToday(),abort.signal,undefined,4)
    }).then(next=>{if(mounted&&next){setSharedSnapshot(next);setSnapshotError(false)}})
     .catch(err=>{if(mounted&&err?.name!=='AbortError')setSnapshotError(true)})
     .finally(()=>{if(mounted)setSnapshotLoading(false)})

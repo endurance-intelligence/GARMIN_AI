@@ -70,7 +70,7 @@ test('home snapshot is loaded once for training today and the actual seven-day p
  const glance=read('src/components/CoachGlance.tsx')
  const seven=read('src/components/CoachSevenDay.tsx')
  const option=read('src/components/WeeklyTrainingOptions.tsx')
- assert.match(page,/loadCoachSnapshot\(session,berlinToday\(\),abort.signal\)/)
+ assert.match(page,/loadCoachSnapshot\(session,berlinToday\(\),abort.signal,undefined,4\)/)
  assert.match(page,/sharedSnapshot=\{sharedSnapshot\}/)
  assert.match(page,/garmin-ai-weekly-choice-changed/)
  assert.match(page,/garmin-ai-coach-changed/)

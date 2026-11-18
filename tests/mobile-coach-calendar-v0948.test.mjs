@@ -9,7 +9,7 @@ const coach=read('src/components/CoachSevenDay.tsx')
 const source=read('src/lib/coachSnapshot.ts')
 const app=read('src/App.tsx')
 test('Coach and calendar load exactly the same verified 7-day data and same recommendation engine',()=>{
- assert.match(coach,/loadCoachSnapshot\(session,today,controller\.signal\)/)
+ assert.match(coach,/loadCoachSnapshot\(session,today,controller\.signal,undefined,4\)/)
  assert.match(calendar,/loadCoachSnapshot\(session,today,controller\.signal,start\)/)
  assert.match(coach,/buildSevenDayCoach\(/)
  assert.match(calendar,/buildSevenDayCoach\(/)

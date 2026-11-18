@@ -57,12 +57,12 @@ Deno.serve(async req=>{
   const db=createClient(project,envKey('service'),{auth:{persistSession:false,autoRefreshToken:false}})
   if(req.method==='GET'){
     const now=new Date()
-    const since=new Date(now.getTime()-30*86400000).toISOString().slice(0,10)
+    const since=new Date(now.getTime()-45*86400000).toISOString().slice(0,10)
     const {data:rows,error:readError}=await db.from('garmin_training_plan')
       .select(fields).gte('training_date',since)
       .order('training_date',{ascending:true}).limit(180)
     if(readError)return response(503,{error:'Calendar unavailable'},h)
-    return response(200,{entries:rows||[],garminWritesActive:false},h)
+    return response(200,{entries:rows||[],historyFrom:since,garminWritesActive:false},h)
   }
   if(Number(req.headers.get('content-length')||0)>1500)
     return response(413,{error:'Request too large'},h)

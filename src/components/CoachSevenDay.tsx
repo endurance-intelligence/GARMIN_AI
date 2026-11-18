@@ -12,6 +12,7 @@ import {CoachPostRaceBarometer} from './CoachPostRaceBarometer'
 import {GarminFeedbackCard} from './GarminFeedbackCard'
 import {WeeklyPlanActualCard} from './WeeklyPlanActualCard'
 import {CoachNextImpactCard} from './CoachNextImpactCard'
+import {CoachFourWeekCard} from './CoachFourWeekCard'
 import {assessCustomProposal} from '../lib/coachCustomProposal.mjs'
 import type {CoachContextPayload} from './CoachLifeContext'
 import '../styles/coach-seven-day.css'
@@ -53,7 +54,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot}:{
   void (async()=>{
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)throw Error('Bitte zuerst anmelden.')
-   const data=await loadCoachSnapshot(session,today,controller.signal)
+   const data=await loadCoachSnapshot(session,today,controller.signal,undefined,4)
    if(mounted)setSnapshot(data)
   })().catch(e=>{
    if(mounted&&!(e instanceof Error&&e.name==='AbortError'))
@@ -242,6 +243,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot}:{
     <span>{plan.trainingMethod?.message}</span>
    </p>
    <CoachNextImpactCard impact={plan.nextImpact}/>
+   {snapshot&&<CoachFourWeekCard today={today} snapshot={snapshot}/>}
    {plan.completedWeek&&<WeeklyPlanActualCard review={plan.completedWeek}
     onCalendar={()=>onCalendar()}/>}
    <div className="c7-day-nav" id="c7-week-overview" role="tablist"
