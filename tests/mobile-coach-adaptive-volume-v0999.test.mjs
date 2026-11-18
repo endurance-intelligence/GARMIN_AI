@@ -44,7 +44,7 @@ test('a training spike in latest complete week recommends reducing only an open 
  const r=assess(history([62,39,42,41]))
  assert.equal(r.status,'reduce')
  assert.equal(r.changeMinutes,-15)
- assert.match(r.reason,/Umfang/)
+ assert.match(r.title,/Umfang/)
  const result=applyAdaptiveVolume([long()],r,{today})
  assert.equal(result.effect,'reduced')
  assert.equal(result.days[0].minutes,50)
