@@ -1,0 +1,33 @@
+name: GARMIN_AI Coach Intelligence v1.0
+on:
+  push:
+    paths:
+      - 'src/components/CoachSevenDay.tsx'
+      - 'src/lib/coachSevenDay.mjs'
+      - 'src/lib/coachSevenDay.d.mts'
+      - 'src/styles/coach-seven-day.css'
+      - 'src/pages/CoachPage.tsx'
+      - 'tests/mobile-coach-seven-day-v1.test.mjs'
+      - '.github/workflows/garmin-coach-seven-day-v1.yml'
+  pull_request:
+    paths:
+      - 'src/components/CoachSevenDay.tsx'
+      - 'src/lib/coachSevenDay.mjs'
+      - 'src/lib/coachSevenDay.d.mts'
+      - 'src/styles/coach-seven-day.css'
+      - 'src/pages/CoachPage.tsx'
+      - 'tests/mobile-coach-seven-day-v1.test.mjs'
+      - '.github/workflows/garmin-coach-seven-day-v1.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-coach-seven-day-v1.test.mjs tests/mobile-no-tab-reload-v0941.test.mjs tests/mobile-web-policy.test.mjs
+      - run: npm run build

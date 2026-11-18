@@ -32,7 +32,7 @@ export function GarminAuthSettings() {
     try {
       const { error: result } = await garminSupabase.auth.signInWithOtp({
         email: email.trim(),
-        options: { emailRedirectTo: window.location.origin, shouldCreateUser: true },
+        options: { emailRedirectTo: new URL(import.meta.env.BASE_URL,window.location.origin).toString(), shouldCreateUser: false },
       })
       if (result) setError(result.message)
       else setNotice('Login-Link verschickt. Bitte die E-Mail in diesem Browser öffnen.')

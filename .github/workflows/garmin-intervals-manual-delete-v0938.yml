@@ -1,0 +1,31 @@
+name: GARMIN_AI Intervals Manual Delete Reconciliation
+on:
+  push:
+    paths:
+      - 'supabase/functions/garmin-intervals/index.ts'
+      - 'supabase/functions/_shared/intervals-cleanup-reconcile.mjs'
+      - 'src/pages/CalendarPage.tsx'
+      - 'tests/mobile-intervals-manual-delete-v0938.test.mjs'
+      - 'tests/mobile-calendar-delete-fix-v0930.test.mjs'
+      - '.github/workflows/garmin-intervals-manual-delete-v0938.yml'
+  pull_request:
+    paths:
+      - 'supabase/functions/garmin-intervals/index.ts'
+      - 'supabase/functions/_shared/intervals-cleanup-reconcile.mjs'
+      - 'src/pages/CalendarPage.tsx'
+      - 'tests/mobile-intervals-manual-delete-v0938.test.mjs'
+      - 'tests/mobile-calendar-delete-fix-v0930.test.mjs'
+      - '.github/workflows/garmin-intervals-manual-delete-v0938.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-intervals-manual-delete-v0938.test.mjs tests/mobile-calendar-delete-fix-v0930.test.mjs tests/intervals-bridge.test.mjs tests/mobile-calendar-week-board.test.mjs
+      - run: npm run build

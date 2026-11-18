@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { garminPublishableKey, garminSupabase, garminSupabaseReady, garminSupabaseUrl } from '../lib/garminSupabase'
 import { analyzeSession } from '../lib/sessionAnalysis'
-import { SessionGoalReview } from './SessionGoalReview'
+import {SessionIntensityDetails} from './SessionIntensityDetails'
+import {CoachEvidenceSummary} from './CoachEvidenceSummary'
+import { SessionGearEditor } from './SessionGearEditor'
+import {PlanActualReview} from './PlanActualReview'
+import {assessPlanActual} from '../lib/planActual.mjs'
+import type {PlanActualPlan} from '../lib/planActual.mjs'
 import type { SessionSample } from '../lib/sessionAnalysis'
 import '../styles/session-live.css'
 
@@ -32,6 +37,17 @@ function heartPath(samples: SessionSample[]): string {
     return `${i===0?'M':'L'}${x.toFixed(1)},${y.toFixed(1)}`
   }).join(' ')
 }
+async function readOwnerPlans(session:Session):Promise<PlanActualPlan[]>{
+ const response=await fetch(garminSupabaseUrl+'/functions/v1/garmin-training-plan',{
+  method:'GET',cache:'no-store',headers:{
+   authorization:'Bearer '+session.access_token,apikey:garminPublishableKey
+  }
+ })
+ if(!response.ok)throw Error('Trainingsplan derzeit nicht abrufbar (HTTP '+response.status+').')
+ const data=await response.json() as {entries?:PlanActualPlan[]}
+ if(!Array.isArray(data.entries))throw Error('Trainingsplanantwort unvollständig.')
+ return data.entries
+}
 async function readPrivate<T>(session: Session, params = ''): Promise<T> {
   const url = `${garminSupabaseUrl}/functions/v1/read-garmin-session${params}`
   const response = await fetch(url, {
@@ -51,6 +67,9 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
   const [list,setList] = useState<Activity[]>([])
   const [selected,setSelected] = useState<string>('')
   const [details,setDetails] = useState<SessionResponse | null>(null)
+  const [planEntries,setPlanEntries]=useState<PlanActualPlan[]>([])
+  const [plansLoaded,setPlansLoaded]=useState(false)
+  const [planError,setPlanError]=useState('')
   const [loading,setLoading] = useState(false)
   const [error,setError] = useState('')
   const [refresh,setRefresh] = useState(0)
@@ -78,6 +97,18 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
     return () => { mounted=false }
   }, [active, session?.access_token, refresh])
 
+  useEffect(()=>{
+    if(!active||!session)return
+    let mounted=true
+    setPlansLoaded(false);setPlanEntries([]);setPlanError('')
+    void readOwnerPlans(session).then(entries=>{
+     if(mounted){setPlanEntries(entries);setPlansLoaded(true)}
+    }).catch(e=>{
+     if(mounted)setPlanError(e instanceof Error?e.message:'Plan derzeit nicht verfügbar.')
+    })
+    return ()=>{mounted=false}
+  },[active,session?.access_token,refresh])
+
   useEffect(() => {
     if (!active || !session || !selected) return
     let mounted = true
@@ -89,6 +120,10 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
     return () => { mounted=false }
   }, [active, session?.access_token, selected, refresh])
 
+  const selectedActivity=useMemo(()=>list.find(a=>a.id===selected)||null,[list,selected])
+  const planActual=useMemo(()=>plansLoaded&&selectedActivity?
+   assessPlanActual(selectedActivity,list,planEntries):null,
+   [plansLoaded,selectedActivity,list,planEntries])
   const analysis = useMemo(() => details ? analyzeSession(details.details.samples) : null, [details])
   const path = useMemo(() => details ? heartPath(details.details.samples) : '', [details])
   if (!active) return null
@@ -96,7 +131,7 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
     <div className="lsa-head">
       <div><span className="micro-label">GARMIN / SESSION INTELLIGENCE · LIVE</span>
         <h2>Dein Lauf. Die echten Signale.</h2>
-        <p>Gemessene HF-Verläufe aus Supabase · bewusst noch ohne automatisches Trainingsurteil.</p></div>
+        <p>Ein Coach-Fazit aus den tatsächlich absolvierten Läufen: Intervalle, Dauerlauf und Bezug zum Hauptziel.</p></div>
       {session && <button className="secondary" type="button" onClick={()=>setRefresh(r=>r+1)} disabled={loading}>Aktualisieren</button>}
     </div>
     {!garminSupabaseReady && <p className="lsa-note">Supabase ist lokal noch nicht konfiguriert.</p>}
@@ -112,12 +147,21 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
       {error && <div className="lsa-error" role="alert">{error}</div>}
       {loading && <p className="lsa-note">Lese Garmin-Aktivität …</p>}
       {details && analysis && <>
+        <PlanActualReview match={planActual} loading={!plansLoaded&&!planError}
+         error={planError}/>
+        <CoachEvidenceSummary active={active} mode="training" activityId={details.activity.id}/>
+        <SessionIntensityDetails key={details.activity.id} samples={details.details.samples}
+          activityDate={details.activity.date} activityId={details.activity.id} active={active}/>
+        <details className="lsa-deep-dive">
+          <summary>HF-Verlauf, Messwerte und technische Beobachtungen <span>Optional ansehen</span></summary>
+          <div className="lsa-deep-dive-content">
         <div className="lsa-stat-grid">
           <div><span>DISTANZ</span><strong>{details.activity.distanceM==null?'–':formatNumber(details.activity.distanceM/1000,2)} <small>km</small></strong></div>
           <div><span>DAUER</span><strong>{details.activity.durationS==null?'–':formatNumber(details.activity.durationS/60)} <small>Min.</small></strong></div>
           <div><span>Ø HF · GARMIN</span><strong>{details.activity.avgHr==null?'–':formatNumber(details.activity.avgHr)} <small>bpm</small></strong></div>
           <div><span>HF-MESSPUNKTE</span><strong>{analysis.validHr} <small>/ {details.details.samples.length}</small></strong></div>
         </div>
+        {import.meta.env.DEV ? <SessionGearEditor key={details.activity.id} activityId={details.activity.id} session={session}/> : <p className="lsa-demo-divider">Laufschuhe werden hier aktuell nur gelesen. Direktes Ändern folgt nach der sicheren Cloud-Schreibanbindung.</p>}
         <div className="lsa-panels">
           <article className="lsa-chart">
             <div className="lsa-section-title"><strong>Herzfrequenz im Verlauf</strong><small>Messpunkte · keine geschätzten Werte</small></div>
@@ -126,14 +170,24 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
               <path d={path} stroke="#7CCFFF" fill="none" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" />
             </svg> : <p className="lsa-note">HF-Verlauf für diese Einheit noch nicht verfügbar.</p>}
             <div className="lsa-chart-axis"><span>Beginn</span><span>Mitte</span><span>Ende</span></div>
-            <p className="lsa-quality">Status: {details.details.status} · Runden: {details.details.lapCount} · {details.activity.rpeRaw == null ? 'RPE fehlt' : `Garmin-RPE Rohwert ${details.activity.rpeRaw} (noch nicht skaliert)`}</p>
+            <p className="lsa-quality">Technischer Datenstatus: {details.details.status} ·
+              {details.activity.rpeRaw == null ? 'RPE nicht hinterlegt' : `Garmin-RPE Rohwert ${details.activity.rpeRaw} (nicht skaliert)`}.
+              Die tatsächlichen FIT-Belastungsabschnitte stehen im Coach-Fazit oben.</p>
           </article>
           <article className="lsa-findings"><div className="lsa-section-title"><strong>Was zeigen die Daten?</strong><small>Belegbasiert · v0.6.0</small></div>
-            {analysis.signals.map((s,i)=><div className={`lsa-signal ${s.level}`} key={`${i}-${s.title}`}><b>{s.title}</b><p>{s.explanation}</p></div>)}
+            {analysis.signals.filter(signal=>signal.title!=='Trainingsziel noch nicht hinterlegt')
+              .map((signal,i)=><div className={`lsa-signal ${signal.level}`}
+              key={`${i}-${signal.title}`}><b>{signal.title}</b>
+              <p>{signal.explanation}</p></div>)}
+            <p className="lsa-note">Dies sind technische Zusatzbeobachtungen. Das eigentliche Lauf-Fazit oben
+              nutzt die vom Coach erkannten Belastungsabschnitte und das Hauptziel.</p>
           </article>
         </div>
-        <SessionGoalReview key={details.activity.id} samples={details.details.samples} lapCount={details.details.lapCount} activityDate={details.activity.date}/>
-        <p className="lsa-foot">Keine Trainingsfreigabe und keine automatische Änderung am Trainingsplan. Runden, HF-Zonen, Trainingstyp, Höhenprofil und Wetter werden erst berücksichtigt, wenn diese Daten verifiziert vorliegen.</p>
+          </div>
+        </details>
+        <p className="lsa-foot">Der Coach erkennt den Trainingstyp aus Garmin-Aktivität und FIT-Belastungen.
+          Die Intensitätszonen sind optionale Zusatzinformationen, keine Voraussetzung für ein Fazit.
+          Keine automatischen Änderungen am Trainingsplan.</p>
       </>}
     </>}
   </section>

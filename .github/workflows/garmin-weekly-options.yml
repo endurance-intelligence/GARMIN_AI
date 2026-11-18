@@ -1,0 +1,33 @@
+name: GARMIN_AI weekly Coach options
+on:
+  push:
+    paths:
+      - 'src/components/WeeklyTrainingOptions.tsx'
+      - 'src/styles/weekly-training-options.css'
+      - 'src/pages/CoachPage.tsx'
+      - 'src/pages/CalendarPage.tsx'
+      - 'supabase/functions/garmin-weekly-options/**'
+      - 'supabase/migrations/*weekly*'
+      - 'tests/mobile-weekly-training-options.test.mjs'
+      - '.github/workflows/garmin-weekly-options.yml'
+  pull_request:
+    paths:
+      - 'src/components/WeeklyTrainingOptions.tsx'
+      - 'src/styles/weekly-training-options.css'
+      - 'src/pages/CoachPage.tsx'
+      - 'src/pages/CalendarPage.tsx'
+      - 'supabase/functions/garmin-weekly-options/**'
+      - 'supabase/migrations/*weekly*'
+      - 'tests/mobile-weekly-training-options.test.mjs'
+      - '.github/workflows/garmin-weekly-options.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test tests/mobile-weekly-training-options.test.mjs
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run build

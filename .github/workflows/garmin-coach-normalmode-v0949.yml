@@ -1,0 +1,25 @@
+name: GARMIN_AI Coach Normalmodus Fix v0.9.49
+on:
+  push:
+    paths:
+      - 'supabase/functions/_shared/coach-structured-workout.mjs'
+      - 'tests/coach-normalmode-missing-row-v0949.test.mjs'
+      - '.github/workflows/garmin-coach-normalmode-v0949.yml'
+  pull_request:
+    paths:
+      - 'supabase/functions/_shared/coach-structured-workout.mjs'
+      - 'tests/coach-normalmode-missing-row-v0949.test.mjs'
+      - '.github/workflows/garmin-coach-normalmode-v0949.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/coach-normalmode-missing-row-v0949.test.mjs tests/coach-structured-intervals-v0947.test.mjs tests/mobile-coach-calendar-v0948.test.mjs tests/mobile-coach-life-context-v11.test.mjs tests/intervals-bridge.test.mjs
+      - run: npm run build

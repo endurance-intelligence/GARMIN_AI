@@ -81,7 +81,7 @@ export function AerobicEvidencePanel({active}:{active:boolean}){
   },[active,session?.access_token,refresh])
   if(!active)return null
   return <section className="ae-wrap" aria-label="Aerobic Evidence Audit">
-    <header className="ae-head"><div><span className="micro-label">GARMIN_AI / AEROBIC EVIDENCE · v0.6.5</span>
+    <header className="ae-head"><div><span className="micro-label">GARMIN_AI / AEROBIC EVIDENCE · v0.9.43</span>
       <h2>Wie aussagekräftig sind deine Läufe?</h2>
       <p>Wir suchen gleichmäßige Abschnitte mit verwertbaren HF- und Tempodaten. Noch keine Berechnung der aeroben Schwelle.</p>
     </div>{session&&<button className="secondary" type="button" disabled={loading} onClick={()=>setRefresh(r=>r+1)}>{loading?'Prüfe …':'Erneut prüfen'}</button>}</header>
@@ -91,6 +91,14 @@ export function AerobicEvidencePanel({active}:{active:boolean}){
     {session&&loading&&!data&&<div className="ae-note">Prüfe vorhandene Lauf-Messreihen …</div>}
     {session&&error&&<div className="ae-error" role="alert">{error}</div>}
     {data&&<>
+      <div className="ae-summary">
+        <strong>{data.scan.comparable} gut vergleichbare Läufe</strong>
+        <span>Aus {data.scan.detailEvaluated} geprüften Messreihen.
+          Gleichmäßige HF und Pace machen den Verlauf vergleichbar,
+          beweisen aber keine aerobe Schwelle.</span>
+      </div>
+      <details className="ae-diagnostics">
+        <summary>Datenabdeckung &amp; Importdiagnose · optional</summary>
       <div className="ae-stats">
         <div><span>LÄUFE IM ABFRAGEFENSTER</span><strong>{data.scan.runningRead}</strong></div>
         <div><span>MIT HF-DETAILS</span><strong>{data.scan.withHrDetails}</strong></div>
@@ -121,16 +129,32 @@ export function AerobicEvidencePanel({active}:{active:boolean}){
           </>
         })():<div className="ae-worker-unknown">Cron-Diagnose noch nicht verfügbar. Die Laufdaten-Auswertung darüber funktioniert unabhängig davon.</div>}
       </div>
+      </details>
       <div className="ae-findings">
         {data.comparable.length>0?<>
           <h3>Gleichmäßige Vergleichsläufe</h3>
-          <div className="ae-run-list">{data.comparable.map(run=><article key={run.id} className="ae-run">
+          <div className="ae-run-list">{data.comparable.slice(0,3).map(run=><article key={run.id} className="ae-run">
             <div className="ae-run-title"><strong>{run.name}</strong><small>{run.date?.slice(0,10)??'Datum fehlt'} · {num(run.distanceKm,'km')} · {run.durationMinutes} Min.</small></div>
             <div className="ae-run-numbers"><div><span>FRÜHER / SPÄTER</span><b>{run.earlyHr===null||run.lateHr===null?'–':`${Math.round(run.earlyHr)} → ${Math.round(run.lateHr)} bpm`}</b></div>
               <div><span>HF-ÄNDERUNG</span><b>{run.hrDifference!==null&&run.hrDifference>0?'+':''}{num(run.hrDifference,'bpm')}</b></div>
               <div><span>GESCHWINDIGKEIT</span><b>{run.speedDifferencePercent!==null&&run.speedDifferencePercent>0?'+':''}{num(run.speedDifferencePercent,'%')}</b></div></div>
             <p>Vergleich der mittleren Laufabschnitte. {run.validHr} gültige HF-Punkte; Zeitachse: {run.timing==='elapsed'?'verifizierte Laufzeit':'Zeitstempel'}. {run.timelineGapCount>0||run.hrArtifactCount>0?`Signalhinweise: ${run.timelineGapCount} Zeitlücken, ${run.hrArtifactCount} abrupte HF-Sprünge. `:''}Keine Schwellenbestimmung.</p>
           </article>)}</div>
+          {data.comparable.length>3&&<details className="ae-diagnostics">
+            <summary>Weitere {data.comparable.length-3} Vergleichsläufe anzeigen</summary>
+            <div className="ae-run-list">{data.comparable.slice(3).map(run=>
+              <article key={run.id} className="ae-run">
+                <div className="ae-run-title"><strong>{run.name}</strong>
+                 <small>{run.date?.slice(0,10)??'Datum fehlt'} · {num(run.distanceKm,'km')}
+                  · {run.durationMinutes} Min.</small></div>
+                <div className="ae-run-numbers">
+                 <div><span>FRÜHER / SPÄTER</span><b>{run.earlyHr===null||run.lateHr===null?'–':
+                  `${Math.round(run.earlyHr)} → ${Math.round(run.lateHr)} bpm`}</b></div>
+                 <div><span>HF-ÄNDERUNG</span><b>{num(run.hrDifference,'bpm')}</b></div>
+                 <div><span>GESCHWINDIGKEIT</span><b>{num(run.speedDifferencePercent,'%')}</b></div>
+                </div>
+              </article>)}</div>
+          </details>}
         </>:<div className="ae-note"><strong>Noch kein ausreichend vergleichbarer Lauf</strong><p>Das ist kein negatives Trainingsergebnis. Wir benötigen mehr durchgehend gemessene, gleichmäßige Abschnitte. Der Detailimport kann noch laufen.</p></div>}
         {(data.limited.length>0||data.excluded.length>0)&&<details className="ae-details"><summary>Weitere geprüfte Läufe und Datenlücken ({data.scan.limited+data.scan.excluded})</summary>
           <div className="ae-reasons">{[...data.limited,...data.excluded].map(run=><div key={run.id}><b>{run.name}</b><span>{run.date?.slice(0,10)??''} · {run.reason}</span></div>)}</div>

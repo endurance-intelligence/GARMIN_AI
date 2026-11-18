@@ -1,0 +1,25 @@
+name: GARMIN_AI Intervals.icu bridge tests
+on:
+  push:
+    paths:
+      - 'supabase/functions/_shared/intervals-workout.mjs'
+      - 'supabase/functions/garmin-intervals/**'
+      - 'tests/intervals-bridge.test.mjs'
+      - '.github/workflows/garmin-intervals-bridge.yml'
+  pull_request:
+    paths:
+      - 'supabase/functions/_shared/intervals-workout.mjs'
+      - 'supabase/functions/garmin-intervals/**'
+      - 'tests/intervals-bridge.test.mjs'
+      - '.github/workflows/garmin-intervals-bridge.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test tests/intervals-bridge.test.mjs
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run build

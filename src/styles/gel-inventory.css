@@ -1,0 +1,60 @@
+.gip-root{background:linear-gradient(130deg,#172740,#101d32);border:1px solid rgba(148,182,231,.28);border-radius:15px;padding:15px;margin:17px 0;color:#eaf1fc}
+.gip-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px}
+.gip-header small{font-size:9px;letter-spacing:.1em;font-weight:850;color:#a9b9ed}
+.gip-header h3{font-size:16px;margin:5px 0 5px;letter-spacing:-.025em}
+.gip-header p,.gip-note,.gip-empty{font-size:11px;line-height:1.55;color:#b6c8df;margin:4px 0}
+.gip-total{border:1px solid #35516e;background:#20354f;border-radius:11px;padding:9px 12px;min-width:75px;text-align:center;display:grid;gap:4px}
+.gip-total strong{font-size:20px}.gip-total span{font-size:9px;color:#bbcadc}
+.gip-brands{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:12px 0}
+.gip-brands button{border:1px solid #415470;border-radius:9px;padding:10px 7px;min-height:42px;font-size:12px;font-weight:750;background:#1a2b46;color:#bfd0e8;cursor:pointer}
+.gip-brands button.active{border-color:#b6d7fa;background:#2a4665;color:#f4f8ff}
+.gip-add{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,.6fr) minmax(0,1fr) auto;gap:10px;align-items:end;background:#15243b;border:1px solid rgba(139,168,212,.19);padding:12px;border-radius:12px}
+.gip-root label{display:grid;gap:6px;font-size:10px;font-weight:770;color:#c8d8ed;min-width:0}
+.gip-root select,.gip-root input{box-sizing:border-box;width:100%;min-width:0;height:41px;font-size:12px;font:inherit;color:#f1f6fd;background:#0f1e33;border:1px solid #405875;border-radius:8px;padding:8px}
+.gip-root select:focus-visible,.gip-root input:focus-visible,.gip-root button:focus-visible,.gip-all summary:focus-visible{outline:2px solid #c2eb9c;outline-offset:2px}
+.gip-add-product{display:grid;gap:7px}
+.gip-product-detail{font-size:10px;color:#adbbd3;line-height:1.5;margin:0}.gip-product-detail a{color:#c4e1ff}
+.gip-custom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.gip-add-button,.gip-settings>button{border:0;background:#c9eb9b;color:#1d2b19;font-size:11px;min-height:41px;padding:10px 12px;font-weight:820;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
+.gip-add-button .ic{width:15px;height:15px}
+.gip-root button:disabled{opacity:.55;cursor:not-allowed}
+.gip-inventory,.gip-planner{margin-top:17px}
+.gip-subheading{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;align-items:baseline;margin:0 0 10px}
+.gip-subheading strong{font-size:13px}.gip-subheading small{font-size:10px;color:#a5bad5}
+.gip-rows{display:grid;gap:7px}
+.gip-row{display:flex;justify-content:space-between;align-items:center;gap:8px;border-radius:10px;border:1px solid #304862;background:#172a42;padding:10px}
+.gip-priority-1{border-left:3px solid #bce48d}
+.gip-priority-2{border-left:3px solid #8cafd7}
+.gip-priority-3{border-left:3px solid #d5b07d}
+.gip-row-main{display:grid;gap:4px;min-width:0}.gip-row-main strong{font-size:11px;overflow-wrap:anywhere}.gip-row-main span{font-size:10px;color:#adbed6;line-height:1.4}
+.gip-row-controls{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.gip-stepper{display:flex;align-items:center;gap:4px}.gip-stepper span{font-size:11px;min-width:27px;text-align:center}
+.gip-stepper button,.gip-remove-confirm button,.gip-remove{background:#213b58;border:1px solid #466184;color:#dceaff;min-width:30px;min-height:32px;padding:5px;border-radius:7px;cursor:pointer}
+.gip-remove .ic{width:15px;height:15px}
+.gip-row-controls select{width:162px;height:33px;font-size:10px;padding:5px}
+.gip-remove-confirm{display:flex;gap:4px}.gip-remove-confirm button{font-size:9px;padding:4px 6px}
+.gip-guidance{font-size:11px;line-height:1.6;color:#bdd4ea;background:#1c3850;padding:10px;border-radius:9px;margin:7px 0 12px}
+.gip-settings{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) auto;gap:10px;align-items:end;margin-bottom:12px}
+.gip-check{display:flex!important;flex-direction:row;align-items:center;gap:7px!important;min-height:39px}
+.gip-check input{width:18px;height:18px;flex:0 0 18px;accent-color:#c4e995}
+.gip-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:11px 0}
+.gip-stats>div{background:#20344d;border:1px solid #334862;border-radius:10px;padding:10px;display:grid;gap:5px}
+.gip-stats small{font-size:9px;color:#adc2da;line-height:1.3}.gip-stats strong{font-size:15px;white-space:nowrap}
+.gip-timeline{display:grid;gap:5px}
+.gip-time{display:grid;grid-template-columns:115px minmax(0,1fr) minmax(0,1.2fr);gap:7px;padding:8px 10px;background:#1b2d46;border-radius:8px;align-items:center}
+.gip-time span{font-size:10px;color:#a9c2de}.gip-time strong{font-size:11px}.gip-time small{font-size:10px;color:#adc1dc}
+.gip-all{margin:10px 0;border-top:1px solid #304966;padding-top:8px}.gip-all summary{font-size:11px;font-weight:760;color:#c2ddff;cursor:pointer;padding:6px}
+.gip-shortfall,.gip-reserve,.gip-disclaimer{font-size:10px;line-height:1.6;margin:11px 0 0}
+.gip-shortfall{color:#f2c18c}.gip-reserve{color:#e2cca7}
+.gip-disclaimer{color:#a4bad2}
+.gip-error,.gip-success{font-size:11px;padding:9px 11px;border-radius:9px;margin:8px 0}
+.gip-error{background:#3b2533;color:#ffc1b9}.gip-success{background:#1c443e;color:#b5eac7}
+@media(max-width:1000px){.gip-add{grid-template-columns:repeat(2,minmax(0,1fr))}.gip-add-product{grid-column:span 2}.gip-settings{grid-template-columns:1fr 1fr}.gip-settings>button{grid-column:span 2}}
+@media(max-width:700px){.gip-root{padding:12px}.gip-header h3{font-size:14px}.gip-brands{gap:4px}.gip-brands button{font-size:11px;padding:7px 3px}
+ .gip-row{display:grid}.gip-row-controls{justify-content:space-between;flex-wrap:wrap}
+ .gip-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .gip-time{grid-template-columns:1fr;gap:4px}.gip-time span{font-size:10px}
+ .gip-settings{grid-template-columns:1fr}.gip-settings>button{grid-column:span 1}
+}
+@media(max-width:420px){.gip-add{grid-template-columns:1fr}.gip-add-product{grid-column:span 1}.gip-custom{grid-template-columns:1fr}
+ .gip-row-controls select{flex:1;min-width:130px;max-width:100%}.gip-total{min-width:60px}}

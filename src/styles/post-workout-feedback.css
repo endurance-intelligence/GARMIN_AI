@@ -1,0 +1,32 @@
+.pwf-root{border:1px solid rgba(160,191,232,.24);border-radius:16px;
+ background:linear-gradient(140deg,#1a2a45,#101c32);padding:18px;margin:13px 0;color:#ebf3ff}
+.pwf-header{display:flex;justify-content:space-between;align-items:start;gap:12px;flex-wrap:wrap}
+.pwf-eyebrow{display:inline-flex;align-items:center;gap:7px;color:#c0b3fe;font-size:10px;font-weight:850;letter-spacing:.08em}
+.pwf-eyebrow .ic{height:15px;width:15px}
+.pwf-header h3{font-size:20px;line-height:1.25;letter-spacing:-.03em;margin:7px 0 5px}
+.pwf-header p{color:#acbfde;font-size:11px;line-height:1.55;margin:0}
+.pwf-saved{display:inline-flex;align-items:center;gap:6px;color:#bcecc7;font-size:10px;font-weight:800}
+.pwf-saved .ic{width:14px;height:14px}
+.pwf-root label{font-size:11px;font-weight:760;color:#c8d6eb;display:grid;gap:6px;min-width:0}
+.pwf-root select,.pwf-root textarea{box-sizing:border-box;width:100%;min-width:0;min-height:43px;
+ background:#13223a;color:#eef4ff;border:1px solid rgba(159,187,234,.34);border-radius:10px;
+ font:inherit;font-size:12px;padding:9px}
+.pwf-root textarea{resize:vertical;min-height:66px}
+.pwf-root select:focus-visible,.pwf-root textarea:focus-visible,.pwf-root button:focus-visible{
+ outline:2px solid #c7ed8e;outline-offset:2px}
+.pwf-picker{margin:14px 0}
+.pwf-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pwf-note{margin-top:12px}
+.pwf-assessment{margin:13px 0;border:1px solid rgba(164,193,225,.23);border-left:4px solid #c7e48c;
+ border-radius:10px;background:#14243c;padding:12px}
+.pwf-assessment.is-caution{border-left-color:#e1b277}
+.pwf-assessment.is-high,.pwf-assessment.is-warning{border-left-color:#ed9790}
+.pwf-assessment strong{font-size:13px}.pwf-assessment p{color:#c3d2e7;font-size:11px;line-height:1.6;margin:6px 0 0}
+.pwf-actions{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:14px}
+.pwf-actions>span{color:#9db3d2;font-size:10px;flex:1 1 200px;line-height:1.5}
+.pwf-actions button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:45px;
+ border:0;border-radius:10px;padding:11px 14px;background:#c9ee8d;color:#1b2a17;font-size:12px;font-weight:870}
+.pwf-actions button .ic{width:15px;height:15px}
+.pwf-actions button:disabled{opacity:.48;cursor:not-allowed}
+@media(max-width:620px){.pwf-root{padding:13px}.pwf-form{grid-template-columns:1fr}
+.pwf-actions button{width:100%}}

@@ -7,7 +7,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 
 type RecordLike = Record<string, unknown>
 const GARMIN = 'https://personal.connectapi.garmin.com'
-const LIMIT = 10
+// Bounded rolling reconciliation: also refresh recent edited activities.
+const LIMIT = 40
 
 function asObject(value: unknown): RecordLike {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -83,7 +84,7 @@ async function readActivities(key: string) {
     }
   }).filter((row): row is NonNullable<typeof row> => row !== null)
 
-  // Only read one activity detail for now. More activity details and health metrics
+  // Only read one activity detail per invocation. More activity details and health metrics
   // will be added as separate bounded synchronization jobs.
   if (rows.length) {
     try {
@@ -166,6 +167,14 @@ Deno.serve(async (req: Request) => {
     // Do not disclose keys or raw Garmin data in error messages or logs.
     const message = error instanceof Error ? error.message : 'Unexpected synchronization failure'
     console.error('GARMIN_AI sync failed:', message.replace(/[A-Za-z0-9_+/.=-]{90,}/g, '[redacted]'))
+    // Existing job log: record *failure* too. A stale success must not
+    // make the mobile app claim that a subsequent failed job was healthy.
+    try {
+      await admin.from('garmin_sync_runs').insert({
+        result: 'error', activity_count: 0,
+        message: 'activity-sync-failed', finished_at: new Date().toISOString(),
+      })
+    } catch { /* failure visibility best effort; never log Garmin credentials */ }
     return json({ ok: false, error: 'Synchronization failed; check Edge Function logs' }, 502)
   }
 })

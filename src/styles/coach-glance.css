@@ -1,0 +1,262 @@
+/* GARMIN_AI v0.9.9 – glance-first coach: no decorative dashboards above the fold. */
+.co-home{min-width:0}
+.co-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:20px 0 16px}
+.co-header-left{min-width:0}
+.co-eyebrow{display:block;color:#a6a0ff;font-size:10px;letter-spacing:.11em;font-weight:800}
+.co-header h1{font-size:clamp(26px,4.2vw,37px);line-height:1.15;letter-spacing:-.045em;margin:8px 0 6px}
+.co-header p{font-size:12px;line-height:1.45;color:#9caac2;margin:0}
+.co-weight-action{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-height:44px;border:1px solid rgba(180,189,232,.25);background:#181f32;border-radius:12px;padding:8px 12px;color:#f0f0ff;font-size:12px;font-weight:780}
+.co-weight-action .co-plus{display:grid;place-items:center;width:26px;height:26px;background:#bdadff;color:#151529;border-radius:8px;font-size:23px;line-height:1;font-weight:600}
+.co-saved-note{padding:8px 12px;margin:0 0 12px;color:#c7e6ac;font-size:11px;border:1px solid rgba(193,234,146,.14);border-radius:10px;background:rgba(168,217,132,.06)}
+.co-at-a-glance{display:grid;gap:12px}
+.co-today,/* v0.9.11 – compact premium recovery charts, no raw data table. */
+.co-recovery-glance{padding:21px;background:linear-gradient(155deg,#151e33,#101726 80%);border-color:rgba(168,177,234,.18)}
+.co-recovery-heading{display:flex;justify-content:space-between;align-items:start;gap:12px}
+.co-recovery-heading h2{font-size:23px;letter-spacing:-.04em;font-weight:820;margin:6px 0 0;color:#f5f5ff}
+.co-recovery-insight{display:flex;align-items:flex-start;gap:11px;margin:17px 0 15px;padding:12px 14px;border:1px solid rgba(161,154,248,.17);border-radius:13px;background:linear-gradient(100deg,rgba(130,102,238,.12),rgba(61,101,178,.055))}
+.co-recovery-insight-icon{width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;border-radius:10px;background:rgba(137,121,236,.17);color:#c0b6ff}
+.co-recovery-insight-icon .ic{width:16px;height:16px}
+.co-recovery-insight strong{font-size:12px;color:#e7e9fc;font-weight:790}
+.co-recovery-insight p{margin:5px 0 0;font-size:12px;line-height:1.5;color:#bdc7df}
+.co-trend-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;min-width:0}
+.co-trend-tile{--spark:#af9fff;min-width:0;padding:15px 16px 13px;background:linear-gradient(160deg,rgba(144,151,210,.075),rgba(23,31,50,.94));border:1px solid rgba(160,171,229,.18);border-radius:16px;overflow:hidden}
+.co-trend-sleep{--spark:#b49aff;background:linear-gradient(145deg,rgba(136,99,245,.14),rgba(23,31,50,.93) 72%)}
+.co-trend-hrv{--spark:#77cbeb;background:linear-gradient(145deg,rgba(78,180,215,.10),rgba(23,31,50,.93) 72%)}
+.co-trend-pulse{--spark:#a1deb8;background:linear-gradient(145deg,rgba(106,196,148,.10),rgba(23,31,50,.93) 72%)}
+.co-trend-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.co-trend-label{display:flex;align-items:center;gap:6px;color:#b5c2db;font-size:12px;font-weight:710}
+.co-trend-label .ic{width:15px;height:15px;color:var(--spark)}
+.co-trend-diff{font-size:10px;font-weight:780;border:1px solid rgba(179,183,236,.20);border-radius:999px;padding:5px 7px;color:var(--spark);white-space:nowrap}
+.co-trend-value{display:block;margin:10px 0 2px;font-size:clamp(24px,2.7vw,33px);font-weight:810;letter-spacing:-.052em;line-height:1.2;color:#f5f6ff;font-variant-numeric:tabular-nums}
+.co-sparkline-wrap{height:84px;min-width:0}
+.co-sparkline{height:64px;width:100%;display:block;color:var(--spark);overflow:visible}
+.co-spark-axis{stroke:rgba(166,186,222,.12);stroke-width:1}
+.co-spark-reference{stroke:rgba(205,210,242,.50);stroke-width:1.3;stroke-dasharray:4 5}
+.co-spark-glow{stroke:var(--spark);stroke-width:7;opacity:.13;stroke-linecap:round;stroke-linejoin:round}
+.co-spark-line{stroke:var(--spark);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.co-spark-ring{fill:var(--spark);opacity:.18}
+.co-spark-dot{fill:var(--spark);stroke:#182239;stroke-width:1}
+.co-spark-scale{display:flex;justify-content:space-between;gap:8px;margin:0 2px;font-size:9px;color:#8fa0bb}
+.co-trend-empty{font-size:11px;color:#91a0bd;margin:15px 0}
+.co-recovery-context{display:flex;justify-content:space-between;flex-wrap:wrap;gap:5px 16px;margin:12px 2px 4px;color:#899cba;font-size:10px;line-height:1.55}
+.co-mini-marker{display:inline-block;border-top:2px dashed #b3badc;vertical-align:middle;width:12px;height:0;margin-right:4px}
+.co-recovery-details{border-top:1px solid rgba(166,181,226,.12);margin-top:12px}
+.co-recovery-details>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;min-height:44px;padding:10px 2px;color:#c4b7ff;font-size:12px;font-weight:760}
+.co-recovery-details>summary::-webkit-details-marker{display:none}
+.co-recovery-details>summary::after{content:'⌄';font-size:20px;line-height:1}
+.co-recovery-details[open]>summary::after{content:'⌃'}
+.co-recovery-explanation{border:1px solid rgba(175,185,236,.10);border-radius:12px;background:#171e30;padding:14px;max-width:940px}
+.co-recovery-explanation p{font-size:11.5px;line-height:1.65;color:#b3c0da;margin:0 0 9px}
+.co-recovery-explanation p:last-child{margin:0}
+.co-recovery-explanation strong{color:#f0f0ff}
+.co-recovery-reference{font-size:11px!important;color:#8d9fbe!important}
+.co-data-note{font-size:11px;line-height:1.55;margin:10px 0 0;color:#bfaacb}
+.co-extra{margin:13px 0 0;background:#101625;border:1px solid rgba(174,190,229,.1);border-radius:14px;overflow:hidden}
+.co-extra>summary{list-style:none;cursor:pointer;min-height:52px;display:flex;justify-content:space-between;align-items:center;padding:14px 17px;color:#ccd7ef;font-size:13px;font-weight:760}
+.co-extra>summary::-webkit-details-marker{display:none}
+.co-extra>summary::after{content:'⌄';font-size:21px;line-height:1;color:#aaa3fb}
+.co-extra[open]>summary::after{content:'⌃'}
+.co-extra-content{padding:4px 15px 17px;min-width:0}
+.co-extra-content .section-title:first-child{margin-top:4px}
+.co-extra-content .stage,.co-extra-content .v3-decision-layout,.co-extra-content .v3-lower-grid{min-width:0}
+.co-period{display:flex;gap:6px;justify-content:flex-end;margin:6px 0 14px}
+.co-period button{min-height:40px;padding:7px 15px;border:1px solid rgba(155,169,219,.16);border-radius:10px;color:#a5afce;background:#171f33;font-size:12px}
+.co-period button.active{color:#fff;background:#414475}
+.co-dialog-backdrop{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;background:rgba(4,7,17,.73);backdrop-filter:blur(6px);padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));box-sizing:border-box}
+.co-dialog{width:min(100%,440px);max-height:min(90dvh,calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));overflow-y:auto;overscroll-behavior:contain;background:#121a2b;border:1px solid rgba(191,199,255,.23);border-radius:23px;padding:16px 18px 19px;box-shadow:0 24px 90px rgba(0,0,0,.5)}
+.co-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.co-dialog-head strong{font-size:16px;color:#f0f3ff}
+.co-dialog-close{min-height:42px;min-width:42px;border:1px solid rgba(183,192,232,.17);border-radius:12px;color:#e8ecff;background:#202941;font-size:20px}
+.co-dialog .sync-center.sync-center-weight{border:0;box-shadow:none;background:transparent;margin:0;padding:0;width:100%;max-width:100%}
+.co-dialog .sync-center-weight .sync-weight-top{margin-bottom:12px}
+.co-dialog .sync-center-weight .sync-weigh-form{grid-template-columns:minmax(0,1fr);gap:12px}
+.co-dialog .sync-center-weight .sync-weigh-form>.sync-weight-save{width:100%}
+@media(max-width:760px){
+ .co-header{margin:14px 0;gap:8px;align-items:center}
+ .co-header h1{font-size:27px;margin:5px 0}
+ .co-header p{font-size:11px}
+ .co-weight-action{padding:6px;min-width:44px;justify-content:center;font-size:0}
+ .co-weight-action .co-plus{width:30px;height:30px;font-size:23px}
+ .co-today,.co-recovery-glance{padding:15px 13px;border-radius:16px}
+ .co-section-head h2{font-size:17px}
+ .co-recovery-glance{padding:15px 12px}
+ .co-recovery-heading h2{font-size:19px}
+ .co-recovery-insight{margin:12px 0;padding:10px;gap:8px}
+ .co-recovery-insight p{font-size:11px}
+ .co-trend-grid{gap:6px}
+ .co-trend-tile{padding:10px 8px;border-radius:12px}
+ .co-trend-label{gap:4px;font-size:10px}
+ .co-trend-label .ic{width:13px;height:13px}
+ .co-trend-diff{font-size:9px;padding:3px 5px}
+ .co-trend-value{font-size:clamp(16px,4.3vw,23px);margin-top:8px}
+ .co-sparkline-wrap{height:67px}
+ .co-sparkline{height:49px}
+ .co-spark-scale{font-size:8px}
+ .co-recovery-context{font-size:9px}
+ .co-extra{margin-top:10px}
+ .co-dialog{border-radius:22px;max-height:min(90dvh,calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));padding:14px 14px 17px}
+}
+@media(max-width:355px){
+ .co-section-head{flex-wrap:wrap}
+ .co-trend-grid{gap:4px}
+ .co-trend-tile{padding-inline:6px}
+ .co-trend-value{font-size:15px}
+ .co-trend-label{font-size:9px}
+ .co-trend-diff{font-size:8px}
+}
+
+/* Wheel is part of the same quick sheet; no second modal or extra confirm tap. */
+.co-dialog .weight-inline-control{background:transparent;border:0;min-width:0;max-width:100%;width:100%;padding:0}
+.co-dialog .weight-inline-control .weight-sheet-preview{text-align:center;font-size:35px;font-weight:850;padding:0 0 12px;line-height:1.1;letter-spacing:-.045em}
+.co-dialog .weight-inline-control .weight-sheet-columns{display:grid;grid-template-columns:minmax(0,1.2fr) 12px minmax(0,.8fr);gap:8px;width:100%;align-items:start;margin:0 auto}
+.co-dialog .weight-inline-control .weight-sheet-column{min-width:0}
+.co-dialog .weight-inline-control .weight-sheet-track{height:192px}
+.co-dialog .weight-inline-control .weight-sheet-separator{height:192px;display:flex;align-items:center;justify-content:center}
+.co-dialog .weight-inline-control .weight-sheet-scroller{height:192px}
+.co-dialog .weight-inline-control .weight-sheet-column-title{font-size:11px}
+.co-dialog .weight-inline-hint{display:block;text-align:center;color:#9da9c4;font-size:11px;margin:10px 0}
+@media(max-height:650px){
+ .co-dialog{max-height:min(92dvh,calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))}
+ .co-dialog .weight-inline-control .weight-sheet-track,.co-dialog .weight-inline-control .weight-sheet-scroller,.co-dialog .weight-inline-control .weight-sheet-separator{height:144px}
+}
+
+/* v0.9.44 – Compact, intentional Coach header, not a full-height empty block.
+   Previous .co-link never had a component style and used the tiny browser default. */
+.co-home .co-today{
+  position:relative;isolation:isolate;padding:17px 20px 14px;
+  border:1px solid rgba(163,165,238,.22);border-radius:17px;
+  background:linear-gradient(120deg,#19253d 0%,#131d30 68%,#121a2b 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+  min-height:0;
+}
+.co-home .co-today:before{
+  content:'';position:absolute;top:0;left:20px;width:62px;height:2px;
+  border-radius:2px;background:linear-gradient(90deg,#b5a4ff,#71c9ff);
+}
+.co-home .co-section-head{display:flex;align-items:center;
+  justify-content:space-between;gap:14px;flex-wrap:wrap;min-width:0}
+.co-home .co-section-head>div{min-width:0;flex:1 1 260px}
+.co-home .co-section-head .co-eyebrow{font-size:10px;color:#aca5ff}
+.co-home .co-section-head h2{
+  font-size:clamp(17px,2vw,22px);letter-spacing:-.035em;
+  line-height:1.25;font-weight:820;color:#f3f5ff;margin:7px 0 5px;
+}
+.co-home .co-section-head p{
+  font-size:12px;line-height:1.5;color:#b5c6de;margin:0;
+  max-width:720px;
+}
+.co-home .co-section-head .co-data-note{font-size:11px;margin-top:7px}
+.co-home .co-link{
+  appearance:none;display:inline-flex;justify-content:center;align-items:center;
+  gap:9px;flex:0 0 auto;min-height:44px;min-width:155px;padding:10px 14px;
+  border:1px solid rgba(188,172,255,.39);border-radius:11px;
+  background:linear-gradient(125deg,rgba(142,116,236,.20),rgba(102,144,220,.13));
+  color:#f0ebff;font-weight:770;font-size:12px;line-height:1.2;
+  white-space:nowrap;transition:border-color .2s ease,background .2s ease,transform .2s ease;
+}
+.co-home .co-link .ic{width:15px;height:15px;color:#c6b8ff}
+.co-home .co-link:hover{border-color:rgba(199,188,255,.7);
+  background:rgba(145,122,237,.25);transform:translateY(-1px)}
+.co-home .co-link:focus-visible{outline:2px solid #a5ccff;outline-offset:3px}
+.co-home .co-today>.co-fixed-weather,
+.co-home .co-today>.weather-brief,
+.co-home .co-today>.co-weather-compact{margin-top:12px}
+@media(max-width:600px){
+  .co-home .co-today{padding:14px 13px 12px;border-radius:14px}
+  .co-home .co-section-head{gap:12px;align-items:start}
+  .co-home .co-section-head>div{flex:1 1 160px}
+  .co-home .co-section-head h2{font-size:18px;line-height:1.28}
+  .co-home .co-section-head p{font-size:11px}
+  .co-home .co-link{min-width:0;min-height:44px;padding:10px 11px;
+    font-size:11px;align-self:start}
+}
+@media(max-width:395px){
+ .co-home .co-link{width:100%;justify-content:space-between}
+ .co-home .co-section-head>div{flex-basis:100%}
+}
+
+/* v0.9.69 – every recovery number gets a brief, personalized meaning. */
+.co-recovery-reading{margin-top:9px!important;padding-top:9px;border-top:1px solid rgba(149,170,220,.17);
+ color:#e0dffc!important;font-size:12px!important;line-height:1.6!important}
+.co-trend-meaning{font-size:10.5px;line-height:1.5;color:#a5b9d5;margin:8px 0 0;
+ min-height:47px;border-top:1px solid rgba(158,177,224,.11);padding-top:8px}
+@media(max-width:760px){.co-recovery-reading{font-size:11px!important}
+ .co-trend-meaning{font-size:9px;line-height:1.45;min-height:65px;margin-top:5px;padding-top:6px}}
+
+/* v0.9.70 · turn REAL day/recovery cards into premium Horizon visuals, without fake scores. */
+.co-home .co-header-left h1{
+ background:linear-gradient(115deg,#f9f8ff 18%,#ccc6ff 62%,#9bc9ff);
+ background-clip:text;-webkit-background-clip:text;color:transparent;
+ font-weight:850}
+.co-home .co-today{isolation:isolate;overflow:hidden;
+ border-color:rgba(166,161,249,.29);
+ background:radial-gradient(ellipse 460px 240px at 100% -58%,rgba(154,126,255,.17),transparent 88%),
+ radial-gradient(ellipse 300px 220px at -15% 125%,rgba(65,164,225,.1),transparent 78%),
+ linear-gradient(118deg,#20243e,#141e33 73%,#111a2a);
+ box-shadow:0 13px 32px rgba(5,10,25,.16),inset 0 1px rgba(224,221,255,.04)}
+.co-home .co-today:after{content:'';position:absolute;z-index:-1;pointer-events:none;
+ right:-85px;top:-126px;width:270px;height:270px;border-radius:50%;
+ border:1px solid rgba(172,162,255,.12);
+ box-shadow:0 0 0 33px rgba(147,157,237,.02),0 0 0 65px rgba(143,145,237,.02)}
+.co-decision-chip{display:inline-flex;align-items:center;gap:6px;width:fit-content;
+ border-radius:24px;border:1px solid rgba(175,175,250,.20);
+ background:rgba(163,140,240,.11);padding:5px 9px;margin:10px 0 0;
+ font-size:9px;font-weight:820;letter-spacing:.06em;color:#c6bdfc}
+.co-decision-dot{width:6px;height:6px;border-radius:50%;background:#aca1ff;
+ box-shadow:0 0 11px rgba(170,163,255,.56)}
+.co-decision-skipped{border-color:rgba(134,210,174,.26);
+ background:rgba(83,158,123,.13);color:#b1edcf}
+.co-decision-skipped .co-decision-dot{background:#c5fa8c;box-shadow:0 0 13px rgba(196,247,140,.6)}
+.co-decision-active{border-color:rgba(116,181,235,.28);color:#bddbf6}
+.co-decision-active .co-decision-dot{background:#80c7ff}
+.co-decision-free{color:#b1c7de}
+.co-home .co-today .co-section-head h2{font-weight:870;letter-spacing:-.045em;
+ font-size:clamp(19px,2.25vw,26px)}
+.co-home .co-recovery-glance{position:relative;overflow:hidden;
+ border:1px solid rgba(150,162,227,.20);border-radius:18px;
+ background:radial-gradient(ellipse 360px 180px at 0% -25%,rgba(144,111,236,.11),transparent 85%),
+ linear-gradient(155deg,#171f35,#111a2b 88%)}
+.co-home .co-recovery-insight{border-color:rgba(169,151,255,.27);
+ background:linear-gradient(110deg,rgba(128,102,228,.17),rgba(47,90,157,.08))}
+.co-home .co-trend-tile{box-shadow:inset 0 1px rgba(249,249,255,.03)}
+@media(max-width:760px){.co-decision-chip{margin-top:8px;font-size:8px}
+ .co-home .co-today .co-section-head h2{font-size:19px}}
+
+/* v0.9.72 – the daily signals are presented as trends, not readiness scores. */
+.co-recovery-note{font-size:11px;line-height:1.55;color:#aabdd8;margin:5px 0 0}
+.co-recovery-note small{display:block;font-size:10px;color:#8597b6;margin:4px 0 0}
+.co-extra-tools{margin-top:12px;padding:9px 13px;border:1px solid rgba(144,168,209,.2);
+ border-radius:14px;background:rgba(17,30,52,.5)}
+.co-extra-tools>summary{cursor:pointer;min-height:37px;display:flex;align-items:center;
+ color:#c0d2ec;font-size:11px;font-weight:850;letter-spacing:.025em}
+.co-extra-tools>summary:focus-visible{outline:2px solid #b6dbff;outline-offset:3px}
+.co-extra-tools[open]>summary{border-bottom:1px solid rgba(139,159,200,.17);margin-bottom:12px}
+@media(max-width:600px){.co-recovery-note{font-size:10px}.co-extra-tools{padding:8px 10px}}
+
+/* v0.9.76: position against the *visual viewport* explicitly.
+   Never inherit sheet alignment; the inline wheel remains in this one dialog. */
+body > .co-dialog-backdrop{position:fixed;inset:0;width:100vw;height:100dvh;
+ display:block;z-index:5000;margin:0;padding:0;box-sizing:border-box}
+body > .co-dialog-backdrop > .co-dialog{position:absolute;top:50%;left:50%;
+ transform:translate(-50%,-50%);margin:0;
+ width:min(440px,calc(100vw - 24px));
+ max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+ overflow-y:auto;overscroll-behavior:contain;border-radius:20px}
+@supports not (height:100dvh){
+ body > .co-dialog-backdrop{height:100vh}
+ body > .co-dialog-backdrop > .co-dialog{max-height:calc(100vh - 24px)}
+}
+
+/* P0: optional weekly recap is a single compact entry, not another dashboard on first load. */
+.co-extra-tools{margin:12px 0 18px;border:1px solid rgba(147,178,227,.25);
+ border-radius:13px;background:#142039;padding:0;overflow:hidden}
+.co-extra-tools>summary{min-height:50px;padding:13px 16px;cursor:pointer;color:#e1eafe;
+ font-size:12px;font-weight:800;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.co-extra-tools>summary>span{color:#9ab0d0;font-size:10px}
+.co-extra-tools[open]{padding:0 13px 13px}
+.co-extra-tools[open]>summary{margin:0 -13px 13px;border-bottom:1px solid rgba(160,190,231,.15)}
+.co-extra-tools>summary:focus-visible{outline:2px solid #c4ec98}
+.co-extra-actions{display:grid;gap:10px}
+.co-extra-actions>button{display:flex;align-items:center;justify-content:space-between;gap:10px;
+ width:100%;min-height:46px;padding:12px;border:1px solid rgba(157,186,228,.25);
+ background:#1c2b44;color:#e4eeff;border-radius:10px;text-align:left;font-size:12px;font-weight:750}

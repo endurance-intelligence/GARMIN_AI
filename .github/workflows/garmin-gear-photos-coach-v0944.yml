@@ -1,0 +1,37 @@
+name: GARMIN_AI Gear Photos + Coach Card v0.9.44
+on:
+  push:
+    paths:
+      - 'supabase/functions/garmin-gear-image/index.ts'
+      - 'src/components/GarminConnectSnapshot.tsx'
+      - 'src/lib/gearImages.ts'
+      - 'src/styles/garmin-connect-snapshot.css'
+      - 'src/components/CoachGlance.tsx'
+      - 'src/styles/coach-glance.css'
+      - 'tests/mobile-gear-photos-coach-ux-v0944.test.mjs'
+      - 'tests/mobile-clean-coach.test.mjs'
+      - '.github/workflows/garmin-gear-photos-coach-v0944.yml'
+  pull_request:
+    paths:
+      - 'supabase/functions/garmin-gear-image/index.ts'
+      - 'src/components/GarminConnectSnapshot.tsx'
+      - 'src/lib/gearImages.ts'
+      - 'src/styles/garmin-connect-snapshot.css'
+      - 'src/components/CoachGlance.tsx'
+      - 'src/styles/coach-glance.css'
+      - 'tests/mobile-gear-photos-coach-ux-v0944.test.mjs'
+      - 'tests/mobile-clean-coach.test.mjs'
+      - '.github/workflows/garmin-gear-photos-coach-v0944.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-gear-photos-coach-ux-v0944.test.mjs tests/garmin-gear-image.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-session-coach-consistency-v0943.test.mjs tests/mobile-ipad-ux.test.mjs
+      - run: npm run build

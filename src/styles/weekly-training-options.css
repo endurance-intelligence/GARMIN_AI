@@ -1,0 +1,33 @@
+/* GARMIN_AI v0.9.25: touch-first recurring options, never automatic training events. */
+.wo-root{margin:18px 0;padding:17px 18px 16px;border:1px solid rgba(151,171,236,.22);border-radius:19px;background:linear-gradient(145deg,#162136,#101826);min-width:0}
+.wo-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:17px}
+.wo-kicker{font-size:10px;color:#aba2ff;letter-spacing:.12em;font-weight:800}
+.wo-head h3{margin:7px 0;font-size:21px;font-weight:830;letter-spacing:-.04em;color:#f2f5ff}
+.wo-head p{font-size:12px;color:#a8b5d0;line-height:1.5;margin:0;max-width:590px}
+.wo-pill{white-space:nowrap;flex:0 0 auto;font-size:11px;border:1px solid rgba(137,165,255,.25);border-radius:100px;padding:6px 10px;color:#bdcaff}
+.wo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.wo-entry{min-width:0;border:1px solid rgba(155,171,216,.17);border-radius:15px;padding:13px;background:#182238}
+.wo-entry.wo-selected{border-color:rgba(125,215,183,.34);background:linear-gradient(140deg,rgba(68,145,112,.12),#182238 70%)}
+.wo-entry.wo-skipped{opacity:.73}
+.wo-entry-main{display:flex;align-items:flex-start;gap:11px;min-width:0}
+.wo-day{display:flex;flex:0 0 55px;flex-direction:column;align-items:center;border:1px solid rgba(180,190,235,.15);border-radius:11px;padding:7px 4px;background:#101a2c}
+.wo-day strong{font-size:16px;color:#e9e9ff}.wo-day small{font-size:10px;color:#a4b2d1}
+.wo-body{display:flex;flex-direction:column;gap:4px;min-width:0}
+.wo-body strong{font-size:14px;color:#f2f4ff;font-weight:830}
+.wo-body>span{font-size:12px;color:#b4c1da;line-height:1.45}
+.wo-weather{font-size:11px;line-height:1.5;color:#b9d4e0}
+.wo-weather.wo-risk{color:#ffca8c}
+.wo-action{display:flex;justify-content:space-between;align-items:center;gap:9px;flex-wrap:wrap;margin-top:13px}
+.wo-state{font-size:11px;font-weight:760;color:#9aafd3}
+.wo-selected .wo-state{color:#8ce4c0}
+.wo-buttons{display:flex;flex-wrap:wrap;gap:6px}
+.wo-buttons button{min-height:40px;padding:8px 10px;font:inherit;font-size:11px;font-weight:750;
+ border:1px solid rgba(163,180,230,.24);border-radius:10px;background:#222d46;color:#d6dafa;cursor:pointer}
+.wo-buttons button.picked{background:#5964a4;border-color:#7c8fd8;color:white}
+.wo-buttons button:disabled{opacity:.48;cursor:not-allowed}
+.wo-foot,.wo-info{font-size:11px;line-height:1.55;color:#9aa9c4;margin:13px 0 0}
+.wo-error{color:#ffaaa3;font-size:12px}.wo-notice{color:#8ae3c0;font-size:12px}
+.wo-compact{margin:12px 0}.wo-compact .wo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:690px){.wo-root{padding:14px}.wo-grid,.wo-compact .wo-grid{grid-template-columns:minmax(0,1fr)}
+.wo-head h3{font-size:19px}.wo-entry{padding:12px}.wo-entry-main{gap:9px}
+.wo-head{gap:8px}.wo-pill{padding:5px 8px;font-size:10px}}

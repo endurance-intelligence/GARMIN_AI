@@ -1,0 +1,31 @@
+name: GARMIN_AI Premium Exercise Comics v0.9.54
+on:
+  push:
+    paths:
+      - 'public/exercise-comics/*.webp'
+      - 'src/lib/exerciseComicAssets.json'
+      - 'src/components/ExerciseComic.tsx'
+      - 'src/styles/exercise-comics.css'
+      - 'tests/mobile-movement-comics-v0953.test.mjs'
+      - '.github/workflows/garmin-premium-comics-v0954.yml'
+  pull_request:
+    paths:
+      - 'public/exercise-comics/*.webp'
+      - 'src/lib/exerciseComicAssets.json'
+      - 'src/components/ExerciseComic.tsx'
+      - 'src/styles/exercise-comics.css'
+      - 'tests/mobile-movement-comics-v0953.test.mjs'
+      - '.github/workflows/garmin-premium-comics-v0954.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-movement-comics-v0953.test.mjs tests/mobile-stabi-studio.test.mjs tests/mobile-ipad-ux.test.mjs
+      - run: npm run build

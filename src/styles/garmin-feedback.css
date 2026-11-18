@@ -1,0 +1,37 @@
+/* No duplicate Garmin evaluation forms. Source-owned, collapsible feedback. */
+.gfb-root{background:#182841;border:1px solid rgba(156,187,231,.23);
+ border-radius:14px;overflow:hidden;color:#edf5ff;margin:12px 0}
+.gfb-head{display:flex;align-items:center;gap:11px;list-style:none;
+ cursor:pointer;padding:12px 15px;min-height:65px}
+.gfb-head::-webkit-details-marker{display:none}
+.gfb-head:focus-visible{outline:2px solid #c9ec96;outline-offset:-3px}
+.gfb-icon{flex:0 0 37px;width:37px;height:37px;border-radius:11px;
+ background:#293753;color:#d0c6f6;display:grid;place-items:center}
+.gfb-icon .ic{height:19px;width:19px}
+.gfb-copy{display:grid;gap:4px;min-width:0;flex:1}
+.gfb-copy small{font-size:9px;color:#bab6ec;font-weight:860;letter-spacing:.07em}
+.gfb-copy strong{font-size:14px;color:#f4f7ff}
+.gfb-copy>span{font-size:11px;color:#b9cbe2;line-height:1.45}
+.gfb-counter{font-size:19px;color:#d5f3ad;font-weight:880;text-align:center;
+ display:grid;gap:4px;min-width:52px;font-variant-numeric:tabular-nums}
+.gfb-counter small{font-size:9px;color:#a4b6d2;font-weight:630;white-space:nowrap}
+.gfb-head>.ic{width:16px;height:16px;flex:0 0 16px;color:#aebfe3}
+.gfb-root[open] .gfb-head>.ic{transform:rotate(180deg)}
+.gfb-body{padding:12px 15px 14px;border-top:1px solid rgba(158,188,224,.17)}
+.gfb-latest{background:#15243a;border:1px solid rgba(159,183,222,.15);
+ padding:11px;border-radius:10px;display:grid;gap:4px}
+.gfb-latest>strong{font-size:12px;color:#eaf3ff}
+.gfb-latest>span{font-size:10px;color:#9eb2cd}
+.gfb-values{display:flex;gap:7px 17px;flex-wrap:wrap;margin-top:4px}
+.gfb-values>span{font-size:11px;color:#b6c8e4}
+.gfb-values strong{color:#e6f2d5}
+.gfb-body p{font-size:11px;color:#aebfda;line-height:1.65;margin:10px 0 0}
+.gfb-body .gfb-advice{color:#d1e6c0}
+.gfb-body .gfb-illness strong{color:#e9f2ff}
+.gfb-root.is-high{border-color:rgba(233,173,128,.35)}
+@media(max-width:560px){
+ .gfb-head{padding:10px;gap:8px}.gfb-copy strong{font-size:13px}
+ .gfb-counter{font-size:16px;min-width:40px}.gfb-counter small{font-size:8px}
+ .gfb-icon{width:32px;height:32px;flex-basis:32px}
+ .gfb-body{padding:10px}
+}

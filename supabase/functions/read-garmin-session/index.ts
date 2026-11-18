@@ -3,12 +3,74 @@
  * Supabase Auth is verified INSIDE the function; never turn this into an anonymous data API.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { normalizeGear, normalizeSchedule, validCalendarRange } from '../_shared/garmin-connect-context.mjs'
+
+// Read-only Garmin Connect context. Tokens remain server-side and are cached only in memory.
+// No scheduled jobs, persistent token storage, or Garmin writes are introduced.
+const garminApi = 'https://personal.connectapi.garmin.com'
+let cachedBearer: { token: string; expires: number } | null = null
+let inflightBearer: Promise<string> | null = null
+class GarminContextError extends Error {
+  constructor(readonly status: number) { super('garmin-context-http-' + status) }
+}
+async function garminRequest(path: string, token: string): Promise<unknown> {
+  const response = await fetch(garminApi + path, {
+    method: 'GET', headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!response.ok) {
+    if (response.status === 401) cachedBearer = null
+    throw new GarminContextError(response.status)
+  }
+  if (Number(response.headers.get('content-length') || 0) > 300000) throw new Error('garmin-context-too-large')
+  const body = await response.text()
+  if (!body || body.length > 300000) throw new Error('garmin-context-response-invalid')
+  return JSON.parse(body) as unknown
+}
+async function bearerToken(): Promise<string> {
+  if (cachedBearer && cachedBearer.expires > Date.now()) return cachedBearer.token
+  if (inflightBearer) return inflightBearer
+  inflightBearer = (async () => {
+    const apiKey = Deno.env.get('GARMIN_API_KEY') || ''
+    if (!/^[A-Za-z0-9_+/.=-]{20,2048}$/.test(apiKey)) throw new Error('garmin-context-unconfigured')
+    const response = await fetch(garminApi + '/personalapitoken-service/personal-api/personal-api-key/token', {
+      method: 'POST', headers: { Authorization: `ApiKey ${apiKey}` },
+      signal: AbortSignal.timeout(15000),
+    })
+    if (!response.ok) throw new GarminContextError(response.status)
+    const token = (await response.text()).trim().replace(/^"|"$/g, '')
+    if (!/^[A-Za-z0-9_+/.=-]{20,2048}$/.test(token)) throw new Error('garmin-context-token-invalid')
+    cachedBearer = { token, expires: Date.now() + 20 * 60 * 60 * 1000 }
+    return token
+  })()
+  try { return await inflightBearer }
+  finally { inflightBearer = null }
+}
+function contextFailure(error: unknown): string {
+  if (error instanceof GarminContextError) {
+    if (error.status === 401 || error.status === 403) return 'access-denied'
+    if (error.status === 429) return 'rate-limited'
+    if (error.status === 404 || error.status === 405) return 'unavailable'
+    return 'upstream-error'
+  }
+  if (error instanceof Error && error.message === 'garmin-context-unconfigured') return 'unconfigured'
+  if (error instanceof Error && error.message === 'garmin-context-unexpected-shape') return 'unsupported-shape'
+  return 'read-error'
+}
+async function safeContextRead<T>(load: () => Promise<T>): Promise<{status: string; data: T | null}> {
+  try { return { status: 'ok', data: await load() } }
+  catch (error) { return { status: contextFailure(error), data: null } }
+}
+function dayOffset(offset: number): string {
+  return new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10)
+}
+
 
 const projectUrl = Deno.env.get('SUPABASE_URL') || ''
 const ownerEmail = (Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL') || '').trim().toLowerCase()
 const runningTypes = ['running', 'track_running', 'treadmill_running', 'ultra_run']
 
-type NumericPoint = { i: number; hr?: number; speed?: number; elapsed?: number; distance?: number }
+type NumericPoint = { i: number; hr?: number; speed?: number; elapsed?: number; distance?: number; elevation?: number; power?: number; cadence?: number }
 
 function key(kind: 'publishable' | 'secret'): string {
   const modern = kind === 'publishable' ? 'SUPABASE_PUBLISHABLE_KEYS' : 'SUPABASE_SECRET_KEYS'
@@ -23,7 +85,7 @@ function key(kind: 'publishable' | 'secret'): string {
   return Deno.env.get(legacy) || ''
 }
 function cors(origin: string | null): Record<string, string> {
-  const allow = !!origin && /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin)
+  const allow = origin==='https://endurance-intelligence.github.io' || (!!origin && /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin))
   return {
     ...(allow ? { 'Access-Control-Allow-Origin': origin, 'Vary': 'Origin' } : {}),
     'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
@@ -46,12 +108,18 @@ function point(value: unknown, i: number): NumericPoint | null {
   const speed = numeric(v.speed)
   const elapsed = numeric(v.elapsed)
   const distance = numeric(v.distance)
+  const elevation = numeric(v.elevation)
+  const power = numeric(v.power)
+  const cadence = numeric(v.cadence)
   // Whitelist only analysis metrics. Discard raw descriptors and any GPS payloads.
   const p: NumericPoint = { i }
   if (hr !== null && hr >= 35 && hr <= 220) p.hr = hr
   if (speed !== null && speed >= 0 && speed <= 20) p.speed = speed
   if (elapsed !== null && elapsed >= 0) p.elapsed = elapsed
   if (distance !== null && distance >= 0) p.distance = distance
+  if (elevation !== null && elevation >= -500 && elevation <= 9000) p.elevation = elevation
+  if (power !== null && power >= 0 && power <= 2500) p.power = power
+  if (cadence !== null && cadence >= 0 && cadence <= 250) p.cadence = cadence
   return Object.keys(p).length > 1 ? p : null
 }
 
@@ -83,6 +151,39 @@ Deno.serve(async (req: Request) => {
     const id = url.searchParams.get('id')
     if (id !== null && !/^\d{5,20}$/.test(id)) return json({ error: 'Invalid activity ID' }, 400, headers)
 
+    // Opt-in context API: ?context=1[&id=123][&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD]
+    // Authenticate owner BEFORE making any Garmin calls. Legacy activity routes are unchanged.
+    if (url.searchParams.get('context') === '1') {
+      const startDate = url.searchParams.get('startDate') ?? dayOffset(-7)
+      const endDate = url.searchParams.get('endDate') ?? dayOffset(28)
+      if (!validCalendarRange(startDate, endDate)) {
+        return json({ error: 'Invalid calendar range (max 45 days)' }, 400, headers)
+      }
+      if (id !== null) {
+        const { data: exists, error: existsError } = await admin.from('garmin_activities')
+          .select('activity_id').eq('activity_id', id).maybeSingle()
+        if (existsError) throw new Error(`context-activity ${existsError.code}`)
+        if (!exists) return json({ error: 'Activity not found' }, 404, headers)
+      }
+      // Distinguish empty lists (status=ok, items=[]) from unavailable/unknown responses.
+      const tokenResult = await safeContextRead(bearerToken)
+      if (tokenResult.status !== 'ok' || !tokenResult.data) {
+        return json({ source: 'Garmin Connect (unofficial)', readOnly: true,
+          status: tokenResult.status, gearCatalog: null, schedule: null, activityGear: null }, 200, headers)
+      }
+      const token = tokenResult.data
+      const [gearCatalog, schedule, activityGear] = await Promise.all([
+        safeContextRead(async () => normalizeGear(await garminRequest('/gear-service/gear/v2/list?start=0&limit=100', token))),
+        safeContextRead(async () => normalizeSchedule(await garminRequest(
+          '/workout-service/schedule/workoutScheduleByPeriod?startDate=' + startDate + '&endDate=' + endDate, token))),
+        id === null ? Promise.resolve(null) : safeContextRead(async () => normalizeGear(
+          await garminRequest('/gear-service/activity/v2/' + id, token))),
+      ])
+      return json({ source: 'Garmin Connect (unofficial)', readOnly: true,
+        gearCatalog, schedule: { ...schedule, startDate, endDate },
+        activityGear: id === null ? null : { activityId: id, ...activityGear } }, 200, headers)
+    }
+
     if (id === null) {
       const { data, error } = await admin.from('garmin_activities')
         .select('activity_id,activity_name,start_time_local,sport_type,distance_m,duration_s,average_heart_rate,rpe_raw')
@@ -93,7 +194,7 @@ Deno.serve(async (req: Request) => {
       const activities = data ?? []
       const ids = activities.map(a => String(a.activity_id))
       const details = ids.length ? await admin.from('garmin_activity_details')
-        .select('activity_id,status,hr_sample_count,sample_count,lap_count')
+        .select('activity_id,status,hr_sample_count,sample_count,lap_count,fit_status')
         .in('activity_id', ids) : { data: [], error: null }
       if (details.error) throw new Error(`detail-list ${details.error.code}`)
       const status = new Map((details.data ?? []).map(d => [String(d.activity_id), d]))
@@ -104,6 +205,7 @@ Deno.serve(async (req: Request) => {
         detailStatus: status.get(String(a.activity_id))?.status ?? 'not-imported',
         hrSamples: status.get(String(a.activity_id))?.hr_sample_count ?? 0,
         laps: status.get(String(a.activity_id))?.lap_count ?? 0,
+        fitStatus: status.get(String(a.activity_id))?.fit_status ?? 'not-imported',
       })) }, 200, headers)
     }
 
@@ -113,11 +215,20 @@ Deno.serve(async (req: Request) => {
     if (activityError) throw new Error(`activity ${activityError.code}`)
     if (!activity || !runningTypes.includes(activity.sport_type)) return json({ error: 'Running activity not found' }, 404, headers)
     const { data: detail, error: detailError } = await admin.from('garmin_activity_details')
-      .select('status,samples,hr_sample_count,lap_count,laps,summary,fetched_at')
+      .select('status,samples,hr_sample_count,lap_count,laps,summary,fetched_at,fit_status,fit_record_count,fit_laps,fit_events,fit_sessions,fit_workout_steps,fit_terrain,fit_quality,fit_fetched_at')
       .eq('activity_id', id).maybeSingle()
     if (detailError) throw new Error(`details ${detailError.code}`)
-    const rawSamples: unknown[] = Array.isArray(detail?.samples) ? detail.samples : []
-    const samples = rawSamples.slice(0, 1800).map((s, index) => point(s, index)).filter(p => p !== null)
+    const useFit = detail?.fit_status === 'complete' && numeric(detail?.fit_record_count) !== null && (detail?.fit_record_count ?? 0) > 1
+    let rawSamples: unknown[] = Array.isArray(detail?.samples) ? detail.samples : []
+    if (useFit) {
+      const { data: chunks, error: chunkError } = await admin.from('garmin_fit_record_chunks')
+        .select('records').eq('activity_id', id).order('chunk_index', { ascending: true })
+      if (chunkError) throw new Error(`fit-chunks ${chunkError.code}`)
+      rawSamples = (chunks ?? []).flatMap(c => Array.isArray(c.records) ? c.records : [])
+    }
+    const sampled = rawSamples.length <= 1800 ? rawSamples : Array.from({ length: 1800 }, (_, i) =>
+      rawSamples[Math.floor(i * (rawSamples.length - 1) / 1799)])
+    const samples = sampled.map((s, index) => point(s, index)).filter(p => p !== null)
     const summary = detail?.summary && typeof detail.summary === 'object' ? detail.summary as Record<string, unknown> : {}
     return json({
       source: 'Garmin / Supabase',
@@ -137,6 +248,15 @@ Deno.serve(async (req: Request) => {
           return { index: numeric(l.index), elapsedS: numeric(l.elapsed_s), distanceM: numeric(l.distance_m), avgHr: numeric(l.avg_hr) }
         }) : [],
         fetchedAt: detail?.fetched_at ?? null,
+        fitStatus: detail?.fit_status ?? 'not-imported',
+        fitFetchedAt: detail?.fit_fetched_at ?? null,
+        sampleSource: useFit ? 'original-fit' : 'garmin-api-chart',
+        fitRecordCount: detail?.fit_record_count ?? 0,
+        fitLapCount: Array.isArray(detail?.fit_laps) ? detail.fit_laps.length : 0,
+        fitEventCount: Array.isArray(detail?.fit_events) ? detail.fit_events.length : 0,
+        fitWorkoutStepCount: Array.isArray(detail?.fit_workout_steps) ? detail.fit_workout_steps.length : 0,
+        fitQuality: detail?.fit_quality ?? {},
+        terrainWindows: Array.isArray(detail?.fit_terrain) ? detail.fit_terrain.slice(0, 10000) : [],
         samples,
       },
     }, 200, headers)

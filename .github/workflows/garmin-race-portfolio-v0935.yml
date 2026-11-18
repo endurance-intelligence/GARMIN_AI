@@ -1,0 +1,39 @@
+name: GARMIN_AI Race Goals, Weather and GPX
+on:
+  push:
+    paths:
+      - 'src/components/RaceGoalsPanel.tsx'
+      - 'src/components/RaceForecastCompact.tsx'
+      - 'src/components/RaceRouteViewer.tsx'
+      - 'src/lib/gpxRaceRoute.mjs'
+      - 'src/lib/weatherIntelligence.ts'
+      - 'src/pages/RacePage.tsx'
+      - 'supabase/functions/garmin-race-goals/**'
+      - 'supabase/functions/garmin-race-route/**'
+      - 'tests/mobile-race-goals-weather-gpx-v0935.test.mjs'
+      - '.github/workflows/garmin-race-portfolio-v0935.yml'
+  pull_request:
+    paths:
+      - 'src/components/RaceGoalsPanel.tsx'
+      - 'src/components/RaceForecastCompact.tsx'
+      - 'src/components/RaceRouteViewer.tsx'
+      - 'src/lib/gpxRaceRoute.mjs'
+      - 'src/lib/weatherIntelligence.ts'
+      - 'src/pages/RacePage.tsx'
+      - 'supabase/functions/garmin-race-goals/**'
+      - 'supabase/functions/garmin-race-route/**'
+      - 'tests/mobile-race-goals-weather-gpx-v0935.test.mjs'
+      - '.github/workflows/garmin-race-portfolio-v0935.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-race-goals-weather-gpx-v0935.test.mjs tests/mobile-weather-intelligence.test.mjs tests/mobile-clean-coach.test.mjs tests/mobile-coach-goal-weather-v0931.test.mjs tests/mobile-race-event-research-v0932.test.mjs tests/mobile-event-archive-logo-autocomplete-v0934.test.mjs
+      - run: npm run build

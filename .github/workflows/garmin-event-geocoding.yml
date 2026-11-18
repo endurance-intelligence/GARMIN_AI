@@ -1,0 +1,33 @@
+name: GARMIN_AI Event Scout Address Geocoding
+on:
+  push:
+    paths:
+      - 'supabase/functions/garmin-race-research/**'
+      - 'supabase/functions/_shared/race-venue-geocode.mjs'
+      - 'src/components/RaceEventResearch.tsx'
+      - 'src/styles/race-event-research.css'
+      - 'supabase/migrations/20261111131500_race_venue_geocode_cache.sql'
+      - 'tests/mobile-race-venue-address-v0933.test.mjs'
+      - '.github/workflows/garmin-event-geocoding.yml'
+  pull_request:
+    paths:
+      - 'supabase/functions/garmin-race-research/**'
+      - 'supabase/functions/_shared/race-venue-geocode.mjs'
+      - 'src/components/RaceEventResearch.tsx'
+      - 'src/styles/race-event-research.css'
+      - 'supabase/migrations/20261111131500_race_venue_geocode_cache.sql'
+      - 'tests/mobile-race-venue-address-v0933.test.mjs'
+      - '.github/workflows/garmin-event-geocoding.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-race-venue-address-v0933.test.mjs tests/mobile-race-event-research-v0932.test.mjs tests/mobile-coach-goal-weather-v0931.test.mjs
+      - run: npm run build

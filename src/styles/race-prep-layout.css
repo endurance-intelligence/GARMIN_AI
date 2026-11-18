@@ -1,0 +1,9 @@
+.race-prep-intro{align-items:center;gap:20px}
+.race-prep-goals-link{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+ min-height:43px;padding:11px 14px;border-radius:12px;border:1px solid rgba(163,193,235,.3);
+ color:#e9efff;background:#1b2b43;font-size:11px;font-weight:800;white-space:nowrap}
+.race-prep-goals-link .ic{width:16px;height:16px}
+.race-prep-goals-link:focus-visible{outline:2px solid #cbf39b;outline-offset:2px}
+.race-prep-page .rer-root{margin-top:14px}
+@media(max-width:660px){.race-prep-intro{display:grid;gap:14px}
+ .race-prep-goals-link{justify-self:start}}

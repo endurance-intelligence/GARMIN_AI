@@ -1,0 +1,159 @@
+/*
+ * GARMIN_AI v0.8.1 – smartphone-first presentation.
+ * Additive overrides loaded AFTER Horizon and all module styles.
+ * No changes to Garmin data, auth, requests or coach logic.
+ */
+
+@media (max-width: 760px) {
+  /* Use the real viewport width; grid descendants must be allowed to shrink. */
+  html, body, #root { width: 100%; min-width: 0; }
+  .app, .main, .main-in, .page, .page-intro,
+  .stage, .v3-stage, .v3-decision-layout,
+  .session-lead, .session-detail-layout, .session-bottom-grid,
+  .sub-grid, .ri-metric-grid, .ri-training-grid,
+  .sync-center, .gcs-card, .lsa-wrap { min-width: 0; max-width: 100%; }
+
+  /* Do not cover the last cards with the fixed bottom navigation. */
+  .main {
+    padding: 0 14px calc(110px + env(safe-area-inset-bottom));
+  }
+  .topbar {
+    min-height: 66px;
+    gap: 8px;
+  }
+  .top-actions { min-width: 0; gap: 8px; }
+  .top-actions .pill {
+    max-width: 55%;
+    min-width: 0;
+    font-size: 9px;
+    line-height: 1.3;
+    padding: 7px 10px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: right;
+  }
+  .mobile-brand { white-space: nowrap; min-width: 0; }
+
+  /* Clear reading order and predictable one-column cards. */
+  .page-intro, .introduction-v3 { display: block; padding-top: 25px; }
+  .page-intro h1, .introduction-v3 h1 {
+    font-size: clamp(30px, 8.8vw, 41px);
+    line-height: 1.09;
+    overflow-wrap: break-word;
+  }
+  .page-intro p { font-size: 13px; line-height: 1.55; }
+  .section-title { flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+  .section-title small { line-height: 1.45; }
+  .v3-stage, .stage, .v3-decision-layout,
+  .session-detail-layout, .session-bottom-grid,
+  .lower-grid, .sub-grid, .ri-training-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .stage > *, .v3-stage > *, .v3-decision-layout > *,
+  .session-detail-layout > *, .session-bottom-grid > *,
+  .sub-grid > *, .ri-training-grid > * { min-width: 0; }
+
+  /* Coach panel: shorter first screen, readable actions. */
+  .v3-coach-hero { min-height: 0; }
+  .v3-coach-hero .coach-inner { padding: 21px 18px 22px; }
+  .v3-coach-hero .coach-inner h2,
+  .coach-inner h2 { font-size: clamp(30px, 9vw, 43px); line-height: 1.08; }
+  .coach-hero-content { min-height: 0; }
+  .coach-foot { flex-wrap: wrap; gap: 9px; }
+  .coach-foot button { min-height: 44px; max-width: 100%; }
+  .decision-main, .evidence-main, .session-chart-panel,
+  .insights-panel, .context-panel, .fuel-panel {
+    min-width: 0;
+    padding: 18px 16px;
+  }
+  .plan-swap { grid-template-columns: minmax(0,1fr) 24px minmax(0,1fr); }
+  .plan-swap strong, .plan-swap span { overflow-wrap: anywhere; }
+
+  /* Keep real metrics scannable without tiny three-column tiles. */
+  .metric-grid, .v3-metric-grid, .session-stat-grid, .lsa-stat-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 9px;
+  }
+  .metric, .session-stat-grid > div, .lsa-stat-grid > div { min-width: 0; }
+  .metric strong, .session-stat-grid strong, .lsa-stat-grid strong {
+    font-size: clamp(21px, 6.2vw, 27px);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .signal-card, .ri-panel { min-width: 0; }
+
+  /* Three example sessions remain a horizontal chooser, not 3 squeezed chips. */
+  .v3-session-switch {
+    display: flex;
+    gap: 9px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    padding: 3px 1px 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .session-chip { flex: 0 0 clamp(132px, 42vw, 175px); min-width: 0; scroll-snap-align: start; }
+  .session-chip b { font-size: 19px; }
+
+  /* Forms: accessible touch targets and no iOS focus zoom. */
+  .app input:not([type="checkbox"]):not([type="radio"]),
+  .app select, .app textarea,
+  .online-gate input { font-size: 16px; max-width: 100%; }
+  .app button, .app select, .app input, .app textarea { touch-action: manipulation; }
+  .fuel-inputs { grid-template-columns: minmax(0,1fr); }
+  .fuel-inputs label { min-width: 0; }
+  .fuel-inputs select, .lsa-picker select { width: 100%; min-height: 45px; }
+  .ri-account-row input { min-width: 0; }
+  .sync-weigh-form { max-width: 100%; }
+  .sync-weigh-form > * { min-width: 0; }
+  .gcs-photo-controls, .gcs-toolbar { flex-wrap: wrap; }
+  .gcs-visual-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .gcs-visual-card, .gcs-row { min-width: 0; }
+  .gcs-visual-info, .gcs-row-info { overflow-wrap: anywhere; }
+
+  /* Charts fit their own cards; no full-page horizontal scrolling. */
+  .big-chart, .lsa-chart, .ri-panel { min-width: 0; max-width: 100%; }
+  .big-chart svg, .lsa-chart svg { display: block; width: 100%; max-width: 100%; height: auto; }
+  .chart-legend, .panel-heading { flex-wrap: wrap; }
+  .chart-annotation, .sync-source { overflow-wrap: anywhere; }
+
+  /* Five well-spaced tabs, including safe-area for iPhone home indicator. */
+  .footmobile {
+    display: grid;
+    grid-template-columns: repeat(5,minmax(0,1fr));
+    align-items: center;
+    justify-content: stretch;
+    width: 100%;
+    height: auto;
+    min-height: calc(67px + env(safe-area-inset-bottom));
+    padding: 7px 5px calc(8px + env(safe-area-inset-bottom));
+    gap: 2px;
+  }
+  .footmobile button {
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    padding: 7px 2px;
+    font-size: 10px;
+    line-height: 1.2;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .footmobile button .ic { width: 21px; height: 21px; }
+}
+
+@media (max-width: 420px) {
+  .main { padding-left: 11px; padding-right: 11px; }
+  .top-actions .pill { max-width: 50%; }
+  .introduction-v3 h1, .page-intro h1 { font-size: clamp(29px, 8.6vw, 36px); }
+  .coach-inner h2, .v3-coach-hero .coach-inner h2 { font-size: clamp(30px, 9vw, 39px); }
+  .gcs-visual-list { grid-template-columns: minmax(0,1fr); }
+  .ri-metric-grid, .ri-training-grid { grid-template-columns: minmax(0,1fr); }
+  .sync-weigh-form { grid-template-columns: minmax(0,1fr); }
+  .sync-weigh-form button { grid-column: auto; }
+  .footmobile button { font-size: 9px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-session-switch { scroll-behavior: auto; }
+}

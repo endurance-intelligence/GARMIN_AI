@@ -3,6 +3,7 @@
  *  optional structured-workout link. No GPS/polyline and no Garmin writes.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { downloadAndDecodeFit, GarminFitDownloadError } from '../_shared/garmin-fit.ts'
 
 const GARMIN = 'https://personal.connectapi.garmin.com'
 type Dict = Record<string, unknown>
@@ -172,12 +173,12 @@ async function process(id: string, sport: string | null, token: string) {
   const summary = await fetchGarmin(`/activity-service/activity/${id}`, 'Bearer', token, 'GET', 'summary')
   if (summary === null || Object.keys(object(summary)).length === 0) throw new Error('summary-empty')
   const summaryData = cleanSummary(summary)
-  const strength = /strength|mobility|cardio|pilates|yoga|training/i.test(sport ?? '')
+  const workoutCompatible = /strength|mobility|cardio|pilates|yoga|training|run/i.test(sport ?? '')
   const results = await Promise.all([
     optionalGarmin(`/activity-service/activity/${id}/details?maxChartSize=1800&maxPolylineSize=0`, token, 'chart'),
     optionalGarmin(`/activity-service/activity/${id}/laps`, token, 'laps'),
     optionalGarmin(`/activity-service/activity/${id}/hrTimeInZones`, token, 'zones'),
-    strength ? optionalGarmin(`/activity-service/activity/${id}/workouts`, token, 'workouts') : Promise.resolve(null),
+    workoutCompatible ? optionalGarmin(`/activity-service/activity/${id}/workouts`, token, 'workouts') : Promise.resolve(null),
   ])
   const c = chart(results[0]), l = laps(results[1]), z = zones(results[2])
   return { summary: summaryData, laps: l.items, samples: c.points,
@@ -258,5 +259,47 @@ Deno.serve(async req => {
       if (safe.rateLimited) break
     }
   }
-  return json({ ok: true, stored, partial, noMoreEligible: skipped })
+  // FIT belongs to the EXISTING private detail worker, not a parallel importer.
+  const { data: fitClaim, error: fitClaimError } = await admin.rpc('garmin_fit_claim')
+  if (fitClaimError) {
+    console.error('GARMIN_AI FIT claim failed', fitClaimError.code)
+    return json({ error: 'FIT claim failed' }, 503)
+  }
+  let fitStored = 0
+  if (fitClaim) {
+    const fitId = String(fitClaim.activity_id ?? '')
+    const fitLease = String(fitClaim.lease_token ?? '')
+    if (!/^\d{5,20}$/.test(fitId) || !/^[0-9a-f-]{36}$/.test(fitLease)) {
+      return json({ error: 'Invalid FIT claim' }, 503)
+    }
+    try {
+      const payload = await downloadAndDecodeFit(fitId, token)
+      const { records, ...metadata } = payload
+      for (let offset = 0; offset < records.length; offset += 2000) {
+        const { error: appendError } = await admin.rpc('garmin_fit_append', {
+          p_activity_id: fitId, p_lease_token: fitLease,
+          p_chunk_index: Math.floor(offset / 2000), p_records: records.slice(offset, offset + 2000),
+        })
+        if (appendError) throw new Error(`fit-chunk ${appendError.code}`)
+      }
+      const { error: fitStoreError } = await admin.rpc('garmin_fit_store', {
+        p_activity_id: fitId, p_lease_token: fitLease,
+        p_payload: { ...metadata, recordCount: records.length },
+      })
+      if (fitStoreError) throw new Error(`fit-storage ${fitStoreError.code}`)
+      fitStored = 1
+    } catch (error) {
+      const permanent = error instanceof GarminFitDownloadError && [400, 404, 410].includes(error.status)
+      const reason = error instanceof GarminFitDownloadError
+        ? `fit-download HTTP ${error.status}`
+        : error instanceof Error ? error.message : 'fit-unknown-error'
+      const { error: fitFailError } = await admin.rpc('garmin_fit_fail', {
+        p_activity_id: fitId, p_lease_token: fitLease,
+        p_reason: reason.slice(0, 120), p_permanent: permanent,
+      })
+      if (fitFailError) console.error('GARMIN_AI FIT fail-record error', fitFailError.code)
+      console.error('GARMIN_AI FIT enrichment failed', reason)
+    }
+  }
+  return json({ ok: true, stored, partial, noMoreEligible: skipped, fitStored })
 })

@@ -1,0 +1,27 @@
+name: GARMIN_AI HR Profile CORS v0.6.2.4
+on:
+  push:
+    paths:
+      - 'supabase/functions/sync-garmin-hr-profile/index.ts'
+      - 'supabase/functions/sync-garmin-hr-profile/corsPolicy.mjs'
+      - 'tests/mobile-hr-profile-cors-v0624.test.mjs'
+      - '.github/workflows/garmin-hr-profile-cors-v0624.yml'
+  pull_request:
+    paths:
+      - 'supabase/functions/sync-garmin-hr-profile/index.ts'
+      - 'supabase/functions/sync-garmin-hr-profile/corsPolicy.mjs'
+      - 'tests/mobile-hr-profile-cors-v0624.test.mjs'
+      - '.github/workflows/garmin-hr-profile-cors-v0624.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-hr-profile-cors-v0624.test.mjs tests/mobile-web-policy.test.mjs
+      - run: npm run build

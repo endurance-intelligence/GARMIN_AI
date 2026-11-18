@@ -1,0 +1,10 @@
+.red-root{margin:16px 0 0;padding:15px;border:1px solid rgba(163,189,231,.24);
+ border-radius:16px;background:linear-gradient(135deg,#19263e,#111b2f);min-width:0}
+.red-header{margin:0 0 13px;padding:4px 3px 11px;border-bottom:1px solid rgba(168,190,232,.16)}
+.red-kicker{color:#b8aff3;font-size:10px;letter-spacing:.09em;font-weight:860}
+.red-header h2{color:#f1f4ff;font-size:17px;line-height:1.3;letter-spacing:-.025em;margin:7px 0 5px}
+.red-header p{color:#a8bfdc;font-size:11px;line-height:1.55;margin:0}
+.red-header strong{color:#d5ddfa}
+.red-note{color:#eccdad;font-size:11px;line-height:1.6}
+.red-root .rfc-root{margin-top:12px}
+@media(max-width:640px){.red-root{padding:11px}.red-header h2{font-size:15px}}

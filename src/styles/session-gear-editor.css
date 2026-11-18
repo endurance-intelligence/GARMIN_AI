@@ -1,0 +1,10 @@
+.sg-editor{margin:18px 0 22px;padding:19px 21px;border:1px solid rgba(145,168,205,.22);border-radius:16px;background:linear-gradient(130deg,rgba(26,36,58,.88),rgba(13,21,38,.88));color:#eef1fd}
+.sg-head{display:flex;align-items:center;justify-content:space-between;gap:14px}.sg-head h3{font-size:17px;margin:6px 0 0;letter-spacing:-.02em}
+.sg-editor p{color:#b3bfd5;font-size:13px;line-height:1.6;margin:12px 0}.sg-editor p strong{color:#f3f6ff;font-weight:750}
+.sg-editor>small{font-size:11px;color:#8698b5;line-height:1.5;display:block;margin-top:12px}
+.sg-form{border-top:1px solid rgba(160,174,210,.17);margin-top:16px;padding-top:14px}
+.sg-form label{display:block;font-size:12px;font-weight:700;color:#cfdaef}.sg-form select{display:block;width:100%;margin-top:8px;padding:12px 14px;border-radius:11px;border:1px solid #3b4864;background:#0d1426;color:#f4f6ff;font-size:13px}
+.sg-buttons{display:flex;align-items:center;gap:9px;margin-top:13px;flex-wrap:wrap}
+.sg-save{border:1px solid rgba(168,217,123,.35);background:rgba(151,203,110,.17);color:#dbf5b3;padding:10px 14px;border-radius:10px;font-size:12px;font-weight:750;cursor:pointer}.sg-save:hover{background:rgba(151,203,110,.26)}
+.sg-editor button:disabled{opacity:.6;cursor:wait}.sg-error{color:#ffb6a9!important}.sg-error button{margin-left:8px;color:#c7dafa;background:transparent;border:0;text-decoration:underline;cursor:pointer}
+.sg-notice{color:#c4eaa5!important}

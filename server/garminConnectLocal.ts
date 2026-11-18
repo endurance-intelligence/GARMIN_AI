@@ -1,0 +1,254 @@
+/**
+ * Development-only localhost adapter for the SANITIZED Garmin Connect report.
+ * Never reads token files, and never exposes raw Garmin credentials.
+ */
+import type { Plugin } from 'vite'
+import { readFile } from 'node:fs/promises'
+import { spawn } from 'node:child_process'
+import { join } from 'node:path'
+import { homedir } from 'node:os'
+
+type Data = Record<string, unknown>
+const record = (value: unknown): Data => value && typeof value === 'object' && !Array.isArray(value) ? value as Data : {}
+const array = (value: unknown): unknown[] => Array.isArray(value) ? value : []
+const str = (value: unknown, max = 180): string | null =>
+  typeof value === 'string' && value.trim() && value.length <= max ? value.trim() : null
+const id = (value: unknown): string | null => {
+  const t = typeof value === 'number' && Number.isSafeInteger(value) ? String(value) : value
+  return typeof t === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(t) ? t : null
+}
+
+export function sanitizedReport(raw: unknown, historyRaw: unknown = null) {
+  const data = record(raw)
+  if (data.readOnly !== true || data.source !== 'Garmin Connect (unofficial)') throw new Error('invalid-report')
+  const gearData = record(data.gear), scheduleData = record(data.schedule), linkData = record(data.activityGear)
+  if ([gearData,scheduleData,linkData].some(x=>x.status !== 'ok')) throw new Error('incomplete-report')
+  const gearRaw = array(gearData.items), scheduleRaw = array(scheduleData.items), linkRaw = array(linkData.items)
+  if (gearRaw.length>250 || scheduleRaw.length>500 || linkRaw.length>250) throw new Error('report-too-large')
+  const gear = gearRaw.map(value=>{
+    const row=record(value), gearId=id(row.id)
+    if(!gearId) throw new Error('invalid-gear-id')
+    const model=str(row.model), name=str(row.name), brand=str(row.brand)
+    return {id:gearId,name:(model || name || brand || 'Equipment') +
+      (name && name !== model ? ' · '+name : ''),model,brand,type:str(row.type),
+      status:row.status === 'active' || row.status === 'retired' ? row.status : 'unknown'}
+  })
+  const schedule=scheduleRaw.map(value=>{
+    const row=record(value),date=str(row.date,10)
+    if(!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('invalid-date')
+    return {date,id:id(row.id),workoutId:id(row.workoutId),name:str(row.name),sport:str(row.sport),restDay:row.restDay===true}
+  })
+  const activityId = id(data.activityId)
+  if(!activityId || !/^\d{5,20}$/.test(activityId)) throw new Error('invalid-activity-id')
+  const activityGear = linkRaw.map(value=>{
+    const row=record(value),gearId=id(row.id)
+    if(!gearId || !gear.some(g=>g.id===gearId)) throw new Error('gear-link-not-in-catalog')
+    return {activityId,gearId}
+  })
+  const checkedAt = str(data.checkedAt,40)
+  if(!checkedAt || !Number.isFinite(Date.parse(checkedAt))) throw new Error('invalid-time')
+  let completeHistory = false
+  if (historyRaw !== null) {
+    const history = record(historyRaw)
+    const historyGearIds = array(history.gearIds)
+    const links = array(history.activityGearLinks)
+    const normalize = (value: unknown) => typeof value === 'string' ? value.replace(/-/g,'').toLowerCase() : ''
+    const allIds = gear.map(g=>normalize(g.id)).sort()
+    if (history.source !== 'Garmin Connect (unofficial)' ||
+        history.readOnly !== true || history.scope !== 'complete' ||
+        history.baseReportCheckedAt !== checkedAt ||
+        history.gearChecked !== gear.length ||
+        historyGearIds.length !== gear.length ||
+        JSON.stringify(historyGearIds.map(normalize).sort()) !== JSON.stringify(allIds) ||
+        links.length > 3000) throw new Error('incomplete-history')
+    const currentIds = new Set(allIds)
+    const seen = new Set<string>()
+    const cleanLinks = links.map(item=>{
+      const row = record(item), gearId = id(row.gearId), activityId = id(row.activityId)
+      if (!gearId || !activityId || !/^\d{5,20}$/.test(activityId) ||
+          !currentIds.has(normalize(gearId))) throw new Error('invalid-history-link')
+      const key = activityId+':'+normalize(gearId)
+      if (seen.has(key)) throw new Error('duplicate-history-link')
+      seen.add(key)
+      return {activityId,gearId}
+    })
+    // A run may have been reassigned in Garmin after the original spot-check.
+    // Once ALL gear has been scanned, the complete current history wins.
+    activityGear.splice(0,activityGear.length,...cleanLinks)
+    completeHistory = true
+  }
+  return {source:'Garmin Connect (unofficial)',readOnly:true,checkedAt,gear,schedule,activityGear,completeHistory}
+}
+
+/** Refresh only Garmin status/type; do not re-fetch or repackage historical links. */
+export function sanitizedGearStatusReport(raw: unknown) {
+  const data = record(raw)
+  if (data.source !== 'Garmin Connect (unofficial)' || data.readOnly !== true) throw new Error('invalid-source')
+  const group = record(data.gear)
+  if (group.status !== 'ok' || !Array.isArray(group.items) ||
+      group.items.length < 1 || group.items.length > 250) throw new Error('invalid-gear-report')
+  const checkedAt = str(data.checkedAt,40)
+  if (!checkedAt || !Number.isFinite(Date.parse(checkedAt))) throw new Error('invalid-checked-at')
+  const seen = new Set<string>()
+  const gear = group.items.map(item=>{
+    const row=record(item)
+    const gearId=id(row.id)
+    if (!gearId) throw new Error('invalid-gear-id')
+    const normalized=gearId.replace(/-/g,'').toLowerCase()
+    if(seen.has(normalized)) throw new Error('duplicate-gear-id')
+    seen.add(normalized)
+    return {
+      id:gearId,
+      status:row.status==='active'||row.status==='retired' ? row.status : 'unknown',
+      type:str(row.type),
+    }
+  })
+  if(!gear.some(g=>g.status!=='unknown')) throw new Error('no-recognized-gear-status')
+  return {mode:'gear-status',source:'Garmin Connect (unofficial)',readOnly:true,checkedAt,gear}
+}
+
+/** Only allow sanitized mappings from a successful full current scan. */
+export function sanitizedGearLinkReport(raw:unknown, latest:unknown) {
+  const report=record(raw)
+  const source=record(latest)
+  const gearGroup=record(source.gear)
+  if(report.source!=='Garmin Connect (unofficial)' || report.readOnly!==true ||
+     report.scope!=='complete' || gearGroup.status!=='ok' ||
+     !Array.isArray(gearGroup.items)) throw new Error('invalid-history')
+  const checkedAt=str(report.checkedAt,40)
+  if(!checkedAt || !Number.isFinite(Date.parse(checkedAt)) ||
+     Math.abs(Date.now()-Date.parse(checkedAt))>7*86400000)
+    throw new Error('stale-history')
+  const normalized=(val:unknown)=>{
+    const gear=id(val)
+    const bare=gear?.replace(/-/g,'').toLowerCase() || ''
+    return /^[0-9a-f]{32}$/.test(bare) ? bare : null
+  }
+  const gearIds=array(gearGroup.items).map(v=>normalized(record(v).id))
+  if(gearIds.length<1 || gearIds.length>100 || gearIds.some(x=>!x) ||
+     new Set(gearIds).size!==gearIds.length) throw new Error('gear-catalog')
+  const checkedIds=array(report.gearIds).map(normalized)
+  if(checkedIds.length!==gearIds.length ||
+     new Set(checkedIds).size!==gearIds.length ||
+     checkedIds.some(x=>!gearIds.includes(x)) ||
+     report.gearChecked!==gearIds.length) throw new Error('mismatched-gear')
+  const rawLinks=array(report.activityGearLinks)
+  if(!Array.isArray(report.activityGearLinks) || rawLinks.length>3000) throw new Error('links-invalid')
+  const unique=new Set<string>()
+  const activityGear=rawLinks.map(value=>{
+    const l=record(value), g=normalized(l.gearId), activityId=id(l.activityId)
+    if(!g || !gearIds.includes(g) || !activityId || !/^\d{5,20}$/.test(activityId))
+      throw new Error('link-invalid')
+    const key=activityId+':'+g
+    if(unique.has(key)) throw new Error('duplicate-link')
+    unique.add(key)
+    return {activityId,gearId:g}
+  })
+  return {mode:'gear-links',source:'Garmin Connect (unofficial)',readOnly:true,
+    checkedAt,gearIds:checkedIds,gearChecked:gearIds.length,activityGear}
+}
+
+export function garminConnectLocal(): Plugin {
+  return {name:'garmin-connect-local-report-only',apply:'serve',configureServer(server){
+    let sync: {state:'idle'|'running'|'complete'|'error';done:number;total:number;error?:string} =
+      {state:'idle',done:0,total:0}
+    let syncing=false
+    server.middlewares.use('/api/garmin-context-local', async (req,res)=>{
+      const host=req.headers.host || ''
+      const remote=req.socket.remoteAddress || ''
+      const localhost = /^(localhost|127\.0\.0\.1):517[3-9]$/.test(host)
+      const loopback = remote === '::1' || remote === '127.0.0.1' || remote === '::ffff:127.0.0.1'
+      const origin=req.headers.origin
+      res.setHeader('Content-Type','application/json; charset=utf-8')
+      res.setHeader('Cache-Control','private, no-store')
+      res.setHeader('X-Content-Type-Options','nosniff')
+      if(!localhost || !loopback || (origin && origin !== 'http://'+host)) {
+        res.statusCode=403;res.end('{"error":"Local-only"}');return
+      }
+      const pathName=req.url?.split('?')[0]||''
+      const allowedGet=['/snapshot','/gear-status','/gear-links','/gear-sync-status']
+      if(!allowedGet.includes(pathName) && !(pathName==='/gear-sync-start' && req.method==='POST')) {
+        res.statusCode=404;res.end('{"error":"Not found"}');return
+      }
+      if(req.method!=='GET' && !(pathName==='/gear-sync-start' && req.method==='POST')) {
+        res.statusCode=405;res.end('{"error":"Method not allowed"}');return
+      }
+      if(pathName==='/gear-sync-status') {
+        let done=sync.done
+        let total=sync.total
+        try {
+          const dir=process.env.LOCALAPPDATA || join(homedir(),'.local','share')
+          const p=JSON.parse(await readFile(join(dir,'GARMIN_AI','garmin-gear-sync-progress.json'),'utf8')) as unknown
+          const row=record(p)
+          done=Object.keys(record(row.completed)).length
+          total=array(row.gearIds).length
+          sync.done=done
+          sync.total=total
+        } catch { /* no running checkpoint */ }
+        if(sync.state==='complete' && total>0) done=total
+        res.statusCode=200
+        res.end(JSON.stringify({...sync,done,total}))
+        return
+      }
+      if(pathName==='/gear-sync-start') {
+        if(syncing) {
+          res.statusCode=409
+          res.end('{"error":"Garmin gear sync already running"}')
+          return
+        }
+        sync={state:'running',done:0,total:0}
+        try {
+          const dir=process.env.LOCALAPPDATA || join(homedir(),'.local','share')
+          const report=JSON.parse(await readFile(join(dir,'GARMIN_AI','garmin-connect-check.json'),'utf8')) as unknown
+          sync.total=array(record(record(report).gear).items).length
+        } catch { /* worker validates missing report and reports an error */ }
+        syncing=true
+        const child=spawn(process.execPath,
+          [join(server.config.root,'scripts','garmin-connect-gear-sync.mjs')],
+          {cwd:server.config.root,windowsHide:true,stdio:['ignore','pipe','pipe']})
+        child.stdout.on('data',()=>{}) // never forward token-bearing raw logs to the browser
+        child.stderr.on('data',()=>{})
+        child.on('error',()=>{
+          sync={...sync,state:'error',error:'Lokaler Garmin-Reader konnte nicht gestartet werden.'}
+          syncing=false
+        })
+        child.on('exit',code=>{
+          if(!syncing) return
+          sync={...sync,state:code===0?'complete':'error',error:code===0?undefined:
+            'Garmin antwortet nicht vollständig. Beim nächsten Versuch wird der gespeicherte Fortschritt fortgesetzt.'}
+          syncing=false
+        })
+        res.statusCode=202
+        res.end('{"started":true}')
+        return
+      }
+      try {
+        const root=process.env.LOCALAPPDATA || join(homedir(),'.local','share')
+        const path=join(root,'GARMIN_AI','garmin-connect-check.json')
+        const raw=await readFile(path,'utf8')
+        if(raw.length>150000) throw new Error('large-report')
+        if(req.url?.split('?')[0] === '/gear-status') {
+          res.statusCode=200
+          res.end(JSON.stringify(sanitizedGearStatusReport(JSON.parse(raw) as unknown)))
+          return
+        }
+        if(pathName==='/gear-links') {
+          const history=JSON.parse(await readFile(join(root,'GARMIN_AI','garmin-connect-gear-history.json'),'utf8')) as unknown
+          res.statusCode=200
+          res.end(JSON.stringify(sanitizedGearLinkReport(history,JSON.parse(raw) as unknown)))
+          return
+        }
+        res.statusCode=200
+        let historyRaw: unknown = null
+        try {
+          historyRaw = JSON.parse(await readFile(join(root,'GARMIN_AI','garmin-connect-gear-history.json'),'utf8')) as unknown
+        } catch (error) {
+          if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error
+        }
+        res.end(JSON.stringify(sanitizedReport(JSON.parse(raw) as unknown,historyRaw)))
+      } catch {
+        res.statusCode=404;res.end('{"error":"No valid local Garmin Connect report. Re-run the local verification."}')
+      }
+    })
+  }}
+}

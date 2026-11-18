@@ -1,1 +1,1 @@
-export type Page = 'home' | 'training' | 'race' | 'gear' | 'settings'
+export type Page = 'home' | 'goals' | 'calendar' | 'training' | 'race' | 'more' | 'gear' | 'settings' | 'strength'

@@ -1,0 +1,41 @@
+name: GARMIN_AI Clean Calendar & Bodyweight
+on:
+  push:
+    paths:
+      - 'src/lib/weeklyOptionCompletion.ts'
+      - 'src/lib/movementSession.ts'
+      - 'src/lib/eiExercises.ts'
+      - 'src/pages/StrengthPage.tsx'
+      - 'src/pages/CalendarPage.tsx'
+      - 'src/components/WeeklyTrainingOptions.tsx'
+      - 'src/components/CalendarWeekBoard.tsx'
+      - 'supabase/functions/garmin-intervals/**'
+      - 'supabase/functions/garmin-training-plan/**'
+      - 'tests/mobile-calendar-completion-bodyweight.test.mjs'
+      - '.github/workflows/garmin-clean-calendar-bodyweight.yml'
+  pull_request:
+    paths:
+      - 'src/lib/weeklyOptionCompletion.ts'
+      - 'src/lib/movementSession.ts'
+      - 'src/lib/eiExercises.ts'
+      - 'src/pages/StrengthPage.tsx'
+      - 'src/pages/CalendarPage.tsx'
+      - 'src/components/WeeklyTrainingOptions.tsx'
+      - 'src/components/CalendarWeekBoard.tsx'
+      - 'supabase/functions/garmin-intervals/**'
+      - 'supabase/functions/garmin-training-plan/**'
+      - 'tests/mobile-calendar-completion-bodyweight.test.mjs'
+      - '.github/workflows/garmin-clean-calendar-bodyweight.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/mobile-calendar-completion-bodyweight.test.mjs tests/mobile-calendar-week-board.test.mjs tests/mobile-horizon-calendar.test.mjs tests/mobile-stabi-studio.test.mjs tests/intervals-bridge.test.mjs tests/mobile-weekly-training-options.test.mjs
+      - run: npm run build
