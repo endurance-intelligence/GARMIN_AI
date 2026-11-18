@@ -32,7 +32,7 @@ test('Goals exclusively owns goal edits, other goals and long-term training bloc
 })
 test('Race Prep exclusively owns event-day dossier, forecast, route and strategy',()=>{
  const race=read('src/pages/RacePage.tsx'),app=read('src/App.tsx')
- assert.match(race,/<RaceStrategyCard active=\{active\}/)
+ assert.match(race,/<RaceStrategyCard active=\{active\} onCoach=\{\(\)=>onGo\('home'\)\}/)
  assert.match(race,/<RaceEventDossier active=\{active\}/)
  assert.match(race,/<RaceForecastCompact active=\{active\}/)
  assert.match(race,/<RaceRouteViewer active=\{active\}/)
