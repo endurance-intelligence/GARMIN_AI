@@ -87,3 +87,8 @@
 #race-detailed-forecast:focus{outline:none}
 #race-detailed-forecast:focus-visible{outline:2px solid #a4d0ff;outline-offset:3px}
 @media(max-width:760px){#race-detailed-forecast{scroll-margin-top:15px}}
+
+/* v0.9.91: apparent temperature visible alongside measured temperature. */
+.rfc-summary{grid-template-columns:repeat(4,minmax(0,1fr))}
+.rfc-feels>.ic{color:#d5c5ff}
+@media(max-width:650px){.rfc-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
