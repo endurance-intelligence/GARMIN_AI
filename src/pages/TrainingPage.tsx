@@ -5,7 +5,8 @@ import type {Page} from '../navigation'
  * The standalone Stabi Studio remains accessible through the app navigation.
  * Aerobic comparison stays available as a separate component for future use.
  */
-export function TrainingPage({active}:{active:boolean;onGo:(page:Page)=>void}){
+export function TrainingPage({active,focus}:{active:boolean;onGo:(page:Page)=>void;
+ focus?:{activityId:string;token:number}|null}){
  return <section className={active?'page active':'page'}>
   <div className="page-intro introduction-v3">
    <div><div className="eyebrow">SESSION INTELLIGENCE / ECHTE GARMIN-DATEN</div>
@@ -14,7 +15,7 @@ export function TrainingPage({active}:{active:boolean;onGo:(page:Page)=>void}){
      erkennt den Trainingstyp automatisch und berücksichtigt dein Hauptziel.</p>
    </div>
   </div>
-  <LiveSessionAnalyst active={active}/>
+  <LiveSessionAnalyst active={active} focus={focus}/>
   <p className="page-disclaimer">Nur echte Garmin-Daten. Keine künstlichen Trainingsnoten,
    keine vorgetäuschten Analyseergebnisse und keine automatischen Änderungen am Trainingsplan.</p>
  </section>
