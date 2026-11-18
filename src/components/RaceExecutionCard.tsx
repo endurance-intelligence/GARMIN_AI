@@ -48,7 +48,9 @@ export function RaceExecutionCard({input,saved,weightKg}:{input:Input;saved:bool
      Pausen sind eingeschlossen; Versorgung, Verträglichkeit und tatsächliche Trinkmenge
      musst du im Rennen anpassen.</p>
    </div>}
-   {input.courseMode==='laps'?<div className="rex-table-wrap">
+   {input.courseMode==='laps'?<details className="rex-splits">
+    <summary>Alle {data.checkpoints.length} Runden mit Ankunft, Pause und Weiterlauf anzeigen</summary>
+    <div className="rex-table-wrap">
     <table className="rex-table">
      <thead><tr><th>Runde</th><th>km gesamt</th><th>Ankunft ab Start</th>
       <th>Pause</th><th>Weiter / Ziel</th></tr></thead>
@@ -60,7 +62,7 @@ export function RaceExecutionCard({input,saved,weightKg}:{input:Input;saved:bool
       <td>{c.departureText}</td>
      </tr>)}</tbody>
     </table>
-   </div>:<p className="rex-point">Punkt-zu-Punkt: Gesamtzeit berechnet.
+   </div></details>:<p className="rex-point">Punkt-zu-Punkt: Gesamtzeit berechnet.
     Ohne gespeicherte Versorgungspunkte werden keine Zwischenstopps erfunden.</p>}
    {data.warning&&<p className="rex-tip">{data.warning}</p>}
    <p className="rex-foot">Zeiten sind relativ zum Start und enthalten keine reale
