@@ -66,7 +66,7 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
  const [notice,setNotice]=useState('')
  const loadedKey=useRef<string|null>(null)
  const update=<K extends keyof Draft,>(name:K,value:Draft[K])=>{
-  setDraft(old=>({...old,[name]:value}));setNotice('')
+  setDraft(old=>({...old,[name]:value}));setSaved(false);setNotice('Änderung noch nicht gespeichert.')
  }
  useEffect(()=>{
   if(!active||!garminSupabase)return
@@ -184,6 +184,11 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
       carbsGPerHour:get(draft.carbs),fluidMlPerHour:get(draft.fluid),
       sodiumMgPerHour:get(draft.sodium)
      }}/>}
+    <div className="rsp-ready-notes" aria-label="Vorbereitete Versorgung und Ausrüstung">
+     {draft.fuelNotes&&<article><strong>🥤 Verpflegung und KH</strong><p>{draft.fuelNotes}</p></article>}
+     {draft.stopsNotes&&<article><strong>⏱️ Stopps und Wechsel</strong><p>{draft.stopsNotes}</p></article>}
+     {draft.gearNotes&&<article><strong>🎒 Packliste</strong><p>{draft.gearNotes}</p></article>}
+    </div>
     <details className="rsp-edit">
      <summary><Icon name="settings"/> Planwerte, Produkte und Stopps bei Bedarf bearbeiten</summary>
     <div className="rsp-section">
