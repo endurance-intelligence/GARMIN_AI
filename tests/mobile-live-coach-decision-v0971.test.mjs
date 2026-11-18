@@ -89,7 +89,7 @@ test('premium cards use owner-only existing Coach snapshot, not simulated data o
  const component=read('src/components/CoachDecisionLive.tsx')
  const css=read('src/styles/coach-decision-live.css')
  const snapshot=read('src/lib/coachSnapshot.ts')
- assert.match(seven,/loadCoachSnapshot\(session,today,controller.signal\)/)
+ assert.match(seven,/loadCoachSnapshot\(session,today,controller.signal,undefined,4\)/)
  assert.match(seven,/buildSevenDayCoach/)
  assert.match(seven,/<CoachDecisionLive plan=\{plan\} snapshot=\{snapshot!\}/)
  assert.doesNotMatch(seven,/Alle zugrunde liegenden Messwerte und Datenqualität anzeigen/)
