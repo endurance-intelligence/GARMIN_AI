@@ -5,6 +5,7 @@ import {estimateRaceStrategy} from '../lib/raceStrategyMath.mjs'
 import {recommendRacePlan} from '../lib/raceAutoPlan.mjs'
 import type {Forecast} from '../lib/weatherIntelligence'
 import {RaceExecutionCard} from './RaceExecutionCard'
+import {GelInventoryPlanner} from './GelInventoryPlanner'
 import {RaceAfterActionCard} from './RaceAfterActionCard'
 import type {CoachGoal} from '../lib/coachGoal'
 import '../styles/race-strategy.css'
@@ -184,6 +185,8 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
       carbsGPerHour:get(draft.carbs),fluidMlPerHour:get(draft.fluid),
       sodiumMgPerHour:get(draft.sodium)
      }}/>}
+    <GelInventoryPlanner active={active} goal={goal}
+      durationMinutes={calculation?.totalMinutes??null} carbsGPerHour={get(draft.carbs)}/>
     <div className="rsp-ready-notes" aria-label="Vorbereitete Versorgung und Ausrüstung">
      {draft.fuelNotes&&<article><strong>🥤 Verpflegung und KH</strong><p>{draft.fuelNotes}</p></article>}
      {draft.stopsNotes&&<article><strong>⏱️ Stopps und Wechsel</strong><p>{draft.stopsNotes}</p></article>}
