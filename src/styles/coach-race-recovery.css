@@ -1,0 +1,27 @@
+.crr-root{margin:10px 0 14px;border:1px solid rgba(153,198,196,.29);border-radius:15px;color:#ecf4ff;background:linear-gradient(135deg,#1d3948,#14263e 70%,#192b41);overflow:hidden}
+.crr-head{display:flex;gap:11px;align-items:center;padding:15px 16px;border-bottom:1px solid rgba(155,195,210,.16)}
+.crr-icon{display:grid;place-items:center;background:rgba(126,203,188,.14);color:#b7efdb;border-radius:12px;flex:0 0 38px;height:38px}
+.crr-icon .ic{height:20px;width:20px}
+.crr-copy{flex:1;min-width:0;display:grid;gap:4px}
+.crr-copy small{color:#a6d4d4;font-size:9px;font-weight:840;letter-spacing:.08em}
+.crr-copy strong{font-size:15px;color:#f2f8ff}
+.crr-copy span{color:#b6c9db;font-size:10px}
+.crr-body{padding:13px 16px 16px}
+.crr-body p{font-size:11px;line-height:1.6;margin:0}
+.crr-next{color:#e2edf7;font-weight:650}
+.crr-source{display:flex;align-items:start;gap:9px;border:1px solid rgba(165,210,184,.25);border-radius:10px;background:rgba(66,116,91,.15);padding:11px;margin:12px 0}
+.crr-source>.ic{height:16px;width:16px;flex:0 0 16px;color:#b8e9cd;margin-top:2px}
+.crr-source>div{display:grid;gap:5px;min-width:0}
+.crr-source strong{font-size:11px;color:#ccefd9}
+.crr-source span{font-size:10px;color:#bfd4d4;line-height:1.5}
+.crr-pending{display:flex;align-items:start;gap:7px;color:#b4cadc;padding:10px;margin-top:9px!important;border-radius:9px;background:rgba(8,32,48,.35)}
+.crr-pending .ic{height:16px;width:16px;flex:0 0 16px;margin-top:1px}
+.crr-warnings{margin:12px 0;border:1px solid rgba(220,171,133,.23);border-radius:9px;background:rgba(163,105,67,.11);padding:11px}
+.crr-warnings strong{display:flex;align-items:center;gap:7px;font-size:11px;color:#ffe0bd}
+.crr-warnings .ic{height:15px;width:15px}
+.crr-warnings p{color:#ebd4c2;margin:7px 0 0}
+.crr-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid rgba(149,187,200,.16);padding-top:11px;margin-top:12px;flex-wrap:wrap}
+.crr-foot p{flex:1;min-width:220px;font-size:10px;color:#a9bdcf}
+.crr-foot button{display:inline-flex;gap:7px;align-items:center;padding:9px 11px;border:1px solid rgba(177,207,210,.3);background:transparent;border-radius:9px;color:#c9e3ea;font-weight:700;font-size:10px;cursor:pointer}
+.crr-foot button .ic{height:14px;width:14px}
+@media(max-width:600px){.crr-head{padding:13px}.crr-body{padding:12px 13px}.crr-foot{display:grid}.crr-foot p{min-width:0}}
