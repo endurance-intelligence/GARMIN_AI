@@ -256,13 +256,12 @@ export function buildSevenDayCoach(input){
   const daysPostRace=recoveryRaceDate?
    Math.round((Date.parse(day+'T12:00:00Z')-Date.parse(recoveryRaceDate+'T12:00:00Z'))/ONE_DAY):null
   if(daysPostRace!==null&&daysPostRace>0&&daysPostRace<=14){
-   // Real Garmin race RPE, feeling and recent recovery measurements can
-   // strengthen the conservative recommendation, never automatically clear training.
-   if(activeRaceRecovery&&autoRaceRecovery.recoveryCaution)
-    return make(day,'recovery','Garmin-Erholungssignale · Regeneration',null,
-     autoRaceRecovery.signals.join(' · ')+'. '+
-     'Belastung zurücknehmen und Warnzeichen beachten. '+
-     'Bestehende Kalendereinträge bitte selbst prüfen.')
+   // The optional athlete warning check remains higher priority than Garmin
+   // metrics. Other subjective ratings retain their original numeric advice.
+   if(raceCheck?.warning&&checkedRecently)
+    return make(day,'illness','Warnzeichen · Belastung abklären',null,
+     'Du hast Warnzeichen gemeldet. Kein Laufvorschlag. Bei Brustschmerzen, Atemnot, '+
+     'Schwindel oder starken Beschwerden medizinisch abklären.')
    if(!raceCheck||!checkedRecently)
     return make(day,'recovery','Regeneration nach dem Wettkampf',null,
      day>today?
@@ -270,7 +269,7 @@ export function buildSevenDayCoach(input){
       (activeRaceRecovery&&autoRaceRecovery.status==='matched'?
        'Die Garmin-Aufzeichnung ist erkannt. '+autoRaceRecovery.next+' ':
        'Keine eindeutige Garmin-Rennaufzeichnung verfügbar. Regeneration vor weiteren Laufvorschlägen. ')+
-      'Das persönliche Erholungs-Barometer ist freiwillig; fehlende Angaben gelten niemals als gute Erholung.')
+      'Das Renn-Barometer ist freiwillig; fehlende Angaben gelten niemals als gute Erholung.')
    if(raceCheck.warning)
     return make(day,'illness','Warnzeichen · Belastung abklären',null,
      'Du hast Warnzeichen gemeldet. Kein Laufvorschlag. Bei Brustschmerzen, Atemnot, '+
@@ -283,6 +282,13 @@ export function buildSevenDayCoach(input){
     return make(day,'recovery','Noch belastet · nur leichte Bewegung',null,
      'Eigene Belastungseinschätzung: '+reportedExhaustion+'/10. '+
      'Spaziergang oder sanfte Mobility statt Trainingskilometern; morgen erneut prüfen.')
+   // Objective Garmin warning signals can only make the plan more conservative.
+   // Athlete-submitted exhaustion is already protected by the branches above.
+   if(activeRaceRecovery&&autoRaceRecovery.signals.some(x=>
+    /Garmin|HRV|Ruhepuls|Schlafdauer/i.test(x)))
+    return make(day,'recovery','Garmin-Erholungssignale · Regeneration',null,
+     autoRaceRecovery.signals.join(' · ')+'. '+
+     'Weitere Erholung statt Laufvorschlag. Bestehende Termine selbst prüfen.')
    if(daysPostRace<=2||(ultraRecovery&&daysPostRace<=5))
     return make(day,'recovery','Nach dem Rennen · ruhig regenerieren',null,
      'Subjektiv schon frischer ('+reportedExhaustion+'/10), aber '+daysPostRace+
