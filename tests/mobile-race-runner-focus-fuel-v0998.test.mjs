@@ -63,7 +63,7 @@ test('Gel Buddy ownership-based events show selected actual product only at its 
  assert.equal(second.gelTiming,'due')
  assert.equal(second.gel.brand,'226ERS')
  assert.equal(second.drinkDue,true)
- const later=buildRunnerFocus({checkpoints,completed:0,gelEvents:gels,elapsedMinutes:65})
+ const later=buildRunnerFocus({checkpoints,completed:0,gelEvents:gels,elapsedMinutes:70})
  assert.equal(later.gelTiming,'upcoming')
  assert.equal(later.gel.minute,650)
  assert.equal(later.drinkDue,false)
