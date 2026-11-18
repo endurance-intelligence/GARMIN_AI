@@ -141,6 +141,27 @@ test('without recovery survey, Garmin postrace review remains available and does
  assert.match(day.reason,/freiwillig/)
  assert.doesNotMatch(day.reason,/Bitte Erschöpfung und Muskelgefühl im Renn-Barometer eintragen/)
 })
+test('switching the main Goal preserves Heartbeat recovery via the existing race archive',()=>{
+ const nextGoal={race_name:'Hermannslauf',race_date:'2027-04-25',distance_km:31.1}
+ const r=buildSevenDayCoach({today:'2026-11-23',goal:{goal:nextGoal},
+  racePortfolio:{others:[goal]},
+  boards:board([race({rpe_raw:50,feeling_raw:75})]),
+  health:health(),life:life(),plans:{entries:[],historyFrom:'2026-10-01'},
+  options:{options:[],choices:[]}})
+ assert.equal(r.raceDate,'2027-04-25')
+ assert.equal(r.recoveryRaceDate,'2026-11-21')
+ assert.equal(r.autoRaceRecovery.status,'matched')
+ assert.equal(r.autoRaceRecovery.raceName,'Heartbeat Ultra Fulda')
+ assert.equal(r.days[0].kind,'recovery')
+ assert.equal(r.days[0].approvable,false)
+})
+test('Coach snapshot fetches the archived race optionally without compromising the primary data fetch',()=>{
+ const snapshot=read('src/lib/coachSnapshot.ts')
+ const ui=read('src/components/CoachSevenDay.tsx')
+ assert.match(snapshot,/get\('garmin-race-goals'\)\.catch\(\(\)=>\(\{\}\)\)/)
+ assert.match(snapshot,/racePortfolio:/)
+ assert.match(ui,/racePortfolio:snapshot.racePortfolio/)
+})
 test('read-only frontend shows race matching, Garmin feedback and optional personal check',()=>{
  const main=read('src/components/CoachSevenDay.tsx')
  const card=read('src/components/CoachRaceRecoveryCard.tsx')
