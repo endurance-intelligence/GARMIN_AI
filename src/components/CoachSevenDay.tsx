@@ -11,6 +11,7 @@ import {CoachDecisionLive} from './CoachDecisionLive'
 import {CoachPostRaceBarometer} from './CoachPostRaceBarometer'
 import {GarminFeedbackCard} from './GarminFeedbackCard'
 import {WeeklyPlanActualCard} from './WeeklyPlanActualCard'
+import {CoachNextImpactCard} from './CoachNextImpactCard'
 import {assessCustomProposal} from '../lib/coachCustomProposal.mjs'
 import type {CoachContextPayload} from './CoachLifeContext'
 import '../styles/coach-seven-day.css'
@@ -240,6 +241,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot}:{
     <Icon name="activity"/> Polarisiert · überwiegend locker · höchstens eine harte Bahnoption.
     <span>{plan.trainingMethod?.message}</span>
    </p>
+   <CoachNextImpactCard impact={plan.nextImpact}/>
    {plan.completedWeek&&<WeeklyPlanActualCard review={plan.completedWeek}
     onCalendar={()=>onCalendar()}/>}
    <div className="c7-day-nav" id="c7-week-overview" role="tablist"

@@ -3,6 +3,7 @@ import {analyzeWorkoutFeedbackTrend} from './feedbackTrend.mjs'
 import {summarizeLastCompletedWeek} from './completedWeekReview.mjs'
 import {applyPolarizedGuidance} from './polarizedTraining.mjs'
 import {analyzeGarminPerception} from './garminPerception.mjs'
+import {analyzeRecentCoachImpact,applyRecentCoachImpact} from './coachNextImpact.mjs'
 /** GARMIN_AI Coach Intelligence v1.0 — conservative, explainable seven-day preview.
  * No synthetic training readiness, direct Garmin write or automatic approval.
  */
@@ -119,6 +120,8 @@ export function buildSevenDayCoach(input){
  const choices=Array.isArray(input.options?.choices)?input.options.choices:[]
  const plans=Array.isArray(input.plans?.entries)?input.plans.entries.filter(x=>x.state!=='cancelled'):[]
  const completedWeek=summarizeLastCompletedWeek({today,boards:input.boards,plans:input.plans})
+ const recentImpact=analyzeRecentCoachImpact({today,boards:input.boards,
+  plans:input.plans?.entries})
  const allowWeekAdjustment=completedWeek.adjustment==='shorten'&&!ill&&!returning&&!postIllness&&
   !caution&&!input.symptoms&&!feedbackCaution&&!trendReducing&&!trendShortening&&
   (raceOffset===null||raceOffset>10)
@@ -393,7 +396,10 @@ export function buildSevenDayCoach(input){
     item.minutes+' auf '+revised+' Minuten verkürzen. Nur Vorschlag; '+
     'kein bestehender Kalendertermin und keine Garmin-Daten wurden geändert.'}
  })
- const polarized=applyPolarizedGuidance(items,{
+ const adapted=applyRecentCoachImpact(items,recentImpact,{today,raceDate,ill,returning,postIllness})
+ if(adapted.impact.latest)flags.push('Letzte passende Coach-Einheit: '+
+  adapted.impact.evidence+' '+adapted.impact.reason+' '+adapted.impact.message)
+ const polarized=applyPolarizedGuidance(adapted.days,{
   today,raceDate,ill,returning,postIllness,caution,
   feedbackCaution,trendReducing,observationLimited,
   qualityLocked:garminPerception.qualityCaution,
@@ -405,7 +411,8 @@ export function buildSevenDayCoach(input){
   trainingMethod:{id:'polarized',qualityDay:polarized.qualityDay,
    status:polarized.status,plannedEasy:polarized.easyCount,
    message:polarized.message},
-  attention:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||allowWeekAdjustment||observationLimited,
+  attention:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||allowWeekAdjustment||
+  adapted.impact.effect==='shortened'||observationLimited,
   attentionText:ill||input.symptoms?'Krank-Modus aktiv: Trainingsvorschläge sind gesperrt, bis du deine Genesung meldest.':
    returning?'Wiedereinstieg aktiv: erste Läufe und deine Folgetag-Rückmeldungen haben Vorrang. Keine automatische Freigabe.':
    postIllness?'Nach dem Wiedereinstieg Belastung weiter schrittweise aufbauen; keine Nachholeinheiten.':
@@ -414,6 +421,7 @@ export function buildSevenDayCoach(input){
     'Weitere Intensität erst nach Erholung, keine zusätzliche Eingabe notwendig.':
     'Deine bisherige Rückmeldung spricht für mehr Ruhe. Die nächsten Tage werden vorsichtiger geplant.'):
    trendReducing||trendShortening?'Dein Feedback aus mehreren Einheiten spricht für weniger Belastung. Vorschläge angepasst, nicht im Kalender geändert.':
+   adapted.impact.effect==='shortened'?'Die letzte Garmin-Bewertung und die Plan-Ist-Abweichung sprechen zusammen für einen kürzeren nächsten offenen Vorschlag. Bitte prüfen und freigeben.':
    allowWeekAdjustment?'Dein Plan-Ist-Abgleich der letzten Woche spricht für einen kürzeren lockeren Lauf. Bitte selbst prüfen und freigeben.':
    caution?'Belastungs-/Erholungssignale sprechen für Zurückhaltung; keine Diagnostik.':
    observationLimited?'Datenlage ist eingeschränkt. Nur konservative Vorschläge.':
@@ -423,6 +431,7 @@ export function buildSevenDayCoach(input){
   latestWorkoutFeedback:workoutFeedback?.activityId||null,
   garminPerception,
   completedWeek,
+  nextImpact:adapted.impact,
   feedbackTrend:{level:feedbackTrend.level,kind:feedbackTrend.kind,
    count14:feedbackTrend.count14,count28:feedbackTrend.count28}}
 }
