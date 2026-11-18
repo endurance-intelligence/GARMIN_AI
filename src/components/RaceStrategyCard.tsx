@@ -333,6 +333,7 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
       <Icon name="check"/> {busy?'Speichere …':'Rennplan speichern'}
      </button>
      </div>
+     </div>
     </details>
    </>}
    {!goal&&!loading&&<p>Lege zuerst dein Hauptziel unter <strong>Goals</strong> fest.</p>}
