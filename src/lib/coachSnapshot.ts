@@ -39,7 +39,7 @@ export async function loadCoachSnapshot(session:Session,today:string,signal?:Abo
   get('garmin-coach-goal'),get('garmin-coach-context'),
   // The preexisting goal archive is optional: a transient failure must not
   // erase the main Coach snapshot or disable safe training suggestions.
-  get('garmin-race-goals').catch(()=>({})),
+  get('garmin-race-goals').catch(()=>({} as Record<string,unknown>)),
   ...weeks.map(week=>get('garmin-week-board?start='+encodeURIComponent(week)))
  ])
  if(!life.context||!Array.isArray((life.context as Record<string,unknown>).blocked_periods)||
