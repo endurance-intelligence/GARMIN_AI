@@ -29,7 +29,7 @@ test('training data source disclaimer does not falsely describe real sessions as
   assert.match(training,/SESSION INTELLIGENCE \/ ECHTE GARMIN-DATEN/)
   assert.match(training,/Nur echte Garmin-Daten\. Keine künstlichen Trainingsnoten/)
   assert.doesNotMatch(training,/demoSessions|BEISPIELANALYSEN|DIE BEISPIELANALYSEN/)
-  assert.match(training,/<LiveSessionAnalyst active=\{active\}\/>/)
+  assert.match(training,/<LiveSessionAnalyst active=\{active\} focus=\{focus\}\/>/)
 })
 
 test('equipment cards, charts and recovery data are touch-sized on iPhone',()=>{
