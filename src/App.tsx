@@ -32,6 +32,7 @@ function App() {
   const [calendarFocus,setCalendarFocus]=useState<{date:string;token:number}|null>(null)
   const [coachFocus,setCoachFocus]=useState<{date:string;token:number}|null>(null)
   const [raceWeatherFocus,setRaceWeatherFocus]=useState(0)
+  const [sessionFocus,setSessionFocus]=useState<{activityId:string;token:number}|null>(null)
   const [page,setPage]=useState<Page>(()=>{
    try{
     const last=sessionStorage.getItem('garmin-ai:last-page:v1')
@@ -49,6 +50,11 @@ function App() {
     if(date&&/^\d{4}-\d{2}-\d{2}$/.test(date))
       setCoachFocus(prev=>({date,token:(prev?.token||0)+1}))
     go('home')
+  }
+  function openSession(activityId:string){
+    if(!/^[A-Za-z0-9_-]{1,100}$/.test(activityId))return
+    setSessionFocus(prev=>({activityId,token:(prev?.token||0)+1}))
+    go('training')
   }
   function openRaceWeather(){
     setRaceWeatherFocus(n=>n+1)
@@ -73,10 +79,10 @@ function App() {
     </aside>
     <main className="main"><div className="main-in">
       <header className="topbar"><div className="crumbs"><span>WORKSPACE</span><span className="slash">/</span><strong>{(page==='gear'?'Equipment':page==='settings'?'Einstellungen':page==='strength'?'Stabi Studio':navigation.find(n=>n.id===page)?.name)}</strong></div><div className="top-actions"><div className="mobile-brand" style={{display:'none'}}><div className="brand-logo"><Icon name="activity"/></div>GARMIN_AI</div><span className="date">GARMIN_AI / DEIN TRAINING</span><span className="pill"><span className="pulse"/> DATEN LIVE · FREIGABE DURCH DICH</span><div className="round-icon"><Icon name="bell"/></div></div></header>
-      <CoachPage active={page==='home'} focus={coachFocus} onGo={go} onOpenCalendar={openCalendar} onOpenRaceWeather={openRaceWeather}/>
+      <CoachPage active={page==='home'} focus={coachFocus} onGo={go} onOpenCalendar={openCalendar} onOpenRaceWeather={openRaceWeather} onOpenSession={openSession}/>
       <CalendarPage active={page==='calendar'} focus={calendarFocus} onOpenCoach={openCoach}/>
       <GoalsPage active={page==='goals'} onGo={go}/>
-      <TrainingPage active={page==='training'} onGo={go}/>
+      <TrainingPage active={page==='training'} onGo={go} focus={sessionFocus}/>
       <StrengthPage active={page==='strength'}/>
       {import.meta.env.DEV && <LiveGarminActivities active={page==='training'}/>}
       <RacePage active={page==='race'} onGo={go} focusWeatherToken={raceWeatherFocus}/>

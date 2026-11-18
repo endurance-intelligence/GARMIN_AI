@@ -61,7 +61,8 @@ async function readPrivate<T>(session: Session, params = ''): Promise<T> {
   return await response.json() as T
 }
 
-export function LiveSessionAnalyst({ active }: { active: boolean }) {
+export function LiveSessionAnalyst({ active, focus }: { active: boolean;
+ focus?:{activityId:string;token:number}|null }) {
   const [session,setSession] = useState<Session | null>(null)
   const [authReady,setAuthReady] = useState(false)
   const [list,setList] = useState<Activity[]>([])
@@ -89,13 +90,25 @@ export function LiveSessionAnalyst({ active }: { active: boolean }) {
   useEffect(() => {
     if (!active || !session) return
     let mounted = true
+    const requested=focus?.activityId||''
+    if(requested){setSelected('');setDetails(null)}
+    setError('')
     void readPrivate<ActivityListResponse>(session).then(response => {
       if (!mounted) return
+      if(!Array.isArray(response.activities))throw Error('Garmin-Aktivitätsliste unvollständig.')
       setList(response.activities)
-      setSelected(current => response.activities.some(a=>a.id===current) ? current : (response.activities[0]?.id ?? ''))
+      if(requested){
+       const found=response.activities.some(a=>String(a.id)===requested)
+       if(found)setSelected(requested)
+       else {
+        setSelected('');setDetails(null)
+        setError('Der ausgewählte Garmin-Lauf ist in der geladenen Analyse-Liste nicht vorhanden. Bitte oben aktualisieren oder später erneut synchronisieren. Es wird kein anderer Lauf stillschweigend geöffnet.')
+       }
+      }else setSelected(current=>response.activities.some(a=>a.id===current)?
+       current:(response.activities[0]?.id??''))
     }).catch(err => { if (mounted) setError(err instanceof Error ? err.message : 'Aktivitätsliste nicht verfügbar') })
     return () => { mounted=false }
-  }, [active, session?.access_token, refresh])
+  }, [active, session?.access_token, refresh, focus?.token])
 
   useEffect(()=>{
     if(!active||!session)return

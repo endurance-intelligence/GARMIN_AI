@@ -5,7 +5,7 @@ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
 
 test('live Session Intelligence has no demo verdict, no fake fueling and no stale Garmin workout snapshot',()=>{
  const page=read('src/pages/TrainingPage.tsx')
- assert.match(page,/<LiveSessionAnalyst active=\{active\}\/>/)
+ assert.match(page,/<LiveSessionAnalyst active=\{active\} focus=\{focus\}\/>/)
  assert.doesNotMatch(page,/AerobicEvidencePanel|Aerobe Vergleichsläufe/)
  assert.doesNotMatch(page,/ss-training-shortcut|Stabi Studio öffnen|Kraft &amp; Mobility/)
  assert.match(page,/erkennt den Trainingstyp automatisch/)
@@ -30,7 +30,7 @@ test('training page focuses solely on the run coach; deep-dive code remains avai
  const page=read('src/pages/TrainingPage.tsx')
  const evidence=read('src/components/AerobicEvidencePanel.tsx')
  const strength=read('src/pages/StrengthPage.tsx')
- assert.match(page,/<LiveSessionAnalyst active=\{active\}\/>/)
+ assert.match(page,/<LiveSessionAnalyst active=\{active\} focus=\{focus\}\/>/)
  assert.doesNotMatch(page,/useState|<AerobicEvidencePanel|Stabi Studio öffnen|aerobicOpen/)
  assert.match(evidence,/<details className="ae-diagnostics">/)
  assert.match(evidence,/Datenabdeckung &amp; Importdiagnose/)

@@ -8,6 +8,7 @@ import {berlinToday,mondayOf} from '../components/WeeklyTrainingOptions'
 import {CrossTrainingCoachCard} from '../components/CrossTrainingCoachCard'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {CoachSevenDay} from '../components/CoachSevenDay'
+import {CoachSessionBridge} from '../components/CoachSessionBridge'
 import {CoachEvidenceSummary} from '../components/CoachEvidenceSummary'
 import {coachAddDays} from '../lib/coachSevenDay.mjs'
 import {garminSupabase} from '../lib/garminSupabase'
@@ -16,9 +17,10 @@ import type {CoachSnapshot} from '../lib/coachSnapshot'
 import '../styles/coach-glance.css'
 import type {Page} from '../navigation'
 
-export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather}: {
+export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,onOpenSession}: {
  active:boolean;focus?:{date:string;token:number}|null;
- onGo:(page:Page)=>void;onOpenCalendar:(date?:string)=>void;onOpenRaceWeather:()=>void
+ onGo:(page:Page)=>void;onOpenCalendar:(date?:string)=>void;onOpenRaceWeather:()=>void;
+ onOpenSession:(activityId:string)=>void
 }) {
   const [weightOpen,setWeightOpen]=useState(false)
   const [savedWeight,setSavedWeight]=useState<number|null>(null)
@@ -99,6 +101,8 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather}: 
   <CoachGlance active={active} onCalendar={()=>onOpenCalendar()} sharedSnapshot={sharedSnapshot}>
    <CoachTodayWeather active={active}/>
   </CoachGlance>
+  {sharedSnapshot&&<CoachSessionBridge snapshot={sharedSnapshot} today={berlinToday()}
+   onOpenSession={onOpenSession}/>}
   <CoachSevenDay active={active} focus={focus} onCalendar={onOpenCalendar} sharedSnapshot={sharedSnapshot}/>
  </>}
  <details className="co-extra-tools" onToggle={event=>setShowWeeklyReview(event.currentTarget.open)}>
