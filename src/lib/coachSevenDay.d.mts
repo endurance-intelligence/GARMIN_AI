@@ -12,6 +12,7 @@ export type SevenDayPlan={
  garminPerception?:import('./garminPerception.mjs').GarminPerception
  nextImpact?:import('./coachNextImpact.mjs').RecentCoachImpact
  completedWeek?:import('./completedWeekReview.mjs').CompletedWeekReview
+ fourWeekReview?:import('./coachFourWeeks.mjs').CoachFourWeeks
  trainingMethod?:{id:'polarized';qualityDay:string|null;status:string;plannedEasy:number;message:string}
 }
 export function coachAddDays(date:string,delta:number):string
