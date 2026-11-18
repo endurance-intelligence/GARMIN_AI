@@ -14,10 +14,11 @@ export type SevenDayPlan={
  completedWeek?:import('./completedWeekReview.mjs').CompletedWeekReview
  fourWeekReview?:import('./coachFourWeeks.mjs').CoachFourWeeks
  adaptiveVolume?:import('./coachAdaptiveVolume.mjs').AdaptiveVolume
+ autoRaceRecovery?:import('./raceRecoveryIntelligence.mjs').AutoRaceRecovery
  trainingMethod?:{id:'polarized';qualityDay:string|null;status:string;plannedEasy:number;message:string}
 }
 export function coachAddDays(date:string,delta:number):string
 export function coachMonday(date:string):string
 export function buildSevenDayCoach(input:{
- today:string;startDate?:string;health?:any;boards?:any[];options?:any;plans?:any;goal?:any;life?:any;symptoms?:boolean
+ today:string;startDate?:string;health?:any;boards?:any[];options?:any;plans?:any;goal?:any;racePortfolio?:{others?:any[]};life?:any;symptoms?:boolean
 }):SevenDayPlan

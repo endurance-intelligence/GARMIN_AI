@@ -5,6 +5,7 @@ import {applyPolarizedGuidance} from './polarizedTraining.mjs'
 import {analyzeGarminPerception} from './garminPerception.mjs'
 import {analyzeCoachFourWeeks} from './coachFourWeeks.mjs'
 import {analyzeAdaptiveVolume,applyAdaptiveVolume} from './coachAdaptiveVolume.mjs'
+import {analyzeAutoRaceRecovery} from './raceRecoveryIntelligence.mjs'
 import {analyzeRecentCoachImpact,applyRecentCoachImpact} from './coachNextImpact.mjs'
 /** GARMIN_AI Coach Intelligence v1.0 — conservative, explainable seven-day preview.
  * No synthetic training readiness, direct Garmin write or automatic approval.
@@ -106,16 +107,31 @@ export function buildSevenDayCoach(input){
  const raceDate=typeof goal?.race_date==='string'&&
   /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(goal.race_date)?goal.race_date:null
  const raceOffset=raceDate?Math.round((Date.parse(raceDate+'T12:00:00Z')-Date.parse(today+'T12:00:00Z'))/ONE_DAY):null
+ // When a new primary Goal is chosen, the previous event is still present
+ // in the owner-scoped Goals portfolio. Preserve its postrace recovery window.
+ const history=Array.isArray(input.racePortfolio?.others)?
+  input.racePortfolio.others.filter(x=>x&&typeof x.race_date==='string'&&
+   /^\d{4}-\d{2}-\d{2}$/.test(x.race_date)&&x.race_date<=today&&
+   Number(x.distance_km)>0&&x.race_date>=coachAddDays(today,-21))
+   .sort((a,b)=>b.race_date.localeCompare(a.race_date)):[]
+ const historicGoal=history[0]||null
  // A previously recorded finish stays relevant even after the next goal is selected.
  const recoveryRaceDate=raceDate&&raceDate<=today?raceDate:
-  lastRaceCheck?.raceDate||raceDate
+  historicGoal?.race_date||lastRaceCheck?.raceDate||raceDate
+ const recoveryGoal=recoveryRaceDate===raceDate?goal:
+  history.find(x=>x.race_date===recoveryRaceDate)||null
  const raceCheck=[...checks].filter(x=>x.raceDate===recoveryRaceDate&&x.reportedOn<=today)
   .sort((a,b)=>String(b.reportedOn).localeCompare(String(a.reportedOn)))[0]||null
  const checkAge=raceCheck?Math.round((Date.parse(today+'T12:00:00Z')-
   Date.parse(raceCheck.reportedOn+'T12:00:00Z'))/ONE_DAY):null
  const checkedRecently=checkAge!==null&&checkAge>=0&&checkAge<=2
  const reportedExhaustion=raceCheck?Math.max(Number(raceCheck.fatigue),Number(raceCheck.soreness)):null
- const ultraRecovery=raceDate===recoveryRaceDate&&Number(goal?.distance_km)>=42
+ const ultraRecovery=Number(recoveryGoal?.distance_km)>=42
+ const autoRaceRecovery=analyzeAutoRaceRecovery({
+  today,goal:recoveryGoal||goal,boards:input.boards,health,life:input.life
+ })
+ const activeRaceRecovery=autoRaceRecovery.raceDate===recoveryRaceDate&&
+  ['matched','ambiguous','awaiting-sync'].includes(autoRaceRecovery.status)
  const activities=(input.boards||[]).flatMap(x=>Array.isArray(x?.activities)?x.activities:[])
  const manual=(input.boards||[]).flatMap(x=>Array.isArray(x?.manual)?x.manual:[])
  const options=Array.isArray(input.options?.options)?input.options.options:[]
@@ -145,6 +161,11 @@ export function buildSevenDayCoach(input){
   raceDate?'Wettkampfziel '+goal.race_name+' am '+raceDate:'Kein Wettkampfziel verfügbar',
   crossNote
  ]
+ if(activeRaceRecovery)flags.push(
+  'Wettkampfnachbereitung: '+(autoRaceRecovery.status==='matched'?
+   'Eindeutig passende Garmin-Aufzeichnung zugeordnet. ':
+   'Garmin-Rennaufzeichnung noch nicht eindeutig zugeordnet. ')+
+  autoRaceRecovery.next)
  if(fourWeekReview.qualityCaution)flags.push('Vierwochen-Verlauf: '+
   fourWeekReview.explanation+' '+fourWeekReview.suggestion)
  if(completedWeek.status==='ready')flags.push(
@@ -235,11 +256,20 @@ export function buildSevenDayCoach(input){
   const daysPostRace=recoveryRaceDate?
    Math.round((Date.parse(day+'T12:00:00Z')-Date.parse(recoveryRaceDate+'T12:00:00Z'))/ONE_DAY):null
   if(daysPostRace!==null&&daysPostRace>0&&daysPostRace<=14){
+   // The optional athlete warning check remains higher priority than Garmin
+   // metrics. Other subjective ratings retain their original numeric advice.
+   if(raceCheck?.warning&&checkedRecently)
+    return make(day,'illness','Warnzeichen · Belastung abklären',null,
+     'Du hast Warnzeichen gemeldet. Kein Laufvorschlag. Bei Brustschmerzen, Atemnot, '+
+     'Schwindel oder starken Beschwerden medizinisch abklären.')
    if(!raceCheck||!checkedRecently)
     return make(day,'recovery','Regeneration nach dem Wettkampf',null,
      day>today?
-      'Nach dem Wettkampf ist Erholung vorgesehen. Das Renn-Barometer wird erst nach dem Zieleinlauf ausgefüllt. Keine zusätzliche Einheit.':
-      'Regeneration nach dem Wettkampf. Bitte Erschöpfung und Muskelgefühl im Renn-Barometer eintragen bzw. aktualisieren. Bis dahin keine neuen Laufvorschläge.')
+      'Nach dem Wettkampf ist Erholung vorgesehen. Keine zusätzliche Einheit einplanen.':
+      (activeRaceRecovery&&autoRaceRecovery.status==='matched'?
+       'Die Garmin-Aufzeichnung ist erkannt. '+autoRaceRecovery.next+' ':
+       'Keine eindeutige Garmin-Rennaufzeichnung verfügbar. Regeneration vor weiteren Laufvorschlägen. ')+
+      'Das Renn-Barometer ist freiwillig; fehlende Angaben gelten niemals als gute Erholung.')
    if(raceCheck.warning)
     return make(day,'illness','Warnzeichen · Belastung abklären',null,
      'Du hast Warnzeichen gemeldet. Kein Laufvorschlag. Bei Brustschmerzen, Atemnot, '+
@@ -252,6 +282,14 @@ export function buildSevenDayCoach(input){
     return make(day,'recovery','Noch belastet · nur leichte Bewegung',null,
      'Eigene Belastungseinschätzung: '+reportedExhaustion+'/10. '+
      'Spaziergang oder sanfte Mobility statt Trainingskilometern; morgen erneut prüfen.')
+   // Objective Garmin warning signals can only make the plan more conservative.
+   // Athlete-submitted exhaustion is already protected by the branches above.
+   if(activeRaceRecovery&&autoRaceRecovery.recoveryCaution&&
+    autoRaceRecovery.signals.some(x=>
+    /Garmin|HRV|Ruhepuls|Schlafdauer/i.test(x)))
+    return make(day,'recovery','Garmin-Erholungssignale · Regeneration',null,
+     autoRaceRecovery.signals.join(' · ')+'. '+
+     'Weitere Erholung statt Laufvorschlag. Bestehende Termine selbst prüfen.')
    if(daysPostRace<=2||(ultraRecovery&&daysPostRace<=5))
     return make(day,'recovery','Nach dem Rennen · ruhig regenerieren',null,
      'Subjektiv schon frischer ('+reportedExhaustion+'/10), aber '+daysPostRace+
@@ -446,6 +484,7 @@ export function buildSevenDayCoach(input){
   garminPerception,
   completedWeek,
   fourWeekReview,
+  autoRaceRecovery,
   nextImpact:adapted.impact,
   adaptiveVolume:{...volume,appliedDate:volumeStep.appliedDate},
   feedbackTrend:{level:feedbackTrend.level,kind:feedbackTrend.kind,
