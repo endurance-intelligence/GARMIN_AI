@@ -2,6 +2,7 @@ import {useEffect,useRef,useState} from 'react'
 import {Icon} from './Icon'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {estimateRaceStrategy} from '../lib/raceStrategyMath.mjs'
+import {RaceExecutionCard} from './RaceExecutionCard'
 import type {CoachGoal} from '../lib/coachGoal'
 import '../styles/race-strategy.css'
 
@@ -179,6 +180,13 @@ export function RaceStrategyCard({active}:{active:boolean}){
        disabled={busy} inputMode="text" placeholder="z. B. 06:50"
        onChange={e=>update('pace',e.target.value)}/></label>}
      </div>
+     {calculation&&<RaceExecutionCard saved={saved} input={{
+      distanceKm:Number(goal.distance_km),courseMode:draft.courseMode,loopKm:loop,
+      movingMinutes:moving,regularPauseMinutes:regular,longStopEvery:every,
+      longStopMinutes:long,paceSeconds:pace,targetHours:goal.target_hours,
+      carbsGPerHour:get(draft.carbs),fluidMlPerHour:get(draft.fluid),
+      sodiumMgPerHour:get(draft.sodium)
+     }}/>}
      {calculation&&<div className="rsp-estimate" role="status">
       <strong>Deine grobe Zeitrechnung: {calculation.formattedTotal}</strong>
       <span>{calculation.rounds!==null?calculation.rounds+' Runden (letzte ggf. kürzer) · ':''}
