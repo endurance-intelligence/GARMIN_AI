@@ -7,10 +7,10 @@ type Input={distanceKm:number;courseMode:string;loopKm:number|null;
  longStopMinutes:number|null;paceSeconds:number|null;targetHours:number|null;
  carbsGPerHour:number|null;fluidMlPerHour:number|null;sodiumMgPerHour:number|null}
 const fmt=(n:number)=>n.toLocaleString('de-DE',{maximumFractionDigits:1})
-export function RaceExecutionCard({input,saved}:{input:Input;saved:boolean}){
+export function RaceExecutionCard({input,saved,weightKg}:{input:Input;saved:boolean;weightKg?:number|null}){
  const data=buildRaceExecution(input)
  if(data.status!=='ready'||!data.estimate)return null
- return <details className="rex-root" aria-label="Rennen nach Runden mit Zeit und Versorgung planen">
+ return <details className="rex-root" open aria-label="Rennen nach Runden mit Zeit und Versorgung planen">
   <summary className="rex-summary">
    <span className="rex-icon"><Icon name="timer"/></span>
    <span className="rex-summary-text">
@@ -33,11 +33,17 @@ export function RaceExecutionCard({input,saved}:{input:Input;saved:boolean}){
     <div className="rex-fuel-items">
      {data.nutrition.carbsG!==null&&<div><strong>{fmt(data.nutrition.carbsG)} g</strong>
       <small>Kohlenhydrate</small></div>}
+     {data.nutrition.carbsG!==null&&<div><strong>{fmt(data.nutrition.carbsG*4)} kcal</strong>
+      <small>Energie aus geplanten Kohlenhydraten</small></div>}
      {data.nutrition.fluidMl!==null&&<div><strong>{fmt(data.nutrition.fluidMl/1000)} l</strong>
       <small>Getränke</small></div>}
      {data.nutrition.sodiumMg!==null&&<div><strong>{fmt(data.nutrition.sodiumMg)} mg</strong>
       <small>Natrium</small></div>}
     </div>
+    {weightKg!=null&&weightKg>=30&&weightKg<=250&&<p>
+     Grober Laufenergie-Richtwert bei {fmt(weightKg)} kg: ca. {fmt(Math.round(weightKg*input.distanceKm))} kcal
+     (1 kcal/kg/km). Das ist <strong>kein</strong> Garmin-Messwert und nicht deine notwendige Verpflegungsmenge.
+    </p>}
     <p>Nur aus geplanter Gesamtdauer × deinen Angaben pro Stunde berechnet.
      Pausen sind eingeschlossen; Versorgung, Verträglichkeit und tatsächliche Trinkmenge
      musst du im Rennen anpassen.</p>
