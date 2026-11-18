@@ -21,7 +21,7 @@ test('Goals is the sole owner of event administration and archived race sources'
 test('Race Prep keeps forecast, map and actual race strategy, not goal management',()=>{
  const race=read('src/pages/RacePage.tsx')
  const dossier=read('src/components/RaceEventDossier.tsx')
- assert.match(race,/<RaceStrategyCard active=\{active\} onCoach=\{\(\)=>onGo\('home'\)\}/)
+ assert.match(race,/<RaceStrategyCard active=\{active\} forecast=\{raceForecast\} onCoach=\{\(\)=>onGo\('home'\)\}/)
  assert.match(race,/<RaceEventDossier active=\{active\}/)
  assert.match(race,/<RaceForecastCompact active=\{active\}/)
  assert.match(race,/<RaceRouteViewer active=\{active\}/)
