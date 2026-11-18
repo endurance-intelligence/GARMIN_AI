@@ -1,5 +1,5 @@
 -- Garmin Cloud OAuth 429 cooldown hotfix (applied in Supabase 2026-11-10).
--- PostgreSQL's GREATEST is a special SQL expression, not pg_catalog.greatest().
+-- PostgreSQL GREATEST is a special SQL expression and must not be schema-qualified.
 -- Previous guard raised 42883 and failed to persist the essential 24-hour lock.
 -- Keep the exact workflow OIDC authorization, RLS and service-role-only grants.
 create or replace function public.garmin_cloud_auth_guard_rate_limit()
