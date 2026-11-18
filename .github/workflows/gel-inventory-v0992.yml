@@ -1,0 +1,27 @@
+name: GARMIN_AI Gel Inventory v0.9.92 Verify
+
+on:
+  push:
+    branches: [feature/gel-inventory-fuel-timing-v0992]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GITHUB_PAGES: 'true'
+      VITE_GARMIN_SUPABASE_URL: https://eurgupsebxypjqvyizci.supabase.co
+      VITE_GARMIN_SUPABASE_PUBLISHABLE_KEY: ${{ vars.GARMIN_SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/*.test.mjs
+      - run: npm run build
