@@ -4,6 +4,7 @@ import {summarizeLastCompletedWeek} from './completedWeekReview.mjs'
 import {applyPolarizedGuidance} from './polarizedTraining.mjs'
 import {analyzeGarminPerception} from './garminPerception.mjs'
 import {analyzeCoachFourWeeks} from './coachFourWeeks.mjs'
+import {analyzeAdaptiveVolume,applyAdaptiveVolume} from './coachAdaptiveVolume.mjs'
 import {analyzeRecentCoachImpact,applyRecentCoachImpact} from './coachNextImpact.mjs'
 /** GARMIN_AI Coach Intelligence v1.0 — conservative, explainable seven-day preview.
  * No synthetic training readiness, direct Garmin write or automatic approval.
@@ -404,7 +405,14 @@ export function buildSevenDayCoach(input){
  const adapted=applyRecentCoachImpact(items,recentImpact,{today,raceDate,ill,returning,postIllness})
  if(adapted.impact.latest)flags.push('Letzte passende Coach-Einheit: '+
   adapted.impact.evidence+' '+adapted.impact.reason+' '+adapted.impact.message)
- const polarized=applyPolarizedGuidance(adapted.days,{
+ const volume=analyzeAdaptiveVolume({today,history:fourWeekReview,goal,
+  ill,returning,postIllness,symptoms:!!input.symptoms,caution,feedbackCaution,
+  trendReducing,trendShortening,observationLimited,
+  recentImpactEffect:adapted.impact.effect})
+ const volumeStep=applyAdaptiveVolume(adapted.days,volume,{today})
+ if(volumeStep.appliedDate)flags.push('Adaptive Umfangssteuerung ('+
+  volumeStep.appliedDate+'): '+volume.reason)
+ const polarized=applyPolarizedGuidance(volumeStep.days,{
   today,raceDate,ill,returning,postIllness,caution,
   feedbackCaution,trendReducing,observationLimited,
   qualityLocked:garminPerception.qualityCaution||fourWeekReview.qualityCaution,
@@ -439,6 +447,7 @@ export function buildSevenDayCoach(input){
   completedWeek,
   fourWeekReview,
   nextImpact:adapted.impact,
+  adaptiveVolume:{...volume,appliedDate:volumeStep.appliedDate},
   feedbackTrend:{level:feedbackTrend.level,kind:feedbackTrend.kind,
    count14:feedbackTrend.count14,count28:feedbackTrend.count28}}
 }
