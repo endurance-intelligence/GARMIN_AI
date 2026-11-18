@@ -10,6 +10,7 @@ export type SevenDayPlan={
  recoveryRaceDate?:string|null;checkedRecently?:boolean;reportedExhaustion?:number|null;latestWorkoutFeedback?:string|null;
  feedbackTrend?:{level:string;kind:'none'|'reduce'|'shorten'|'maintain';count14:number;count28:number}
  garminPerception?:import('./garminPerception.mjs').GarminPerception
+ nextImpact?:import('./coachNextImpact.mjs').RecentCoachImpact
  completedWeek?:import('./completedWeekReview.mjs').CompletedWeekReview
  trainingMethod?:{id:'polarized';qualityDay:string|null;status:string;plannedEasy:number;message:string}
 }
