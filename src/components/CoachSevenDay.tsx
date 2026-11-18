@@ -53,7 +53,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot}:{
   void (async()=>{
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)throw Error('Bitte zuerst anmelden.')
-   const data=await loadCoachSnapshot(session,today,controller.signal)
+   const data=await loadCoachSnapshot(session,today,controller.signal,undefined,4)
    if(mounted)setSnapshot(data)
   })().catch(e=>{
    if(mounted&&!(e instanceof Error&&e.name==='AbortError'))
