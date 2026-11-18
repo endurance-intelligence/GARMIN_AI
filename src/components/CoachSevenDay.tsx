@@ -13,6 +13,7 @@ import {GarminFeedbackCard} from './GarminFeedbackCard'
 import {WeeklyPlanActualCard} from './WeeklyPlanActualCard'
 import {CoachNextImpactCard} from './CoachNextImpactCard'
 import {CoachFourWeekCard} from './CoachFourWeekCard'
+import {CoachAdaptiveVolumeCard} from './CoachAdaptiveVolumeCard'
 import {assessCustomProposal} from '../lib/coachCustomProposal.mjs'
 import type {CoachContextPayload} from './CoachLifeContext'
 import '../styles/coach-seven-day.css'
@@ -243,6 +244,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot}:{
     <span>{plan.trainingMethod?.message}</span>
    </p>
    <CoachNextImpactCard impact={plan.nextImpact}/>
+   {plan.adaptiveVolume&&<CoachAdaptiveVolumeCard review={plan.adaptiveVolume}/>}
    {snapshot&&<CoachFourWeekCard today={today} snapshot={snapshot}/>}
    {plan.completedWeek&&<WeeklyPlanActualCard review={plan.completedWeek}
     onCalendar={()=>onCalendar()}/>}

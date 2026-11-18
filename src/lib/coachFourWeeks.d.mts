@@ -1,6 +1,7 @@
 export type CoachHistoryWeek={
  start:string;end:string;available:boolean;runs:number|null;
  distanceKm:number|null;rated:number|null;hard:number|null;weak:number|null;
+ longestRunMinutes:number|null;
  approved:number|null;matched:number|null;overlong:number|null;
  accepted:number|null;declined:number|null;planCoverage:boolean
 }
