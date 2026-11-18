@@ -23,5 +23,5 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: node --test tests/mobile-race-auto-weather-feels-v0991.test.mjs tests/mobile-p2-race-execution-recovery-v0990.test.mjs tests/mobile-race-forecast-share-v0940.test.mjs
+      - run: node --test tests/mobile-race-auto-weather-feels-v0991.test.mjs tests/mobile-p2-race-execution-recovery-v0990.test.mjs tests/mobile-race-forecast-share-v0940.test.mjs tests/mobile-event-scout-goals-only-v0985.test.mjs tests/mobile-goals-race-prep-split-v0984.test.mjs
       - run: npm run build
