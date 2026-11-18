@@ -46,7 +46,7 @@ test('exactly one Garmin activity, its distance/time and athlete RPE are linked 
  assert.equal(result.garminRpe,8)
  assert.equal(result.garminFeeling,50)
  assert.equal(result.phase,'rest')
- assert.match(result.next,/Keine Trainingseinheit/)
+ assert.match(result.next,/mehr Ruhe/)
  assert.equal(result.recoveryCaution,true)
  assert.match(result.signals.join(' '),/sehr anstrengend/)
  assert.match(result.careNote,/kein amtliches Rennergebnis/)
@@ -112,7 +112,7 @@ test('recovery stages protect race day, first 5 days, 6-9, 10-14, then a gentle 
  ]){
   const r=assess({today,boards:board([race({rpe_raw:null,feeling_raw:null})])})
   assert.equal(r.phase,phase,today)
-  assert.match(r.next,/Keine Trainingseinheit|Keine Laufeinheit|keinen Trainingsumfang|kurze, sehr lockere Einheit|Allmählich/)
+  assert.match(r.next,/Keine (weitere )?Trainingseinheit|Keine Laufeinheit|keinen Trainingsumfang|kurze, sehr lockere Einheit|Allmählich/)
  }
  const after=assess({today:'2026-12-20'})
  assert.equal(after.status,'outside')
