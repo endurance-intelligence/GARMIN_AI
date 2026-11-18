@@ -122,7 +122,10 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
    persist(model.marks,startTime,runnerCompleted-1))
    setStatus('Letzte Runde korrigiert.')
  }
- const exportText=raceDayLogText({goal,model,startTime:clockOK(startTime)?startTime:null})
+ const runnerCount=Math.max(model.recorded,runnerCompleted)
+ const exportText='RUNNER MODE: '+runnerCount+' von '+model.rows.length+
+  ' Runden manuell bestätigt.\nOhne GPS-Distanz und ohne erfundene Zwischenzeiten.\n\n'+
+  raceDayLogText({goal,model,startTime:clockOK(startTime)?startTime:null})
  const copy=async()=>{
   try{await navigator.clipboard.writeText(exportText)
    setStatus('Rennprotokoll kopiert. Du kannst es als Nachricht oder Notiz sichern.')
@@ -271,7 +274,7 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
     <button type="button" onClick={()=>setBackupOpen(x=>!x)}>
      {backupOpen?'Protokoll ausblenden':'Protokoll anzeigen'}</button>
     <button type="button" disabled={!model.recorded} onClick={undo}>Letzten Eintrag rückgängig</button>
-    <button type="button" disabled={!model.recorded} onClick={reset}>Rennlog zurücksetzen</button>
+    <button type="button" disabled={!model.recorded&&runnerCompleted===0} onClick={reset}>Rennlog zurücksetzen</button>
    </div>
    {backupOpen&&<textarea readOnly aria-label="Kopierbares Rennprotokoll"
     className="rdc-backup" value={exportText} rows={10}/>}
