@@ -40,7 +40,7 @@ export function RacePage({active,onGo,focusWeatherToken=0}:{
     <Icon name="target"/> Ziele verwalten <Icon name="arrow-up-right"/>
    </button>
   </header>
-  <RaceStrategyCard active={active} onCoach={()=>onGo('home')}/>
+  <RaceStrategyCard active={active} forecast={raceForecast} onCoach={()=>onGo('home')}/>
   <RaceEventDossier active={active}
    onEventCityChange={setEventCity} onCourseChange={setCourse}>
    <RaceForecastCompact active={active} eventCity={eventCity}
