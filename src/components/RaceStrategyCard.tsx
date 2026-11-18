@@ -5,6 +5,8 @@ import {estimateRaceStrategy} from '../lib/raceStrategyMath.mjs'
 import {recommendRacePlan} from '../lib/raceAutoPlan.mjs'
 import type {Forecast} from '../lib/weatherIntelligence'
 import {RaceExecutionCard} from './RaceExecutionCard'
+import {RaceDayCockpit} from './RaceDayCockpit'
+import type {GelPlanEvent} from '../lib/gelTiming.mjs'
 import {GelInventoryPlanner} from './GelInventoryPlanner'
 import {RaceAfterActionCard} from './RaceAfterActionCard'
 import type {CoachGoal} from '../lib/coachGoal'
@@ -58,6 +60,8 @@ function NumberField({label,value,onChange,min,max,step='1',placeholder}:{
 }
 export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoach:()=>void;forecast?:Forecast|null}){
  const [goal,setGoal]=useState<CoachGoal|null>(null)
+ const [viewerId,setViewerId]=useState('')
+ const [fuelSchedule,setFuelSchedule]=useState<GelPlanEvent[]|null>(null)
  const [weightKg,setWeightKg]=useState<number|null>(null)
  const [draft,setDraft]=useState<Draft>(blank)
  const [saved,setSaved]=useState(false)
@@ -77,6 +81,7 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
   void (async()=>{
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)throw Error('Bitte anmelden.')
+   if(live)setViewerId(session.user.id)
    const response=await fetch(garminSupabaseUrl+'/functions/v1/garmin-coach-goal',{
     method:'GET',cache:'no-store',signal:controller.signal,
     headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey}
@@ -126,6 +131,13 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
   loopKm:loop,movingMinutes:moving,regularPauseMinutes:regular,
   longStopEvery:every,longStopMinutes:long,paceSeconds:pace
  }):null
+ const executionInput=goal?{
+  distanceKm:Number(goal.distance_km),courseMode:draft.courseMode,loopKm:loop,
+  movingMinutes:moving,regularPauseMinutes:regular,longStopEvery:every,
+  longStopMinutes:long,paceSeconds:pace,targetHours:goal.target_hours,
+  carbsGPerHour:get(draft.carbs),fluidMlPerHour:get(draft.fluid),
+  sodiumMgPerHour:get(draft.sodium)
+ }:null
  async function save(){
   if(busy||!goal||!garminSupabase)return
   setBusy(true);setError('');setNotice('')
@@ -178,15 +190,14 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
      Anpassungen sind optional; Trainings- und Garmin-Daten werden nicht verändert.</p>
     {feels&&<p className="rsp-weather">🌡️ Rennwetter: gefühlt <strong>{feels[0]}–{feels[1]} °C</strong>.
      Trinkmenge und Kleidung nach tatsächlichem Wetter, Durst und Verträglichkeit anpassen.</p>}
-    {calculation&&<RaceExecutionCard saved={saved} weightKg={weightKg} input={{
-      distanceKm:Number(goal.distance_km),courseMode:draft.courseMode,loopKm:loop,
-      movingMinutes:moving,regularPauseMinutes:regular,longStopEvery:every,
-      longStopMinutes:long,paceSeconds:pace,targetHours:goal.target_hours,
-      carbsGPerHour:get(draft.carbs),fluidMlPerHour:get(draft.fluid),
-      sodiumMgPerHour:get(draft.sodium)
-     }}/>}
+    {executionInput&&viewerId&&<RaceDayCockpit active={active} goal={goal}
+     input={executionInput} saved={saved} viewerId={viewerId}
+     fuelSchedule={fuelSchedule}
+     feelsLike={feels?[feels[0],feels[1]]:null}/>}
+    {calculation&&executionInput&&<RaceExecutionCard saved={saved} weightKg={weightKg} input={executionInput}/>}
     <GelInventoryPlanner active={active} goal={goal}
-      durationMinutes={calculation?.totalMinutes??null} carbsGPerHour={get(draft.carbs)}/>
+      durationMinutes={calculation?.totalMinutes??null} carbsGPerHour={get(draft.carbs)}
+      onScheduleChange={setFuelSchedule}/>
     <div className="rsp-ready-notes" aria-label="Vorbereitete Versorgung und Ausrüstung">
      {draft.fuelNotes&&<article><strong>🥤 Verpflegung und KH</strong><p>{draft.fuelNotes}</p></article>}
      {draft.stopsNotes&&<article><strong>⏱️ Stopps und Wechsel</strong><p>{draft.stopsNotes}</p></article>}
