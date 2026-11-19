@@ -6,7 +6,7 @@ import {classifyGarminHrSeconds} from '../lib/coachHrTime.mjs'
 import type {GarminHrSecondsWeek} from '../lib/coachHrTime.mjs'
 import '../styles/coach-hr-time.css'
 
-const duration=sec=>{
+const duration=(sec:number)=>{
  const min=Math.round(sec/60)
  return min>=60?Math.floor(min/60)+' h '+String(min%60).padStart(2,'0')+' min':
   min+' min'
@@ -16,8 +16,9 @@ const validWeek=(x:unknown,start:string):x is GarminHrSecondsWeek=>{
  const row=x as Record<string,unknown>
  return row.start===start&&row.readOnly===true&&
   typeof row.histogram==='object'&&row.histogram!==null&&
-  Number.isInteger(row.measuredActivities)&&Number.isInteger(row.totalActivities)&&
-  Number.isInteger(row.validSeconds)
+  typeof row.measuredActivities==='number'&&Number.isInteger(row.measuredActivities)&&
+  typeof row.totalActivities==='number'&&Number.isInteger(row.totalActivities)&&
+  typeof row.validSeconds==='number'&&Number.isInteger(row.validSeconds)
 }
 export function CoachHrTimeCard({today,weeks,active}:{
  today:string;weeks:8|12;active:boolean
