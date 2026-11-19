@@ -203,7 +203,7 @@ test('no 80/20 physiological threshold or automatic workout changes in analysis 
  assert.match(model,/Math\.abs\(seconds-row.validSeconds\)/)
  assert.match(ui,/Keine physiologische 80\/20-Quote/)
  assert.match(ui,/Tapering: Frische für den Wettkampf/)
- assert.match(ui,/unvollständige/)
+ assert.match(ui,/block\.reason/)
  assert.match(ui,/Aktuelle Phase/)
  assert.match(card,/phaseForRace\(goal.race_date,today\)/)
  assert.match(card,/<CoachIntensityTrendPanel data=\{intensityTrend\}\/\>/)
