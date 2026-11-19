@@ -28,6 +28,9 @@ export function buildAidPlan({checkpoints=[],settings=null,startTime=null}={}){
    return {...empty,status:'unknown-concentration'}
  if(s.aid_food_carbs_g_per_stop>0&&!s.aid_food_name.trim())
    return {...empty,status:'unknown-food'}
+ // Several confirmed options can be entered comma-separated; show a
+ // different one each stop. Never assign a carb number unless entered.
+ const foodOptions=s.aid_food_name.split(/[,;]+/).map(x=>x.trim()).filter(Boolean)
  const events=[]
  let drinkCarbsG=0,foodCarbsG=0,fluidMl=0
  for(const c of checkpoints){
@@ -36,11 +39,12 @@ export function buildAidPlan({checkpoints=[],settings=null,startTime=null}={}){
   const ml=s.aid_drink_ml_per_stop
   const drink=round1(ml*(drinkCarbs500||0)/500)
   const food=round1(s.aid_food_carbs_g_per_stop)
-  if(ml===0&&food===0)continue
+  const meal=foodOptions.length?foodOptions[Math.floor((c.index-1)/s.aid_every_laps)%foodOptions.length]:''
+  if(ml===0&&food===0&&!meal)continue
   const event={minute:c.arrivalMinutes,clock:clockAt(startTime,c.arrivalMinutes),
     round:c.index,drinkMl:ml,drinkCarbsG:drink,
     drinkName:ml?('Maurten Drink Mix '+(s.aid_drink_mix==='custom'?'(geprüfter Wert)':s.aid_drink_mix)):'',
-    foodName:food?s.aid_food_name.trim():'',
+    foodName:meal,
     foodCarbsG:food,carbsG:round1(drink+food),planOnly:true}
   events.push(event)
   drinkCarbsG+=drink;foodCarbsG+=food;fluidMl+=ml
