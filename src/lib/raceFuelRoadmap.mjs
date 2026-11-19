@@ -65,6 +65,7 @@ export function buildRaceFuelRoadmap({
    primary:meal?.primary||null,primaryKind:meal?.primaryKind||null,
    alternative:meal?.alternative||null,
    foodConfirmed:Boolean(meal?.foodConfirmed),
+   menuAvailable:Boolean(meal?.foodAvailableAtEvent),
    foodIsAdditional:Boolean(meal?.foodIsAdditional),
    gelNames:meal?.gelScheduled?
     [meal.primary,...meal.additionalGelNames]:[],
