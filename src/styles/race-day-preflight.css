@@ -1,0 +1,27 @@
+/* Race-day phone preflight stays collapsed and never crowds the runner card. */
+.rdp-root{margin:0 0 10px;min-width:0;overflow:hidden;border:1px solid rgba(160,195,203,.28);border-radius:10px;background:rgba(19,46,60,.58);color:#dfeee9}
+.rdp-root>summary{cursor:pointer;display:flex;gap:8px;align-items:center;min-height:41px;padding:10px 12px;font-size:11px;font-weight:760;color:#d3e7e4}
+.rdp-root>summary>.ic{height:15px;width:15px;color:#b0dccb}
+.rdp-root>summary:focus-visible{outline:2px solid #b2e5d4;outline-offset:-3px}
+.rdp-content{padding:0 12px 12px}
+.rdp-content>p{margin:2px 0 10px;color:#aec8c8;font-size:10px;line-height:1.55}
+.rdp-run{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:9px 12px;border:1px solid #a3e3c5;border-radius:8px;color:#173f32;background:#b0ebcd;cursor:pointer;font-size:11px;font-weight:800}
+.rdp-run:hover{background:#d0f5df}
+.rdp-run:focus-visible{outline:2px solid #e5fff0;outline-offset:3px}
+.rdp-run>.ic{width:15px;height:15px}
+.rdp-results{display:grid;gap:9px;margin:11px 0 0}
+.rdp-status{font-size:12px}
+.rdp-status.is-ready{color:#aaf0cd}
+.rdp-status.is-review{color:#f1daa5}
+.rdp-status.is-blocked{color:#ffc6b7}
+.rdp-results ul{list-style:none;display:grid;gap:6px;padding:0;margin:0}
+.rdp-results li{display:flex;gap:9px;align-items:flex-start;padding:8px 9px;border-radius:8px;border:1px solid rgba(172,205,211,.16);background:rgba(8,34,46,.36)}
+.rdp-results li>.ic{width:15px;height:15px;flex:0 0 15px;margin-top:2px}
+.rdp-results li.is-ok>.ic{color:#a6e5c6}
+.rdp-results li.is-review>.ic{color:#edd394}
+.rdp-results li.is-blocked>.ic{color:#f0b4a7}
+.rdp-results li>span{display:grid;gap:3px}
+.rdp-results li strong{font-size:11px;color:#e4f5eb}
+.rdp-results li small{font-size:10px;line-height:1.5;color:#b6d0cb}
+.rdp-content .rdp-caveat{font-size:9px;line-height:1.5;margin:8px 0 0;color:#afc3c3}
+@media(max-width:600px){.rdp-root>summary{min-height:43px}.rdp-run{width:100%;min-height:44px}}
