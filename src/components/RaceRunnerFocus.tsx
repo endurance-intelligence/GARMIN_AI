@@ -5,6 +5,7 @@ import type {GelPlanEvent} from '../lib/gelTiming.mjs'
 import type {AidPlanEvent} from '../lib/raceAidPlan.mjs'
 import {buildRunnerFocus} from '../lib/raceRunnerFocus.mjs'
 import {buildRaceFuelRoadmap} from '../lib/raceFuelRoadmap.mjs'
+import {eventMenuForRace} from '../lib/raceEventMenu.mjs'
 import {recentFuelFeedback} from '../lib/raceFuelLog.mjs'
 import type {FuelMarks,FuelMarkStatus} from '../lib/raceFuelLog.mjs'
 import {raceElapsedNow} from '../lib/raceDayCockpit.mjs'
@@ -31,11 +32,12 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
  const elapsed=useMemo(()=>raceElapsedNow({
   raceDate:goal.race_date,startTime,now:new Date(clockTick)
  }),[goal.race_date,startTime,clockTick])
+ const eventMenu=eventMenuForRace({raceName:goal.race_name,raceDate:goal.race_date})
  const view=buildRunnerFocus({checkpoints,completed,gelEvents:fuelSchedule,
-  aidEvents:aidSchedule,elapsedMinutes:elapsed})
+  aidEvents:aidSchedule,elapsedMinutes:elapsed,eventMenu})
  const roadmap=useMemo(()=>buildRaceFuelRoadmap({
-  checkpoints,gelEvents:fuelSchedule,aidEvents:aidSchedule
- }),[checkpoints,fuelSchedule,aidSchedule])
+  checkpoints,gelEvents:fuelSchedule,aidEvents:aidSchedule,eventMenu
+ }),[checkpoints,fuelSchedule,aidSchedule,eventMenu])
  const roundAdvice=roadmap.rounds[view.completed]||null
  const feedback=recentFuelFeedback(fuelMarks,{completed:view.completed,total:view.total})
  if(!active||!view.total)return null
@@ -102,7 +104,9 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
         view.meal.foodCarbsCounted?
          'Als Portion im KH-Plan berücksichtigt · nicht als gegessen bestätigt.':
          'Angebot bestätigt · KH der Portion nicht eingerechnet.':
-        'Nur falls vor Ort angeboten und gut verträglich · keine KH angerechnet.':
+        view.meal.foodAvailableAtEvent?
+         'Laut Veranstalterangebot vorhanden · Portion und Verfügbarkeit an diesem Stopp prüfen · keine KH angerechnet.':
+         'Nur falls vor Ort angeboten und gut verträglich · keine KH angerechnet.':
        'Dieses Gel ist bereits im KH-Plan berücksichtigt, nicht als eingenommen bestätigt.'}</span>
      </div>
     </div>
@@ -113,7 +117,9 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
        <span>Auch diese Essensportion zählt bereits zum KH-Plan.</span>:
        <span>{view.meal.foodConfirmed?
         'Bei Ersatz die KH-Menge prüfen.':
-        'Nur wenn vor Ort vorhanden und verträglich. Kein automatischer Gel-Ersatz.'}</span>}
+        view.meal.foodAvailableAtEvent?
+         'Laut Veranstalterangebot · an diesem Stopp prüfen. Kein automatischer Gel-Ersatz.':
+         'Nur wenn vor Ort vorhanden und verträglich. Kein automatischer Gel-Ersatz.'}</span>}
      </div>
      <div><small>TRINKEN</small>
       <strong>{view.drinkDue?'Jetzt trinken · ':''}{view.meal.drink}</strong>
@@ -130,8 +136,12 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
     {(roundAdvice?.caffeineMg||0)>0&&<p className="rrf-meal-caffeine">
      Koffein: {roundAdvice!.caffeineMg} mg aus den für diese Runde eingeplanten Gels – nur nach deiner Freigabe.</p>}
     {!view.meal.foodConfirmed&&<p className="rrf-meal-hint">
-     Nudeln, Brötchen und andere Speisen sind Ideen, keine bestätigte Veranstalterliste.
-     Essen ersetzt kein eingeplantes Gel, solange die KH-Menge nicht abgeglichen ist.</p>}
+     {view.meal.foodAvailableAtEvent?
+      'Dieses Essen steht auf deiner bestätigten Veranstalterliste. Verfügbarkeit je Stopp und Portionsgröße bleiben ungeprüft.':
+      'Nudeln, Brötchen und andere Speisen sind Ideen, keine bestätigte Veranstalterliste.'}
+     {' '}Essen ersetzt kein eingeplantes Gel, solange die KH-Menge nicht abgeglichen ist.</p>}
+    {view.meal.availabilityNote&&<p className="rrf-meal-guidance">
+     {view.meal.availabilityNote}</p>}
     {view.nextAid&&<span className="rrf-meal-aid-status">Streckenversorgung eingeplant</span>}
    </div>}
 
