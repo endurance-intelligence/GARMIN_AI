@@ -8,6 +8,8 @@ import {buildRaceDayCockpit,formatRaceElapsed,parseRaceElapsed,raceElapsedNow,
 import {clockAt} from '../lib/gelTiming.mjs'
 import {Icon} from './Icon'
 import {RaceRunnerFocus} from './RaceRunnerFocus'
+import {updateFuelMark} from '../lib/raceFuelLog.mjs'
+import type {FuelMarks,FuelMarkStatus} from '../lib/raceFuelLog.mjs'
 import {assessRunnerAdvance,assessRunnerCorrection,validateRunnerSnapshot} from '../lib/raceRunnerSafety.mjs'
 import '../styles/race-day-cockpit.css'
 
@@ -27,6 +29,7 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,ai
  feelsLike:[number,number]|null
 }){
  const [marks,setMarks]=useState<RaceMarks>({})
+ const [fuelMarks,setFuelMarks]=useState<FuelMarks>({})
  const [runnerCompleted,setRunnerCompleted]=useState(0)
  const [runnerTapAt,setRunnerTapAt]=useState<number|null>(null)
  const lastTapRef=useRef<number|null>(null)
@@ -71,6 +74,7 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,ai
    const value=from.startTime&&clockOK(from.startTime)?
     from.startTime:goal.race_start_time?.slice(0,5)||''
    setMarks(from.marks||{})
+   setFuelMarks(from.fuelMarks||{})
    setRunnerCompleted(from.completed??0)
    setRunnerTapAt(from.lastTapAt??null)
    lastTapRef.current=from.lastTapAt??null
@@ -82,7 +86,7 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,ai
   }
  },[active,key,viewerId,goal.race_date,goal.race_name,goal.race_start_time])
  const persist=(next:RaceMarks,nextStart=startTime,nextCompleted=runnerCompleted,
-  nextTapAt=runnerTapAt)=>{
+  nextTapAt=runnerTapAt,nextFuelMarks=fuelMarks)=>{
   if(!loaded||!viewerId||!storageReady){
    setRunnerError('Runde NICHT übernommen: Speicher nicht bereit.')
    setError('Bitte zuerst anmelden und Rennspeicher prüfen.')
@@ -92,10 +96,12 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,ai
    const values=sanitizeRaceMarks(next,model.plan.checkpoints)
    const text=JSON.stringify({version:1,raceDate:goal.race_date,
     raceName:goal.race_name,startTime:nextStart,marks:values,
-    runnerCompleted:nextCompleted,runnerTapAt:nextTapAt})
+    runnerCompleted:nextCompleted,runnerTapAt:nextTapAt,
+    fuelMarks:nextFuelMarks})
    localStorage.setItem(key,text)
    if(localStorage.getItem(key)!==text)throw Error('Rennspeicher konnte nicht überprüft werden.')
    setMarks(values);setStartTime(nextStart);setRunnerCompleted(nextCompleted)
+   setFuelMarks(nextFuelMarks)
    setRunnerTapAt(nextTapAt);setRunnerError('');setError('')
    return true
   }catch{
@@ -130,14 +136,14 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,ai
   if(needsRepair){
    try{
     localStorage.removeItem(key)
-    setMarks({});setRunnerCompleted(0);setRunnerTapAt(null);lastTapRef.current=null
+    setMarks({});setFuelMarks({});setRunnerCompleted(0);setRunnerTapAt(null);lastTapRef.current=null
     setLoaded(true);setNeedsRepair(false);setStorageReady(true)
     setRunnerError('');setRunnerNotice('Rennlog bewusst zurückgesetzt.')
     setBackupOpen(false)
    }catch{setRunnerError('Rennspeicher konnte nicht zurückgesetzt werden.')}
    return
   }
-  if(persist({},startTime,0,null)){
+  if(persist({},startTime,0,null,{})){
    lastTapRef.current=null
    setStatus('Renn-Zwischenzeiten auf diesem Gerät zurückgesetzt.')
    setRunnerNotice('Rennlog bewusst zurückgesetzt.')
@@ -171,7 +177,8 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,ai
    return
   }
   if(window.confirm('Letzte bestätigte Runde zurücknehmen?')&&
-   persist(model.marks,startTime,runnerCompleted-1,null)){
+   persist(model.marks,startTime,runnerCompleted-1,null,
+    Object.fromEntries(Object.entries(fuelMarks).filter(([round])=>Number(round)<runnerCompleted)))){
    lastTapRef.current=null
    setRunnerNotice('Letzte Runde zurückgenommen. Der Rundenzähler ist korrigiert.')
    setStatus('Letzte Runde korrigiert.')
@@ -184,15 +191,27 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,ai
   if(!decision.ok){setError(decision.reason||'Rundenzahl ungültig.');return}
   if(!window.confirm('Den Rundenzähler bewusst auf '+decision.count+
    ' abgeschlossene Runden setzen?'))return
-  if(persist(model.marks,startTime,decision.count!,null)){
+  if(persist(model.marks,startTime,decision.count!,null,
+   Object.fromEntries(Object.entries(fuelMarks).filter(([round])=>Number(round)<=decision.count!)))){
    lastTapRef.current=null
    setRunnerNotice('Rundenzähler auf '+decision.count+' abgeschlossen korrigiert.')
    setStatus('Rundenzähler korrigiert.')
   }
  }
  const runnerCount=Math.max(model.recorded,runnerCompleted)
+ const recordFuel=(round:number,status:FuelMarkStatus|null)=>{
+  if(!loaded||!storageReady)return
+  const update=updateFuelMark(fuelMarks,{round,completed:runnerCount,
+   total:model.rows.length,status})
+  if(!update.ok){setRunnerError(update.reason||'Eintrag ungültig.');return}
+  if(persist(model.marks,startTime,runnerCount,runnerTapAt,update.marks))
+   setRunnerNotice('Verpflegung für Runde '+round+' auf diesem Gerät gespeichert.')
+ }
  const exportText='RUNNER MODE: '+runnerCount+' von '+model.rows.length+
   ' Runden manuell bestätigt.\nOhne GPS-Distanz und ohne erfundene Zwischenzeiten.\n\n'+
+  'VERPFLEGUNG (nur manuell bestätigt):\n'+
+  Object.entries(fuelMarks).sort((a,b)=>Number(a[0])-Number(b[0]))
+   .map(([round,status])=>'Runde '+round+': '+status).join('\n')+'\n\n'+
   raceDayLogText({goal,model,startTime:clockOK(startTime)?startTime:null})
  const copy=async()=>{
   try{await navigator.clipboard.writeText(exportText)
@@ -210,7 +229,8 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,ai
  return <>
   <RaceRunnerFocus active={active} goal={goal} checkpoints={model.plan.checkpoints}
    completed={Math.max(model.recorded,runnerCompleted)} fuelSchedule={fuelSchedule}
-   aidSchedule={aidSchedule}
+   aidSchedule={aidSchedule} fuelMarks={fuelMarks}
+   onFuelMark={recordFuel}
    startTime={startTime} loaded={loaded&&storageReady}
    storageReady={storageReady} planSaved={saved}
    notice={runnerNotice} warning={runnerError}

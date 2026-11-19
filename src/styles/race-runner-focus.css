@@ -144,3 +144,35 @@
 /* One unobtrusive phase/stop hint, never another oversized card. */
 .rrf-meal-guidance{margin:0;font-size:10px;line-height:1.5;
  color:#bcdcc9;border-left:2px solid rgba(170,221,191,.36);padding-left:8px}
+
+
+/* v1.1.7 — voluntary fuel feedback. Collapsed by default, not part of the
+ * primary race-day action. No automatic consumption or catch-up dosing. */
+.rrf-fuel-check{border:1px solid rgba(147,194,177,.23);border-radius:9px;
+ background:rgba(8,37,47,.36);min-width:0}
+.rrf-fuel-check>summary{display:flex;align-items:center;flex-wrap:wrap;gap:7px;
+ cursor:pointer;min-height:39px;padding:9px 11px;
+ color:#cde8db;font-size:11px;font-weight:730}
+.rrf-fuel-check>summary>.ic{height:15px;width:15px}
+.rrf-fuel-check-status{font-size:9px;font-weight:780;padding:3px 7px;
+ border-radius:6px;background:rgba(151,196,176,.14)}
+.rrf-fuel-check-status.is-skipped{color:#f4cdad;background:rgba(219,147,110,.12)}
+.rrf-fuel-check-status.is-different{color:#e5dcaa;background:rgba(211,200,120,.12)}
+.rrf-fuel-check>p{margin:0 11px 9px;font-size:10px;line-height:1.5;color:#b3d3c7}
+.rrf-fuel-check-actions{display:flex;gap:6px;flex-wrap:wrap;margin:0 10px 11px}
+.rrf-fuel-check-actions button{min-height:35px;cursor:pointer;
+ border-radius:7px;border:1px solid rgba(158,207,177,.35);
+ background:rgba(90,143,116,.13);color:#e7f6eb;
+ font-size:11px;font-weight:760;padding:7px 11px}
+.rrf-fuel-check-actions button[aria-pressed="true"]{background:#acdcbc;
+ border-color:#acdcbc;color:#18392d}
+.rrf-fuel-check-actions button:disabled{opacity:.45;cursor:not-allowed}
+.rrf-fuel-check-actions .rrf-fuel-check-clear{background:transparent;
+ color:#b5ccc3}
+.rrf-fuel-check-actions button:focus-visible,.rrf-fuel-check>summary:focus-visible{
+ outline:2px solid #d0edd9;outline-offset:2px}
+.rrf-fuel-feedback{display:flex;align-items:flex-start;gap:8px;margin:0;
+ padding:9px 11px;border-radius:8px;border:1px solid rgba(218,173,126,.28);
+ background:rgba(108,83,43,.17);font-size:10px;line-height:1.5;color:#efdebe}
+.rrf-fuel-feedback>.ic{width:15px;height:15px;flex:0 0 15px}
+@media(max-width:600px){.rrf-fuel-check-actions button{flex:1 1 auto;min-height:39px}}

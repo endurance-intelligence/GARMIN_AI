@@ -5,15 +5,18 @@ import type {GelPlanEvent} from '../lib/gelTiming.mjs'
 import type {AidPlanEvent} from '../lib/raceAidPlan.mjs'
 import {buildRunnerFocus} from '../lib/raceRunnerFocus.mjs'
 import {buildRaceFuelRoadmap} from '../lib/raceFuelRoadmap.mjs'
+import {recentFuelFeedback} from '../lib/raceFuelLog.mjs'
+import type {FuelMarks,FuelMarkStatus} from '../lib/raceFuelLog.mjs'
 import {raceElapsedNow} from '../lib/raceDayCockpit.mjs'
 import {Icon} from './Icon'
 import '../styles/race-runner-focus.css'
 
 /** Race-day glance card: only next round and next planned actions, no distance/pace/time budget. */
 export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,aidSchedule,
- startTime,loaded,storageReady,planSaved,notice,warning,onComplete,onUndo}:{
+ fuelMarks,onFuelMark,startTime,loaded,storageReady,planSaved,notice,warning,onComplete,onUndo}:{
  active:boolean;goal:CoachGoal;checkpoints:RaceCheckpoint[];completed:number;
  fuelSchedule:GelPlanEvent[]|null;aidSchedule:AidPlanEvent[]|null;
+ fuelMarks:FuelMarks;onFuelMark:(round:number,status:FuelMarkStatus|null)=>void;
  startTime:string;loaded:boolean;
  storageReady:boolean;planSaved:boolean;notice:string;warning:string;
  onComplete:()=>void;onUndo:()=>void
@@ -34,6 +37,7 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
   checkpoints,gelEvents:fuelSchedule,aidEvents:aidSchedule
  }),[checkpoints,fuelSchedule,aidSchedule])
  const roundAdvice=roadmap.rounds[view.completed]||null
+ const feedback=recentFuelFeedback(fuelMarks,{completed:view.completed,total:view.total})
  if(!active||!view.total)return null
  return <section className="rrf-root" aria-label="Runner Mode: nächste Runde und Versorgung">
   <header className="rrf-head">
@@ -131,6 +135,29 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
     {view.nextAid&&<span className="rrf-meal-aid-status">Streckenversorgung eingeplant</span>}
    </div>}
 
+  {view.completed>0&&<details className="rrf-fuel-check">
+   <summary>
+    <Icon name="check-circle"/>
+    Verpflegung nach Runde {view.completed} notieren
+    {feedback&&<span className={'rrf-fuel-check-status is-'+feedback.status}>
+     {feedback.status==='planned'?'Wie geplant':
+      feedback.status==='different'?'Anders':'Ausgelassen'}</span>}
+   </summary>
+   <p>Optional. Nur bestätigen, was du wirklich genommen hast.
+    Kein automatisches Nachrechnen von KH bei unbekannten Portionsgrößen.</p>
+   <div className="rrf-fuel-check-actions" aria-label="Verpflegung manuell dokumentieren">
+    <button type="button" disabled={!loaded} aria-pressed={feedback?.status==='planned'}
+     onClick={()=>onFuelMark(view.completed,'planned')}>Wie geplant</button>
+    <button type="button" disabled={!loaded} aria-pressed={feedback?.status==='different'}
+     onClick={()=>onFuelMark(view.completed,'different')}>Etwas anderes</button>
+    <button type="button" disabled={!loaded} aria-pressed={feedback?.status==='skipped'}
+     onClick={()=>onFuelMark(view.completed,'skipped')}>Ausgelassen</button>
+    {feedback&&<button type="button" disabled={!loaded} className="rrf-fuel-check-clear"
+     onClick={()=>onFuelMark(view.completed,null)}>Eintrag löschen</button>}
+   </div>
+  </details>}
+  {feedback&&feedback.status!=='planned'&&<p className="rrf-fuel-feedback" role="status">
+   <Icon name="info"/>{feedback.text}</p>}
   <details className="rrf-footer"><summary>Hinweise zur Runden-Erfassung</summary>
    <p>Die Runden werden nach deinem Tipp lokal gesichert.
     Keine Garmin- oder Zeitnahme-Verbindung. Bei Verbindungsproblemen die bereits

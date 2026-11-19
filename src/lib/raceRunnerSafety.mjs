@@ -1,3 +1,4 @@
+import {validFuelMarks} from './raceFuelLog.mjs'
 /** Race-day storage contracts. Only explicit user taps advance rounds.
  * Local browser data is not a remote backup; never unlocks authenticated pages.
  */
@@ -7,7 +8,7 @@ const validStamp=value=>value===null||value===undefined||
  (Number.isInteger(value)&&value>=0&&value<10**16)
 export const RUNNER_TAP_GUARD_MS=12000
 export function validateRunnerSnapshot(snapshot,{raceDate,raceName,total}={}){
- const empty={ok:true,reason:null,marks:{},completed:0,lastTapAt:null,startTime:null}
+ const empty={ok:true,reason:null,marks:{},fuelMarks:{},completed:0,lastTapAt:null,startTime:null}
  if(snapshot===null||snapshot===undefined)return empty
  if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot)||
   snapshot.version!==1||snapshot.raceDate!==raceDate||
@@ -17,7 +18,9 @@ export function validateRunnerSnapshot(snapshot,{raceDate,raceName,total}={}){
  if(!validCount(completed,total)||!validStamp(snapshot.runnerTapAt)||
   !snapshot.marks||typeof snapshot.marks!=='object'||Array.isArray(snapshot.marks))
   return {ok:false,reason:'Der gespeicherte Rundenzähler ist ungültig. Bitte nicht überschreiben, sondern kontrollieren.'}
- return {ok:true,reason:null,marks:snapshot.marks,completed,
+ const fuelMarks=validFuelMarks(snapshot.fuelMarks??{},{completed,total})
+ if(!fuelMarks)return {ok:false,reason:'Gespeicherte Verpflegungseinträge ungültig. Rennlog bleibt unverändert.'}
+ return {ok:true,reason:null,marks:snapshot.marks,fuelMarks,completed,
   lastTapAt:snapshot.runnerTapAt??null,
   startTime:typeof snapshot.startTime==='string'?snapshot.startTime:null}
 }
