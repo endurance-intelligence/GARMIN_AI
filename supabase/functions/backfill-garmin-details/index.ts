@@ -287,6 +287,14 @@ Deno.serve(async req => {
         p_payload: { ...metadata, recordCount: records.length },
       })
       if (fitStoreError) throw new Error(`fit-storage ${fitStoreError.code}`)
+      // Only update a previously queued running track, and only after FIT
+      // commit succeeded. Never put raw GPS into FIT record chunks.
+      const routeState = await admin.from('garmin_route_tracks')
+        .update({status: payload.route ? 'complete' : 'unavailable',
+          fingerprint: payload.route,checked_at:new Date().toISOString(),
+          lease_token:null,lease_until:null,retry_after:null,last_error:null})
+        .eq('activity_id',fitId).in('status',['queued','retry'])
+      if(routeState.error)console.error('GARMIN_AI route evidence update unavailable',routeState.error.code)
       fitStored = 1
     } catch (error) {
       const permanent = error instanceof GarminFitDownloadError && [400, 404, 410].includes(error.status)
@@ -301,5 +309,38 @@ Deno.serve(async req => {
       console.error('GARMIN_AI FIT enrichment failed', reason)
     }
   }
-  return json({ ok: true, stored, partial, noMoreEligible: skipped, fitStored })
+  // Historic FIT is already complete: backfill one compact route fingerprint
+  // per idle invocation. Do not re-queue/erase any existing FIT chunks.
+  // If a normal FIT download happened, do NOT add another Garmin request.
+  let routeStored = 0
+  if(!fitClaim){
+    const {data:routeClaim,error:claimError}=await admin.rpc('garmin_route_claim')
+    if(claimError){
+      console.error('GARMIN_AI route claim failed',claimError.code)
+      return json({error:'Route claim failed'},503)
+    }
+    if(routeClaim){
+      const routeId=String(routeClaim.activity_id??'')
+      const lease=String(routeClaim.lease_token??'')
+      if(!/^\d{5,20}$/.test(routeId)||!/^[0-9a-f-]{36}$/.test(lease))
+        return json({error:'Invalid route claim'},503)
+      try {
+        const track=await downloadAndDecodeFit(routeId,token)
+        const {error}=await admin.rpc('garmin_route_store',{
+          p_activity_id:routeId,p_lease_token:lease,p_fingerprint:track.route
+        })
+        if(error)throw new Error('route-storage '+error.code)
+        routeStored=track.route?1:0
+      }catch(error){
+        const permanent=error instanceof GarminFitDownloadError&&[400,404,410].includes(error.status)
+        const reason=error instanceof GarminFitDownloadError
+          ?'fit-download HTTP '+error.status:'route-processing-error'
+        const {error:failError}=await admin.rpc('garmin_route_fail',{
+          p_activity_id:routeId,p_lease_token:lease,p_reason:reason,p_permanent:permanent
+        })
+        if(failError)console.error('GARMIN_AI route failure storage unavailable',failError.code)
+      }
+    }
+  }
+  return json({ok:true,stored,partial,noMoreEligible:skipped,fitStored,routeStored})
 })
