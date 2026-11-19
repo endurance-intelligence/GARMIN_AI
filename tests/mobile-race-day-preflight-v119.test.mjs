@@ -64,11 +64,13 @@ test('detects stale/missing actual round log instead of silently overwriting it'
  assert.equal(result.status,'blocked')
  assert.match(result.checks.find(x=>x.id==='storage').detail,/fehlen sie/)
  assert.equal(s.map.size,0)
- const other=fakeStorage([[key,JSON.stringify({...saved,runnerCompleted:6})]])
+ const other=fakeStorage([[key,JSON.stringify({...saved,runnerCompleted:6,
+  fuelMarks:{'3':'planned'}})]])
  const mismatch=preflight(other.api)
  assert.equal(mismatch.status,'blocked')
  assert.match(mismatch.checks.find(x=>x.id==='storage').detail,/nicht mit der Ansicht/)
- assert.equal(other.map.get(key),JSON.stringify({...saved,runnerCompleted:6}))
+ assert.equal(other.map.get(key),JSON.stringify({...saved,runnerCompleted:6,
+  fuelMarks:{'3':'planned'}}))
 })
 test('wrong event, corrupt JSON and invalid fueling marks block without overwriting any content',()=>{
  for(const value of [
