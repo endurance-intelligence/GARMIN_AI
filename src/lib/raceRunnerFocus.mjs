@@ -70,7 +70,7 @@ export function buildRunnerFocus({checkpoints=[],completed=0,gelEvents=null,
  const foodIsAdditional=Boolean(gelName&&foodCarbsCounted)
  const drink=nextAid?.drinkMl>0?
   nextAid.drinkMl+' ml '+nextAid.drinkName:
-  menuSuggestion?'Wasser oder MAURTEN Carbdrink – Variante/Portion prüfen':
+  menuSuggestion?'MAURTEN Drink Mix 160 aus dem großen Pott (frei zugänglich) oder Wasser – Trinkmenge nach Bedarf':
   'Wasser oder Maurten Drink Mix – Portion vor Ort prüfen'
  const meal={primary,primaryKind,alternative,alternativeKind,
   foodConfirmed,foodCarbsCounted,foodIsAdditional,
