@@ -1,5 +1,6 @@
+import type {FuelMarks} from './raceFuelLog.mjs'
 export type RunnerSnapshot={ok:boolean;reason:string|null;marks?:Record<string,any>;
- completed?:number;lastTapAt?:number|null;startTime?:string|null}
+ completed?:number;lastTapAt?:number|null;startTime?:string|null;fuelMarks?:FuelMarks}
 export declare const RUNNER_TAP_GUARD_MS:number
 export declare function validateRunnerSnapshot(snapshot:any,input:{
  raceDate:string;raceName:string;total:number
