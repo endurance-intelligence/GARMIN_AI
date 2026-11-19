@@ -12,7 +12,7 @@ const finite=x=>typeof x==='number'&&Number.isFinite(x)
 const one=x=>Math.round(x*10)/10
 
 export function buildRaceFuelRoadmap({
- checkpoints=[],gelEvents=null,aidEvents=null
+ checkpoints=[],gelEvents=null,aidEvents=null,eventMenu=null
 }={}){
  if(!Array.isArray(checkpoints)||!checkpoints.length||
     checkpoints.length>100||checkpoints.some((r,i)=>
@@ -23,7 +23,7 @@ export function buildRaceFuelRoadmap({
 
  const rounds=checkpoints.map((c,i)=>{
   const focus=buildRunnerFocus({checkpoints,completed:i,
-   gelEvents,aidEvents,elapsedMinutes:null})
+   gelEvents,aidEvents,elapsedMinutes:null,eventMenu})
   const meal=focus.meal
   const phase=c.arrivalMinutes<240?'early':c.arrivalMinutes<600?'middle':'late'
   const breakType=c.finish?'finish':
@@ -36,8 +36,8 @@ export function buildRaceFuelRoadmap({
     'Zielrunde: Verpflegung danach nach Bedarf, keine zusätzliche Station angenommen.':
    breakType==='long'?
     phase==='late'?
-     'Lange Pause: Schuhe/Kleidung prüfen, nur leichte verträgliche Portion, nichts erzwingen.':
-     'Lange Pause: Schuhe/Kleidung prüfen und etwas mehr feste Nahrung (z. B. Nudeln), falls erprobt und angeboten.':
+     'Lange Pause: Schuhe/Kleidung prüfen; nur verträgliche kleine Portionen, z. B. Kartoffeln oder Brühe.':
+     'Lange Pause: Schuhe/Kleidung prüfen; falls an diesem Stopp verfügbar, kleine Portion Nudeln oder Kartoffeln.':
    phase==='late'?
     'Kleine, gut verträgliche Portion wählen; nichts Neues ausprobieren.':
     'Kleiner Snack oder Getränk; geplante Gels bleiben im Plan.'
