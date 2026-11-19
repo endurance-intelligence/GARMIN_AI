@@ -1,0 +1,118 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+import {sumRecordedHrSeconds,mergeTimeHistograms,HR_TIME_MAX_CONTIGUOUS_DELTA} from '../supabase/functions/_shared/garmin-time-weighted.mjs'
+import {classifyGarminHrSeconds} from '../src/lib/coachHrTime.mjs'
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
+const points=(count,hr=132)=>Array.from({length:count},(_,i)=>({elapsed:i,hr}))
+const profile={sport:'running',zone1Min:70,zones:[110,130,150,170,190]}
+const week=(start='2026-11-09',histogram={'100':180,'121':300,'140':100,'155':50,'175':70,'210':20})=>({
+ start,finish:'2026-11-16',histogram,totalActivities:4,measuredActivities:3,
+ skippedActivities:1,validSeconds:720,measuredExpectedSeconds:800,readOnly:true
+})
+test('FIT 1-second records yield real weighted seconds, never count of points',()=>{
+ const r=sumRecordedHrSeconds([points(1001)],1000)
+ assert.equal(r.eligible,true)
+ assert.equal(r.validSeconds,1000)
+ assert.equal(r.observedSeconds,1000)
+ assert.equal(r.histogram[132],1000)
+ assert.equal(r.coveredPercent,100)
+ assert.equal(r.pointCount,1001)
+})
+test('FIT chunk boundaries add exactly one chronological interval without double-counting',()=>{
+ const p=points(1001)
+ const split=sumRecordedHrSeconds([p.slice(0,500),p.slice(500)],1000)
+ const uncut=sumRecordedHrSeconds([p],1000)
+ assert.deepEqual(split,uncut)
+})
+test('large gaps are excluded, not filled with invented zone seconds',()=>{
+ const p=[...points(401,130),...Array.from({length:401},(_,i)=>({elapsed:i+601,hr:155}))]
+ const r=sumRecordedHrSeconds([p],1000)
+ assert.equal(r.eligible,true)
+ assert.equal(r.validSeconds,800)
+ assert.equal(r.missingGapSeconds,201)
+ assert.equal(r.histogram[130],400)
+ assert.equal(r.histogram[155],400)
+ assert.equal(HR_TIME_MAX_CONTIGUOUS_DELTA,3)
+})
+test('gaps and missing HR can make the whole activity ineligible without fake zero intensity',()=>{
+ const p=points(1001).map((x,i)=>({...x,hr:i>400&&i<900?null:132}))
+ const r=sumRecordedHrSeconds([p],1000)
+ assert.equal(r.eligible,false)
+ assert.deepEqual(r.histogram,{})
+ assert.ok(r.validSeconds<750)
+})
+test('invalid heart rates are unknown instead of low or high intensity',()=>{
+ const p=points(1001).map((x,i)=>({...x,hr:i<150?0:i>900?999:120}))
+ const r=sumRecordedHrSeconds([p],1000)
+ assert.equal(r.eligible,true)
+ assert.equal(r.validSeconds,751)
+ assert.equal(r.histogram[0],undefined)
+ assert.equal(r.histogram[999],undefined)
+})
+test('unknown or implausibly short duration never claims a valid FIT time distribution',()=>{
+ const p=points(1001,145)
+ assert.equal(sumRecordedHrSeconds([p],null).eligible,false)
+ assert.equal(sumRecordedHrSeconds([p],100).eligible,false)
+ assert.equal(sumRecordedHrSeconds([p],500).eligible,false)
+ assert.equal(sumRecordedHrSeconds([points(50)],49).eligible,false)
+})
+test('merging discards incomplete FIT activities and maintains real seconds totals',()=>{
+ const good=sumRecordedHrSeconds([points(1001)],1000)
+ const bad=sumRecordedHrSeconds([points(20)],1000)
+ const result=mergeTimeHistograms([good,bad,{eligible:false}])
+ assert.equal(result.validSeconds,1000)
+ assert.equal(result.histogram[132],1000)
+ assert.equal(result.totalActivities,3)
+ assert.equal(result.measuredActivities,1)
+ assert.equal(result.skippedActivities,2)
+})
+test('actual Garmin zone time is classified into 7 disjoint bins with minutes, not RPE',()=>{
+ const r=classifyGarminHrSeconds([week()],profile)
+ assert.equal(r.status,'measured')
+ assert.equal(r.measuredSeconds,720)
+ assert.deepEqual(r.zoneSeconds,[0,180,300,100,50,70,20])
+ assert.equal(r.belowOrInZ2Share,66.7)
+ assert.equal(r.coveredPercent,90)
+ assert.equal(r.measuredActivities,3)
+ assert.equal(r.skippedActivities,1)
+ assert.equal(r.validWeeks,1)
+})
+test('missing or corrupt personal Garmin zones do not invent thresholds',()=>{
+ assert.equal(classifyGarminHrSeconds([week()],null).status,'no-zones')
+ assert.equal(classifyGarminHrSeconds([week()],{zone1Min:null,zones:[110,130,150,170,190]}).status,'no-zones')
+ assert.equal(classifyGarminHrSeconds([week()],{zone1Min:70,zones:[110,130,129,170,190]}).status,'no-zones')
+ assert.equal(classifyGarminHrSeconds([],profile).status,'insufficient')
+})
+test('duplicate weekly responses cannot silently double FIT time totals',()=>{
+ const r=classifyGarminHrSeconds([week(),week()],profile)
+ assert.equal(r.validWeeks,1)
+ assert.equal(r.measuredSeconds,720)
+})
+test('owner-only API never returns FIT samples, GPS, user identifiers or credentials',()=>{
+ const api=read('supabase/functions/read-garmin-hr-time/index.ts')
+ assert.match(api,/auth\.auth\.getUser\(bearer\[1\]\)/)
+ assert.match(api,/!user\.email_confirmed_at/)
+ assert.match(api,/user\.email\?\.trim\(\)\.toLowerCase\(\)!==owner/)
+ assert.match(api,/req\.method!=='GET'/)
+ assert.match(api,/\.from\('garmin_fit_record_chunks'\)/)
+ assert.match(api,/sumRecordedHrSeconds\(rows,a\.duration_s\)/)
+ assert.match(api,/mergeTimeHistograms\(assessments\)/)
+ assert.match(api,/return response\(403,\{error:'Owner only'\}/)
+ assert.doesNotMatch(api,/\.insert\(|\.update\(|\.upsert\(|\.delete\(/)
+ assert.doesNotMatch(api,/return response\(200,\{[^\n]*samples:/)
+})
+test('Coach integrates lazy real FIT time without mislabelling 80/20 physiology',()=>{
+ const card=read('src/components/CoachHrTimeCard.tsx')
+ const parent=read('src/components/CoachLongTermCard.tsx')
+ const model=read('src/lib/coachHrTime.mjs')
+ assert.match(parent,/<CoachHrTimeCard today=\{today\} weeks=\{range\} active=\{active&&expanded\}\/>/)
+ assert.match(card,/if\(!active\|\|!expanded\|\|!garminSupabase\)return/)
+ assert.match(card,/read-garmin-hr-time\?start=/)
+ assert.match(card,/useGarminHrProfile\(active&&expanded\)/)
+ assert.match(card,/Keine physiologische 80\/20-Quote/)
+ assert.match(card,/Zeitstempel/)
+ assert.match(card,/keine Zone erfunden/)
+ assert.match(model,/zone1Min/)
+ assert.doesNotMatch(model,/\bLT1\s*=\s*Garmin/)
+})
