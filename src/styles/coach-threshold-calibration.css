@@ -1,0 +1,20 @@
+.ctc-root{margin:12px 0;border:1px solid rgba(150,199,194,.27);background:rgba(6,27,39,.55);border-radius:12px;color:#e6f5f1;overflow:hidden}
+.ctc-summary{list-style:none;display:flex;gap:11px;align-items:center;padding:13px;cursor:pointer}
+.ctc-summary::-webkit-details-marker{display:none}.ctc-summary:focus-visible{outline:2px solid #b2dccc;outline-offset:-2px}
+.ctc-mark{flex:0 0 32px;width:32px;height:32px;background:rgba(156,214,190,.13);border-radius:10px;display:grid;place-items:center;font-size:18px;color:#b7e5d1}
+.ctc-summary>span:nth-child(2){display:grid;gap:4px;flex:1;min-width:0}.ctc-summary small{font-size:9px;color:#b6dace;letter-spacing:.07em;font-weight:800}
+.ctc-summary strong{font-size:12px;color:#e7f5f1}.ctc-summary span span{font-size:10px;color:#aec9c8;line-height:1.5}
+.ctc-root[open] .ctc-summary>span:last-child{transform:rotate(180deg)}
+.ctc-content{border-top:1px solid rgba(151,198,197,.18);padding:13px}
+.ctc-content>p,.ctc-content .ctc-caveat{font-size:11px;color:#c2d4d3;line-height:1.6;margin:0 0 11px}
+.ctc-form{display:grid;gap:12px}.ctc-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ctc-fields label,.ctc-notes{display:grid;gap:6px;font-size:11px;color:#d1e4e0;font-weight:620}
+.ctc-fields input,.ctc-fields select,.ctc-notes input{width:100%;box-sizing:border-box;min-height:37px;border-radius:8px;border:1px solid rgba(170,194,211,.32);background:#142c3f;color:#eef8fb;padding:8px;font-size:12px}
+.ctc-confirm{display:flex;align-items:start;gap:9px;font-size:11px;line-height:1.6;color:#c6ddce;cursor:pointer}
+.ctc-confirm input{accent-color:#8fd4b0;flex:none;margin-top:3px}
+.ctc-actions{display:flex;flex-wrap:wrap;gap:8px}.ctc-actions button{border:1px solid rgba(150,206,183,.4);border-radius:9px;padding:10px;background:rgba(69,121,104,.21);color:#e7f7e9;font-size:11px;font-weight:730;cursor:pointer}
+.ctc-actions button:disabled{opacity:.45;cursor:not-allowed}
+.ctc-content .ctc-warning{padding:10px;border-radius:8px;border-left:2px solid #dcac91;background:rgba(156,89,72,.15);color:#f7d4bf;font-size:11px;margin-top:12px}
+.ctc-content .ctc-confirmation{padding:10px;border-radius:8px;background:rgba(75,135,104,.17);color:#d7f2df;margin-top:12px;font-size:11px}
+.ctc-content .ctc-caveat{margin-top:13px;font-size:10px;color:#a6c2c2}
+@media(max-width:550px){.ctc-fields{grid-template-columns:1fr}.ctc-content{padding:11px}.ctc-summary{padding:11px}}
