@@ -9,6 +9,8 @@ type Comparison={status:'paired-medians'|'single-pair';oldDate:string;newDate:st
 type Route={id:string;title:string;gpsStatus:'verified'|'candidate';runs:number;distanceKm:number;gainM:number;
   firstDate:string;lastDate:string;comparison:Comparison|null;history:Run[]}
 type Payload={kind:'reference-route-candidates';readOnly:true;
+  importStatus:{total:number;completed:number;pending:number;unavailable:number;
+    percent:number|null;capped:boolean;lastCompletedAt:string|null};
   coverage:{withGpsEnds:number;withElevationProfile:number;gpsTracksAvailable:number;
     gpsVerifiedGroups:number;repeatedGroups:number;repeatedRuns:number};
   scan:{runningRead:number;metadataCandidates:number;samplesExamined:number;capped:boolean};
@@ -17,7 +19,7 @@ const valid=(value:unknown):value is Payload=>{
   if(!value||typeof value!=='object')return false
   const v=value as Record<string,unknown>
   return v.kind==='reference-route-candidates'&&v.readOnly===true&&
-    !!v.coverage&&!!v.scan&&Array.isArray(v.routes)&&v.routes.length<=10&&
+    !!v.coverage&&!!v.scan&&!!v.importStatus&&Array.isArray(v.routes)&&v.routes.length<=10&&
     v.routes.every((r:Route)=>['verified','candidate'].includes(r.gpsStatus)&&typeof r.id==='string'&&
       typeof r.runs==='number'&&r.runs>=2&&
       Array.isArray(r.history)&&r.history.length<=8)
@@ -34,15 +36,15 @@ const delta=(n:number)=>{
 }
 export function CoachReferenceRoutesCard({active}:{active:boolean}){
   const [opened,setOpened]=useState(false)
-  const [attempted,setAttempted]=useState(false)
+  const [refreshVersion,setRefreshVersion]=useState(0)
   const [loading,setLoading]=useState(false)
   const [error,setError]=useState('')
   const [data,setData]=useState<Payload|null>(null)
   useEffect(()=>{
-    if(!active||!opened||attempted||!garminSupabase)return
+    if(!active||!opened||!garminSupabase)return
     const controller=new AbortController()
     let mounted=true
-    setAttempted(true);setLoading(true);setError('')
+    setLoading(true);setError('');setData(null)
     void (async()=>{
       const {data:{session}}=await garminSupabase.auth.getSession()
       if(!session)throw Error('Bitte zuerst unter Einstellungen anmelden.')
@@ -59,8 +61,8 @@ export function CoachReferenceRoutesCard({active}:{active:boolean}){
         setError(e instanceof Error?e.message:'Streckenanalyse nicht verfügbar.')
     }).finally(()=>{if(mounted)setLoading(false)})
     return ()=>{mounted=false;controller.abort()}
-  },[active,opened,attempted])
-  const retry=()=>{setData(null);setError('');setAttempted(false)}
+  },[active,opened,refreshVersion])
+  const retry=()=>setRefreshVersion(v=>v+1)
   return <details className="crr-root" open={opened}
     onToggle={event=>setOpened(event.currentTarget.open)}>
     <summary className="crr-heading">
@@ -72,12 +74,28 @@ export function CoachReferenceRoutesCard({active}:{active:boolean}){
       <span aria-hidden="true">⌄</span>
     </summary>
     {opened&&<div className="crr-body">
-      {loading&&<p role="status">Vergleiche Garmin-Läufe und Höhenprofile …</p>}
+      {loading&&<p role="status">Lade Streckenvergleich und Importfortschritt …</p>}
       {error&&<p className="crr-message" role="alert">{error}
         <button type="button" onClick={retry}>Erneut versuchen</button>
       </p>}
       {!garminSupabase&&<p>Garmin-Anmeldung ist noch nicht eingerichtet.</p>}
       {data&&<>
+        <div className="crr-import">
+          <div className="crr-import-title">
+            <strong>GPS-Historie</strong>
+            <span>{data.importStatus.completed} von {data.importStatus.total} Läufen geprüft</span>
+          </div>
+          {data.importStatus.percent!==null&&<progress max={100}
+            value={data.importStatus.percent}
+            aria-label="GPS-Import abgeschlossen in Prozent"/>}
+          <p>{data.importStatus.pending} noch offen
+            {data.importStatus.unavailable>0&&' · '+data.importStatus.unavailable+' nicht verfügbar'}
+            {data.importStatus.capped&&' · Statusanzeige begrenzt'}
+            {' · '}Die bestehende Garmin-Synchronisation übernimmt die Nachladung.</p>
+          <button type="button" disabled={loading} onClick={retry}>
+            Fortschritt aktualisieren
+          </button>
+        </div>
         <div className="crr-summary">
           <div><small>STRECKENGRUPPEN</small><strong>{data.coverage.repeatedGroups}</strong></div>
           <div><small>GPS-VERIFIZIERT</small><strong>{data.coverage.gpsVerifiedGroups}</strong></div>
