@@ -30,3 +30,9 @@
 .cht-body .cht-summary-stat{color:#cde3d5}
 .cht-body .cht-summary-stat strong{font-size:13px}
 @media(max-width:650px){.cht-summary{padding:11px}.cht-body{padding:0 11px 11px}.cht-band{grid-template-columns:48px 1fr 42px 57px;gap:5px;font-size:10px}.cht-band>small{font-size:9px}.cht-metrics{grid-template-columns:1fr 1fr}}
+
+.cht-zone-name{display:grid;gap:4px}
+.cht-zone-name small{font-size:9px;color:#a9c6c8;white-space:nowrap}
+.cht-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:850px){.cht-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.cht-band{grid-template-columns:60px 1fr 42px 57px}.cht-zone-name small{font-size:8px}}
