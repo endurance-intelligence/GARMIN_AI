@@ -42,18 +42,27 @@ export function CoachLongTermCard({today,snapshot,active}:{
    const {data:{session},error:authError}=await garminSupabase.auth.getSession()
    if(!session||authError)throw Error('Für die historische Garmin-Analyse bitte anmelden.')
    // At most eight older weeks, only when expanded (no slow start for Coach/Race Prep).
-   const results=await Promise.allSettled(wanted.map(async week=>{
-    const response=await fetch(garminSupabaseUrl+'/functions/v1/garmin-week-board?start='+
-     encodeURIComponent(week),{
-      cache:'no-store',signal:controller.signal,
-      headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey}
-    })
-    if(!response.ok)throw Error('Historische Garmin-Woche '+dateLabel(week)+' nicht erreichbar ('+
-     response.status+').')
-    const payload:unknown=await response.json()
-    if(!isWeekBoard(payload,week))throw Error('Unvollständige Garmin-Woche '+dateLabel(week)+'.')
-    return payload
-   }))
+   // Keep requests bounded: up to four existing private week-board queries
+   // concurrently, never make twelve simultaneous authenticated requests.
+   const collected:Array<PromiseSettledResult<WeekBoard>>=[]
+   for(let from=0;from<wanted.length;from+=4){
+    const batch=wanted.slice(from,from+4)
+    const results=await Promise.allSettled(batch.map(async week=>{
+     const response=await fetch(garminSupabaseUrl+'/functions/v1/garmin-week-board?start='+
+      encodeURIComponent(week),{
+       cache:'no-store',signal:controller.signal,
+       headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey}
+     })
+     if(!response.ok)throw Error('Historische Garmin-Woche '+dateLabel(week)+' nicht erreichbar ('+
+      response.status+').')
+     const payload:unknown=await response.json()
+     if(!isWeekBoard(payload,week))throw Error('Unvollständige Garmin-Woche '+dateLabel(week)+'.')
+     return payload
+    }))
+    collected.push(...results)
+    if(controller.signal.aborted)return
+   }
+   const results=collected
    if(!mounted)return
    const received:Record<string,WeekBoard>={}
    const bad:string[]=[]
