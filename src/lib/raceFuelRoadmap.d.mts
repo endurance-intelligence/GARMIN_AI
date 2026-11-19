@@ -17,5 +17,6 @@ export type RaceFuelRoadmap={
 export declare function buildRaceFuelRoadmap(input:{
  checkpoints?:import('./raceExecution.mjs').RaceCheckpoint[];
  gelEvents?:import('./gelTiming.mjs').GelPlanEvent[]|null;
- aidEvents?:import('./raceAidPlan.mjs').AidPlanEvent[]|null
+ aidEvents?:import('./raceAidPlan.mjs').AidPlanEvent[]|null;
+ eventMenu?:import('./raceEventMenu.mjs').EventMenu|null
 }):RaceFuelRoadmap
