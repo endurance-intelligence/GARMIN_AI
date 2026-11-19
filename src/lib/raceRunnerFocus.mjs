@@ -42,19 +42,23 @@ export function buildRunnerFocus({checkpoints=[],completed=0,gelEvents=null,
   nextRoundGel.minute<=currentMinute&&currentMinute-nextRoundGel.minute<=10)
  const roundGelCarbsG=Math.round(roundGels.reduce((sum,g)=>
   sum+(Number.isFinite(g.carbsG)?g.carbsG:0),0)*10)/10
- const foodIdeas=['kleine Portion Nudeln','halbes Brötchen',
-  'Banane oder etwas Salzgebäck']
- const ideaOffset=Math.max(0,(next?.index??1)-2)
+ // Real long stops permit a calm, tolerated solid portion; short stops
+ // favor small snacks. These are suggestions only, never an event menu.
+ const foodIdeas=['halbes Brötchen','Banane oder etwas Salzgebäck']
+ const ideaOffset=Math.max(0,Math.floor(((next?.index??1)-2)/2))
+ const latePhase=Number(next?.arrivalMinutes)>=600
+ const suggestedFood=longPause?
+  (latePhase?'kleine Portion Nudeln, wenn gut verträglich':'kleine Portion Nudeln'):
+  foodIdeas[ideaOffset%foodIdeas.length]
  const foodConfirmed=Boolean(nextAid&&typeof nextAid.foodName==='string'&&
   nextAid.foodName.trim())
- const food=foodConfirmed?nextAid.foodName.trim():
-  foodIdeas[ideaOffset%foodIdeas.length]
+ const food=foodConfirmed?nextAid.foodName.trim():suggestedFood
  const foodCarbsCounted=Boolean(foodConfirmed&&Number(nextAid?.foodCarbsG)>0)
  const gelName=nextRoundGel?nextRoundGel.brand+' · '+nextRoundGel.name:null
  // Never silently replace a counted gel with food of unknown quantity.
  const primaryKind=gelName?'gel':'food'
  const primary=gelName||food
- const otherFood=foodIdeas[(ideaOffset+1)%foodIdeas.length]
+ const otherFood=longPause?'halbes Brötchen':foodIdeas[(ideaOffset+1)%foodIdeas.length]
  const alternative=gelName?food:otherFood
  const alternativeKind='food'
  const foodIsAdditional=Boolean(gelName&&foodCarbsCounted)
