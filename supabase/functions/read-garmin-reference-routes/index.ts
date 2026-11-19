@@ -52,6 +52,26 @@ Deno.serve(async req=>{
       .order('start_time_local',{ascending:false}).limit(RUN_LIMIT)
     if(activities.error)throw Error('Garmin run list '+activities.error.code)
     const rows=activities.data||[]
+    // Status-only private query: never transfer coordinates for an import
+    // progress widget. Count is exact; >500 rows deliberately yields no
+    // potentially misleading percentage from a truncated sample.
+    const importQuery=await db.from('garmin_route_tracks')
+      .select('status,checked_at',{count:'exact'}).limit(500)
+    if(importQuery.error)throw Error('GPS import status '+importQuery.error.code)
+    const states=importQuery.data||[]
+    const importTotal=importQuery.count??states.length
+    const importCapped=importTotal>states.length
+    const countStatus=(s:string)=>states.filter(x=>x.status===s).length
+    const completed=countStatus('complete')
+    const pending=countStatus('queued')+countStatus('processing')+countStatus('retry')
+    const unavailable=countStatus('unavailable')+countStatus('paused')
+    const lastCompletedAt=states.filter(x=>x.status==='complete'&&x.checked_at)
+      .map(x=>String(x.checked_at)).sort().at(-1)||null
+    const importStatus={
+      total:importTotal,completed,pending,unavailable,capped:importCapped,
+      percent:importCapped||importTotal===0?null:Math.round(100*completed/importTotal),
+      lastCompletedAt
+    }
     // Preselect by coarse GPS endpoints before transferring any high-volume
     // sample arrays. No analysis on non-repeating metadata candidates.
     const eligible=candidateIds(rows)
@@ -74,6 +94,7 @@ Deno.serve(async req=>{
         tracks:tracks as {activity_id:string;status:string;fingerprint:unknown}[]})
     return respond(200,{
       ...result,
+      importStatus,
       source:'Garmin · gespeicherte Laufdaten · letzter 24-Monats-Zeitraum',
       scan:{runningRead:rows.length,metadataCandidates:eligible.length,
         samplesExamined:details.length,gpsEvidenceRead:tracks.length,

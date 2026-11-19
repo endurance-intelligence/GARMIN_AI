@@ -29,3 +29,16 @@
 .crr-message button{margin-left:8px;border:1px solid #c7a78d;color:#f3e4c8;border-radius:6px;background:transparent;padding:6px 9px;cursor:pointer}
 .crr-disclaimer{font-size:10px;color:#bed6d1;margin-top:13px!important}
 @media(max-width:650px){.crr-heading{padding:11px}.crr-body{padding:0 11px 11px}.crr-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.crr-history>div{font-size:9px}}
+
+
+.crr-import{display:grid;gap:7px;border:1px solid rgba(169,203,188,.2);background:rgba(7,28,39,.5);border-radius:9px;padding:11px;margin:12px 0}
+.crr-import-title{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap}
+.crr-import-title strong{font-size:12px;color:#e8f8ee}
+.crr-import-title span{font-size:11px;font-variant-numeric:tabular-nums;color:#add0ca}
+.crr-import progress{width:100%;height:7px;border:0;border-radius:10px;overflow:hidden;accent-color:#8bd4ac}
+.crr-import progress::-webkit-progress-bar{background:rgba(169,203,188,.14);border-radius:10px}
+.crr-import progress::-webkit-progress-value{background:#8bd4ac;border-radius:10px}
+.crr-import>p{font-size:10px;line-height:1.45;margin:0;color:#bed6d1}
+.crr-import button{justify-self:start;border:1px solid rgba(169,203,188,.35);color:#e1f3e8;background:rgba(114,185,168,.12);padding:7px 10px;border-radius:7px;cursor:pointer;font-size:11px}
+.crr-import button:hover:not(:disabled){background:rgba(114,185,168,.24)}
+.crr-import button:disabled{opacity:.55;cursor:default}

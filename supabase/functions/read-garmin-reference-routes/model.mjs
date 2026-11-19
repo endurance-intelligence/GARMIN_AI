@@ -136,19 +136,31 @@ export function buildReferenceRoutes(rows,details,{maxRoutes=10,tracks=[]}={}) {
     return found?{...found,gps:trackMap.get(m.id)||null}:null
   }).filter(Boolean)
     .sort((a,b)=>b.date.localeCompare(a.date))
-  const groups=[]
-  for(const run of complete){
-    let group=groups.find(g=>g.every(member=>
-      sameCourse(run,member)&&(!run.gps||!member.gps||
-        gpsRouteMatch(run.gps,member.gps).match)))
-    if(!group){group=[];groups.push(group)}
+  // Two passes prevent historical no-GPS runs from absorbing a verifiable
+  // route into a broad candidate group. A run belongs to at most one group.
+  const sameGps=(a,b)=>a.gps&&b.gps&&
+    meters(a.coords.a,a.coords.b,b.coords.a,b.coords.b)<=90&&
+    meters(a.coords.c,a.coords.d,b.coords.c,b.coords.d)<=90&&
+    gpsRouteMatch(a.gps,b.gps).match
+  const gpsGroups=[]
+  for(const run of complete.filter(r=>r.gps)){
+    let group=gpsGroups.find(g=>g.every(member=>sameGps(run,member)))
+    if(!group){group=[];gpsGroups.push(group)}
     group.push(run)
   }
-  const repeating=groups.filter(g=>g.length>=2)
-    .sort((a,b)=>b.length-a.length||b[0].date.localeCompare(a[0].date))
-  // Exact GPS-verified groups take precedence over provisional candidates.
-  repeating.sort((a,b)=>Number(b.every(r=>r.gps))-Number(a.every(r=>r.gps))||
-    b.length-a.length||b[0].date.localeCompare(a[0].date))
+  const verifiedGroups=gpsGroups.filter(g=>g.length>=2)
+  const verifiedIds=new Set(verifiedGroups.flatMap(g=>g.map(r=>r.id)))
+  const candidateGroups=[]
+  for(const run of complete.filter(r=>!verifiedIds.has(r.id))){
+    let group=candidateGroups.find(g=>g.every(member=>
+      sameCourse(run,member)&&(!run.gps||!member.gps||
+        gpsRouteMatch(run.gps,member.gps).match)))
+    if(!group){group=[];candidateGroups.push(group)}
+    group.push(run)
+  }
+  const repeating=[...verifiedGroups,...candidateGroups.filter(g=>g.length>=2)]
+    .sort((a,b)=>Number(verifiedGroups.includes(b))-Number(verifiedGroups.includes(a))||
+      b.length-a.length||b[0].date.localeCompare(a[0].date))
   const routes=repeating.slice(0,maxRoutes).map((group,i)=>{
     const latest=group[0]
     const verified=group.every(r=>r.gps)&&group.length>=2&&
