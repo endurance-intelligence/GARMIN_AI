@@ -28,8 +28,34 @@ export function buildRunnerFocus({checkpoints=[],completed=0,gelEvents=null,
    next&&e?.round===next.index&&e.planOnly===true)||null:null
  const gelTiming=due?'due':gel?'upcoming':gels===null?'loading':'none'
  const drinkDue=live&&currentMinute>=20&&currentMinute%20<=8
+ // Exactly one practical choice for this lap, not a second parallel gel plan.
+ // Unconfirmed foods are suggestions ONLY and never counted as eaten or as KH.
+ const foodIdeas=['kleine Portion Nudeln','halbes Brötchen',
+   'Banane oder etwas Salzgebäck']
+ const availableFood=typeof nextAid?.foodName==='string'?
+  nextAid.foodName.split(/[,;]+/).map(x=>x.trim()).filter(Boolean):[]
+ const ideaOffset=Math.max(0,(next?.index??1)-2)
+ const food=availableFood.length?
+  availableFood[ideaOffset%availableFood.length]:
+  foodIdeas[ideaOffset%foodIdeas.length]
+ const foodConfirmed=availableFood.length>0
+ const gelName=gel?gel.brand+' · '+gel.name:null
+ const gelSlot=Boolean(next&&((next.index-1)%4===0||
+  (gelTiming==='due'&&Number(gel?.caffeineMg)>0)))
+ const primary=gelSlot&&gelName?gelName:food
+ const primaryKind=gelSlot&&gelName?'gel':'food'
+ const alternative=primaryKind==='gel'?food:
+  gelName||'andere gut verträgliche Kleinigkeit'
+ const alternativeKind=primaryKind==='gel'?'food':gelName?'gel':'food'
+ const drink=nextAid?.drinkMl>0?
+  nextAid.drinkMl+' ml '+nextAid.drinkName:
+  'Wasser oder Maurten Drink Mix – Portion vor Ort prüfen'
+ const meal={primary,primaryKind,alternative,alternativeKind,
+  foodConfirmed,drink,drinkConfirmed:Boolean(nextAid?.drinkMl>0),
+  caffeineMg:primaryKind==='gel'?Number(gel?.caffeineMg)||0:0,
+  gelScheduled:Boolean(gelName),planOnly:true}
  return {total,completed:done,remaining:total-done,
   nextIndex:next?.index??null,finished:total>0&&done===total,
-  longPause,breakNote,gel,gelTiming,drinkDue,nextAid,
+  longPause,breakNote,gel,gelTiming,drinkDue,nextAid,meal:next?meal:null,
   timingSource:live?'clock':'approximate',planOnly:true}
 }

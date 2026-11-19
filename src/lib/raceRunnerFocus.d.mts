@@ -5,7 +5,11 @@ export type RunnerFocus={
  total:number;completed:number;remaining:number;nextIndex:number|null;
  finished:boolean;longPause:boolean;breakNote:string|null;
  gel:GelPlanEvent|null;gelTiming:'due'|'upcoming'|'loading'|'none';
- drinkDue:boolean;nextAid:AidPlanEvent|null;timingSource:'clock'|'approximate';planOnly:true
+ drinkDue:boolean;nextAid:AidPlanEvent|null;
+ meal:{primary:string;primaryKind:'gel'|'food';alternative:string;
+  alternativeKind:'gel'|'food';foodConfirmed:boolean;drink:string;
+  drinkConfirmed:boolean;caffeineMg:number;gelScheduled:boolean;planOnly:true}|null;
+ timingSource:'clock'|'approximate';planOnly:true
 }
 export declare function buildRunnerFocus(input:{
  checkpoints?:RaceCheckpoint[];completed?:number;gelEvents?:GelPlanEvent[]|null;

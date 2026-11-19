@@ -99,3 +99,40 @@
 @media(prefers-reduced-motion:reduce){.rrf-actions button{transition:none}}
 
 @media(max-width:600px){.rrf-readiness>span{padding:3px 6px}.rrf-root{border-radius:10px}}
+
+
+/* v1.1.4: one decision per round. No competing gel, drink and catering boxes. */
+.rrf-meal{display:grid;gap:10px;min-width:0;padding:12px;
+ background:rgba(6,30,39,.45);border:1px solid rgba(151,210,185,.3);
+ border-radius:10px}
+.rrf-meal-heading{display:flex;justify-content:space-between;align-items:center;
+ flex-wrap:wrap;gap:5px}
+.rrf-meal-heading>span{display:inline-flex;gap:7px;align-items:center;
+ color:#a8edcc;font-size:10px;font-weight:860;letter-spacing:.065em}
+.rrf-meal-heading .ic{width:15px;height:15px}
+.rrf-meal-heading small{font-size:9px;color:#a7c7be}
+.rrf-meal-primary{display:flex;align-items:center;gap:11px;min-width:0;
+ padding:11px;background:rgba(79,155,122,.13);border-radius:9px}
+.rrf-meal-primary>.ic{width:23px;height:23px;flex:0 0 23px;color:#b3edc8}
+.rrf-meal-primary>div{display:grid;gap:3px;min-width:0}
+.rrf-meal-primary small,.rrf-meal-bottom small{font-size:9px;
+ color:#a9d1bd;font-weight:820;letter-spacing:.05em}
+.rrf-meal-primary strong{font-size:clamp(15px,2vw,19px);color:#f0fff2;
+ font-weight:840;line-height:1.32;overflow-wrap:anywhere}
+.rrf-meal-primary span{font-size:10px;color:#b6d2c7;line-height:1.45}
+.rrf-meal-bottom{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rrf-meal-bottom>div{display:grid;align-content:start;gap:5px;padding:10px;
+ background:rgba(12,39,47,.7);border:1px solid rgba(151,195,180,.17);
+ border-radius:8px;min-width:0}
+.rrf-meal-bottom strong{font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.rrf-meal-bottom span{font-size:10px;color:#a6c9bd}
+.rrf-meal-hint{margin:0;font-size:9px;line-height:1.5;color:#a7c6ba}
+.rrf-meal-caffeine{margin:0;font-size:10px;line-height:1.5;color:#e9d5a3}
+.rrf-meal-aid-status{font-size:9px;color:#9ce3b9}
+@media(max-width:600px){
+ .rrf-meal{gap:8px;padding:10px}
+ .rrf-meal-primary{padding:9px}
+ .rrf-meal-primary strong{font-size:16px}
+ .rrf-meal-bottom{grid-template-columns:1fr;gap:6px}
+ .rrf-meal-bottom>div{padding:9px}
+}

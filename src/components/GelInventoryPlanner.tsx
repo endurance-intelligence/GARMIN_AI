@@ -346,16 +346,20 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
         value={settings.aid_every_laps}
         onChange={e=>changeSettings({aid_every_laps:Number(e.target.value)})}/>
       </label>
-      <label>Lebensmittel (nur wenn vorhanden und verträglich)
-       <input maxLength={90} value={settings.aid_food_name} placeholder="z. B. Banane / Riegel / Brot"
+      <label>Welche Lebensmittel gibt es? (mit Komma trennen)
+       <input maxLength={90} value={settings.aid_food_name} placeholder="z. B. Nudeln, Brötchen, Banane"
         onChange={e=>changeSettings({aid_food_name:e.target.value})}/>
       </label>
-      <label>KH aus dem geplanten Essen je Versorgung (g)
+      <label>KH je Essensportion (g; bei wechselndem Essen lieber 0)
        <input type="number" min={0} max={120} step={1}
         value={settings.aid_food_carbs_g_per_stop}
         onChange={e=>changeSettings({aid_food_carbs_g_per_stop:Number(e.target.value)})}/>
       </label>
      </div>
+     <p className="gip-guidance">Die genannten Speisen werden rundenweise abgewechselt.
+      Ein Wert für Essen-KH gilt nur, wenn jede gewählte Portion wirklich ungefähr
+      diese Menge liefert. Bei unbekannten Portionsgrößen 0 g eintragen:
+      Die Essensidee erscheint trotzdem, wird aber nicht als KH gutgeschrieben.</p>
      <label className="gip-check"><input type="checkbox" checked={settings.aid_confirmed}
       onChange={e=>changeSettings({aid_confirmed:e.target.checked})}/>
       Die ausgewählten Getränke, Mengen und Lebensmittel sind geprüft – als Plan berücksichtigen</label>
