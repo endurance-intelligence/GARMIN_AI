@@ -155,7 +155,7 @@ export function CoachLongTermCard({today,snapshot,active}:{
      <span>{block.measured} von 4 Wochen mit gemessener Distanz</span>
     </div>)}
    </div>
-   <CoachHrTimeCard today={today} weeks={range} active={active&&expanded}/>
+   <CoachHrTimeCard today={today} weeks={range} active={active&&expanded} goal={goal}/>
    <div className="clt-feedback">
     <strong>Garmin-RPE: subjektive Anstrengung</strong>
     <p>Nur selbst bewertete Läufe: <strong>{model.rpe.count}</strong>.

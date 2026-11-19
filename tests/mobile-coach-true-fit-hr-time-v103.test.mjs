@@ -106,7 +106,7 @@ test('Coach integrates lazy real FIT time without mislabelling 80/20 physiology'
  const card=read('src/components/CoachHrTimeCard.tsx')
  const parent=read('src/components/CoachLongTermCard.tsx')
  const model=read('src/lib/coachHrTime.mjs')
- assert.match(parent,/<CoachHrTimeCard today=\{today\} weeks=\{range\} active=\{active&&expanded\}\/>/)
+ assert.match(parent,/<CoachHrTimeCard today=\{today\} weeks=\{range\} active=\{active&&expanded\} goal=\{goal\}\/>/)
  assert.match(card,/if\(!active\|\|!expanded\|\|!garminSupabase\)return/)
  assert.match(card,/read-garmin-hr-time\?start=/)
  assert.match(card,/useGarminHrProfile\(active&&expanded\)/)

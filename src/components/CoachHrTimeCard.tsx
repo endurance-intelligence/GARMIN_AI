@@ -1,6 +1,9 @@
 import {useEffect,useMemo,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {useGarminHrProfile} from '../lib/useGarminHrProfile'
+import {phaseForRace} from '../lib/coachGoal'
+import {analyzeGarminIntensityTrend} from '../lib/coachIntensityTrend.mjs'
+import {CoachIntensityTrendPanel} from './CoachIntensityTrendPanel'
 import {longTermWeekStarts} from '../lib/coachLongTerm.mjs'
 import {classifyGarminHrSeconds} from '../lib/coachHrTime.mjs'
 import type {GarminHrSecondsWeek} from '../lib/coachHrTime.mjs'
@@ -21,10 +24,11 @@ const validWeek=(x:unknown,start:string):x is GarminHrSecondsWeek=>{
   typeof row.histogram==='object'&&row.histogram!==null&&
   typeof row.measuredActivities==='number'&&Number.isInteger(row.measuredActivities)&&
   typeof row.totalActivities==='number'&&Number.isInteger(row.totalActivities)&&
-  typeof row.validSeconds==='number'&&Number.isInteger(row.validSeconds)
+  typeof row.validSeconds==='number'&&Number.isFinite(row.validSeconds)&&row.validSeconds>=0
 }
-export function CoachHrTimeCard({today,weeks,active}:{
- today:string;weeks:8|12;active:boolean
+export function CoachHrTimeCard({today,weeks,active,goal}:{
+ today:string;weeks:8|12;active:boolean;
+ goal?:{race_date?:string;race_name?:string}|null
 }){
  const [expanded,setExpanded]=useState(false)
  const [fetched,setFetched]=useState<Record<string,GarminHrSecondsWeek>>({})
@@ -87,6 +91,17 @@ export function CoachHrTimeCard({today,weeks,active}:{
  const results=starts.map(s=>fetched[s]).filter((x):x is GarminHrSecondsWeek=>Boolean(x))
  const model=useMemo(()=>classifyGarminHrSeconds(results,profileData?.profile||null),
   [results,profileData])
+ const goalContext=useMemo(()=>{
+  if(!goal?.race_date||!goal?.race_name)return null
+  try{
+   const status=phaseForRace(goal.race_date,today)
+   return {race_name:goal.race_name,race_date:goal.race_date,phase:status.phase}
+  }catch{return null}
+ },[goal?.race_date,goal?.race_name,today])
+ const intensityTrend=analyzeGarminIntensityTrend({
+  today,weeks,weekRows:results,profile:profileData?.profile||null,
+  goal:goalContext
+ })
  const nMissing=starts.filter(s=>!fetched[s]).length
  const retry=()=>{setError('');setAttempted(prev=>prev.filter(s=>!failed.includes(s)));setFailed([])}
  return <details className="cht-root" open={expanded}
@@ -133,6 +148,7 @@ export function CoachHrTimeCard({today,weeks,active}:{
      model.coveredPercent.toLocaleString('de-DE',{maximumFractionDigits:1})+' %'
     }</strong></div>
    </div>
+   <CoachIntensityTrendPanel data={intensityTrend}/>
    {model.status==='measured'&&<p className="cht-summary-stat">
     Unterhalb beziehungsweise innerhalb der Garmin-Zone 2:
     {' '}<strong>{model.belowOrInZ2Share?.toLocaleString('de-DE')} %</strong>
