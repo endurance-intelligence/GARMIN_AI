@@ -1,6 +1,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
 import type {CoachGoal} from '../lib/coachGoal'
 import type {GelPlanEvent} from '../lib/gelTiming.mjs'
+import type {AidPlanEvent} from '../lib/raceAidPlan.mjs'
 import type {RaceMarks} from '../lib/raceDayCockpit.mjs'
 import {buildRaceDayCockpit,formatRaceElapsed,parseRaceElapsed,raceElapsedNow,
  recordRaceMark,sanitizeRaceMarks,undoLastRaceMark,raceDayLogText} from '../lib/raceDayCockpit.mjs'
@@ -20,9 +21,10 @@ const signed=(n:number)=>n===0?'genau im Plan':Math.abs(n)+' Min. '+(n>0?'Vorspr
 const fuelName=(e:GelPlanEvent)=>e.brand+' · '+e.name
 
 /** Athlete-entered offline record: this browser only. No synthetic GPS, no cloud sync. */
-export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,feelsLike}:{
+export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,aidSchedule,feelsLike}:{
  active:boolean;goal:CoachGoal;input:Input;saved:boolean;viewerId:string;
- fuelSchedule:GelPlanEvent[]|null;feelsLike:[number,number]|null
+ fuelSchedule:GelPlanEvent[]|null;aidSchedule:AidPlanEvent[]|null;
+ feelsLike:[number,number]|null
 }){
  const [marks,setMarks]=useState<RaceMarks>({})
  const [runnerCompleted,setRunnerCompleted]=useState(0)
@@ -208,6 +210,7 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
  return <>
   <RaceRunnerFocus active={active} goal={goal} checkpoints={model.plan.checkpoints}
    completed={Math.max(model.recorded,runnerCompleted)} fuelSchedule={fuelSchedule}
+   aidSchedule={aidSchedule}
    startTime={startTime} loaded={loaded&&storageReady}
    storageReady={storageReady} planSaved={saved}
    notice={runnerNotice} warning={runnerError}
@@ -304,6 +307,11 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
     {input.fluidMlPerHour!==null&&<span>{fmt(input.fluidMlPerHour)} ml/h</span>}
     {input.sodiumMgPerHour!==null&&<span>{fmt(input.sodiumMgPerHour)} mg Na/h</span>}
    </div>
+   {aidSchedule===null?<p>Getränke und Essen an der Strecke sind noch nicht bestätigt und werden nicht als KH angerechnet.</p>:
+    aidSchedule.length>0?<p><strong>Bestätigt geplant:</strong> {aidSchedule.length} Stopps mit
+     {' '}{fmt(aidSchedule.reduce((s,e)=>s+e.drinkCarbsG,0))} g KH aus Maurten Drink Mix und
+     {' '}{fmt(aidSchedule.reduce((s,e)=>s+e.foodCarbsG,0))} g KH aus Essen.
+     Das sind Sollwerte, kein Verzehrprotokoll.</p>:<p>Kein Streckenangebot in den KH-Plan übernommen.</p>}
    {fuelSchedule===null?<p>Gel-Plan wird aus deinem Vorrat geladen.</p>:
     fuelSchedule.length===0?<p>Keine Gels aus deinem Vorrat im Plan. Unter „Gel Buddy“
      Vorrat, Prioritäten und Getränkekohlenhydrate prüfen.</p>:
@@ -318,15 +326,26 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,fe
   </div>
   <details className="rdc-timeline">
    <summary><Icon name="list"/> Alle {rows.length} Abschnitte, Pausen und Soll-/Ist-Zeiten</summary>
+   <p className="rdc-timeline-explain">Alle Angaben sind Sollzeiten aus deinem Rundenplan.
+    Laufzeit und Pause pro Runde getrennt; „Weiter“ zeigt auch die Uhrzeit bei
+    hinterlegtem Start. Ist-Werte nur nach manueller Erfassung.</p>
    <div className="rdc-scroll"><table>
-    <thead><tr><th>Runde</th><th>km</th><th>Ankunft Soll</th>
-     <th>Ankunft Ist</th><th>Weiter Soll</th><th>Weiter Ist</th><th>Abweichung</th></tr></thead>
+    <thead><tr><th>Runde</th><th>km</th><th>Laufzeit Soll</th><th>Ankunft Soll</th>
+     <th>Pause Soll</th><th>Weiter bei · Soll</th>
+     <th>Ankunft Ist</th><th>Pause Ist</th><th>Weiter Ist</th><th>Abweichung</th></tr></thead>
     <tbody>{rows.map(r=><tr key={r.index} className={r.arrival!==null?'is-recorded':''}>
      <td>{r.index}{r.finish?' · Ziel':''}</td><td>{fmt(r.distanceKm)}</td>
+     <td><strong>{fmt(r.moveMinutes)} Min.</strong></td>
      <td>+{formatRaceElapsed(r.arrivalMinutes)}</td>
+     <td>{r.finish?'—':<strong>{fmt(r.pauseMinutes)} Min.
+      {r.longBreakMinutes>0?' · langer Stopp':''}</strong>}</td>
+     <td>{r.finish?'Ziel':<>
+      <strong>+{formatRaceElapsed(r.departureMinutes)}</strong>
+      {clockOK(startTime)&&<small> · {clockAt(startTime,r.departureMinutes)} Uhr</small>}
+     </>}</td>
      <td>{r.arrival===null?'–':'+'+formatRaceElapsed(r.arrival)}</td>
-     <td>{r.finish?'–':'+'+formatRaceElapsed(r.departureMinutes)}
-      {r.longBreakMinutes>0?' · langer Stopp':''}</td>
+     <td>{r.finish?'—':r.arrival!==null&&r.departure!==null?
+      fmt(r.departure-r.arrival)+' Min.':'–'}</td>
      <td>{r.departure===null?'–':'+'+formatRaceElapsed(r.departure)}</td>
      <td>{r.arrivalDelta===null?'–':signed(r.arrivalDelta)}</td>
     </tr>)}</tbody>
