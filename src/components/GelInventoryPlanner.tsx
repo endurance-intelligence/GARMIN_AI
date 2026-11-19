@@ -122,13 +122,13 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
   caffeineMaxMg:settings.caffeine_max_mg
  }),[durationMinutes,carbsGPerHour,settings,stock,goal.race_start_time,aidPlan])
  useEffect(()=>{
-  if(!onScheduleChange)return
-  onScheduleChange(!loading&&!settingsDirty&&loadedKey===key&&racePlan.status==='ready'?
+  if(!onScheduleChange||settingsDirty)return // keep last saved schedule while editing
+  onScheduleChange(!loading&&loadedKey===key&&racePlan.status==='ready'?
    racePlan.events:null)
  },[onScheduleChange,loading,loadedKey,key,racePlan,settingsDirty])
  useEffect(()=>{
-  if(!onAidScheduleChange)return
-  onAidScheduleChange(!loading&&!settingsDirty&&loadedKey===key&&aidPlan.status==='ready'?
+  if(!onAidScheduleChange||settingsDirty)return // no unsaved aid in Runner Mode
+  onAidScheduleChange(!loading&&loadedKey===key&&aidPlan.status==='ready'?
    aidPlan.events:null)
  },[onAidScheduleChange,loading,loadedKey,key,aidPlan,settingsDirty])
  const ordered=[...inventory].sort((a,b)=>a.priority-b.priority||
