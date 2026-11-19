@@ -57,20 +57,26 @@ Deno.serve(async req=>{
     const eligible=candidateIds(rows)
     const chosen=eligible.slice(0,DETAIL_LIMIT)
     const details:unknown[]=[]
+    const tracks:unknown[]=[]
     for(let i=0;i<chosen.length;i+=15){
       const batch=chosen.slice(i,i+15)
       const response=await db.from('garmin_activity_details')
         .select('activity_id,status,samples').in('activity_id',batch)
       if(response.error)throw Error('Garmin sample read '+response.error.code)
       details.push(...(response.data||[]))
+      const gps=await db.from('garmin_route_tracks')
+        .select('activity_id,status,fingerprint').in('activity_id',batch)
+      if(gps.error)throw Error('Private GPS evidence '+gps.error.code)
+      tracks.push(...(gps.data||[]))
     }
     const result=buildReferenceRoutes(rows,
-      details as {activity_id:string;status:string;samples:unknown[]}[])
+      details as {activity_id:string;status:string;samples:unknown[]}[],{
+        tracks:tracks as {activity_id:string;status:string;fingerprint:unknown}[]})
     return respond(200,{
       ...result,
       source:'Garmin · gespeicherte Laufdaten · letzter 24-Monats-Zeitraum',
       scan:{runningRead:rows.length,metadataCandidates:eligible.length,
-        samplesExamined:details.length,
+        samplesExamined:details.length,gpsEvidenceRead:tracks.length,
         capped:rows.length===RUN_LIMIT||eligible.length>DETAIL_LIMIT},
       analyzedAt:new Date().toISOString(),
     },h)
