@@ -1,10 +1,12 @@
-import {useCallback,useEffect,useRef,useState} from 'react'
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react'
 import {Icon} from './Icon'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {estimateRaceStrategy} from '../lib/raceStrategyMath.mjs'
 import {recommendRacePlan} from '../lib/raceAutoPlan.mjs'
 import type {Forecast} from '../lib/weatherIntelligence'
 import {RaceExecutionCard} from './RaceExecutionCard'
+import {buildRaceExecution} from '../lib/raceExecution.mjs'
+import type {AidPlanEvent} from '../lib/raceAidPlan.mjs'
 import {RaceDayCockpit} from './RaceDayCockpit'
 import type {GelPlanEvent} from '../lib/gelTiming.mjs'
 import {GelInventoryPlanner} from './GelInventoryPlanner'
@@ -63,6 +65,7 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
  const [viewerId,setViewerId]=useState('')
  const [offlineMode,setOfflineMode]=useState(false)
  const [fuelSchedule,setFuelSchedule]=useState<GelPlanEvent[]|null>(null)
+ const [aidSchedule,setAidSchedule]=useState<AidPlanEvent[]|null>(null)
  const [weightKg,setWeightKg]=useState<number|null>(null)
  const [draft,setDraft]=useState<Draft>(blank)
  const [saved,setSaved]=useState(false)
@@ -83,6 +86,18 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
     cache.goal?.race_name===goal.race_name)
     localStorage.setItem(key,JSON.stringify({...cache,fuelSchedule:events}))
   }catch{/* The verified inventory still works without browser cache. */}
+ },[viewerId,goal,offlineMode])
+ const onAidSchedule=useCallback((events:AidPlanEvent[]|null)=>{
+  if(offlineMode)return
+  setAidSchedule(events)
+  if(!viewerId||!goal||!Array.isArray(events))return
+  try{
+   const key=cacheKey(viewerId),raw=localStorage.getItem(key)
+   const cache=raw?JSON.parse(raw):null
+   if(cache?.version===1&&cache.goal?.race_date===goal.race_date&&
+    cache.goal?.race_name===goal.race_name)
+    localStorage.setItem(key,JSON.stringify({...cache,aidSchedule:events}))
+  }catch{/* Browser cache is optional. */}
  },[viewerId,goal,offlineMode])
  const update=<K extends keyof Draft,>(name:K,value:Draft[K])=>{
   setDraft(old=>({...old,[name]:value}));setSaved(false);setNotice('Änderung noch nicht gespeichert.')
@@ -127,11 +142,14 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
     const key=cacheKey(sessionUserId)
     const previousRaw=localStorage.getItem(key)
     const previous=previousRaw?JSON.parse(previousRaw):null
-    const cachedGels=previous?.goal?.race_date===nextGoal.race_date&&
-     previous?.goal?.race_name===nextGoal.race_name&&
-     Array.isArray(previous.fuelSchedule)?previous.fuelSchedule:null
+    const matching=previous?.goal?.race_date===nextGoal.race_date&&
+     previous?.goal?.race_name===nextGoal.race_name
+    const cachedGels=matching&&Array.isArray(previous.fuelSchedule)?previous.fuelSchedule:null
+    const cachedAid=matching&&Array.isArray(previous.aidSchedule)?previous.aidSchedule:null
+    setFuelSchedule(cachedGels);setAidSchedule(cachedAid)
     localStorage.setItem(key,JSON.stringify({version:1,
-     goal:nextGoal,draft:resolved,saved:Boolean(data),fuelSchedule:cachedGels}))
+     goal:nextGoal,draft:resolved,saved:Boolean(data),
+     fuelSchedule:cachedGels,aidSchedule:cachedAid}))
    }catch{/* Browser caching is optional; online source stays authoritative. */}
    setNotice(data?'':suggested?'Aus deinem gespeicherten Ziel automatisch vorbereitet. Du kannst den Vorschlag anpassen.':'')
    loadedKey.current=key
@@ -150,6 +168,7 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
      throw Error('No valid verified cache')
     setGoal(cachedGoal);setDraft(cachedDraft);setSaved(Boolean(cache.saved))
     setFuelSchedule(Array.isArray(cache.fuelSchedule)?cache.fuelSchedule:null)
+    setAidSchedule(Array.isArray(cache.aidSchedule)?cache.aidSchedule:null)
     setOfflineMode(true);setError('')
     setNotice('Netzverbindung fehlt: zuletzt lokal gesicherter Rennplan. Zwischenzeiten bleiben lokal nutzbar, solange die App geöffnet ist.')
     loadedKey.current=cachedGoal.race_date+'|'+cachedGoal.race_name
@@ -185,6 +204,11 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
   carbsGPerHour:get(draft.carbs),fluidMlPerHour:get(draft.fluid),
   sodiumMgPerHour:get(draft.sodium)
  }:null
+ const planCheckpoints=useMemo(()=>executionInput?
+   buildRaceExecution(executionInput).checkpoints:[],
+   [goal?.distance_km,goal?.target_hours,draft.courseMode,draft.loopKm,
+    draft.movingMinutes,draft.regularPause,draft.longStopEvery,draft.longStopMinutes,
+    draft.pace,draft.carbs,draft.fluid,draft.sodium])
  async function save(){
   if(busy||!goal||!garminSupabase)return
   setBusy(true);setError('');setNotice('')
@@ -215,7 +239,7 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
    try{
     const key=cacheKey(session.user.id)
     localStorage.setItem(key,JSON.stringify({version:1,goal,draft,saved:true,
-     fuelSchedule}))
+     fuelSchedule,aidSchedule}))
    }catch{/* Successful online save is still canonical. */}
    setNotice('Dein Rennplan ist gespeichert. Keine automatischen Trainings- oder Garmin-Änderungen.')
   }catch(e){setError(e instanceof Error?e.message:'Rennplan nicht gespeichert.')}
@@ -244,7 +268,7 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
      Für einen vollständigen Neustart ohne Internet ist keine App-Offline-Installation eingerichtet.</p>}
     {executionInput&&viewerId&&<RaceDayCockpit active={active} goal={goal}
      input={executionInput} saved={saved} viewerId={viewerId}
-     fuelSchedule={fuelSchedule}
+     fuelSchedule={fuelSchedule} aidSchedule={aidSchedule}
      feelsLike={feels?[feels[0],feels[1]]:null}/>}
     <details className="rsp-details">
      <summary>Rennplan, Gel Buddy und weitere Einstellungen öffnen</summary>
@@ -254,7 +278,8 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
     {calculation&&executionInput&&<RaceExecutionCard saved={saved} weightKg={weightKg} input={executionInput}/>}
     {!offlineMode?<GelInventoryPlanner active={active} goal={goal}
       durationMinutes={calculation?.totalMinutes??null} carbsGPerHour={get(draft.carbs)}
-      onScheduleChange={onGelSchedule}/>:
+      checkpoints={planCheckpoints}
+      onScheduleChange={onGelSchedule} onAidScheduleChange={onAidSchedule}/>:
      <p className="rsp-context">Gel Buddy nutzt offline den zuletzt gesicherten
       Einnahmeplan. Vorrat wird ohne Netz nicht verändert.</p>}
     <div className="rsp-ready-notes" aria-label="Vorbereitete Versorgung und Ausrüstung">
