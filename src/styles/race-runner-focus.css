@@ -136,3 +136,6 @@
  .rrf-meal-bottom{grid-template-columns:1fr;gap:6px}
  .rrf-meal-bottom>div{padding:9px}
 }
+
+/* Keep counted second sources visible without creating another large card. */
+.rrf-meal-extra{margin:0;font-size:10px;line-height:1.45;color:#d8eab4;padding:7px 9px;border-left:2px solid #b6dc91;background:rgba(117,150,79,.1);border-radius:4px}

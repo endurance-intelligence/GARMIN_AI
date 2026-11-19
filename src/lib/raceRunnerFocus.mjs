@@ -28,32 +28,53 @@ export function buildRunnerFocus({checkpoints=[],completed=0,gelEvents=null,
    next&&e?.round===next.index&&e.planOnly===true)||null:null
  const gelTiming=due?'due':gel?'upcoming':gels===null?'loading':'none'
  const drinkDue=live&&currentMinute>=20&&currentMinute%20<=8
- // Exactly one practical choice for this lap, not a second parallel gel plan.
- // Unconfirmed foods are suggestions ONLY and never counted as eaten or as KH.
+ // Only events in THIS planned lap are eligible for runner recommendations.
+ // Including the stop after the lap respects station fueling at checkpoint arrival.
+ // We intentionally keep the clock-independent checkpoint plan for the athlete.
+ const roundStart=done>0?Number(rows[done-1]?.departureMinutes):0
+ const roundEnd=next?Number(next.finish?next.arrivalMinutes:next.departureMinutes):null
+ const validRound=Number.isFinite(roundStart)&&Number.isFinite(roundEnd)&&roundEnd>roundStart
+ const roundGels=validRound&&gels?
+  gels.filter(g=>g.minute>=roundStart&&g.minute<(next.finish?roundEnd+1:roundEnd)):[]
+ const nextRoundGel=roundGels.find(g=>live&&g.minute>=currentMinute-10)||
+  roundGels[0]||null
+ const nextRoundGelIsDue=Boolean(live&&nextRoundGel&&
+  nextRoundGel.minute<=currentMinute&&currentMinute-nextRoundGel.minute<=10)
+ const roundGelCarbsG=Math.round(roundGels.reduce((sum,g)=>
+  sum+(Number.isFinite(g.carbsG)?g.carbsG:0),0)*10)/10
  const foodIdeas=['kleine Portion Nudeln','halbes Brötchen',
-   'Banane oder etwas Salzgebäck']
- const availableFood=typeof nextAid?.foodName==='string'?
-  nextAid.foodName.split(/[,;]+/).map(x=>x.trim()).filter(Boolean):[]
+  'Banane oder etwas Salzgebäck']
  const ideaOffset=Math.max(0,(next?.index??1)-2)
- const food=availableFood.length?
-  availableFood[ideaOffset%availableFood.length]:
+ const foodConfirmed=Boolean(nextAid&&typeof nextAid.foodName==='string'&&
+  nextAid.foodName.trim())
+ const food=foodConfirmed?nextAid.foodName.trim():
   foodIdeas[ideaOffset%foodIdeas.length]
- const foodConfirmed=availableFood.length>0
- const gelName=gel?gel.brand+' · '+gel.name:null
- const gelSlot=Boolean(next&&((next.index-1)%4===0||
-  (gelTiming==='due'&&Number(gel?.caffeineMg)>0)))
- const primary=gelSlot&&gelName?gelName:food
- const primaryKind=gelSlot&&gelName?'gel':'food'
- const alternative=primaryKind==='gel'?food:
-  gelName||'andere gut verträgliche Kleinigkeit'
- const alternativeKind=primaryKind==='gel'?'food':gelName?'gel':'food'
+ const foodCarbsCounted=Boolean(foodConfirmed&&Number(nextAid?.foodCarbsG)>0)
+ const gelName=nextRoundGel?nextRoundGel.brand+' · '+nextRoundGel.name:null
+ // Never silently replace a counted gel with food of unknown quantity.
+ const primaryKind=gelName?'gel':'food'
+ const primary=gelName||food
+ const otherFood=foodIdeas[(ideaOffset+1)%foodIdeas.length]
+ const alternative=gelName?food:otherFood
+ const alternativeKind='food'
+ const foodIsAdditional=Boolean(gelName&&foodCarbsCounted)
  const drink=nextAid?.drinkMl>0?
   nextAid.drinkMl+' ml '+nextAid.drinkName:
   'Wasser oder Maurten Drink Mix – Portion vor Ort prüfen'
  const meal={primary,primaryKind,alternative,alternativeKind,
-  foodConfirmed,drink,drinkConfirmed:Boolean(nextAid?.drinkMl>0),
-  caffeineMg:primaryKind==='gel'?Number(gel?.caffeineMg)||0:0,
-  gelScheduled:Boolean(gelName),planOnly:true}
+  foodConfirmed,foodCarbsCounted,foodIsAdditional,
+  drink,drinkConfirmed:Boolean(nextAid?.drinkMl>0),
+  caffeineMg:gelName?Number(nextRoundGel.caffeineMg)||0:0,
+  gelScheduled:Boolean(gelName),gelDue:nextRoundGelIsDue,
+  plannedGelCount:roundGels.length,plannedGelCarbsG:roundGelCarbsG,
+  additionalGelNames:roundGels.filter(g=>g!==nextRoundGel)
+   .map(g=>g.brand+' · '+g.name),
+  plannedGelMinute:gelName?nextRoundGel.minute:null,
+  // For both sources the number is only a planned allowance, not actual intake.
+  plannedFoodCarbsG:foodCarbsCounted?Number(nextAid.foodCarbsG):0,
+  plannedDrinkCarbsG:nextAid&&Number.isFinite(nextAid.drinkCarbsG)?
+   nextAid.drinkCarbsG:0,
+  planOnly:true}
  return {total,completed:done,remaining:total-done,
   nextIndex:next?.index??null,finished:total>0&&done===total,
   longPause,breakNote,gel,gelTiming,drinkDue,nextAid,meal:next?meal:null,
