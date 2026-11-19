@@ -111,3 +111,16 @@
  .gip-round-meta span{font-size:9px}
  .gip-round-plan>summary{padding:11px 12px;font-size:11px}
 }
+
+/* Heartbeat event menu: event availability != portion confirmation. */
+.gip-event-menu{margin:12px 0;border:1px solid rgba(162,207,192,.3);
+ border-radius:10px;background:rgba(23,68,63,.28);overflow:hidden}
+.gip-event-menu>summary{cursor:pointer;padding:12px 14px;color:#d3f1e1;
+ font-size:11px;font-weight:800;min-height:40px}
+.gip-event-menu>summary:focus-visible{outline:2px solid #cdf1d7;outline-offset:-3px}
+.gip-event-menu>p{padding:0 13px;margin:0 0 10px;font-size:10px;
+ line-height:1.65;color:#bdd7d1;overflow-wrap:anywhere}
+.gip-event-menu>p strong{color:#e6f5e9}
+.gip-event-menu>.gip-guidance{font-size:9px;color:#a7c7bb}
+@media(max-width:600px){.gip-event-menu>summary{padding:11px;font-size:11px}
+ .gip-event-menu>p{padding:0 10px}}
