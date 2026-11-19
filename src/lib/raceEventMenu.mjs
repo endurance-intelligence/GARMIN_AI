@@ -19,8 +19,7 @@ export const HEARTBEAT_MENU_2026=Object.freeze({
   'Brühe','Essiggurken','Gurke mit Salz','gesalzene Erdnüsse'
  ],
  otherDrinks:['Wasser','Tee','Kaffee','Cola'],
- caffeine:['MAURTEN Koffein-Gels (Variante nicht bestätigt)','Kaffee','Cola',
-  'Tee (sortenabhängig)'],
+ caffeine:['Kaffee','Cola','Tee (je nach Sorte)'],
  carbDrinkStrength:'unknown',
  note:'Vorhanden laut Veranstalterliste; nicht garantiert an jeder Station. '+
   'Keine Portion, KH-Menge, Natriummenge oder Koffeinaufnahme bestätigt.'
@@ -35,7 +34,7 @@ export function eventMenuForRace({raceName='',raceDate=''}={}){
 const shortFoods=[
  'etwas Banane','ein Stück süß belegtes Brötchen',
  'ein paar Salzbrezeln','etwas Apfel',
- 'ein Stück herzhaft belegtes Brötchen','etwas Banane'
+ 'ein Stück herzhaft belegtes Brötchen','MAURTEN Riegel'
 ]
 const longFoods=[
  'kleine Portion Nudeln mit Tomatensoße (Nelles Catering)',
