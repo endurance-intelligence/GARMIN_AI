@@ -4,6 +4,10 @@ import {useGarminHrProfile} from '../lib/useGarminHrProfile'
 import {phaseForRace} from '../lib/coachGoal'
 import {analyzeGarminIntensityTrend} from '../lib/coachIntensityTrend.mjs'
 import {CoachIntensityTrendPanel} from './CoachIntensityTrendPanel'
+import {CoachThresholdCalibration} from './CoachThresholdCalibration'
+import {CoachThresholdReport} from './CoachThresholdReport'
+import {analyzeThresholdIntensity} from '../lib/coachThresholds.mjs'
+import type {ThresholdCalibration} from '../lib/coachThresholds.mjs'
 import {longTermWeekStarts} from '../lib/coachLongTerm.mjs'
 import {classifyGarminHrSeconds} from '../lib/coachHrTime.mjs'
 import type {GarminHrSecondsWeek} from '../lib/coachHrTime.mjs'
@@ -36,6 +40,7 @@ export function CoachHrTimeCard({today,weeks,active,goal}:{
  const [failed,setFailed]=useState<string[]>([])
  const [loading,setLoading]=useState(false)
  const [error,setError]=useState('')
+ const [calibration,setCalibration]=useState<ThresholdCalibration|null>(null)
  const {data:profileData,loading:profileLoading,error:profileError}=useGarminHrProfile(active&&expanded)
  useEffect(()=>{
   setFetched({});setAttempted([]);setFailed([]);setError('')
@@ -102,6 +107,7 @@ export function CoachHrTimeCard({today,weeks,active,goal}:{
   today,weeks,weekRows:results,profile:profileData?.profile||null,
   goal:goalContext
  })
+ const thresholdReport=analyzeThresholdIntensity({today,weeks,weekRows:results,calibration})
  const nMissing=starts.filter(s=>!fetched[s]).length
  const retry=()=>{setError('');setAttempted(prev=>prev.filter(s=>!failed.includes(s)));setFailed([])}
  return <details className="cht-root" open={expanded}
@@ -149,6 +155,9 @@ export function CoachHrTimeCard({today,weeks,active,goal}:{
     }</strong></div>
    </div>
    <CoachIntensityTrendPanel data={intensityTrend}/>
+   <CoachThresholdCalibration active={active&&expanded} today={today}
+    calibration={calibration} onChange={setCalibration}/>
+   {calibration&&<CoachThresholdReport report={thresholdReport}/>} 
    {model.status==='measured'&&<p className="cht-summary-stat">
     Unterhalb beziehungsweise innerhalb der Garmin-Zone 2:
     {' '}<strong>{model.belowOrInZ2Share?.toLocaleString('de-DE')} %</strong>
