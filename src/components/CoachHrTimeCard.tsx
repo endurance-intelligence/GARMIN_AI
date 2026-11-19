@@ -24,7 +24,7 @@ const validWeek=(x:unknown,start:string):x is GarminHrSecondsWeek=>{
   typeof row.histogram==='object'&&row.histogram!==null&&
   typeof row.measuredActivities==='number'&&Number.isInteger(row.measuredActivities)&&
   typeof row.totalActivities==='number'&&Number.isInteger(row.totalActivities)&&
-  typeof row.validSeconds==='number'&&Number.isInteger(row.validSeconds)
+  typeof row.validSeconds==='number'&&Number.isFinite(row.validSeconds)&&row.validSeconds>=0
 }
 export function CoachHrTimeCard({today,weeks,active,goal}:{
  today:string;weeks:8|12;active:boolean;
