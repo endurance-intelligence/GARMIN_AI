@@ -75,3 +75,39 @@
 @media(max-width:650px){.gip-aid-fields,.gip-settings{grid-template-columns:1fr}
  .gip-settings>.gip-guidance,.gip-settings>button,.gip-settings>.gip-note{grid-column:span 1}
  .gip-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* Race Prep 19-round fueling plan — collapsed for crew, never on runner screen. */
+.gip-round-plan{margin:12px 0;border:1px solid rgba(157,199,183,.28);
+ border-radius:11px;background:rgba(12,39,48,.28);overflow:hidden}
+.gip-round-plan>summary{cursor:pointer;padding:13px 14px;display:flex;gap:6px;
+ align-items:center;justify-content:space-between;flex-wrap:wrap;
+ color:#def6e5;font-size:12px;font-weight:800}
+.gip-round-plan>summary>small{font-size:10px;color:#b4d2c7}
+.gip-round-plan>.gip-guidance{margin:0 12px 12px}
+.gip-round-plan>.gip-note{margin:0 12px 12px}
+.gip-round-list{display:grid;gap:5px;padding:0 10px 10px}
+.gip-round-row{display:grid;grid-template-columns:74px minmax(0,1fr) minmax(110px,.35fr);
+ gap:10px;align-items:start;min-width:0;border-radius:8px;padding:11px;
+ border:1px solid rgba(150,187,197,.15);background:rgba(19,43,62,.83)}
+.gip-round-row.is-long{border-color:rgba(228,179,111,.35);background:rgba(74,54,40,.23)}
+.gip-round-number{display:grid;gap:4px}
+.gip-round-number>strong{font-size:17px;color:#e0f2e7}
+.gip-round-number>small{font-size:9px;color:#b5cdd0}
+.gip-round-body{display:grid;gap:5px;min-width:0}
+.gip-round-body>strong{font-size:12px;color:#ecfaf1;overflow-wrap:anywhere}
+.gip-round-body>small{font-size:10px;color:#adcad2;line-height:1.5}
+.gip-round-meta{display:flex;flex-wrap:wrap;gap:5px 10px}
+.gip-round-meta span{color:#c4dbd7;font-size:10px;font-weight:760}
+.gip-round-meta .gip-round-caf{color:#efcea0}
+.gip-round-carbs{display:grid;gap:5px;justify-items:end;text-align:right}
+.gip-round-carbs strong{font-size:11px;color:#ddeedf;white-space:nowrap}
+.gip-round-carbs small{font-size:9px;color:#a4bfc8;line-height:1.45}
+.gip-round-plan>.gip-disclaimer{margin:4px 12px 12px}
+@media(max-width:700px){
+ .gip-round-row{grid-template-columns:39px minmax(0,1fr);gap:8px;padding:10px}
+ .gip-round-carbs{grid-column:2;justify-items:start;text-align:left}
+ .gip-round-number>strong{font-size:15px}
+ .gip-round-meta span{font-size:9px}
+ .gip-round-plan>summary{padding:11px 12px;font-size:11px}
+}
