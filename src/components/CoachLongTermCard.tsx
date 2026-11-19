@@ -2,7 +2,6 @@ import {useEffect,useMemo,useState} from 'react'
 import type {CoachSnapshot} from '../lib/coachSnapshot'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {analyzeCoachLongTerm,longTermWeekStarts} from '../lib/coachLongTerm.mjs'
-import type {CoachLongTerm} from '../lib/coachLongTerm.mjs'
 import '../styles/coach-long-term.css'
 
 type WeekBoard={start:string;activities:Record<string,unknown>[];manual:Record<string,unknown>[]}
