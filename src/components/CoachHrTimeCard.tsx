@@ -6,6 +6,9 @@ import {classifyGarminHrSeconds} from '../lib/coachHrTime.mjs'
 import type {GarminHrSecondsWeek} from '../lib/coachHrTime.mjs'
 import '../styles/coach-hr-time.css'
 
+const zoneRange=(lower:number|null,upper:number|null)=>
+ lower===null?'≤ '+upper+' bpm':upper===null?'≥ '+lower+' bpm':
+ lower+'–'+upper+' bpm'
 const duration=(sec:number)=>{
  const min=Math.round(sec/60)
  return min>=60?Math.floor(min/60)+' h '+String(min%60).padStart(2,'0')+' min':
@@ -91,7 +94,7 @@ export function CoachHrTimeCard({today,weeks,active}:{
   aria-label="Zeit in tatsächlichen Garmin Herzfrequenzzonen aus FIT Aufzeichnung">
   <summary className="cht-summary">
    <span className="cht-symbol">♥</span>
-   <span className="cht-title"><small>EINZELNE HERZSCHLÄGE · AUFGEZEICHNETE ZEIT</small>
+   <span className="cht-title"><small>ECHTE FIT-ZEITMESSUNG · GEMESSENE SEKUNDEN</small>
     <strong>Wie lange warst du in deinen Garmin-HF-Zonen?</strong>
     <span>Aufgezeichnete FIT-Sekunden statt Durchschnittspuls oder RPE</span>
    </span><span aria-hidden="true">⌄</span>
@@ -113,7 +116,7 @@ export function CoachHrTimeCard({today,weeks,active}:{
     Garmin-Läufe vorhanden. FIT-Daten können noch importiert werden.</p>:
     <div className="cht-bands">
      {model.zones.map((z,i)=><div className="cht-band" key={z.label}>
-      <span>{z.label}</span>
+      <span className="cht-zone-name">{z.label}<small>{zoneRange(z.lower,z.upper)}</small></span>
       <div className="cht-track"><span className={'cht-fill z'+i}
        style={{width:z.share+'%'}}/></div>
       <strong>{z.share.toLocaleString('de-DE',{maximumFractionDigits:1})} %</strong>
@@ -125,6 +128,10 @@ export function CoachHrTimeCard({today,weeks,active}:{
     <div><small>LAUFEINHEITEN MIT AUSREICHENDEN DATEN</small><strong>{
      model.measuredActivities} / {model.activities}</strong></div>
     <div><small>AUSGEWERTETE WOCHEN</small><strong>{model.validWeeks} / {weeks}</strong></div>
+    <div><small>HF-ABDECKUNG DER AUSGEWERTETEN LÄUFE</small><strong>{
+     model.coveredPercent===null?'–':
+     model.coveredPercent.toLocaleString('de-DE',{maximumFractionDigits:1})+' %'
+    }</strong></div>
    </div>
    {model.status==='measured'&&<p className="cht-summary-stat">
     Unterhalb beziehungsweise innerhalb der Garmin-Zone 2:
