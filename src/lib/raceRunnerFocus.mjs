@@ -1,10 +1,11 @@
+import {suggestEventFood} from './raceEventMenu.mjs'
 /**
  * Calm, round-first view for the athlete. Checkpoint distances and time budgets
  * remain available to the crew, but are never exposed by this model.
  * Consumption is not assumed and GPS distance cannot advance the round count.
  */
 export function buildRunnerFocus({checkpoints=[],completed=0,gelEvents=null,
- aidEvents=null,elapsedMinutes=null}={}){
+ aidEvents=null,elapsedMinutes=null,eventMenu=null}={}){
  const rows=Array.isArray(checkpoints)?checkpoints:[]
  const total=rows.length
  const done=Number.isInteger(completed)?Math.max(0,Math.min(total,completed)):0
@@ -50,23 +51,31 @@ export function buildRunnerFocus({checkpoints=[],completed=0,gelEvents=null,
  const suggestedFood=longPause?
   (latePhase?'kleine Portion Nudeln, wenn gut verträglich':'kleine Portion Nudeln'):
   foodIdeas[ideaOffset%foodIdeas.length]
+ const menuSuggestion=suggestEventFood(eventMenu,{
+  round:next?.index||0,longPause,arrivalMinutes:next?.arrivalMinutes
+ })
  const foodConfirmed=Boolean(nextAid&&typeof nextAid.foodName==='string'&&
   nextAid.foodName.trim())
- const food=foodConfirmed?nextAid.foodName.trim():suggestedFood
+ const food=foodConfirmed?nextAid.foodName.trim():
+  menuSuggestion?.primary||suggestedFood
  const foodCarbsCounted=Boolean(foodConfirmed&&Number(nextAid?.foodCarbsG)>0)
  const gelName=nextRoundGel?nextRoundGel.brand+' · '+nextRoundGel.name:null
  // Never silently replace a counted gel with food of unknown quantity.
  const primaryKind=gelName?'gel':'food'
  const primary=gelName||food
- const otherFood=longPause?'halbes Brötchen':foodIdeas[(ideaOffset+1)%foodIdeas.length]
+ const otherFood=menuSuggestion?.alternative||
+  (longPause?'halbes Brötchen':foodIdeas[(ideaOffset+1)%foodIdeas.length])
  const alternative=gelName?food:otherFood
  const alternativeKind='food'
  const foodIsAdditional=Boolean(gelName&&foodCarbsCounted)
  const drink=nextAid?.drinkMl>0?
   nextAid.drinkMl+' ml '+nextAid.drinkName:
+  menuSuggestion?'Wasser oder MAURTEN Carbdrink – Variante/Portion prüfen':
   'Wasser oder Maurten Drink Mix – Portion vor Ort prüfen'
  const meal={primary,primaryKind,alternative,alternativeKind,
   foodConfirmed,foodCarbsCounted,foodIsAdditional,
+  foodAvailableAtEvent:Boolean(menuSuggestion),
+  availabilityNote:menuSuggestion?.sideNote||null,
   drink,drinkConfirmed:Boolean(nextAid?.drinkMl>0),
   caffeineMg:gelName?Number(nextRoundGel.caffeineMg)||0:0,
   gelScheduled:Boolean(gelName),gelDue:nextRoundGelIsDue,
