@@ -8,6 +8,7 @@ import {buildRaceDayCockpit,formatRaceElapsed,parseRaceElapsed,raceElapsedNow,
 import {clockAt} from '../lib/gelTiming.mjs'
 import {Icon} from './Icon'
 import {RaceRunnerFocus} from './RaceRunnerFocus'
+import {RaceDayPreflight} from './RaceDayPreflight'
 import {updateFuelMark} from '../lib/raceFuelLog.mjs'
 import type {FuelMarks,FuelMarkStatus} from '../lib/raceFuelLog.mjs'
 import {assessRunnerAdvance,assessRunnerCorrection,validateRunnerSnapshot} from '../lib/raceRunnerSafety.mjs'
@@ -235,6 +236,11 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,ai
    storageReady={storageReady} planSaved={saved}
    notice={runnerNotice} warning={runnerError}
    onComplete={completeRunner} onUndo={undoRunner}/>
+  <RaceDayPreflight keyName={key} raceDate={goal.race_date}
+   raceName={goal.race_name} total={model.plan.checkpoints.length}
+   completed={runnerCompleted} loaded={loaded} storageReady={storageReady}
+   saved={saved} startTime={startTime} fuelSchedule={fuelSchedule}
+   aidSchedule={aidSchedule}/>
   <details className="rrf-crew">
    <summary>Für die Crew: Zeiten, Puffer und erweiterte Erfassung anzeigen</summary>
   <section className="rdc-root" aria-label="Race Day Cockpit mit manuell erfassten Zwischenzeiten">
