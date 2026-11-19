@@ -139,3 +139,8 @@
 
 /* Keep counted second sources visible without creating another large card. */
 .rrf-meal-extra{margin:0;font-size:10px;line-height:1.45;color:#d8eab4;padding:7px 9px;border-left:2px solid #b6dc91;background:rgba(117,150,79,.1);border-radius:4px}
+
+
+/* One unobtrusive phase/stop hint, never another oversized card. */
+.rrf-meal-guidance{margin:0;font-size:10px;line-height:1.5;
+ color:#bcdcc9;border-left:2px solid rgba(170,221,191,.36);padding-left:8px}

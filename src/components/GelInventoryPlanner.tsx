@@ -2,6 +2,7 @@ import {useEffect,useMemo,useState} from 'react'
 import {garminSupabase} from '../lib/garminSupabase'
 import {buildGelPlan} from '../lib/gelTiming.mjs'
 import {buildAidPlan} from '../lib/raceAidPlan.mjs'
+import {buildRaceFuelRoadmap} from '../lib/raceFuelRoadmap.mjs'
 import type {AidPlanEvent} from '../lib/raceAidPlan.mjs'
 import type {RaceCheckpoint} from '../lib/raceExecution.mjs'
 import type {GelStock,GelPlanEvent} from '../lib/gelTiming.mjs'
@@ -121,6 +122,11 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
   caffeineStartMinute:settings.caffeine_start_minute,
   caffeineMaxMg:settings.caffeine_max_mg
  }),[durationMinutes,carbsGPerHour,settings,stock,goal.race_start_time,aidPlan])
+ const roundRoadmap=useMemo(()=>buildRaceFuelRoadmap({
+  checkpoints,
+  gelEvents:racePlan.status==='ready'?racePlan.events:null,
+  aidEvents:aidPlan.status==='ready'?aidPlan.events:null
+ }),[checkpointKey,racePlan,aidPlan])
  useEffect(()=>{
   if(!onScheduleChange||settingsDirty)return // keep last saved schedule while editing
   onScheduleChange(!loading&&loadedKey===key&&racePlan.status==='ready'?
@@ -412,6 +418,47 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
       Koffein: {racePlan.caffeineMg} mg aus geplanten Gels; frühestens
       {' '}+{settings.caffeine_start_minute} Min. Nur Planung, keine bestätigte Einnahme.</p>
      }
+     {roundRoadmap.status==='ready'&&<details className="gip-round-plan">
+      <summary>{roundRoadmap.rounds.length} Runden · Essensfahrplan, Pausen und Koffein ansehen
+       <small>{roundRoadmap.totals?.longStops||0} längere Stopps · nur Planung</small>
+      </summary>
+      <p className="gip-guidance">Früh: kleine, verträgliche Snacks. Bei längeren Pausen:
+       ruhig etwas Festes essen, sofern angeboten und erprobt. Später:
+       gut verdauliche Portionen statt Experimente.
+       Koffein erscheint ausschließlich, wenn ein freigegebenes Koffein-Gel
+       für die jeweilige Runde tatsächlich eingeplant wurde.</p>
+      {settingsDirty&&<p className="gip-note">Vorschau mit ungespeicherten Einstellungen.
+       Im Runner Mode bleibt bis zum Speichern die bisherige Planung aktiv.</p>}
+      <div className="gip-round-list">{roundRoadmap.rounds.map(r=>
+       <div className={'gip-round-row'+(r.breakType==='long'?' is-long':'')} key={'fuel-round-'+r.round}>
+        <div className="gip-round-number"><strong>{r.round}</strong>
+         <small>{r.phaseName}</small></div>
+        <div className="gip-round-body">
+         <div className="gip-round-meta"><span>{r.pauseName}{r.finish?'': ' · '+r.pauseMinutes+' Min.'}</span>
+          {r.caffeineMg>0&&<span className="gip-round-caf">
+           Koffein geplant: {r.caffeineMg} mg</span>}</div>
+         <strong>{r.primaryKind==='gel'?
+          r.gelCount+' Gel'+(r.gelCount===1?'':'s')+' laut Plan':
+          r.finish?'Im Ziel nach Bedarf':r.primary||'Keine Portion bestätigt'}</strong>
+         {r.primaryKind==='gel'&&<small>{r.gelNames.join(' · ')}</small>}
+         {!r.finish&&<small>{r.primaryKind==='gel'?
+          r.foodIsAdditional?
+           'Essen zusätzlich berücksichtigt: '+r.alternative:
+           'Essenidee (kein automatischer Ersatz): '+r.alternative:
+          r.foodConfirmed?'Verfügbares Essen bestätigt.':
+          'Essen nur falls vorhanden und gut verträglich.'}</small>}
+         <small>{r.coachHint}</small>
+        </div>
+        <div className="gip-round-carbs"><strong>{fmt(r.knownCarbsG)} g KH</strong>
+         <small>Gels {fmt(r.gelCarbsG)} · Essen {fmt(r.foodCarbsG)} ·
+          Getränk {fmt(r.drinkCarbsG)}</small>
+         <small>Geplant, nicht verbraucht</small>
+        </div>
+       </div>)}</div>
+      <p className="gip-disclaimer">{roundRoadmap.note}
+       Eigene Getränke außerhalb der Stationen werden weiterhin separat
+       auf Stundenbasis geplant und sind in den KH je Runde nicht enthalten.</p>
+     </details>}
      {aidPlan.status==='ready'&&aidPlan.events.length>0&&<details className="gip-all">
       <summary>Verpflegung an {aidPlan.events.length} Stationen anzeigen</summary>
       <div className="gip-timeline">{aidPlan.events.map(e=><div className="gip-time" key={'aid-'+e.round}>

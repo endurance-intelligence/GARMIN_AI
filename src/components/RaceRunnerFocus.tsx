@@ -4,6 +4,7 @@ import type {RaceCheckpoint} from '../lib/raceExecution.mjs'
 import type {GelPlanEvent} from '../lib/gelTiming.mjs'
 import type {AidPlanEvent} from '../lib/raceAidPlan.mjs'
 import {buildRunnerFocus} from '../lib/raceRunnerFocus.mjs'
+import {buildRaceFuelRoadmap} from '../lib/raceFuelRoadmap.mjs'
 import {raceElapsedNow} from '../lib/raceDayCockpit.mjs'
 import {Icon} from './Icon'
 import '../styles/race-runner-focus.css'
@@ -29,6 +30,10 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
  }),[goal.race_date,startTime,clockTick])
  const view=buildRunnerFocus({checkpoints,completed,gelEvents:fuelSchedule,
   aidEvents:aidSchedule,elapsedMinutes:elapsed})
+ const roadmap=useMemo(()=>buildRaceFuelRoadmap({
+  checkpoints,gelEvents:fuelSchedule,aidEvents:aidSchedule
+ }),[checkpoints,fuelSchedule,aidSchedule])
+ const roundAdvice=roadmap.rounds[view.completed]||null
  if(!active||!view.total)return null
  return <section className="rrf-root" aria-label="Runner Mode: nächste Runde und Versorgung">
   <header className="rrf-head">
@@ -79,7 +84,7 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
    <div className="rrf-meal" aria-label="Verpflegungsvorschlag für diese Runde">
     <div className="rrf-meal-heading">
      <span><Icon name="check-circle"/> DIESE RUNDE · VERPFLEGUNG</span>
-     <small>Nur geplant · nichts automatisch verbucht</small>
+     <small>{roundAdvice?roundAdvice.pauseName+' · '+roundAdvice.phaseName+' · ':''}nichts automatisch verbucht</small>
     </div>
     <div className="rrf-meal-primary">
      <Icon name={view.meal.primaryKind==='gel'?'check-circle':'flag'}/>
@@ -113,12 +118,13 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
        <span>Getränke-KH im Plan berücksichtigt, nicht als getrunken bestätigt.</span>}
      </div>
     </div>
+    {roundAdvice&&<p className="rrf-meal-guidance">{roundAdvice.coachHint}</p>}
     {view.meal.additionalGelNames.length>0&&<p className="rrf-meal-extra">
      Weitere in dieser Runde eingeplante Gels:
      {' '}{view.meal.additionalGelNames.join(', ')}.
      Das sind keine zusätzlichen Empfehlungen, sondern bereits berücksichtigte Portionen.</p>}
-    {view.meal.caffeineMg>0&&<p className="rrf-meal-caffeine">
-     Koffein: {view.meal.caffeineMg} mg aus dem Gel – nur nach deiner Freigabe.</p>}
+    {(roundAdvice?.caffeineMg||0)>0&&<p className="rrf-meal-caffeine">
+     Koffein: {roundAdvice!.caffeineMg} mg aus den für diese Runde eingeplanten Gels – nur nach deiner Freigabe.</p>}
     {!view.meal.foodConfirmed&&<p className="rrf-meal-hint">
      Nudeln, Brötchen und andere Speisen sind Ideen, keine bestätigte Veranstalterliste.
      Essen ersetzt kein eingeplantes Gel, solange die KH-Menge nicht abgeglichen ist.</p>}
