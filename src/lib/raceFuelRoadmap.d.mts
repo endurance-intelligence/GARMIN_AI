@@ -3,7 +3,7 @@ export type RaceFuelRoadmapRound={
  phaseName:string;breakType:'finish'|'long'|'short';pauseName:string;
  coachHint:string;arrivalMinutes:number;pauseMinutes:number;
  primary:string|null;primaryKind:'food'|'gel'|null;
- alternative:string|null;foodConfirmed:boolean;foodIsAdditional:boolean;
+ alternative:string|null;foodConfirmed:boolean;menuAvailable:boolean;foodIsAdditional:boolean;
  gelNames:string[];gelCount:number;gelCarbsG:number;foodCarbsG:number;
  drinkCarbsG:number;knownCarbsG:number;caffeineMg:number;drink:string|null;
  sourceStatus:'loading'|'partial'|'unconfirmed';planOnly:true
