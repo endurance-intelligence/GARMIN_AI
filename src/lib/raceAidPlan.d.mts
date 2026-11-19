@@ -1,0 +1,4 @@
+export type AidPlanEvent={minute:number;clock:string|null;round:number;drinkMl:number;drinkCarbsG:number;drinkName:string;foodName:string;foodCarbsG:number;carbsG:number;planOnly:true}
+export type AidSettings={aid_confirmed:boolean;aid_every_laps:number;aid_drink_mix:'unknown'|'160'|'320'|'custom';aid_drink_ml_per_stop:number;aid_custom_carbs_g_per_500:number;aid_food_name:string;aid_food_carbs_g_per_stop:number}
+export type AidPlan={status:'unconfirmed'|'invalid'|'unknown-concentration'|'unknown-food'|'ready';events:AidPlanEvent[];drinkCarbsG:number;foodCarbsG:number;totalCarbsG:number;fluidMl:number;stops:number;planOnly:true}
+export declare function buildAidPlan(input:{checkpoints?:{index:number;finish:boolean;arrivalMinutes:number}[];settings?:AidSettings|null;startTime?:string|null}):AidPlan
