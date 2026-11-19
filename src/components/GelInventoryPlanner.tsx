@@ -3,6 +3,7 @@ import {garminSupabase} from '../lib/garminSupabase'
 import {buildGelPlan} from '../lib/gelTiming.mjs'
 import {buildAidPlan} from '../lib/raceAidPlan.mjs'
 import {buildRaceFuelRoadmap} from '../lib/raceFuelRoadmap.mjs'
+import {eventMenuForRace} from '../lib/raceEventMenu.mjs'
 import type {AidPlanEvent} from '../lib/raceAidPlan.mjs'
 import type {RaceCheckpoint} from '../lib/raceExecution.mjs'
 import type {GelStock,GelPlanEvent} from '../lib/gelTiming.mjs'
@@ -111,6 +112,7 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
    caffeineMg:num(p?.caffeine_mg??item.custom_caffeine_mg),
    quantity:item.quantity,priority:item.priority,isBulk:Boolean(p?.is_bulk)}
  }),[inventory,byId])
+ const eventMenu=eventMenuForRace({raceName:goal.race_name,raceDate:goal.race_date})
  const checkpointKey=JSON.stringify((checkpoints||[]).map(c=>[c.index,c.arrivalMinutes,c.finish]))
  const aidPlan=useMemo(()=>buildAidPlan({checkpoints,settings,startTime:goal.race_start_time}),
   [checkpointKey,settings,goal.race_start_time])
@@ -125,8 +127,9 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
  const roundRoadmap=useMemo(()=>buildRaceFuelRoadmap({
   checkpoints,
   gelEvents:racePlan.status==='ready'?racePlan.events:null,
-  aidEvents:aidPlan.status==='ready'?aidPlan.events:null
- }),[checkpointKey,racePlan,aidPlan])
+  aidEvents:aidPlan.status==='ready'?aidPlan.events:null,
+  eventMenu
+ }),[checkpointKey,racePlan,aidPlan,eventMenu])
  useEffect(()=>{
   if(!onScheduleChange||settingsDirty)return // keep last saved schedule while editing
   onScheduleChange(!loading&&loadedKey===key&&racePlan.status==='ready'?
@@ -322,10 +325,22 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
    <div className="gip-planner">
     <div className="gip-subheading"><strong>Verpflegung auf der Strecke · Getränke + Essen + Gels</strong>
      <small>Alle Kohlenhydratquellen in einem Plan – nichts als gegessen markieren</small></div>
-    <p className="gip-guidance">Beim Heartbeat gibt es laut deiner Angabe Maurten Drink Mix und Verpflegung.
-     Die Variante (160/320), Mischung, Portionsgröße und Lebensmittel musst du prüfen.
-     Ohne ausdrückliche Bestätigung werden dafür <strong>0 g KH</strong> angerechnet.
-     Die geplanten Gel-Portionen werden erst nach Bestätigung entsprechend reduziert.</p>
+    {eventMenu&&<details className="gip-event-menu">
+     <summary>Heartbeat · bestätigtes Verpflegungsangebot ansehen</summary>
+     <p><strong>KH-Quellen & Essen:</strong> {eventMenu.carbs.join(' · ')}</p>
+     <p><strong>Warm & salzig:</strong> {eventMenu.saltyWarm.join(' · ')}</p>
+     <p><strong>Weitere Getränke:</strong> {eventMenu.otherDrinks.join(' · ')}</p>
+     <p><strong>Koffeinhaltige Optionen:</strong> {eventMenu.caffeine.join(' · ')}.
+      Cola, Kaffee und Tee bleiben in deiner Koffeinpause außerhalb der automatisch
+      geplanten Versorgung.</p>
+     <p className="gip-guidance">{eventMenu.note}</p>
+    </details>}
+    <p className="gip-guidance">{eventMenu?
+     'Das Heartbeat-Angebot ist bekannt. Offen sind die MAURTEN-Carbdrink-Variante, Portionsgrößen und die Verfügbarkeit an jeder einzelnen Station.':
+     'Welche Getränke und Lebensmittel es gibt, musst du noch prüfen.'}
+     {' '}Ohne ausdrücklich bestätigte Mengen werden dafür
+     <strong> 0 g KH </strong> angerechnet. Erst dann werden geplante
+     Gel-Portionen entsprechend reduziert.</p>
     <fieldset className="gip-aid">
      <legend>Versorgung an der Strecke</legend>
      <div className="gip-aid-fields">
@@ -444,8 +459,10 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
          {!r.finish&&<small>{r.primaryKind==='gel'?
           r.foodIsAdditional?
            'Essen zusätzlich berücksichtigt: '+r.alternative:
-           'Essenidee (kein automatischer Ersatz): '+r.alternative:
-          r.foodConfirmed?'Verfügbares Essen bestätigt.':
+           (r.menuAvailable?'Aus dem Veranstalterangebot (Stopp/Portion offen): ':
+            'Essenidee (kein automatischer Ersatz): ')+r.alternative:
+          r.foodConfirmed?'Essensportion für diese Runde geplant.':
+          r.menuAvailable?'Veranstalterangebot · Stopp und Portion noch offen.':
           'Essen nur falls vorhanden und gut verträglich.'}</small>}
          <small>{r.coachHint}</small>
         </div>
