@@ -36,8 +36,12 @@ export function buildRaceFuelRoadmap({
     'Zielrunde: Verpflegung danach nach Bedarf, keine zusätzliche Station angenommen.':
    breakType==='long'?
     phase==='late'?
-     'Lange Pause: Schuhe/Kleidung prüfen; nur verträgliche kleine Portionen, z. B. Kartoffeln oder Brühe.':
-     'Lange Pause: Schuhe/Kleidung prüfen; falls an diesem Stopp verfügbar, kleine Portion Nudeln oder Kartoffeln.':
+     eventMenu?
+      'Lange Pause: Schuhe/Kleidung prüfen; nur verträgliche kleine Portionen, z. B. Kartoffeln oder Brühe.':
+      'Lange Pause: Schuhe/Kleidung prüfen; nur leichte verträgliche Portionen, nichts erzwingen.':
+     eventMenu?
+      'Lange Pause: Schuhe/Kleidung prüfen; falls an diesem Stopp verfügbar, kleine Portion Nudeln oder Kartoffeln.':
+      'Lange Pause: Schuhe/Kleidung prüfen und etwas mehr feste Nahrung (z. B. Nudeln), falls erprobt und angeboten.':
    phase==='late'?
     'Kleine, gut verträgliche Portion wählen; nichts Neues ausprobieren.':
     'Kleiner Snack oder Getränk; geplante Gels bleiben im Plan.'
