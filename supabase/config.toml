@@ -54,3 +54,7 @@ verify_jwt = false
 # The function returns no Garmin records; never turn it into anonymous access.
 [functions.garmin-app-access]
 verify_jwt = false
+
+# Read-only owner JWT verified inside the reference-route Edge Function.
+[functions.read-garmin-reference-routes]
+verify_jwt = false
