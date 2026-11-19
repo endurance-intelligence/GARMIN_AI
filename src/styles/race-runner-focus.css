@@ -97,3 +97,5 @@
  .rrf-break{padding:9px}
 }
 @media(prefers-reduced-motion:reduce){.rrf-actions button{transition:none}}
+
+@media(max-width:600px){.rrf-readiness>span{padding:3px 6px}.rrf-root{border-radius:10px}}
