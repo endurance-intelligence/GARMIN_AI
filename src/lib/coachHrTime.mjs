@@ -25,7 +25,7 @@ export function classifyGarminHrSeconds(weekRows=[],profile=null){
   seen.add(week)
   if(!row||!Number.isInteger(row.totalActivities)||row.totalActivities<0||
    !Number.isInteger(row.measuredActivities)||row.measuredActivities<0||
-   !Number.isInteger(row.validSeconds)||row.validSeconds<0||
+   !number(row.validSeconds)||row.validSeconds<0||
    !row.histogram||typeof row.histogram!=='object')continue
   result.validWeeks++
   result.activities+=row.totalActivities
