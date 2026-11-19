@@ -10,7 +10,9 @@ const checkpoints=buildRaceExecution({distanceKm:112,courseMode:'laps',loopKm:6,
  paceSeconds:null,targetHours:15,carbsGPerHour:75,fluidMlPerHour:500,
  sodiumMgPerHour:500}).checkpoints
 const gel=[{id:'g1',minute:20,clock:'06:20',brand:'SiS',name:'BETA Fuel Energy Gel',
- flavor:'Standard',carbsG:40,caffeineMg:0,cumulativeCarbsG:40}]
+ flavor:'Standard',carbsG:40,caffeineMg:0,cumulativeCarbsG:40},
+ {id:'g2',minute:220,clock:'09:40',brand:'226ERS',name:'High Energy Gel',
+  flavor:'Neutral',carbsG:50,caffeineMg:0,cumulativeCarbsG:90}]
 
 test('each round gets one rotating meal decision, not an entire gel list',()=>{
  const first=buildRunnerFocus({checkpoints,completed:0,gelEvents:gel})
