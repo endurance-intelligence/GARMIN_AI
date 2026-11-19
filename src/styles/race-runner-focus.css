@@ -48,3 +48,35 @@
 .rrf-alert,.rrf-confirmation{margin:0;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.5}
 .rrf-alert{color:#ffe0d0;border:1px solid rgba(236,165,140,.5);background:rgba(170,75,66,.23);font-weight:770}
 .rrf-confirmation{color:#d5f4e2;border:1px solid rgba(174,228,197,.27);background:rgba(84,159,114,.15)}
+
+
+/* v1.1.2: runner glance view, not a giant dashboard hero. */
+.rrf-root{gap:9px;padding:13px 15px;border-radius:13px}
+.rrf-center{padding:6px 0 10px;gap:4px}
+.rrf-eyebrow{font-size:9px}
+.rrf-round{font-size:clamp(26px,4vw,36px);line-height:1.1}
+.rrf-remaining{font-size:11px;font-weight:650;color:#a9d4c1}
+.rrf-head small{font-size:10px}
+.rrf-readiness>span{padding:3px 7px;font-size:9px}
+.rrf-break{padding:10px 11px;border-radius:9px;font-size:11px}
+.rrf-break>.ic{width:17px;height:17px;flex-basis:17px}
+.rrf-fuel{gap:7px}
+.rrf-fuel-item{padding:10px;border-radius:9px}
+.rrf-fuel-item>.ic{height:17px;width:17px;flex-basis:17px}
+.rrf-fuel-item>div{gap:3px}
+.rrf-fuel-item strong{font-size:12px;line-height:1.35}
+.rrf-fuel-item span{font-size:10px;line-height:1.4}
+.rrf-actions button{min-height:43px;font-size:12px;border-radius:9px}
+.rrf-actions .rrf-done{max-width:410px}
+.rrf-aid{display:flex;gap:9px;padding:10px 11px;border-radius:9px;background:rgba(25,67,66,.35);border:1px solid rgba(141,209,180,.25)}
+.rrf-aid>.ic{height:17px;width:17px;flex:0 0 17px;color:#b9e9d0}
+.rrf-aid>div{display:grid;gap:3px;min-width:0}
+.rrf-aid small{font-size:9px;font-weight:800;letter-spacing:.05em;color:#afe3d1}
+.rrf-aid strong{font-size:12px;color:#f1fff5}
+.rrf-aid span{font-size:10px;line-height:1.45;color:#b6d4c8}
+.rrf-footer{font-size:10px;color:#a8c8bf}
+.rrf-footer summary{font-size:9px;cursor:pointer;width:max-content;max-width:100%;padding:4px 0}
+.rrf-footer p{font-size:9px;line-height:1.6;margin:5px 0 0}
+@media(max-width:600px){.rrf-root{padding:12px;gap:8px}.rrf-center{padding:4px 0 6px}
+ .rrf-round{font-size:clamp(24px,6vw,30px)}.rrf-break{padding:9px}
+ .rrf-actions .rrf-done{width:100%}}
