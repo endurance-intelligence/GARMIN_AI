@@ -7,8 +7,12 @@ export type RunnerFocus={
  gel:GelPlanEvent|null;gelTiming:'due'|'upcoming'|'loading'|'none';
  drinkDue:boolean;nextAid:AidPlanEvent|null;
  meal:{primary:string;primaryKind:'gel'|'food';alternative:string;
-  alternativeKind:'gel'|'food';foodConfirmed:boolean;drink:string;
-  drinkConfirmed:boolean;caffeineMg:number;gelScheduled:boolean;planOnly:true}|null;
+  alternativeKind:'food';foodConfirmed:boolean;foodCarbsCounted:boolean;
+  foodIsAdditional:boolean;drink:string;drinkConfirmed:boolean;
+  caffeineMg:number;gelScheduled:boolean;gelDue:boolean;
+  plannedGelCount:number;plannedGelCarbsG:number;additionalGelNames:string[];
+  plannedGelMinute:number|null;plannedFoodCarbsG:number;
+  plannedDrinkCarbsG:number;planOnly:true}|null;
  timingSource:'clock'|'approximate';planOnly:true
 }
 export declare function buildRunnerFocus(input:{
