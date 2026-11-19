@@ -35,7 +35,9 @@ export function buildRaceFuelRoadmap({
   const coachHint=breakType==='finish'?
     'Zielrunde: Verpflegung danach nach Bedarf, keine zusätzliche Station angenommen.':
    breakType==='long'?
-    'Mehr Ruhe für Schuhe/Kleidung und eine verträgliche feste Portion, falls angeboten.':
+    phase==='late'?
+     'Lange Pause: Schuhe/Kleidung prüfen, nur leichte verträgliche Portion, nichts erzwingen.':
+     'Lange Pause: Schuhe/Kleidung prüfen und etwas mehr feste Nahrung (z. B. Nudeln), falls erprobt und angeboten.':
    phase==='late'?
     'Kleine, gut verträgliche Portion wählen; nichts Neues ausprobieren.':
     'Kleiner Snack oder Getränk; geplante Gels bleiben im Plan.'
