@@ -367,7 +367,8 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
         value={settings.aid_custom_carbs_g_per_500}
         onChange={e=>changeSettings({aid_custom_carbs_g_per_500:Number(e.target.value)})}/>
       </label>}
-      <label>Geplanter Drink Mix 160 je Stopp (ml; 0 = noch offen)
+      <label>{eventMenu?'Geplanter Drink Mix 160 je Stopp (ml; 0 = noch offen)':
+       'Geplante Getränkemenge je Versorgung (ml)'}
        <input type="number" min={0} max={1000} step={50}
         value={settings.aid_drink_ml_per_stop}
         onChange={e=>changeSettings({aid_drink_ml_per_stop:Number(e.target.value)})}/>
