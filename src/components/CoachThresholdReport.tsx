@@ -64,7 +64,6 @@ export function CoachThresholdReport({report}:{report:ThresholdReport}){
   <p className="ctr-caveat">{report.warning} Auch Testdaten ersetzen keine
    Prüfung der Tagesform. Herzfrequenz hat bei Intervallen einen zeitlichen Nachlauf;
    Pausen und Messlücken bleiben ausgeschlossen. Dies ist die zeitgewichtete
-   Drei-Bereiche-Verteilung nach deinen eingetragenen Schwellen – **keine
-   feste 80/20-Trainingsvorgabe** und keine automatische Änderung deiner Einheiten.</p>
+   Drei-Bereiche-Verteilung nach deinen eingetragenen Schwellen – <strong>keine feste 80/20-Trainingsvorgabe</strong> und keine automatische Änderung deiner Einheiten.</p>
  </section>
 }
