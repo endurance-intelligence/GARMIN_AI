@@ -6,10 +6,11 @@ type Run={date:string;distanceKm:number;paceSecKm:number|null;averageHr:number|n
 type Comparison={status:'paired-medians'|'single-pair';oldDate:string;newDate:string;
   olderRuns:number;newerRuns:number;oldPace:number;newPace:number;
   deltaSecKm:number;olderHr:number;newerHr:number;olderRpe:number;newerRpe:number}
-type Route={id:string;title:string;runs:number;distanceKm:number;gainM:number;
+type Route={id:string;title:string;gpsStatus:'verified'|'candidate';runs:number;distanceKm:number;gainM:number;
   firstDate:string;lastDate:string;comparison:Comparison|null;history:Run[]}
 type Payload={kind:'reference-route-candidates';readOnly:true;
-  coverage:{withGpsEnds:number;withElevationProfile:number;repeatedGroups:number;repeatedRuns:number};
+  coverage:{withGpsEnds:number;withElevationProfile:number;gpsTracksAvailable:number;
+    gpsVerifiedGroups:number;repeatedGroups:number;repeatedRuns:number};
   scan:{runningRead:number;metadataCandidates:number;samplesExamined:number;capped:boolean};
   routes:Route[];caveat:string;source:string}
 const valid=(value:unknown):value is Payload=>{
@@ -17,7 +18,7 @@ const valid=(value:unknown):value is Payload=>{
   const v=value as Record<string,unknown>
   return v.kind==='reference-route-candidates'&&v.readOnly===true&&
     !!v.coverage&&!!v.scan&&Array.isArray(v.routes)&&v.routes.length<=10&&
-    v.routes.every((r:Route)=>typeof r.id==='string'&&
+    v.routes.every((r:Route)=>['verified','candidate'].includes(r.gpsStatus)&&typeof r.id==='string'&&
       typeof r.runs==='number'&&r.runs>=2&&
       Array.isArray(r.history)&&r.history.length<=8)
 }
@@ -66,7 +67,7 @@ export function CoachReferenceRoutesCard({active}:{active:boolean}){
       <span className="crr-icon" aria-hidden="true">◎</span>
       <span><small>COACH · STRECKENVERGLEICH</small>
         <strong>Meine wiederkehrenden Laufstrecken</strong>
-        <span>Gleicher Streckenverlauf · Tempo &amp; Herzfrequenz vergleichen</span>
+        <span>GPS-Streckenabgleich · Tempo &amp; Herzfrequenz vergleichen</span>
       </span>
       <span aria-hidden="true">⌄</span>
     </summary>
@@ -78,9 +79,10 @@ export function CoachReferenceRoutesCard({active}:{active:boolean}){
       {!garminSupabase&&<p>Garmin-Anmeldung ist noch nicht eingerichtet.</p>}
       {data&&<>
         <div className="crr-summary">
-          <div><small>STRECKENKANDIDATEN</small><strong>{data.coverage.repeatedGroups}</strong></div>
+          <div><small>STRECKENGRUPPEN</small><strong>{data.coverage.repeatedGroups}</strong></div>
+          <div><small>GPS-VERIFIZIERT</small><strong>{data.coverage.gpsVerifiedGroups}</strong></div>
           <div><small>ZUGEORDNETE LÄUFE</small><strong>{data.coverage.repeatedRuns}</strong></div>
-          <div><small>AUSGEWERTETE PROFILE</small><strong>{data.coverage.withElevationProfile}</strong></div>
+          <div><small>LÄUFE MIT GPS-PROFIL</small><strong>{data.coverage.gpsTracksAvailable}</strong></div>
         </div>
         {data.scan.capped&&<p className="crr-message">Begrenzte Datenmenge: Die Übersicht ist nicht vollständig.</p>}
         {data.routes.length===0&&<p className="crr-message">
@@ -90,7 +92,8 @@ export function CoachReferenceRoutesCard({active}:{active:boolean}){
         {data.routes.map(route=><details key={route.id} className="crr-route">
           <summary>
             <span><strong>{route.title}</strong>
-              <small>{route.runs} Läufe · ca. {route.distanceKm.toLocaleString('de-DE')} km ·
+              <small>{route.gpsStatus==='verified'?'✓ GPS-verifiziert':'◌ GPS noch nicht bestätigt'} ·
+                {' '}{route.runs} Läufe · ca. {route.distanceKm.toLocaleString('de-DE')} km ·
                 {' '}{route.gainM} hm</small></span>
             <span>{route.comparison?'Vergleich verfügbar':'Weitere Daten nötig'} <span aria-hidden="true">⌄</span></span>
           </summary>
@@ -127,8 +130,9 @@ export function CoachReferenceRoutesCard({active}:{active:boolean}){
           </div>
         </details>)}
         <p className="crr-disclaimer">
-          <strong>Streckenkandidaten, nicht GPS-verifiziert:</strong> Verglichen werden
-          Start/Ziel, Distanz und Höhenprofil. Ähnliche Routen können sich überschneiden.
+          <strong>GPS-Streckenabgleich:</strong> Nur ausdrücklich als GPS-verifiziert
+          markierte Gruppen stimmen auch anhand von 51 räumlichen FIT-Messpunkten überein.
+          Andere bleiben vorläufige Kandidaten nach Start/Ziel, Distanz und Höhenprofil.
           Pulswerte, RPE und Tempo sind Messbeobachtungen; Wetter, Untergrund,
           Ermüdung und Sensorgenauigkeit bleiben Einflussfaktoren.
           Keine automatische Trainingsplanänderung.
