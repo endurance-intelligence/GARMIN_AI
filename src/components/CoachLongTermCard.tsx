@@ -4,6 +4,7 @@ import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garm
 import {analyzeCoachLongTerm,longTermWeekStarts} from '../lib/coachLongTerm.mjs'
 import {CoachHrTimeCard} from './CoachHrTimeCard'
 import {CoachAerobicEfficiencyCard} from './CoachAerobicEfficiencyCard'
+import {CoachReferenceRoutesCard} from './CoachReferenceRoutesCard'
 import '../styles/coach-long-term.css'
 
 type WeekBoard={start:string;activities:Record<string,unknown>[];manual:Record<string,unknown>[]}
@@ -158,6 +159,7 @@ export function CoachLongTermCard({today,snapshot,active}:{
    </div>
    <CoachHrTimeCard today={today} weeks={range} active={active&&expanded} goal={goal}/>
    <CoachAerobicEfficiencyCard today={today} weeks={range} active={active&&expanded} goal={goal}/>
+   <CoachReferenceRoutesCard active={active&&expanded}/>
    <div className="clt-feedback">
     <strong>Garmin-RPE: subjektive Anstrengung</strong>
     <p>Nur selbst bewertete Läufe: <strong>{model.rpe.count}</strong>.
