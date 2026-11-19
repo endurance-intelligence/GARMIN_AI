@@ -46,7 +46,7 @@ export function CoachIntensityTrendPanel({data}:{data:GarminIntensityTrend}){
       aria-label={block.bands.map(b=>b.label+': '+pct(b.share)).join(', ')}>
       {block.bands.map((band,index)=><span key={band.key}
        className={'cit-segment '+colorClass[index]}
-       style={{width:pct(band.share).replace(' %','%').replace(',','.')}}/>)}
+       style={{width:band.share===null?'0%':band.share+'%'}}/>)}
      </div>
      <div className="cit-legend">
       {block.bands.map((band,index)=><span key={band.key}>
@@ -75,7 +75,7 @@ export function CoachIntensityTrendPanel({data}:{data:GarminIntensityTrend}){
   {data.goal?.protected&&<p className="cit-protection">
    Wettkampf- oder Erholungsphase: Keine Trainingsintensität ergänzen, um eine Quote zu verändern.
   </p>}
-  <p className="cit-disclaimer">**Keine physiologische 80/20-Quote.**
+  <p className="cit-disclaimer"><strong>Keine physiologische 80/20-Quote.</strong>
    Garmin Z1–Z5 sind Geräte-HF-Zonen und nicht individuell validierte LT1-/LT2-Grenzen.
    Beide Zeiträume werden mit den <strong>aktuell gespeicherten</strong> Garmin-Zonengrenzen
    rückwirkend verglichen. Änderungen können durch Training, Streckenprofil,
