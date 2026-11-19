@@ -262,8 +262,6 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
    {error&&<p className="rsp-error" role="alert">{error}</p>}
    {notice&&<p className="rsp-success" role="status">{notice}</p>}
    {goal&&<>
-    <p className="rsp-context"><strong>{goal.race_name}</strong> · heute zählt nur die nächste Runde.
-     Die ausführlichen Daten bleiben für dich und deine Crew einklappbar.</p>
     {offlineMode&&<p className="rsp-weather">Lokale Sicherung geladen. Gel-Vorrat und Wetter können veraltet sein.
      Für einen vollständigen Neustart ohne Internet ist keine App-Offline-Installation eingerichtet.</p>}
     {executionInput&&viewerId&&<RaceDayCockpit active={active} goal={goal}
