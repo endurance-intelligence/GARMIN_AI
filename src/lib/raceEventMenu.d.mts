@@ -1,7 +1,7 @@
 export type EventMenu={
  raceName:string;raceDate:string;source:string;carbs:string[];
  saltyWarm:string[];otherDrinks:string[];caffeine:string[];
- carbDrinkStrength:'unknown';note:string
+ carbDrinkStrength:'160';carbDrinkSelfServe:true;note:string
 }
 export type EventFoodSuggestion={
  primary:string;alternative:string;availableAtEvent:true;sideNote:string|null
