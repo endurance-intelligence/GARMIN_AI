@@ -76,44 +76,43 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
    <div><small>NACH DIESER RUNDE</small><strong>{view.breakNote?.replace(/^Nach dieser Runde:\s*/, '')}</strong></div>
   </div>}
 
-  {!view.finished&&<div className="rrf-fuel" aria-label="Verpflegung aus deinem Plan">
-   <div className="rrf-fuel-item">
-    <Icon name="droplets"/>
-    <div><small>TRINKEN</small>
-     <strong>{view.drinkDue?'Jetzt trinken':'Trinken nach Durst und Plan'}</strong>
-     <span>Regelmäßig prüfen · keine automatische Buchung</span></div>
-   </div>
-   <div className="rrf-fuel-item">
-    <Icon name="check"/>
-    <div><small>GEL BUDDY · {view.gelTiming==='due'?'JETZT LAUT PLAN':'GEPLANT'}</small>
-     <strong>{gel?(view.gelTiming==='due'?'Jetzt Gel: ':'Nächstes Gel: ')+gel.brand+' · '+gel.name:
-      view.gelTiming==='loading'?'Dein Gel-Plan wird geladen':
-      'Keine weitere Gel-Portion eingeplant'}</strong>
-     <span>{gel?.caffeineMg>0?'Koffein: '+gel.caffeineMg+' mg geplant · nur nach bestätigter Freigabe.':
-      gel?'Nur geplant, nicht als genommen bestätigt.':
-      'Nur Produkte aus deinem Vorrat'}</span></div>
-   </div>
-   {view.nextAid&&<div className="rrf-fuel-item rrf-aid" aria-label="Geplante Verpflegung nach dieser Runde">
-    <Icon name="flag"/>
-    <div><small>VERSORGUNG NACH DER RUNDE</small>
-     <strong>{view.nextAid.drinkMl>0?
-      view.nextAid.drinkMl+' ml '+view.nextAid.drinkName:''}
-      {view.nextAid.foodName&&view.nextAid.drinkMl>0?' + ':''}
-      {view.nextAid.foodName}</strong>
-     <span>{view.nextAid.carbsG} g KH geplant · Portion vor Ort prüfen</span></div>
+  {!view.finished&&view.meal&&
+   <div className="rrf-meal" aria-label="Verpflegungsvorschlag für diese Runde">
+    <div className="rrf-meal-heading">
+     <span><Icon name="check-circle"/> WAS NACH DIESER RUNDE ESSEN?</span>
+     <small>Einfacher Vorschlag · nichts automatisch verbucht</small>
+    </div>
+    <div className="rrf-meal-primary">
+     <Icon name={view.meal.primaryKind==='gel'?'check-circle':'flag'}/>
+     <div>
+      <small>{view.meal.primaryKind==='gel'?
+       view.gelTiming==='due'?'Jetzt Gel: ':'GEL AUS DEINEM PLAN':
+       'ESSEN AN DER STATION'}</small>
+      <strong>{view.meal.primary}</strong>
+      <span>{view.meal.primaryKind==='food'?
+       view.meal.foodConfirmed?'Aus deinen bestätigten Essensoptionen.':
+       'Nur falls vor Ort angeboten und gut verträglich.':
+       'Geplantes Gel · nicht als eingenommen bestätigt.'}</span>
+     </div>
+    </div>
+    <div className="rrf-meal-bottom">
+     <div><small>ALTERNATIVE</small>
+      <strong>{view.meal.alternative}</strong>
+      {view.meal.alternativeKind==='food'&&!view.meal.foodConfirmed&&
+       <span>Nur wenn vor Ort vorhanden.</span>}
+     </div>
+     <div><small>TRINKEN</small>
+      <strong>{view.drinkDue?'Jetzt trinken · ':''}{view.meal.drink}</strong>
+      {!view.meal.drinkConfirmed&&<span>Menge und Mischung nicht bestätigt.</span>}
+     </div>
+    </div>
+    {view.meal.caffeineMg>0&&<p className="rrf-meal-caffeine">
+     Koffein: {view.meal.caffeineMg} mg aus dem Gel – nur nach deiner Freigabe.</p>}
+    {!view.meal.foodConfirmed&&<p className="rrf-meal-hint">
+     Nudeln, Brötchen und andere Speisen sind Ideen, keine bestätigte Veranstalterliste.
+     Falls du Essen statt Gel nimmst, den KH-Plan entsprechend prüfen.</p>}
+    {view.nextAid&&<span className="rrf-meal-aid-status">Streckenversorgung eingeplant</span>}
    </div>}
-  </div>}
-
-  {!view.finished&&aidSchedule===null&&
-   goal.race_name.toLowerCase().includes('heartbeat')&&
-   <details className="rrf-aid-hint">
-    <summary><Icon name="info"/> Verpflegung an der Strecke noch nicht bestätigt</summary>
-    <p>Maurten Drink Mix und Essen sind verfügbar, aber Auswahl und Mengen fehlen.
-     Deshalb wird noch kein KH-Betrag angerechnet. Im Gel Buddy bestätigen.</p>
-   </details>}
-
-  {!view.finished&&view.gelTiming!=='due'&&view.timingSource==='approximate'&&
-   <p className="rrf-caveat">Gel-Empfehlung nach Rundenplan, nicht nach Live-Zeit.</p>}
 
   <details className="rrf-footer"><summary>Hinweise zur Runden-Erfassung</summary>
    <p>Die Runden werden nach deinem Tipp lokal gesichert.
