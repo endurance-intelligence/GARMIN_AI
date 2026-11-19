@@ -44,9 +44,13 @@ test('two gels per round are never silently reduced to one planned portion',()=>
  assert.ok(one.meal.additionalGelNames[0].includes('Second'))
  const onTime=buildRunnerFocus({checkpoints:rows,completed:0,
    gelEvents:[gel(20,'First'),gel(40,'Second')],elapsedMinutes:22})
- assert.equal(onTime.meal.gelDue,false)
- assert.match(onTime.meal.primary,/Second/)
- assert.ok(onTime.meal.additionalGelNames[0].includes('First'))
+ assert.equal(onTime.meal.gelDue,true)
+ assert.match(onTime.meal.primary,/First/)
+ assert.ok(onTime.meal.additionalGelNames[0].includes('Second'))
+ const later=buildRunnerFocus({checkpoints:rows,completed:0,
+   gelEvents:[gel(20,'First'),gel(40,'Second')],elapsedMinutes:31})
+ assert.equal(later.meal.gelDue,false)
+ assert.match(later.meal.primary,/Second/)
  // No synthetic consumption record: a passed time does not mean it was eaten.
  assert.equal(onTime.meal.planOnly,true)
 })
