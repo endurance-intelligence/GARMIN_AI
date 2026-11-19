@@ -163,7 +163,7 @@ export function CoachLongTermCard({today,snapshot,active}:{
     {model.flags.length>0&&<p>{model.flags.join(' · ')}</p>}
    </div>
    <p className="clt-disclaimer">
-    **Polarisiertes Training:** Garmin-RPE ist nicht dasselbe wie Zeit unter LT1
+    <strong>Polarisiertes Training:</strong> Garmin-RPE ist nicht dasselbe wie Zeit unter LT1
     oder über LT2. Ohne validierte individuelle HF-/Leistungszonen und geeignete
     Zeit-in-Zone-Daten wird hier bewusst keine 80/20-Quote berechnet.
     Ungeladene oder unvollständige Wochen zählen nicht als Trainingspausen.
