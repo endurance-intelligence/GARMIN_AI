@@ -78,38 +78,50 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
   {!view.finished&&view.meal&&
    <div className="rrf-meal" aria-label="Verpflegungsvorschlag für diese Runde">
     <div className="rrf-meal-heading">
-     <span><Icon name="check-circle"/> WAS NACH DIESER RUNDE ESSEN?</span>
-     <small>Einfacher Vorschlag · nichts automatisch verbucht</small>
+     <span><Icon name="check-circle"/> DIESE RUNDE · VERPFLEGUNG</span>
+     <small>Nur geplant · nichts automatisch verbucht</small>
     </div>
     <div className="rrf-meal-primary">
      <Icon name={view.meal.primaryKind==='gel'?'check-circle':'flag'}/>
      <div>
       <small>{view.meal.primaryKind==='gel'?
-       view.gelTiming==='due'?'Jetzt Gel: ':'GEL AUS DEINEM PLAN':
-       'ESSEN AN DER STATION'}</small>
+       view.meal.gelDue?'Jetzt Gel: ':'GEL IN DIESER RUNDE':
+       'ESSEN NACH DER RUNDE'}</small>
       <strong>{view.meal.primary}</strong>
       <span>{view.meal.primaryKind==='food'?
-       view.meal.foodConfirmed?'Aus deinen bestätigten Essensoptionen.':
-       'Nur falls vor Ort angeboten und gut verträglich.':
-       'Geplantes Gel · nicht als eingenommen bestätigt.'}</span>
+       view.meal.foodConfirmed?
+        view.meal.foodCarbsCounted?
+         'Als Portion im KH-Plan berücksichtigt · nicht als gegessen bestätigt.':
+         'Angebot bestätigt · KH der Portion nicht eingerechnet.':
+        'Nur falls vor Ort angeboten und gut verträglich · keine KH angerechnet.':
+       'Dieses Gel ist bereits im KH-Plan berücksichtigt, nicht als eingenommen bestätigt.'}</span>
      </div>
     </div>
     <div className="rrf-meal-bottom">
-     <div><small>ALTERNATIVE</small>
+     <div><small>{view.meal.foodIsAdditional?'ZUSÄTZLICH EINGEPLANT':'ALTERNATIVE'}</small>
       <strong>{view.meal.alternative}</strong>
-      {view.meal.alternativeKind==='food'&&!view.meal.foodConfirmed&&
-       <span>Nur wenn vor Ort vorhanden.</span>}
+      {view.meal.foodIsAdditional?
+       <span>Auch diese Essensportion zählt bereits zum KH-Plan.</span>:
+       <span>{view.meal.foodConfirmed?
+        'Bei Ersatz die KH-Menge prüfen.':
+        'Nur wenn vor Ort vorhanden und verträglich. Kein automatischer Gel-Ersatz.'}</span>}
      </div>
      <div><small>TRINKEN</small>
       <strong>{view.drinkDue?'Jetzt trinken · ':''}{view.meal.drink}</strong>
       {!view.meal.drinkConfirmed&&<span>Menge und Mischung nicht bestätigt.</span>}
+      {view.meal.drinkConfirmed&&view.meal.plannedDrinkCarbsG>0&&
+       <span>Getränke-KH im Plan berücksichtigt, nicht als getrunken bestätigt.</span>}
      </div>
     </div>
+    {view.meal.additionalGelNames.length>0&&<p className="rrf-meal-extra">
+     Weitere in dieser Runde eingeplante Gels:
+     {' '}{view.meal.additionalGelNames.join(', ')}.
+     Das sind keine zusätzlichen Empfehlungen, sondern bereits berücksichtigte Portionen.</p>}
     {view.meal.caffeineMg>0&&<p className="rrf-meal-caffeine">
      Koffein: {view.meal.caffeineMg} mg aus dem Gel – nur nach deiner Freigabe.</p>}
     {!view.meal.foodConfirmed&&<p className="rrf-meal-hint">
      Nudeln, Brötchen und andere Speisen sind Ideen, keine bestätigte Veranstalterliste.
-     Falls du Essen statt Gel nimmst, den KH-Plan entsprechend prüfen.</p>}
+     Essen ersetzt kein eingeplantes Gel, solange die KH-Menge nicht abgeglichen ist.</p>}
     {view.nextAid&&<span className="rrf-meal-aid-status">Streckenversorgung eingeplant</span>}
    </div>}
 
