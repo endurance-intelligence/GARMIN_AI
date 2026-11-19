@@ -56,7 +56,8 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
  const [customCarbs,setCustomCarbs]=useState('')
  const [customCaffeine,setCustomCaffeine]=useState('0')
  const [customSodium,setCustomSodium]=useState('')
- const [settings,setSettings]=useState<Settings>(initialSettings)
+ const [settings,setSettings]=useState<Settings>(()=>({...initialSettings,
+  aid_drink_mix:eventMenuForRace({raceName:goal.race_name,raceDate:goal.race_date})?'160':'unknown'}))
  const [settingsDirty,setSettingsDirty]=useState(false)
  const changeSettings=(patch:Partial<Settings>)=>{
   setSettings(s=>({...s,...patch}));setSettingsDirty(true)
@@ -91,10 +92,13 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
    setUserId(session.user.id)
    setCatalog((products.data||[]) as Product[])
    setInventory((owned.data||[]) as Inventory[])
+   const confirmed160=Boolean(eventMenuForRace({raceName:goal.race_name,raceDate:goal.race_date}))
    setSettings({...initialSettings,...prefs.data,
+    aid_drink_mix:confirmed160?'160':prefs.data?.aid_drink_mix||'unknown',
     drink_carbs_g_per_hour:Number(prefs.data?.drink_carbs_g_per_hour||0),
     allow_caffeine:Boolean(prefs.data?.allow_caffeine)})
-   setSettingsDirty(false)
+   // Never auto-publish changed carb math from conflicting old settings.
+   setSettingsDirty(Boolean(confirmed160&&prefs.data&&prefs.data.aid_drink_mix!=='160'))
    setLoadedKey(key)
   })().catch(e=>{if(live)setError(e instanceof Error?e.message:'Gel-Daten nicht verfügbar')})
    .finally(()=>{if(live)setLoading(false)})
@@ -344,20 +348,26 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
     <fieldset className="gip-aid">
      <legend>Versorgung an der Strecke</legend>
      <div className="gip-aid-fields">
-      <label>Welche Maurten Drink-Mix-Variante wird ausgeschenkt?
+      {eventMenu?<div className="gip-mix-confirmed">
+       <strong>MAURTEN Drink Mix 160 · frei am Versorgungsstopp</strong>
+       <span>Aus großem Behälter, keine begrenzte Ausgabeportion.
+        Bei Standardmischung: 40 g KH je 500 ml.
+        Nur die von dir eingeplante Menge zählt in die KH-Bilanz.
+        Zubereitung vor Ort prüfen.</span>
+      </div>:<label>Welche Maurten Drink-Mix-Variante wird ausgeschenkt?
        <select value={settings.aid_drink_mix}
         onChange={e=>changeSettings({aid_drink_mix:e.target.value as Settings['aid_drink_mix']})}>
         <option value="unknown">Noch ungeklärt – nicht berechnen</option>
         <option value="160">Drink Mix 160 · 40 g KH / 500 ml</option>
         <option value="320">Drink Mix 320 · 80 g KH / 500 ml</option>
         <option value="custom">Andere bestätigte Mischung</option>
-       </select></label>
+       </select></label>}
       {settings.aid_drink_mix==='custom'&&<label>Bestätigte KH je 500 ml
        <input type="number" min={0} max={150} step={1}
         value={settings.aid_custom_carbs_g_per_500}
         onChange={e=>changeSettings({aid_custom_carbs_g_per_500:Number(e.target.value)})}/>
       </label>}
-      <label>Geplante Getränkemenge je Versorgung (ml)
+      <label>Geplanter Drink Mix 160 je Stopp (ml; 0 = noch offen)
        <input type="number" min={0} max={1000} step={50}
         value={settings.aid_drink_ml_per_stop}
         onChange={e=>changeSettings({aid_drink_ml_per_stop:Number(e.target.value)})}/>
@@ -381,6 +391,10 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
       Ein Wert für Essen-KH gilt nur, wenn jede gewählte Portion wirklich ungefähr
       diese Menge liefert. Bei unbekannten Portionsgrößen 0 g eintragen:
       Die Essensidee erscheint trotzdem, wird aber nicht als KH gutgeschrieben.</p>
+     {eventMenu&&<p className="gip-guidance">Der große Pott ist kein Trinkziel.
+      Trinke nach Durst, Wetter und erprobter Verträglichkeit – nicht unbegrenzt.
+      250 ml entsprechen bei Standardmischung etwa 20 g KH; bei 0 ml wird
+      nichts angerechnet. Die tatsächlich getrunkene Menge ist damit nicht bestätigt.</p>}
      <label className="gip-check"><input type="checkbox" checked={settings.aid_confirmed}
       onChange={e=>changeSettings({aid_confirmed:e.target.checked})}/>
       Die ausgewählten Getränke, Mengen und Lebensmittel sind geprüft – als Plan berücksichtigen</label>
