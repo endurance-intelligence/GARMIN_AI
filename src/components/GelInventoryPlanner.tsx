@@ -1,6 +1,9 @@
 import {useEffect,useMemo,useState} from 'react'
 import {garminSupabase} from '../lib/garminSupabase'
 import {buildGelPlan} from '../lib/gelTiming.mjs'
+import {buildAidPlan} from '../lib/raceAidPlan.mjs'
+import type {AidPlanEvent} from '../lib/raceAidPlan.mjs'
+import type {RaceCheckpoint} from '../lib/raceExecution.mjs'
 import type {GelStock,GelPlanEvent} from '../lib/gelTiming.mjs'
 import type {CoachGoal} from '../lib/coachGoal'
 import {Icon} from './Icon'
@@ -14,7 +17,15 @@ type Inventory={id:string;user_id:string;catalog_id:string|null;
  custom_brand:string|null;custom_name:string|null;custom_carbs_g:number|null;
  custom_caffeine_mg:number|null;custom_sodium_mg:number|null;
  flavor_note:string;quantity:number;priority:number;note:string}
-type Settings={drink_carbs_g_per_hour:number;allow_caffeine:boolean}
+type Settings={drink_carbs_g_per_hour:number;allow_caffeine:boolean;
+ aid_confirmed:boolean;aid_every_laps:number;aid_drink_mix:'unknown'|'160'|'320'|'custom';
+ aid_drink_ml_per_stop:number;aid_custom_carbs_g_per_500:number;
+ aid_food_name:string;aid_food_carbs_g_per_stop:number;
+ caffeine_start_minute:number;caffeine_max_mg:number}
+const initialSettings:Settings={drink_carbs_g_per_hour:0,allow_caffeine:false,
+ aid_confirmed:false,aid_every_laps:1,aid_drink_mix:'unknown',aid_drink_ml_per_stop:0,
+ aid_custom_carbs_g_per_500:0,aid_food_name:'',aid_food_carbs_g_per_stop:0,
+ caffeine_start_minute:360,caffeine_max_mg:100}
 const priorities=['','❤ Favorit','✓ Gut verträglich','⚠ Notfallreserve'] as const
 const brands:Brand[]=['Maurten','SiS','226ERS','Eigene']
 const fmt=(n:number)=>n.toLocaleString('de-DE',{maximumFractionDigits:1})
@@ -23,9 +34,12 @@ const clampInt=(n:number,min:number,max:number)=>Number.isFinite(n)?Math.max(min
 function display(p:Product){return p.name+' · '+p.flavor+' · '+
  (p.carbs_g===null?'KH noch nicht verifiziert':fmt(Number(p.carbs_g))+' g KH')+
  (Number(p.caffeine_mg)>0?' · '+p.caffeine_mg+' mg Koffein':'')}
-export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,onScheduleChange}:{
+export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
+ checkpoints,onScheduleChange,onAidScheduleChange}:{
  active:boolean;goal:CoachGoal;durationMinutes:number|null;carbsGPerHour:number|null;
- onScheduleChange?:(events:GelPlanEvent[]|null)=>void
+ checkpoints?:RaceCheckpoint[];
+ onScheduleChange?:(events:GelPlanEvent[]|null)=>void;
+ onAidScheduleChange?:(events:AidPlanEvent[]|null)=>void
 }){
  const [catalog,setCatalog]=useState<Product[]>([])
  const [inventory,setInventory]=useState<Inventory[]>([])
@@ -40,7 +54,11 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,o
  const [customCarbs,setCustomCarbs]=useState('')
  const [customCaffeine,setCustomCaffeine]=useState('0')
  const [customSodium,setCustomSodium]=useState('')
- const [settings,setSettings]=useState<Settings>({drink_carbs_g_per_hour:0,allow_caffeine:false})
+ const [settings,setSettings]=useState<Settings>(initialSettings)
+ const [settingsDirty,setSettingsDirty]=useState(false)
+ const changeSettings=(patch:Partial<Settings>)=>{
+  setSettings(s=>({...s,...patch}));setSettingsDirty(true)
+ }
  const [busy,setBusy]=useState('')
  const [loading,setLoading]=useState(true)
  const [notice,setNotice]=useState('')
@@ -71,8 +89,10 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,o
    setUserId(session.user.id)
    setCatalog((products.data||[]) as Product[])
    setInventory((owned.data||[]) as Inventory[])
-   setSettings({drink_carbs_g_per_hour:Number(prefs.data?.drink_carbs_g_per_hour||0),
+   setSettings({...initialSettings,...prefs.data,
+    drink_carbs_g_per_hour:Number(prefs.data?.drink_carbs_g_per_hour||0),
     allow_caffeine:Boolean(prefs.data?.allow_caffeine)})
+   setSettingsDirty(false)
    setLoadedKey(key)
   })().catch(e=>{if(live)setError(e instanceof Error?e.message:'Gel-Daten nicht verfügbar')})
    .finally(()=>{if(live)setLoading(false)})
@@ -90,16 +110,27 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,o
    caffeineMg:num(p?.caffeine_mg??item.custom_caffeine_mg),
    quantity:item.quantity,priority:item.priority,isBulk:Boolean(p?.is_bulk)}
  }),[inventory,byId])
+ const checkpointKey=JSON.stringify((checkpoints||[]).map(c=>[c.index,c.arrivalMinutes,c.finish]))
+ const aidPlan=useMemo(()=>buildAidPlan({checkpoints,settings,startTime:goal.race_start_time}),
+  [checkpointKey,settings,goal.race_start_time])
  const racePlan=useMemo(()=>buildGelPlan({
   durationMinutes:durationMinutes||0,targetCarbsGPerHour:carbsGPerHour??0,
   drinkCarbsGPerHour:Number(settings.drink_carbs_g_per_hour),
-  allowCaffeine:settings.allow_caffeine,inventory:stock,startTime:goal.race_start_time
- }),[durationMinutes,carbsGPerHour,settings,stock,goal.race_start_time])
+  allowCaffeine:settings.allow_caffeine,inventory:stock,startTime:goal.race_start_time,
+  aidEvents:aidPlan.status==='ready'?aidPlan.events:[],
+  caffeineStartMinute:settings.caffeine_start_minute,
+  caffeineMaxMg:settings.caffeine_max_mg
+ }),[durationMinutes,carbsGPerHour,settings,stock,goal.race_start_time,aidPlan])
  useEffect(()=>{
   if(!onScheduleChange)return
-  onScheduleChange(!loading&&loadedKey===key&&racePlan.status==='ready'?
+  onScheduleChange(!loading&&!settingsDirty&&loadedKey===key&&racePlan.status==='ready'?
    racePlan.events:null)
- },[onScheduleChange,loading,loadedKey,key,racePlan])
+ },[onScheduleChange,loading,loadedKey,key,racePlan,settingsDirty])
+ useEffect(()=>{
+  if(!onAidScheduleChange)return
+  onAidScheduleChange(!loading&&!settingsDirty&&loadedKey===key&&aidPlan.status==='ready'?
+   aidPlan.events:null)
+ },[onAidScheduleChange,loading,loadedKey,key,aidPlan,settingsDirty])
  const ordered=[...inventory].sort((a,b)=>a.priority-b.priority||
   (byId.get(a.catalog_id||'')?.brand||a.custom_brand||'').localeCompare(
   byId.get(b.catalog_id||'')?.brand||b.custom_brand||''))
@@ -179,11 +210,22 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,o
   try{
    const payload={user_id:userId,race_date:goal.race_date,race_name:goal.race_name,
     drink_carbs_g_per_hour:clampInt(Number(settings.drink_carbs_g_per_hour),0,150),
-    allow_caffeine:settings.allow_caffeine,updated_at:new Date().toISOString()}
+    allow_caffeine:settings.allow_caffeine,
+    aid_confirmed:settings.aid_confirmed,
+    aid_every_laps:clampInt(settings.aid_every_laps,1,25),
+    aid_drink_mix:settings.aid_drink_mix,
+    aid_drink_ml_per_stop:clampInt(settings.aid_drink_ml_per_stop,0,1000),
+    aid_custom_carbs_g_per_500:clampInt(settings.aid_custom_carbs_g_per_500,0,150),
+    aid_food_name:settings.aid_food_name.trim().slice(0,90),
+    aid_food_carbs_g_per_stop:clampInt(settings.aid_food_carbs_g_per_stop,0,120),
+    caffeine_start_minute:clampInt(settings.caffeine_start_minute,0,1440),
+    caffeine_max_mg:clampInt(settings.caffeine_max_mg,0,400),
+    updated_at:new Date().toISOString()}
    const {data,error:dbError}=await garminSupabase.from('garmin_gel_plan_settings')
     .upsert(payload,{onConflict:'user_id,race_date,race_name'}).select('race_date').single()
    if(dbError||!data)throw Error(dbError?.message||'Einstellungen nicht gespeichert.')
-   setNotice('Gel-Plan-Einstellungen für diesen Wettkampf gespeichert.')
+   setSettingsDirty(false)
+   setNotice('Verpflegungs- und Koffeinplanung für diesen Wettkampf gespeichert.')
   }catch(e){setError(e instanceof Error?e.message:'Einstellungen konnten nicht gespeichert werden.')}
   finally{setBusy('')}
  }
