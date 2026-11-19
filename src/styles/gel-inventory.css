@@ -124,3 +124,12 @@
 .gip-event-menu>.gip-guidance{font-size:9px;color:#a7c7bb}
 @media(max-width:600px){.gip-event-menu>summary{padding:11px;font-size:11px}
  .gip-event-menu>p{padding:0 10px}}
+
+
+/* Heartbeat Drink Mix 160: product available at self-serve station, not a fixed portion. */
+.gip-mix-confirmed{display:grid;align-content:start;gap:6px;grid-column:span 2;
+ padding:10px;border:1px solid rgba(173,228,195,.3);border-radius:9px;
+ background:rgba(27,88,65,.2);min-width:0}
+.gip-mix-confirmed strong{color:#cef5d9;font-size:11px}
+.gip-mix-confirmed span{font-size:10px;line-height:1.6;color:#b5dacb}
+@media(max-width:650px){.gip-mix-confirmed{grid-column:span 1}}
