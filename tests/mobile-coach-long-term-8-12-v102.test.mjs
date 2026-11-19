@@ -71,7 +71,7 @@ test('fall in running volume is not converted to a catch-up workout',()=>{
  const r=analyze(8,changed)
  assert.equal(r.changePct,-50)
  assert.equal(r.trend,'down')
- assert.ok(r.flags.some(f=>/nicht.*nachholen/.test(f)))
+ assert.ok(r.flags.some(f=>/[kK]eine.*nachholen/.test(f)))
  assert.doesNotMatch(JSON.stringify(r),/targetKm|extraMiles|createWorkout/)
 })
 test('missing older weekly boards are UNKNOWN rather than fabricated zero-kilometer training weeks',()=>{
