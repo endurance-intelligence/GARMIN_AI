@@ -81,3 +81,12 @@
 .rdc-correction-body label{display:grid;gap:5px;font-size:10px;color:#c5d9ed}
 .rdc-correction-body input{width:110px}
 .rdc-correction-body p{flex-basis:100%;font-size:10px;line-height:1.6;color:#a9bcd0;margin:0}
+
+
+/* Crew sees explicit per-lap moving duration, pause, and real planned clock. */
+.rdc-timeline-explain{font-size:10px;color:#b7cfe2;line-height:1.55;margin:0 12px 8px}
+.rdc-timeline th:nth-child(3),.rdc-timeline th:nth-child(5),
+.rdc-timeline th:nth-child(6){color:#d1f5e2}
+.rdc-timeline td strong{font-size:10px;color:#e2fbea}
+.rdc-timeline td small{font-size:10px;color:#abcfba;white-space:nowrap}
+.rdc-timeline table{min-width:975px}

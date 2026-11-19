@@ -183,6 +183,8 @@ test('Race Prep renders real Gel Buddy events, read-only forecast, offline backu
  assert.match(race,/fuelSchedule=\{fuelSchedule\}/)
  assert.match(race,/<GelInventoryPlanner active=\{active\}/)
  assert.match(gel,/onScheduleChange\(!loading&&loadedKey===key&&racePlan.status==='ready'/)
+ assert.match(gel,/if\(!onScheduleChange\|\|settingsDirty\)return/)
+ assert.match(gel,/if\(!onAidScheduleChange\|\|settingsDirty\)return/)
  assert.match(ui,/localStorage.setItem\(key/)
  assert.match(ui,/raceElapsedNow\(\{raceDate:goal.race_date/)
  assert.match(ui,/Ankunft jetzt erfassen/)

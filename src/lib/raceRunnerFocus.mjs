@@ -3,7 +3,8 @@
  * remain available to the crew, but are never exposed by this model.
  * Consumption is not assumed and GPS distance cannot advance the round count.
  */
-export function buildRunnerFocus({checkpoints=[],completed=0,gelEvents=null,elapsedMinutes=null}={}){
+export function buildRunnerFocus({checkpoints=[],completed=0,gelEvents=null,
+ aidEvents=null,elapsedMinutes=null}={}){
  const rows=Array.isArray(checkpoints)?checkpoints:[]
  const total=rows.length
  const done=Number.isInteger(completed)?Math.max(0,Math.min(total,completed)):0
@@ -23,10 +24,12 @@ export function buildRunnerFocus({checkpoints=[],completed=0,gelEvents=null,elap
  const due=live?gels?.filter(g=>g.minute<=currentMinute&&currentMinute-g.minute<=10).at(-1)||null:null
  const upcoming=gels?.find(g=>g.minute>currentMinute)||null
  const gel=due||upcoming
+ const nextAid=Array.isArray(aidEvents)?aidEvents.find(e=>
+   next&&e?.round===next.index&&e.planOnly===true)||null:null
  const gelTiming=due?'due':gel?'upcoming':gels===null?'loading':'none'
  const drinkDue=live&&currentMinute>=20&&currentMinute%20<=8
  return {total,completed:done,remaining:total-done,
   nextIndex:next?.index??null,finished:total>0&&done===total,
-  longPause,breakNote,gel,gelTiming,drinkDue,
+  longPause,breakNote,gel,gelTiming,drinkDue,nextAid,
   timingSource:live?'clock':'approximate',planOnly:true}
 }

@@ -1,6 +1,9 @@
 import {useEffect,useMemo,useState} from 'react'
 import {garminSupabase} from '../lib/garminSupabase'
 import {buildGelPlan} from '../lib/gelTiming.mjs'
+import {buildAidPlan} from '../lib/raceAidPlan.mjs'
+import type {AidPlanEvent} from '../lib/raceAidPlan.mjs'
+import type {RaceCheckpoint} from '../lib/raceExecution.mjs'
 import type {GelStock,GelPlanEvent} from '../lib/gelTiming.mjs'
 import type {CoachGoal} from '../lib/coachGoal'
 import {Icon} from './Icon'
@@ -14,7 +17,15 @@ type Inventory={id:string;user_id:string;catalog_id:string|null;
  custom_brand:string|null;custom_name:string|null;custom_carbs_g:number|null;
  custom_caffeine_mg:number|null;custom_sodium_mg:number|null;
  flavor_note:string;quantity:number;priority:number;note:string}
-type Settings={drink_carbs_g_per_hour:number;allow_caffeine:boolean}
+type Settings={drink_carbs_g_per_hour:number;allow_caffeine:boolean;
+ aid_confirmed:boolean;aid_every_laps:number;aid_drink_mix:'unknown'|'160'|'320'|'custom';
+ aid_drink_ml_per_stop:number;aid_custom_carbs_g_per_500:number;
+ aid_food_name:string;aid_food_carbs_g_per_stop:number;
+ caffeine_start_minute:number;caffeine_max_mg:number}
+const initialSettings:Settings={drink_carbs_g_per_hour:0,allow_caffeine:false,
+ aid_confirmed:false,aid_every_laps:1,aid_drink_mix:'unknown',aid_drink_ml_per_stop:0,
+ aid_custom_carbs_g_per_500:0,aid_food_name:'',aid_food_carbs_g_per_stop:0,
+ caffeine_start_minute:360,caffeine_max_mg:100}
 const priorities=['','❤ Favorit','✓ Gut verträglich','⚠ Notfallreserve'] as const
 const brands:Brand[]=['Maurten','SiS','226ERS','Eigene']
 const fmt=(n:number)=>n.toLocaleString('de-DE',{maximumFractionDigits:1})
@@ -23,9 +34,12 @@ const clampInt=(n:number,min:number,max:number)=>Number.isFinite(n)?Math.max(min
 function display(p:Product){return p.name+' · '+p.flavor+' · '+
  (p.carbs_g===null?'KH noch nicht verifiziert':fmt(Number(p.carbs_g))+' g KH')+
  (Number(p.caffeine_mg)>0?' · '+p.caffeine_mg+' mg Koffein':'')}
-export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,onScheduleChange}:{
+export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
+ checkpoints,onScheduleChange,onAidScheduleChange}:{
  active:boolean;goal:CoachGoal;durationMinutes:number|null;carbsGPerHour:number|null;
- onScheduleChange?:(events:GelPlanEvent[]|null)=>void
+ checkpoints?:RaceCheckpoint[];
+ onScheduleChange?:(events:GelPlanEvent[]|null)=>void;
+ onAidScheduleChange?:(events:AidPlanEvent[]|null)=>void
 }){
  const [catalog,setCatalog]=useState<Product[]>([])
  const [inventory,setInventory]=useState<Inventory[]>([])
@@ -40,7 +54,11 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,o
  const [customCarbs,setCustomCarbs]=useState('')
  const [customCaffeine,setCustomCaffeine]=useState('0')
  const [customSodium,setCustomSodium]=useState('')
- const [settings,setSettings]=useState<Settings>({drink_carbs_g_per_hour:0,allow_caffeine:false})
+ const [settings,setSettings]=useState<Settings>(initialSettings)
+ const [settingsDirty,setSettingsDirty]=useState(false)
+ const changeSettings=(patch:Partial<Settings>)=>{
+  setSettings(s=>({...s,...patch}));setSettingsDirty(true)
+ }
  const [busy,setBusy]=useState('')
  const [loading,setLoading]=useState(true)
  const [notice,setNotice]=useState('')
@@ -71,8 +89,10 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,o
    setUserId(session.user.id)
    setCatalog((products.data||[]) as Product[])
    setInventory((owned.data||[]) as Inventory[])
-   setSettings({drink_carbs_g_per_hour:Number(prefs.data?.drink_carbs_g_per_hour||0),
+   setSettings({...initialSettings,...prefs.data,
+    drink_carbs_g_per_hour:Number(prefs.data?.drink_carbs_g_per_hour||0),
     allow_caffeine:Boolean(prefs.data?.allow_caffeine)})
+   setSettingsDirty(false)
    setLoadedKey(key)
   })().catch(e=>{if(live)setError(e instanceof Error?e.message:'Gel-Daten nicht verfügbar')})
    .finally(()=>{if(live)setLoading(false)})
@@ -90,16 +110,27 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,o
    caffeineMg:num(p?.caffeine_mg??item.custom_caffeine_mg),
    quantity:item.quantity,priority:item.priority,isBulk:Boolean(p?.is_bulk)}
  }),[inventory,byId])
+ const checkpointKey=JSON.stringify((checkpoints||[]).map(c=>[c.index,c.arrivalMinutes,c.finish]))
+ const aidPlan=useMemo(()=>buildAidPlan({checkpoints,settings,startTime:goal.race_start_time}),
+  [checkpointKey,settings,goal.race_start_time])
  const racePlan=useMemo(()=>buildGelPlan({
   durationMinutes:durationMinutes||0,targetCarbsGPerHour:carbsGPerHour??0,
   drinkCarbsGPerHour:Number(settings.drink_carbs_g_per_hour),
-  allowCaffeine:settings.allow_caffeine,inventory:stock,startTime:goal.race_start_time
- }),[durationMinutes,carbsGPerHour,settings,stock,goal.race_start_time])
+  allowCaffeine:settings.allow_caffeine,inventory:stock,startTime:goal.race_start_time,
+  aidEvents:aidPlan.status==='ready'?aidPlan.events:[],
+  caffeineStartMinute:settings.caffeine_start_minute,
+  caffeineMaxMg:settings.caffeine_max_mg
+ }),[durationMinutes,carbsGPerHour,settings,stock,goal.race_start_time,aidPlan])
  useEffect(()=>{
-  if(!onScheduleChange)return
+  if(!onScheduleChange||settingsDirty)return // keep last saved schedule while editing
   onScheduleChange(!loading&&loadedKey===key&&racePlan.status==='ready'?
    racePlan.events:null)
- },[onScheduleChange,loading,loadedKey,key,racePlan])
+ },[onScheduleChange,loading,loadedKey,key,racePlan,settingsDirty])
+ useEffect(()=>{
+  if(!onAidScheduleChange||settingsDirty)return // no unsaved aid in Runner Mode
+  onAidScheduleChange(!loading&&loadedKey===key&&aidPlan.status==='ready'?
+   aidPlan.events:null)
+ },[onAidScheduleChange,loading,loadedKey,key,aidPlan,settingsDirty])
  const ordered=[...inventory].sort((a,b)=>a.priority-b.priority||
   (byId.get(a.catalog_id||'')?.brand||a.custom_brand||'').localeCompare(
   byId.get(b.catalog_id||'')?.brand||b.custom_brand||''))
@@ -179,11 +210,22 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,o
   try{
    const payload={user_id:userId,race_date:goal.race_date,race_name:goal.race_name,
     drink_carbs_g_per_hour:clampInt(Number(settings.drink_carbs_g_per_hour),0,150),
-    allow_caffeine:settings.allow_caffeine,updated_at:new Date().toISOString()}
+    allow_caffeine:settings.allow_caffeine,
+    aid_confirmed:settings.aid_confirmed,
+    aid_every_laps:clampInt(settings.aid_every_laps,1,25),
+    aid_drink_mix:settings.aid_drink_mix,
+    aid_drink_ml_per_stop:clampInt(settings.aid_drink_ml_per_stop,0,1000),
+    aid_custom_carbs_g_per_500:clampInt(settings.aid_custom_carbs_g_per_500,0,150),
+    aid_food_name:settings.aid_food_name.trim().slice(0,90),
+    aid_food_carbs_g_per_stop:clampInt(settings.aid_food_carbs_g_per_stop,0,120),
+    caffeine_start_minute:clampInt(settings.caffeine_start_minute,0,1440),
+    caffeine_max_mg:clampInt(settings.caffeine_max_mg,0,400),
+    updated_at:new Date().toISOString()}
    const {data,error:dbError}=await garminSupabase.from('garmin_gel_plan_settings')
     .upsert(payload,{onConflict:'user_id,race_date,race_name'}).select('race_date').single()
    if(dbError||!data)throw Error(dbError?.message||'Einstellungen nicht gespeichert.')
-   setNotice('Gel-Plan-Einstellungen für diesen Wettkampf gespeichert.')
+   setSettingsDirty(false)
+   setNotice('Verpflegungs- und Koffeinplanung für diesen Wettkampf gespeichert.')
   }catch(e){setError(e instanceof Error?e.message:'Einstellungen konnten nicht gespeichert werden.')}
   finally{setBusy('')}
  }
@@ -272,28 +314,110 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,o
      })}</div>}
    </div>
    <div className="gip-planner">
-    <div className="gip-subheading"><strong>Wann welches Gel nehmen?</strong>
-     <small>Automatischer Entwurf für {goal.race_name}</small></div>
-    <p className="gip-guidance">Erste Portion grob nach 20 Minuten, danach über das Rennen verteilt etwa alle 20–30 Minuten prüfen.
-     Entscheidend sind die KH-Mengen je Produkt, Getränke, Verträglichkeit und dein tatsächlicher Rennverlauf – nicht eine starre Gel-Uhr.</p>
+    <div className="gip-subheading"><strong>Verpflegung auf der Strecke · Getränke + Essen + Gels</strong>
+     <small>Alle Kohlenhydratquellen in einem Plan – nichts als gegessen markieren</small></div>
+    <p className="gip-guidance">Beim Heartbeat gibt es laut deiner Angabe Maurten Drink Mix und Verpflegung.
+     Die Variante (160/320), Mischung, Portionsgröße und Lebensmittel musst du prüfen.
+     Ohne ausdrückliche Bestätigung werden dafür <strong>0 g KH</strong> angerechnet.
+     Die geplanten Gel-Portionen werden erst nach Bestätigung entsprechend reduziert.</p>
+    <fieldset className="gip-aid">
+     <legend>Versorgung an der Strecke</legend>
+     <div className="gip-aid-fields">
+      <label>Welche Maurten Drink-Mix-Variante wird ausgeschenkt?
+       <select value={settings.aid_drink_mix}
+        onChange={e=>changeSettings({aid_drink_mix:e.target.value as Settings['aid_drink_mix']})}>
+        <option value="unknown">Noch ungeklärt – nicht berechnen</option>
+        <option value="160">Drink Mix 160 · 40 g KH / 500 ml</option>
+        <option value="320">Drink Mix 320 · 80 g KH / 500 ml</option>
+        <option value="custom">Andere bestätigte Mischung</option>
+       </select></label>
+      {settings.aid_drink_mix==='custom'&&<label>Bestätigte KH je 500 ml
+       <input type="number" min={0} max={150} step={1}
+        value={settings.aid_custom_carbs_g_per_500}
+        onChange={e=>changeSettings({aid_custom_carbs_g_per_500:Number(e.target.value)})}/>
+      </label>}
+      <label>Geplante Getränkemenge je Versorgung (ml)
+       <input type="number" min={0} max={1000} step={50}
+        value={settings.aid_drink_ml_per_stop}
+        onChange={e=>changeSettings({aid_drink_ml_per_stop:Number(e.target.value)})}/>
+      </label>
+      <label>Verpflegung alle wie viele Runden?
+       <input type="number" min={1} max={25} step={1}
+        value={settings.aid_every_laps}
+        onChange={e=>changeSettings({aid_every_laps:Number(e.target.value)})}/>
+      </label>
+      <label>Lebensmittel (nur wenn vorhanden und verträglich)
+       <input maxLength={90} value={settings.aid_food_name} placeholder="z. B. Banane / Riegel / Brot"
+        onChange={e=>changeSettings({aid_food_name:e.target.value})}/>
+      </label>
+      <label>KH aus dem geplanten Essen je Versorgung (g)
+       <input type="number" min={0} max={120} step={1}
+        value={settings.aid_food_carbs_g_per_stop}
+        onChange={e=>changeSettings({aid_food_carbs_g_per_stop:Number(e.target.value)})}/>
+      </label>
+     </div>
+     <label className="gip-check"><input type="checkbox" checked={settings.aid_confirmed}
+      onChange={e=>changeSettings({aid_confirmed:e.target.checked})}/>
+      Die ausgewählten Getränke, Mengen und Lebensmittel sind geprüft – als Plan berücksichtigen</label>
+     {aidPlan.status!=='ready'?<p className="gip-note">Noch keine bestätigten KH aus dem Streckenangebot.
+      {aidPlan.status==='unknown-concentration'?' Drink-Mix-Variante oder KH-Konzentration ergänzen.':''}
+      {aidPlan.status==='unknown-food'?' Für geplantes Essen das Lebensmittel angeben.':''}
+     </p>:<p className="gip-aid-total">
+      {aidPlan.stops} Versorgungsstopps · {fmt(aidPlan.drinkCarbsG)} g KH Getränk +
+      {' '}{fmt(aidPlan.foodCarbsG)} g KH Essen =
+      {' '}<strong>{fmt(aidPlan.totalCarbsG)} g KH an der Strecke geplant.</strong>
+      {' '}Nur wenn du diese Portionen tatsächlich nimmst – kein Ist-Verbrauch.</p>}
+    </fieldset>
     <div className="gip-settings">
-     <label>KH aus Getränken pro Stunde (g)
+     <label>KH aus eigenen Getränken außerhalb der Stationen (g/h)
       <input type="number" min={0} max={150} step={1} value={settings.drink_carbs_g_per_hour}
-       onChange={e=>setSettings(s=>({...s,drink_carbs_g_per_hour:Number(e.target.value)}))}/>
+       onChange={e=>changeSettings({drink_carbs_g_per_hour:Number(e.target.value)})}/>
      </label>
      <label className="gip-check"><input type="checkbox" checked={settings.allow_caffeine}
-      onChange={e=>setSettings(s=>({...s,allow_caffeine:e.target.checked}))}/>
-      Koffein-Gels ausdrücklich einplanen</label>
+      onChange={e=>changeSettings({allow_caffeine:e.target.checked})}/>
+      Koffein-Gels aus deinem Vorrat ausdrücklich einplanen</label>
+     <label>Frühester Koffeinzeitpunkt (Minuten nach Start)
+      <input type="number" min={0} max={1440} step={20}
+       value={settings.caffeine_start_minute}
+       onChange={e=>changeSettings({caffeine_start_minute:Number(e.target.value)})}/>
+     </label>
+     <label>Maximal geplantes Koffein aus Gels (mg)
+      <input type="number" min={0} max={400} step={25}
+       value={settings.caffeine_max_mg}
+       onChange={e=>changeSettings({caffeine_max_mg:Number(e.target.value)})}/>
+     </label>
+     <p className="gip-guidance">Koffein ist aus. Du bist derzeit in der Koffeinpause:
+      keine Cola/Red Bull im Plan. Bei Freigabe nur Gels mit ausgewiesenem Koffeingehalt
+      aus deinem Bestand, nicht vor der gewählten Rennminute und nur innerhalb des Limits.
+      Koffeinmenge und Verträglichkeit vor dem Wettkampf prüfen; nicht mehrere Quellen addieren.</p>
      <button type="button" disabled={!!busy||!loadedKey}
-      onClick={()=>void saveSettings()}>Einstellungen speichern</button>
+      onClick={()=>void saveSettings()}>{settingsDirty?'Verpflegungsplan speichern':'Einstellungen speichern'}</button>
+     {settingsDirty&&<p className="gip-note">Änderungen sind nur eine Vorschau.
+      Erst nach Speichern werden sie im Runner Mode übernommen.</p>}
     </div>
     {racePlan.status==='ready'?<>
      <div className="gip-stats">
-      <div><small>KH-Ziel gesamt</small><strong>{fmt((carbsGPerHour||0)*(durationMinutes||0)/60)} g</strong></div>
-      <div><small>Davon per Gel geplant</small><strong>{fmt(racePlan.plannedCarbsG||0)} g</strong></div>
-      <div><small>Gel-Abdeckung</small><strong>{racePlan.coveragePercent} %</strong></div>
-      <div><small>Gel-Kalorien</small><strong>{fmt(racePlan.plannedKcal||0)} kcal</strong></div>
+      <div><small>KH-Ziel gesamt</small><strong>{fmt(racePlan.totalTargetCarbsG||0)} g</strong></div>
+      <div><small>KH auf der Strecke</small><strong>{fmt(racePlan.aidCarbsG||0)} g</strong></div>
+      <div><small>KH eigene Getränke</small><strong>{fmt(racePlan.ownDrinkCarbsG||0)} g</strong></div>
+      <div><small>Gel-KH geplant</small><strong>{fmt(racePlan.plannedCarbsG||0)} g</strong></div>
+      <div><small>Gel-Portionen</small><strong>{racePlan.events.length}</strong></div>
+      <div><small>KH noch offen</small><strong>{fmt(racePlan.uncoveredG||0)} g</strong></div>
      </div>
+     {racePlan.caffeineMg>0&&<p className="gip-aid-total">
+      Koffein: {racePlan.caffeineMg} mg aus geplanten Gels; frühestens
+      {' '}+{settings.caffeine_start_minute} Min. Nur Planung, keine bestätigte Einnahme.</p>
+     }
+     {aidPlan.status==='ready'&&aidPlan.events.length>0&&<details className="gip-all">
+      <summary>Verpflegung an {aidPlan.events.length} Stationen anzeigen</summary>
+      <div className="gip-timeline">{aidPlan.events.map(e=><div className="gip-time" key={'aid-'+e.round}>
+       <span>Runde {e.round} · +{e.minute} Min.{e.clock?' · '+e.clock+' Uhr':''}</span>
+       <strong>{e.drinkMl?e.drinkMl+' ml '+e.drinkName:''}
+        {e.foodName&&e.drinkMl?' + ':''}{e.foodName}</strong>
+       <small>{fmt(e.drinkCarbsG)} g KH Getränk + {fmt(e.foodCarbsG)} g KH Essen
+        = {fmt(e.carbsG)} g KH geplant</small>
+      </div>)}</div>
+     </details>}
      {!inventory.length?<p className="gip-empty">Keine Produkte erfunden: Füge zuerst deine vorhandenen Gels hinzu, dann entsteht der Einnahmeplan.</p>:
       racePlan.events.length?<>
        <div className="gip-timeline">{racePlan.events.slice(0,7).map(e=>
@@ -313,12 +437,14 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,o
       </>:<p className="gip-empty">Mit den gewählten Prioritäten ist aktuell keine passende automatische Portion verfügbar. Favoriten/Alternativen hinzufügen oder Mengen prüfen.</p>}
      {(racePlan.uncoveredG||0)>5&&<p className="gip-shortfall">
       Ausgewählte Gels decken {fmt(racePlan.uncoveredG||0)} g deines geplanten Gel-KH-Ziels noch nicht.
-      Weitere Getränke oder feste Nahrung sind hier nur berücksichtigt, soweit du sie oben in g/h eingetragen hast.
+      Verpflegung an der Strecke ist nur mit ausdrücklich bestätigten Portionen berücksichtigt.
       Notfallgels werden bewusst nicht automatisch verwendet.</p>}
      {racePlan.reserve.length>0&&<p className="gip-reserve">⚠ Plan B – nur im Notfall:
       {' '}{racePlan.reserve.map(x=>x.quantity+'× '+x.brand+' '+x.name).join(' · ')}</p>}
      <p className="gip-disclaimer">Die Liste ist ein Vorschlag, keine Erinnerung oder automatische Einnahme.
-      Vorräte werden nicht abgebucht. Koffein bleibt standardmäßig ausgeschlossen; bei Freigabe berücksichtigen wir nur ausgewiesene Mengen, höchstens ein SiS-Nootropics-Gel und maximal 400 mg aus geplanten Gels – andere Koffeinquellen sind nicht eingerechnet.
+      Vorräte werden nicht abgebucht. Koffein bleibt standardmäßig ausgeschlossen;
+      bei Freigabe gelten frühester Zeitpunkt, dein selbst gesetztes Limit und höchstens
+      ein SiS-Nootropics-Gel. Andere Koffeinquellen sind nicht eingerechnet.
       Herstellerwerte und Verträglichkeit vor dem Rennen prüfen.</p>
     </>:<p className="gip-note">Sobald Strecke, Zielzeit und KH-Ziel vorliegen, wird der Gel-Zeitplan berechnet.</p>}
    </div>

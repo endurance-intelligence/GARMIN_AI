@@ -90,7 +90,7 @@ test('runner mode UI is pressure-free and does not display distance or time comp
  const strategy=read('src/components/RaceStrategyCard.tsx')
  const css=read('src/styles/race-runner-focus.css')
  assert.match(focus,/Runde geschafft/)
- assert.match(focus,/Noch '\+view.remaining/)
+ assert.match(focus,/Eine Runde nach der anderen/)
  assert.match(focus,/Jetzt trinken/)
  assert.match(focus,/Jetzt Gel: /)
  assert.match(focus,/Nach dieser Runde|view.breakNote/)

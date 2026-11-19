@@ -58,3 +58,20 @@
 }
 @media(max-width:420px){.gip-add{grid-template-columns:1fr}.gip-add-product{grid-column:span 1}.gip-custom{grid-template-columns:1fr}
  .gip-row-controls select{flex:1;min-width:130px;max-width:100%}.gip-total{min-width:60px}}
+
+
+/* On-course aid is user-confirmed; no implicit carbs from an unknown bottle. */
+.gip-aid{margin:12px 0;padding:13px;border:1px solid rgba(149,199,187,.34);border-radius:11px;background:rgba(17,56,62,.42);min-width:0}
+.gip-aid legend{font-size:11px;font-weight:800;color:#c7f1dd;padding:0 6px}
+.gip-aid-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:11px}
+.gip-aid-total{color:#ccead8;font-size:11px;line-height:1.6;background:rgba(68,119,102,.16);padding:10px;border-radius:8px}
+.gip-aid .gip-note{margin:8px 0 0}
+.gip-settings{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;padding:13px;border:1px solid rgba(149,175,208,.2);border-radius:11px}
+.gip-settings>.gip-guidance{grid-column:span 2;margin:0}
+.gip-settings>button{grid-column:span 2;justify-self:start;min-width:180px}
+.gip-settings>.gip-note{grid-column:span 2}
+.gip-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:850px){.gip-aid-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.gip-aid-fields,.gip-settings{grid-template-columns:1fr}
+ .gip-settings>.gip-guidance,.gip-settings>button,.gip-settings>.gip-note{grid-column:span 1}
+ .gip-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
