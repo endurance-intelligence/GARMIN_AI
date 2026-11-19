@@ -73,7 +73,7 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
 
   {!view.finished&&<div className={'rrf-break'+(view.longPause?' is-long':'')}>
    <Icon name={view.longPause?'flag':'check'}/>
-   <div><small>NACH DIESER RUNDE</small><strong>{view.breakNote}</strong></div>
+   <div><small>NACH DIESER RUNDE</small><strong>{view.breakNote?.replace(/^Nach dieser Runde:\s*/, '')}</strong></div>
   </div>}
 
   {!view.finished&&<div className="rrf-fuel" aria-label="Verpflegung aus deinem Plan">
@@ -94,7 +94,7 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
       'Nur Produkte aus deinem Vorrat'}</span></div>
    </div>
    {view.nextAid&&<div className="rrf-fuel-item rrf-aid" aria-label="Geplante Verpflegung nach dieser Runde">
-    <Icon name="utensils"/>
+    <Icon name="flag"/>
     <div><small>VERSORGUNG NACH DER RUNDE</small>
      <strong>{view.nextAid.drinkMl>0?
       view.nextAid.drinkMl+' ml '+view.nextAid.drinkName:''}
