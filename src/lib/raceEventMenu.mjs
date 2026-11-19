@@ -20,9 +20,12 @@ export const HEARTBEAT_MENU_2026=Object.freeze({
  ],
  otherDrinks:['Wasser','Tee','Kaffee','Cola'],
  caffeine:['Kaffee','Cola','Tee (je nach Sorte)'],
- carbDrinkStrength:'unknown',
- note:'Vorhanden laut Veranstalterliste; nicht garantiert an jeder Station. '+
-  'Keine Portion, KH-Menge, Natriummenge oder Koffeinaufnahme bestätigt.'
+ carbDrinkStrength:'160',
+ carbDrinkSelfServe:true,
+ note:'MAURTEN Drink Mix 160 ist aus großem Behälter an der Versorgung frei zugänglich. '+
+  '40 g KH/500 ml gelten bei Standardmischung; Konzentration vor Ort prüfen. '+
+  'Keine feste Trinkportion, Einnahme, Natriummenge oder Koffeinaufnahme bestätigt. '+
+  'Andere Lebensmittel sind laut Veranstalterliste verfügbar; keine Garantie für jede Station.'
 })
 
 /** Scope known race menu to its one verified 2026 event only. */
