@@ -30,7 +30,6 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
  const view=buildRunnerFocus({checkpoints,completed,gelEvents:fuelSchedule,
   aidEvents:aidSchedule,elapsedMinutes:elapsed})
  if(!active||!view.total)return null
- const gel=view.gel
  return <section className="rrf-root" aria-label="Runner Mode: nächste Runde und Versorgung">
   <header className="rrf-head">
    <strong><Icon name="flag"/> RUNNER MODE</strong>
