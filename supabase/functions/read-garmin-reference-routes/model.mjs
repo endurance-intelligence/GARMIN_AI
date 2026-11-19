@@ -1,7 +1,8 @@
+import {gpsRouteMatch} from '../_shared/garmin-route-gps.mjs'
 /**
  * GARMIN_AI: private, conservative reference-route candidates.
- * Garmin history currently has start/end coordinates and sampled elevation,
- * NOT a full recorded GPS track. Never call these verified identical routes.
+ * Garmin FIT now stores a private distance-normalized GPS track fingerprint.
+ * Legacy runs without GPS remain explicitly unverified candidates.
  * Keep raw locations/altitude profiles exclusively server-side.
  */
 const numeric = v => typeof v === 'number' && Number.isFinite(v) ? v : null
@@ -125,22 +126,35 @@ export function candidateIds(rows) {
   return parsed.filter((a,i)=>parsed.some((b,j)=>i!==j&&sameEndpoints(a,b)))
     .map(x=>x.id)
 }
-export function buildReferenceRoutes(rows,details,{maxRoutes=10}={}) {
+export function buildReferenceRoutes(rows,details,{maxRoutes=10,tracks=[]}={}) {
   const metadata=rows.map(routeMetadata).filter(Boolean)
   const detailMap=new Map(details.map(d=>[String(d.activity_id),d]))
-  const complete=metadata.map(m=>observedRun(m,detailMap.get(m.id))).filter(Boolean)
+  const trackMap=new Map(tracks.filter(t=>t.status==='complete'&&t.fingerprint)
+    .map(t=>[String(t.activity_id),t.fingerprint]))
+  const complete=metadata.map(m=>{
+    const found=observedRun(m,detailMap.get(m.id))
+    return found?{...found,gps:trackMap.get(m.id)||null}:null
+  }).filter(Boolean)
     .sort((a,b)=>b.date.localeCompare(a.date))
   const groups=[]
   for(const run of complete){
-    let group=groups.find(g=>g.every(member=>sameCourse(run,member)))
+    let group=groups.find(g=>g.every(member=>
+      sameCourse(run,member)&&(!run.gps||!member.gps||
+        gpsRouteMatch(run.gps,member.gps).match)))
     if(!group){group=[];groups.push(group)}
     group.push(run)
   }
   const repeating=groups.filter(g=>g.length>=2)
     .sort((a,b)=>b.length-a.length||b[0].date.localeCompare(a[0].date))
+  // Exact GPS-verified groups take precedence over provisional candidates.
+  repeating.sort((a,b)=>Number(b.every(r=>r.gps))-Number(a.every(r=>r.gps))||
+    b.length-a.length||b[0].date.localeCompare(a[0].date))
   const routes=repeating.slice(0,maxRoutes).map((group,i)=>{
     const latest=group[0]
+    const verified=group.every(r=>r.gps)&&group.length>=2&&
+      group.every((r,i)=>group.slice(i+1).every(other=>gpsRouteMatch(r.gps,other.gps).match))
     return {id:'route-'+(i+1),title:'Referenzstrecke '+(i+1),
+      gpsStatus:verified?'verified':'candidate',
       runs:group.length,distanceKm:round(median(group.map(r=>r.distance))/1000,2),
       gainM:round(median(group.map(r=>r.gain)),0),
       firstDate:group[group.length-1].date,lastDate:latest.date,
@@ -152,7 +166,9 @@ export function buildReferenceRoutes(rows,details,{maxRoutes=10}={}) {
   })
   return {kind:'reference-route-candidates',readOnly:true,
     coverage:{withGpsEnds:metadata.length,withElevationProfile:complete.length,
+      gpsTracksAvailable:complete.filter(r=>r.gps).length,
+      gpsVerifiedGroups:routes.filter(r=>r.gpsStatus==='verified').length,
       repeatedGroups:repeating.length,repeatedRuns:repeating.reduce((n,g)=>n+g.length,0)},
     routes,
-    caveat:'Wahrscheinliche gleiche Strecken anhand Start/Ziel, Distanz und Höhenverlauf. Kein vollständiger GPS-Track-Abgleich; ähnlich verlaufende Routen können verwechselt werden. Vergleiche kontrollieren grob Puls und RPE, nicht Wetter, Untergrund oder Ermüdung.'}
+    caveat:'GPS-verifizierte Strecken benutzen 51 entlang der FIT-Distanz gemessene Positionspunkte. Ohne GPS-Profil bleiben es Streckenkandidaten anhand Start/Ziel, Distanz und Höhenverlauf. Wetter, Untergrund und Ermüdung bleiben unkontrolliert.'}
 }
