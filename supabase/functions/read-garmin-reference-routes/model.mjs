@@ -1,4 +1,5 @@
 import {gpsRouteMatch} from '../_shared/garmin-route-gps.mjs'
+import {longitudinalRouteTrend} from './longitudinal.mjs'
 /**
  * GARMIN_AI: private, conservative reference-route candidates.
  * Garmin FIT now stores a private distance-normalized GPS track fingerprint.
@@ -171,6 +172,7 @@ export function buildReferenceRoutes(rows,details,{maxRoutes=10,tracks=[]}={}) {
       gainM:round(median(group.map(r=>r.gain)),0),
       firstDate:group[group.length-1].date,lastDate:latest.date,
       comparison:compare(group),
+      longTerm:longitudinalRouteTrend(group,{verified}),
       history:group.slice(0,8).map(r=>({date:r.date,
         distanceKm:round(r.distance/1000,2),paceSecKm:r.pace,
         averageHr:r.hr===null?null:round(r.hr,0),rpe:r.rpe})),

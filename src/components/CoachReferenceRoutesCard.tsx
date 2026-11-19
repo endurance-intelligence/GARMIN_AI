@@ -1,4 +1,6 @@
 import {useEffect,useState} from 'react'
+import {CoachRouteTrend} from './CoachRouteTrend'
+import type {RouteTrend} from './CoachRouteTrend'
 import {garminPublishableKey,garminSupabase,garminSupabaseUrl} from '../lib/garminSupabase'
 import '../styles/coach-reference-routes.css'
 
@@ -7,7 +9,7 @@ type Comparison={status:'paired-medians'|'single-pair';oldDate:string;newDate:st
   olderRuns:number;newerRuns:number;oldPace:number;newPace:number;
   deltaSecKm:number;olderHr:number;newerHr:number;olderRpe:number;newerRpe:number}
 type Route={id:string;title:string;gpsStatus:'verified'|'candidate';runs:number;distanceKm:number;gainM:number;
-  firstDate:string;lastDate:string;comparison:Comparison|null;history:Run[]}
+  firstDate:string;lastDate:string;comparison:Comparison|null;longTerm:RouteTrend;history:Run[]}
 type Payload={kind:'reference-route-candidates';readOnly:true;
   importStatus:{total:number;completed:number;pending:number;unavailable:number;
     percent:number|null;capped:boolean;lastCompletedAt:string|null};
@@ -20,7 +22,9 @@ const valid=(value:unknown):value is Payload=>{
   const v=value as Record<string,unknown>
   return v.kind==='reference-route-candidates'&&v.readOnly===true&&
     !!v.coverage&&!!v.scan&&!!v.importStatus&&Array.isArray(v.routes)&&v.routes.length<=10&&
-    v.routes.every((r:Route)=>['verified','candidate'].includes(r.gpsStatus)&&typeof r.id==='string'&&
+    v.routes.every((r:Route)=>['verified','candidate'].includes(r.gpsStatus)&&
+      !!r.longTerm&&['ready','insufficient','not-gps'].includes(r.longTerm.status)&&
+      typeof r.id==='string'&&
       typeof r.runs==='number'&&r.runs>=2&&
       Array.isArray(r.history)&&r.history.length<=8)
 }
@@ -137,6 +141,7 @@ export function CoachReferenceRoutesCard({active}:{active:boolean}){
               Läufe im Abstand von drei Wochen mit ähnlicher HF (±4 bpm),
               ähnlichem RPE und verlässlicher Bewegungszeit.
             </p>}
+            <CoachRouteTrend trend={route.longTerm}/>
             <div className="crr-history">
               <small>ZULETZT AUF DIESER STRECKE</small>
               {route.history.map((run,i)=><div key={run.date+'-'+i}>
