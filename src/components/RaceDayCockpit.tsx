@@ -204,7 +204,7 @@ export function RaceDayCockpit({active,goal,input,saved,viewerId,fuelSchedule,ai
   const update=updateFuelMark(fuelMarks,{round,completed:runnerCount,
    total:model.rows.length,status})
   if(!update.ok){setRunnerError(update.reason||'Eintrag ungültig.');return}
-  if(persist(model.marks,startTime,runnerCompleted,runnerTapAt,update.marks))
+  if(persist(model.marks,startTime,runnerCount,runnerTapAt,update.marks))
    setRunnerNotice('Verpflegung für Runde '+round+' auf diesem Gerät gespeichert.')
  }
  const exportText='RUNNER MODE: '+runnerCount+' von '+model.rows.length+
