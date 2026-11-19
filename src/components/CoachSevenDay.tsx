@@ -14,6 +14,7 @@ import {GarminFeedbackCard} from './GarminFeedbackCard'
 import {WeeklyPlanActualCard} from './WeeklyPlanActualCard'
 import {CoachNextImpactCard} from './CoachNextImpactCard'
 import {CoachFourWeekCard} from './CoachFourWeekCard'
+import {CoachLongTermCard} from './CoachLongTermCard'
 import {CoachAdaptiveVolumeCard} from './CoachAdaptiveVolumeCard'
 import {assessCustomProposal} from '../lib/coachCustomProposal.mjs'
 import type {CoachContextPayload} from './CoachLifeContext'
@@ -256,6 +257,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
    <CoachNextImpactCard impact={plan.nextImpact}/>
    {plan.adaptiveVolume&&<CoachAdaptiveVolumeCard review={plan.adaptiveVolume}/>}
    {snapshot&&<CoachFourWeekCard today={today} snapshot={snapshot}/>}
+    {snapshot&&<CoachLongTermCard today={today} snapshot={snapshot} active={active}/>}
    {plan.completedWeek&&<WeeklyPlanActualCard review={plan.completedWeek}
     onCalendar={()=>onCalendar()}/>}
    <div className="c7-day-nav" id="c7-week-overview" role="tablist"
