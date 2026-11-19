@@ -1,10 +1,11 @@
 /**
- * GARMIN_AI v0.7.2 - official Garmin FIT decoding, no GPS/position persistence.
+ * GARMIN_AI v1.0.8 - FIT decoding; only a 51-point private GPS fingerprint is persisted.
  * Runs only inside the existing private Garmin detail worker.
  */
 import { Decoder, Stream } from 'npm:@garmin/fitsdk@21.218.0'
 import { unzipSync } from 'npm:fflate@0.8.2'
 import { terrainWindows } from './activity-terrain.mjs'
+import { gpsRouteFingerprint } from './garmin-route-gps.mjs'
 
 type Obj = Record<string, unknown>
 const obj = (v: unknown): Obj => v !== null && typeof v === 'object' && !Array.isArray(v) ? v as Obj : {}
@@ -145,6 +146,8 @@ export async function downloadAndDecodeFit(activityId: string, bearer: string) {
       aerobicTrainingEffect: num(r.totalTrainingEffect),
     }
   })
+  // GPS coordinates are never added to records/FIT chunks.
+  const route = gpsRouteFingerprint(rawRecords)
   const terrain = terrainWindows(records)
   const count = (field: string) => records.filter(x => typeof x[field] === 'number').length
   const quality = {
@@ -156,7 +159,8 @@ export async function downloadAndDecodeFit(activityId: string, bearer: string) {
     powerCoverage: count('power') / records.length,
     terrainQuality: terrain.quality, terrainCoverage: terrain.coverage ?? 0,
     terrainWindowM: terrain.windowM,
+    gpsRouteAvailable: route !== null,
   }
   return { records, laps, events, workoutSteps: steps, sessions,
-    terrain: terrain.windows, quality }
+    terrain: terrain.windows, quality, route }
 }
