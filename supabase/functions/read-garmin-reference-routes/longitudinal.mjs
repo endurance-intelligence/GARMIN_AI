@@ -112,8 +112,16 @@ export function longitudinalRouteTrend(runs,{verified=false}={}){
   if(slopes.length<6)return summary('few-separated-pairs',stable.length,spanDays,excludedOutliers)
   const delta=newerPace-olderPace
   const slope90=median(slopes)
-  const direction=delta<=-8&&slope90<=-5?'faster':
-    delta>=8&&slope90>=5?'slower':'inconclusive'
+  const baseline=robustLine(stable)
+  const typicalScatterSecKm=baseline===null?null:median(stable.map(r=>
+    Math.abs(r.pace-baseline.intercept-
+      baseline.slope*(ordinal(r.date)-baseline.reference))))
+  // Require improvement/slowdown to exceed twice the typical unexplained
+  // run-to-run spread. Isolated best/worst days aren't evidence of adaptation.
+  const wellSeparated=typicalScatterSecKm!==null&&
+    Math.abs(delta)>=2*typicalScatterSecKm
+  const direction=wellSeparated&&delta<=-8&&slope90<=-5?'faster':
+    wellSeparated&&delta>=8&&slope90>=5?'slower':'inconclusive'
   // Chart data is capped and stripped of identifying activity information.
   // First/last are retained even when more than 24 runs qualify.
   const chart=stable.length<=24?stable:
@@ -124,6 +132,7 @@ export function longitudinalRouteTrend(runs,{verified=false}={}){
     referenceHr:round(targetHr),referenceRpe:round(targetRpe),
     olderPace:round(olderPace),newerPace:round(newerPace),
     deltaSecKm:round(delta),medianSlopeSecPer90d:round(slope90),
+    typicalScatterSecKm:typicalScatterSecKm===null?null:round(typicalScatterSecKm),
     olderHr:round(oldHr),newerHr:round(newHr),
     olderRpe:round(oldRpe),newerRpe:round(newRpe),
     series:chart.map(r=>({date:r.date,paceSecKm:round(r.pace),
