@@ -2,16 +2,18 @@ import {useEffect,useMemo,useState} from 'react'
 import type {CoachGoal} from '../lib/coachGoal'
 import type {RaceCheckpoint} from '../lib/raceExecution.mjs'
 import type {GelPlanEvent} from '../lib/gelTiming.mjs'
+import type {AidPlanEvent} from '../lib/raceAidPlan.mjs'
 import {buildRunnerFocus} from '../lib/raceRunnerFocus.mjs'
 import {raceElapsedNow} from '../lib/raceDayCockpit.mjs'
 import {Icon} from './Icon'
 import '../styles/race-runner-focus.css'
 
 /** Athlete-facing view: deliberately no mileage, pace, ETA, split deltas or time budget. */
-export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
+export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,aidSchedule,
  startTime,loaded,storageReady,planSaved,notice,warning,onComplete,onUndo}:{
  active:boolean;goal:CoachGoal;checkpoints:RaceCheckpoint[];completed:number;
- fuelSchedule:GelPlanEvent[]|null;startTime:string;loaded:boolean;
+ fuelSchedule:GelPlanEvent[]|null;aidSchedule:AidPlanEvent[]|null;
+ startTime:string;loaded:boolean;
  storageReady:boolean;planSaved:boolean;notice:string;warning:string;
  onComplete:()=>void;onUndo:()=>void
 }){
@@ -25,7 +27,8 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
  const elapsed=useMemo(()=>raceElapsedNow({
   raceDate:goal.race_date,startTime,now:new Date(clockTick)
  }),[goal.race_date,startTime,clockTick])
- const view=buildRunnerFocus({checkpoints,completed,gelEvents:fuelSchedule,elapsedMinutes:elapsed})
+ const view=buildRunnerFocus({checkpoints,completed,gelEvents:fuelSchedule,
+  aidEvents:aidSchedule,elapsedMinutes:elapsed})
  if(!active||!view.total)return null
  const gel=view.gel
  return <section className="rrf-root" aria-label="Runner Mode: nächste Runde und Versorgung">
@@ -51,13 +54,31 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
   <div className="rrf-center" aria-live="polite" aria-atomic="true">
    <span className="rrf-eyebrow">{view.finished?'RUNDEN ALS GESCHAFFT MARKIERT':'DEINE NÄCHSTE RUNDE'}</span>
    <strong className="rrf-round">{view.finished?'Geschafft!':'Runde '+view.nextIndex+' von '+view.total}</strong>
-   <span className="rrf-remaining">{view.finished?'Du hast alle Abschnitte bestätigt.':
-    'Noch '+view.remaining+' '+(view.remaining===1?'Runde':'Runden')}</span>
+   <span className="rrf-remaining">{view.finished?'Alle Abschnitte bestätigt.':
+    'Eine Runde nach der anderen.'}</span>
   </div>
   {!view.finished&&<div className={'rrf-break'+(view.longPause?' is-long':'')}>
    <Icon name={view.longPause?'flag':'check'}/>
    <span>{view.breakNote}</span>
   </div>}
+  {!view.finished&&view.nextAid&&<div className="rrf-aid" aria-label="Geplante Verpflegung nach dieser Runde">
+   <Icon name="droplets"/>
+   <div><small>NACH DIESER RUNDE · VERSORGUNGSSTATION</small>
+    <strong>{view.nextAid.drinkMl>0?
+     view.nextAid.drinkMl+' ml '+view.nextAid.drinkName:''}
+     {view.nextAid.foodName&&view.nextAid.drinkMl>0?' + ':''}
+     {view.nextAid.foodName}</strong>
+    <span>{view.nextAid.carbsG} g KH geplant, nur wenn tatsächlich gegessen/getrunken.
+     Verträglichkeit und Portion vor Ort prüfen.</span>
+   </div>
+  </div>}
+  {!view.finished&&aidSchedule===null&&
+   goal.race_name.toLowerCase().includes('heartbeat')&&<div className="rrf-aid">
+    <Icon name="info"/><div><small>VERSORGUNG VOR ORT</small>
+     <strong>Maurten Drink Mix und Essen einplanen</strong>
+     <span>Auswahl und Mengen sind noch nicht bestätigt. Kein fiktiver KH-Abzug.</span>
+    </div>
+   </div>}
   {!view.finished&&<div className="rrf-fuel" aria-label="Verpflegung aus deinem Plan">
    <div className="rrf-fuel-item">
     <Icon name="droplets"/>
@@ -70,7 +91,8 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
      <strong>{gel?(view.gelTiming==='due'?'Jetzt Gel: ':'Nächstes Gel: ')+gel.brand+' · '+gel.name:
       view.gelTiming==='loading'?'Dein Gel-Plan wird geladen':
       'Keine weitere Gel-Portion eingeplant'}</strong>
-     <span>{gel?'Eine Erinnerung aus deinem Vorrat – Einnahme nicht automatisch bestätigt.':
+     <span>{gel?.caffeineMg>0?'Koffein: '+gel.caffeineMg+' mg geplant · nur nach bestätigter Freigabe.':
+      gel?'Eine Erinnerung aus deinem Vorrat – Einnahme nicht automatisch bestätigt.':
       'Dein Vorrat und deine Produktauswahl bestimmen den Plan.'}</span></div>
    </div>
   </div>}
@@ -84,9 +106,11 @@ export function RaceRunnerFocus({active,goal,checkpoints,completed,fuelSchedule,
    {view.completed>0&&<button type="button" className="rrf-undo" disabled={!loaded}
     onClick={onUndo}>Letzte Runde korrigieren</button>}
   </div>
-  <p className="rrf-footer">Die Runden werden nach deinem Tipp lokal gesichert.
+  <details className="rrf-footer"><summary>Hinweise zur Runden-Erfassung</summary>
+   <p>Die Runden werden nach deinem Tipp lokal gesichert.
    Keine Garmin- oder Zeitnahme-Verbindung. Bei Verbindungsproblemen die bereits
    geöffnete App offen halten: Ein vollständiger Neustart ohne Internet ist wegen
    der sicheren Anmeldung nicht garantiert. Crew-Details bleiben eingeklappt.</p>
+  </details>
  </section>
 }
