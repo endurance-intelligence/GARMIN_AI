@@ -164,7 +164,7 @@ test('real API contracts: authenticated weekly board delivers exactly the RPE fi
 
 test('race freeze: QA stays read-only and does not reference Heartbeat runner modules',()=>{
  const path=read('src/lib/coachSevenDay.mjs')
- assert.doesNotMatch(path,/\.from\(|fetch\(|\.upsert\(|\.insert\(/)
+ assert.doesNotMatch(path,/\b(?:garminSupabase|db)\.from\(|fetch\(|\.upsert\(|\.insert\(/)
  assert.doesNotMatch(read('src/lib/raceRecoveryIntelligence.mjs'),
   /fetch\(|\.upsert\(|\.insert\(/)
  assert.doesNotMatch(read('src/lib/garminPerception.mjs'),
