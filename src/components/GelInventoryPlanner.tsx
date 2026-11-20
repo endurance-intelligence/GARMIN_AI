@@ -131,9 +131,13 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
  const roundRoadmap=useMemo(()=>buildRaceFuelRoadmap({
   checkpoints,
   gelEvents:racePlan.status==='ready'?racePlan.events:null,
-  aidEvents:aidPlan.status==='ready'?aidPlan.events:null,
-  eventMenu
- }),[checkpointKey,racePlan,aidPlan,eventMenu])
+  aidEvents:aidPlan.status==='ready'?aidPlan.events:
+   aidPlan.status==='unconfirmed'?[]:null,
+  eventMenu,
+  targetCarbsGPerHour:carbsGPerHour,
+  ownDrinkCarbsGPerHour:Number(settings.drink_carbs_g_per_hour)
+ }),[checkpointKey,racePlan,aidPlan,eventMenu,carbsGPerHour,
+   settings.drink_carbs_g_per_hour])
  useEffect(()=>{
   if(!onScheduleChange||settingsDirty)return // keep last saved schedule while editing
   onScheduleChange(!loading&&loadedKey===key&&racePlan.status==='ready'?
@@ -340,7 +344,7 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
      <p className="gip-guidance">{eventMenu.note}</p>
     </details>}
     <p className="gip-guidance">{eventMenu?
-     'Das Heartbeat-Angebot ist bekannt. Offen sind die MAURTEN-Carbdrink-Variante, Portionsgrößen und die Verfügbarkeit an jeder einzelnen Station.':
+     'MAURTEN Drink Mix 160 ist bestätigt und frei verfügbar. Offen bleiben deine geplante Portion, die tatsächliche Mischung vor Ort und die Verfügbarkeit der anderen Speisen am jeweiligen Stopp.':
      'Welche Getränke und Lebensmittel es gibt, musst du noch prüfen.'}
      {' '}Ohne ausdrücklich bestätigte Mengen werden dafür
      <strong> 0 g KH </strong> angerechnet. Erst dann werden geplante
@@ -373,6 +377,16 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
         value={settings.aid_drink_ml_per_stop}
         onChange={e=>changeSettings({aid_drink_ml_per_stop:Number(e.target.value)})}/>
       </label>
+      {eventMenu&&<div className="gip-mix-quick">
+       <span>Drink Mix 160 · geplante Portion schnell wählen</span>
+       <div>{[0,150,250,500].map(ml=><button type="button" key={ml}
+        className={settings.aid_drink_ml_per_stop===ml?'is-selected':''}
+        aria-pressed={settings.aid_drink_ml_per_stop===ml}
+        onClick={()=>changeSettings({aid_drink_ml_per_stop:ml})}>
+        {ml===0?'Noch offen':ml+' ml · '+fmt(ml*40/500)+' g KH'}</button>)}</div>
+       <small>Nur eine Planmenge für die Vorschau, keine Trinkpflicht und kein Ist-Verbrauch.
+        Erst mit aktivierter Bestätigung und gespeichertem Plan anrechnen.</small>
+      </div>}
       <label>Verpflegung alle wie viele Runden?
        <input type="number" min={1} max={25} step={1}
         value={settings.aid_every_laps}
@@ -448,6 +462,21 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
       Koffein: {racePlan.caffeineMg} mg aus geplanten Gels; frühestens
       {' '}+{settings.caffeine_start_minute} Min. Nur Planung, keine bestätigte Einnahme.</p>
      }
+     {roundRoadmap.status==='ready'&&
+      roundRoadmap.totals?.targetCarbsG!==null&&
+      roundRoadmap.totals?.openCarbsG!==null&&
+      <div className="gip-carb-balance" aria-label="Geplante Kohlenhydratbilanz">
+       <div><small>KH-Richtwert laut Rennstrategie</small>
+        <strong>{fmt(roundRoadmap.totals!.targetCarbsG!)} g</strong></div>
+       <div><small>Aus eingeplanten Quellen</small>
+        <strong>{fmt(roundRoadmap.totals!.plannedTotalCarbsG)} g</strong></div>
+       <div><small>Rechnerisch noch offen</small>
+        <strong>{fmt(roundRoadmap.totals!.openCarbsG!)} g</strong></div>
+       <p>Die Summe berücksichtigt geplante Gels, bestätigte Speiseportionen,
+        Drink Mix 160 und eigene Getränke. Essen ohne verifizierte Portions-KH
+        bleibt bewusst außen vor. Das KH-Ziel ist ein Richtwert über das
+        gesamte Rennen, keine Aufforderung zum hektischen Nachholen.</p>
+      </div>}
      {roundRoadmap.status==='ready'&&<details className="gip-round-plan">
       <summary>{roundRoadmap.rounds.length} Runden · Essensfahrplan, Pausen und Koffein ansehen
        <small>{roundRoadmap.totals?.longStops||0} längere Stopps · nur Planung</small>
@@ -481,15 +510,25 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
           'Essen nur falls vorhanden und gut verträglich.'}</small>}
          <small>{r.coachHint}</small>
         </div>
-        <div className="gip-round-carbs"><strong>{fmt(r.knownCarbsG)} g KH</strong>
+        <div className="gip-round-carbs">
+         <strong>{r.targetCarbsG!==null?
+          fmt(r.plannedTotalCarbsG)+' / '+fmt(r.targetCarbsG)+' g KH':
+          fmt(r.plannedTotalCarbsG)+' g KH geplant'}</strong>
          <small>Gels {fmt(r.gelCarbsG)} · Essen {fmt(r.foodCarbsG)} ·
-          Getränk {fmt(r.drinkCarbsG)}</small>
-         <small>Geplant, nicht verbraucht</small>
+          Drink Mix {fmt(r.drinkCarbsG)} · eigene Drinks {fmt(r.ownDrinkCarbsG)}</small>
+         {r.openCarbsG!==null&&<small className="gip-round-open">
+          {r.openCarbsG>0?
+           fmt(r.openCarbsG)+' g rechnerisch offen':
+           'Runden-Richtwert rechnerisch abgedeckt'}
+         </small>}
+         <small>Nur Planung · kein Ist-Verbrauch</small>
         </div>
        </div>)}</div>
       <p className="gip-disclaimer">{roundRoadmap.note}
-       Eigene Getränke außerhalb der Stationen werden weiterhin separat
-       auf Stundenbasis geplant und sind in den KH je Runde nicht enthalten.</p>
+       Die Bilanz verteilt deine eingetragenen eigenen Getränke anhand der
+       geplanten Runden- und Pausenzeit auf jede Runde. Schwankungen zwischen
+       den Runden sind normal; keine Portion gilt als tatsächlich getrunken
+       oder gegessen.</p>
      </details>}
      {aidPlan.status==='ready'&&aidPlan.events.length>0&&<details className="gip-all">
       <summary>Verpflegung an {aidPlan.events.length} Stationen anzeigen</summary>
