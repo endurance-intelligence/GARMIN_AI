@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react'
 
 const iconShapes: Record<string, ReactNode> = {
+"clipboard-list": <><rect x="8" y="4" width="12" height="17" rx="2"/><path d="M8 7H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11"/><rect x="10" y="2" width="8" height="5" rx="1"/><path d="M11 12h6M11 16h6"/></>,
+"copy": <><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v7a3 3 0 0 0 3 3h2"/></>,
+"download": <><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3"/></>,
+"file-text": <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 12h8M8 16h8"/></>,
 "calendar-off": <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M4 4l16 16"/></>,
 "plane": <><path d="M17.5 21.5 12.4 13 4 8.5l-2 2 8.3 5.5 5.7 8.3 2-2-4.5-8.4 8.5-5.1a2.2 2.2 0 0 0 0-3.1 2.2 2.2 0 0 0-3.1 0L13 12"/><path d="M3.5 3.5 9 9"/></>,
 
