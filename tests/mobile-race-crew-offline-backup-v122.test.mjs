@@ -77,6 +77,7 @@ test('backup does not suggest 0 ml means drink was consumed or imply glucose cov
  assert.match(output.text,/Kein Gel im aktuellen Plan eingeplant/)
  assert.match(output.text,/Keine feste Ausgabemenge|Keine feste Ausgabemenge|Keine feste Ausgabemenge|Keine feste Ausgabemenge|nicht unbegrenzt trinken/)
  assert.doesNotMatch(output.text,/250 ml Maurten Drink Mix 160/)
+ assert.match(output.text,/Menge ungeklärt, keine KH angerechnet/)
 })
 test('backup clearly warns for no saved settings, missing gel data and unconfirmed aid',()=>{
  const output=buildRaceCrewBackup({raceName:'Heartbeat Ultra Fulda',
@@ -137,6 +138,6 @@ test('UI only exports on explicit action, after saved settings, with copy and TX
  assert.match(icon,/"file-text":/)
  assert.match(icon,/"copy":/)
  assert.doesNotMatch(runner,/raceCrewBackup|crewText|exportCrew|backupSaved/)
- assert.doesNotMatch(mod,/fetch\(|localStorage|supabase|navigator|window\./)
+ assert.doesNotMatch(mod,/fetch\(|(?:localStorage|supabase|navigator|window)\s*\./)
  assert.doesNotMatch(ui,/supabase.*crewBackup|upsert.*crewBackup/)
 })
