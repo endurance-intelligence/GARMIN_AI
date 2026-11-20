@@ -133,3 +133,31 @@
 .gip-mix-confirmed strong{color:#cef5d9;font-size:11px}
 .gip-mix-confirmed span{font-size:10px;line-height:1.6;color:#b5dacb}
 @media(max-width:650px){.gip-mix-confirmed{grid-column:span 1}}
+
+
+/* v1.2.1 — voluntary drink portions and four-source per-lap CHO balance. */
+.gip-mix-quick{grid-column:1/-1;display:grid;gap:7px;min-width:0}
+.gip-mix-quick>span{font-size:10px;font-weight:800;color:#d1eadb}
+.gip-mix-quick>div{display:flex;flex-wrap:wrap;gap:7px}
+.gip-mix-quick button{min-height:38px;padding:7px 10px;border-radius:8px;
+ border:1px solid rgba(183,215,193,.25);background:rgba(14,57,58,.4);
+ color:#d1ebdc;font-size:11px;font-weight:750;cursor:pointer}
+.gip-mix-quick button.is-selected,.gip-mix-quick button[aria-pressed="true"]{
+ background:#b7eccb;color:#184637;border-color:#b7eccb}
+.gip-mix-quick button:focus-visible{outline:2px solid #e3ffe9;outline-offset:2px}
+.gip-mix-quick>small{font-size:9px;line-height:1.6;color:#b0cfbf}
+.gip-carb-balance{margin-top:12px;display:grid;
+ grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.gip-carb-balance>div{display:grid;gap:4px;padding:10px;
+ border:1px solid rgba(163,212,188,.22);border-radius:9px;
+ background:rgba(17,53,61,.42)}
+.gip-carb-balance>div small{font-size:9px;color:#afcece;line-height:1.4}
+.gip-carb-balance>div strong{font-size:15px;color:#d8f5e2}
+.gip-carb-balance>p{grid-column:1/-1;font-size:10px;line-height:1.65;
+ color:#aec9c6;margin:0 0 4px}
+.gip-round-open{color:#d0edc3;font-weight:750}
+@media(max-width:700px){
+ .gip-mix-quick button{flex:1 1 105px}
+ .gip-carb-balance{grid-template-columns:1fr 1fr}
+ .gip-carb-balance>div:last-of-type{grid-column:1/-1}
+}

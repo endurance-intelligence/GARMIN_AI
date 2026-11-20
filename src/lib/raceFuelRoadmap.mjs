@@ -12,7 +12,8 @@ const finite=x=>typeof x==='number'&&Number.isFinite(x)
 const one=x=>Math.round(x*10)/10
 
 export function buildRaceFuelRoadmap({
- checkpoints=[],gelEvents=null,aidEvents=null,eventMenu=null
+ checkpoints=[],gelEvents=null,aidEvents=null,eventMenu=null,
+ targetCarbsGPerHour=null,ownDrinkCarbsGPerHour=0
 }={}){
  if(!Array.isArray(checkpoints)||!checkpoints.length||
     checkpoints.length>100||checkpoints.some((r,i)=>
@@ -56,6 +57,26 @@ export function buildRaceFuelRoadmap({
   const foodCarbsG=meal?.plannedFoodCarbsG||0
   const drinkCarbsG=meal?.plannedDrinkCarbsG||0
   const knownCarbsG=one(gelCarbsG+foodCarbsG+drinkCarbsG)
+  // One lap spans previous checkpoint DEPARTURE to this checkpoint DEPARTURE.
+  // The finishing lap ends on arrival. No time or distance is inferred from GPS.
+  const previousDeparture=i===0?0:checkpoints[i-1].departureMinutes
+  const lapEnd=c.finish?c.arrivalMinutes:c.departureMinutes
+  const lapMinutes=Math.max(0,lapEnd-previousDeparture)
+  const validTarget=finite(targetCarbsGPerHour)&&
+   targetCarbsGPerHour>=20&&targetCarbsGPerHour<=150
+  const ownDrinkRate=finite(ownDrinkCarbsGPerHour)&&
+   ownDrinkCarbsGPerHour>=0&&ownDrinkCarbsGPerHour<=150?
+   ownDrinkCarbsGPerHour:0
+  // This hourly rate is already deducted from the GEL plan. Include it
+  // precisely once for a per-lap balance, never again in knownCarbsG.
+  const ownDrinkCarbsG=one(ownDrinkRate*lapMinutes/60)
+  const plannedTotalCarbsG=one(knownCarbsG+ownDrinkCarbsG)
+  const targetCarbsG=validTarget?one(targetCarbsGPerHour*lapMinutes/60):null
+  // A partial/unsaved gel schedule must not pretend to be a complete budget.
+  const budgetReady=targetCarbsG!==null&&Array.isArray(gelEvents)&&
+   Array.isArray(aidEvents)
+  const openCarbsG=budgetReady?
+   one(Math.max(0,targetCarbsG-plannedTotalCarbsG)):null
   const sourceStatus=gelEvents===null&&aidEvents===null?'loading':
     meal?.foodConfirmed||meal?.drinkConfirmed||meal?.gelScheduled?'partial':'unconfirmed'
   return {
@@ -72,6 +93,7 @@ export function buildRaceFuelRoadmap({
    gelCount:meal?.plannedGelCount||0,
    gelCarbsG:one(gelCarbsG),foodCarbsG:one(foodCarbsG),
    drinkCarbsG:one(drinkCarbsG),knownCarbsG,
+   lapMinutes,ownDrinkCarbsG,plannedTotalCarbsG,targetCarbsG,openCarbsG,
    caffeineMg:gelCaffeine,drink:meal?.drink||null,
    sourceStatus,planOnly:true
   }
@@ -85,9 +107,16 @@ export function buildRaceFuelRoadmap({
    gelCarbsG:one(rounds.reduce((sum,r)=>sum+r.gelCarbsG,0)),
    foodCarbsG:one(rounds.reduce((sum,r)=>sum+r.foodCarbsG,0)),
    drinkCarbsG:one(rounds.reduce((sum,r)=>sum+r.drinkCarbsG,0)),
+   ownDrinkCarbsG:one(rounds.reduce((sum,r)=>sum+r.ownDrinkCarbsG,0)),
+   plannedTotalCarbsG:one(rounds.reduce((sum,r)=>sum+r.plannedTotalCarbsG,0)),
+   targetCarbsG:rounds.every(r=>r.targetCarbsG!==null)?
+    one(rounds.reduce((sum,r)=>sum+r.targetCarbsG,0)):null,
+   openCarbsG:rounds.every(r=>r.openCarbsG!==null)?
+    one(Math.max(0,rounds.reduce((sum,r)=>sum+r.targetCarbsG,0)-
+     rounds.reduce((sum,r)=>sum+r.plannedTotalCarbsG,0))):null,
    caffeineMg:one(rounds.reduce((sum,r)=>sum+r.caffeineMg,0))
   },
-  note:'Nur Planung: Keine Portion als konsumiert verbucht. Speisen nur, wenn verfügbar und verträglich; unbekannte KH zählen nicht.',
+  note:'Nur Planung: Keine Portion als konsumiert verbucht. Jede Runde ist ein Richtwert, kein Zwang oder tatsächlicher Verbrauch. KH aus unbestätigten Essensportionen zählen nicht. Über mehrere Runden ausgleichen, nicht hektisch nachholen.',
   planOnly:true
  }
 }
