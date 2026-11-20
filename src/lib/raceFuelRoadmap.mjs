@@ -116,7 +116,7 @@ export function buildRaceFuelRoadmap({
      rounds.reduce((sum,r)=>sum+r.plannedTotalCarbsG,0))):null,
    caffeineMg:one(rounds.reduce((sum,r)=>sum+r.caffeineMg,0))
   },
-  note:'Nur Planung: Jede Runde ist ein Richtwert, kein Zwang oder tatsächlicher Verbrauch. KH aus unbestätigten Essensportionen zählen nicht. Über mehrere Runden ausgleichen, nicht hektisch nachholen.',
+  note:'Nur Planung: Keine Portion als konsumiert verbucht. Jede Runde ist ein Richtwert, kein Zwang oder tatsächlicher Verbrauch. KH aus unbestätigten Essensportionen zählen nicht. Über mehrere Runden ausgleichen, nicht hektisch nachholen.',
   planOnly:true
  }
 }
