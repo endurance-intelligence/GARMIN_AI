@@ -62,7 +62,9 @@ export function buildRaceCrewBackup({raceName='',raceDate='',startTime='',
       ' (Vorschlag, Portions-KH NICHT angerechnet)'))
    }
    if(safeText(r.drink))lines.push('  Getränk: '+safeText(r.drink)+
-    ' (Planmenge, nicht Ist-Trinkmenge)')
+    (Number(r.drinkCarbsG)>0?
+     ' (geplante Portion, kein Ist-Verbrauch)':
+     ' (frei erhältlich oder möglich; Menge ungeklärt, keine KH angerechnet)'))
    if(r.breakType==='long')
     lines.push('  Crew: Schuhe/Kleidung prüfen; feste Nahrung nur nach Verträglichkeit.')
   }
