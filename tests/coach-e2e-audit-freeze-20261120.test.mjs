@@ -156,10 +156,10 @@ test('real API contracts: authenticated weekly board delivers exactly the RPE fi
  assert.match(snapshotFile,/get\('garmin-training-plan'\)/)
  assert.match(snapshotFile,/get\('garmin-coach-context'\)/)
  assert.match(snapshotFile,/garmin-week-board\?start=/)
- assert.match(coach,/<GarminFeedbackCard snapshot=\{snapshot\} today=\{today\}/>)
+ assert.ok(coach.includes('<GarminFeedbackCard snapshot={snapshot} today={today}/>'))
  assert.doesNotMatch(feedback,/<select|<textarea|record_workout_feedback/)
- assert.match(coach,/<CoachRaceRecoveryCard review=\{plan.autoRaceRecovery\}/>)
- assert.match(coach,/<CoachNextImpactCard impact=\{plan.nextImpact\}/>)
+ assert.ok(coach.includes('<CoachRaceRecoveryCard review={plan.autoRaceRecovery}'))
+ assert.ok(coach.includes('<CoachNextImpactCard impact={plan.nextImpact}/>'))
 })
 
 test('race freeze: QA stays read-only and does not reference Heartbeat runner modules',()=>{
