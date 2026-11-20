@@ -3,6 +3,7 @@ import {garminSupabase} from '../lib/garminSupabase'
 import {buildGelPlan} from '../lib/gelTiming.mjs'
 import {buildAidPlan} from '../lib/raceAidPlan.mjs'
 import {buildRaceFuelRoadmap} from '../lib/raceFuelRoadmap.mjs'
+import {buildRaceCrewBackup} from '../lib/raceCrewBackup.mjs'
 import {eventMenuForRace} from '../lib/raceEventMenu.mjs'
 import type {AidPlanEvent} from '../lib/raceAidPlan.mjs'
 import type {RaceCheckpoint} from '../lib/raceExecution.mjs'
@@ -68,6 +69,8 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
  const [error,setError]=useState('')
  const [confirmRemove,setConfirmRemove]=useState('')
  const [loadedKey,setLoadedKey]=useState('')
+ const [hasSavedPrefs,setHasSavedPrefs]=useState(false)
+ const [crewTextOpen,setCrewTextOpen]=useState(false)
  const key=goal.race_date+'|'+goal.race_name
  useEffect(()=>{
   if(!active||!garminSupabase)return
@@ -99,6 +102,8 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
     allow_caffeine:Boolean(prefs.data?.allow_caffeine)})
    // Never auto-publish changed carb math from conflicting old settings.
    setSettingsDirty(Boolean(confirmed160&&prefs.data&&prefs.data.aid_drink_mix!=='160'))
+   setHasSavedPrefs(Boolean(prefs.data))
+   setCrewTextOpen(false)
    setLoadedKey(key)
   })().catch(e=>{if(live)setError(e instanceof Error?e.message:'Gel-Daten nicht verfügbar')})
    .finally(()=>{if(live)setLoading(false)})
@@ -148,6 +153,44 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
   onAidScheduleChange(!loading&&loadedKey===key&&aidPlan.status==='ready'?
    aidPlan.events:null)
  },[onAidScheduleChange,loading,loadedKey,key,aidPlan,settingsDirty])
+ const backupSaved=!loading&&loadedKey===key&&hasSavedPrefs&&!settingsDirty
+ const crewBackup=useMemo(()=>buildRaceCrewBackup({
+  raceName:goal.race_name,raceDate:goal.race_date,
+  startTime:goal.race_start_time||'',
+  roadmap:roundRoadmap,eventMenu,
+  gelScheduleReady:racePlan.status==='ready',
+  aidScheduleReady:aidPlan.status==='ready',
+  planSaved:backupSaved
+ }),[goal.race_name,goal.race_date,goal.race_start_time,roundRoadmap,eventMenu,
+   racePlan.status,aidPlan.status,backupSaved])
+ const canExportCrew=backupSaved&&crewBackup.status!=='missing'
+ const crewFilename='race-crew-'+goal.race_date.replace(/[^0-9-]/g,'')+'.txt'
+ async function copyCrewBackup(){
+  if(!canExportCrew)return
+  try{
+   if(!navigator.clipboard?.writeText)throw Error('Clipboard not available')
+   await navigator.clipboard.writeText(crewBackup.text)
+   setNotice('Crew-Spickzettel kopiert. Bitte in Notizen oder an die Crew senden.')
+  }catch{
+   setCrewTextOpen(true)
+   setNotice('Direktes Kopieren auf diesem Gerät nicht verfügbar. Text unten manuell auswählen und sichern.')
+  }
+ }
+ function downloadCrewBackup(){
+  if(!canExportCrew)return
+  try{
+   const blob=new Blob([crewBackup.text],{type:'text/plain;charset=utf-8'})
+   const url=URL.createObjectURL(blob)
+   const anchor=document.createElement('a')
+   anchor.href=url;anchor.download=crewFilename
+   document.body.appendChild(anchor);anchor.click();anchor.remove()
+   window.setTimeout(()=>URL.revokeObjectURL(url),1500)
+   setNotice('Crew-Spickzettel als Textdatei erstellt. Im Downloadordner sichern.')
+  }catch{
+   setCrewTextOpen(true)
+   setNotice('Dateidownload nicht möglich. Spickzettel unten manuell kopieren.')
+  }
+ }
  const ordered=[...inventory].sort((a,b)=>a.priority-b.priority||
   (byId.get(a.catalog_id||'')?.brand||a.custom_brand||'').localeCompare(
   byId.get(b.catalog_id||'')?.brand||b.custom_brand||''))
@@ -242,6 +285,8 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
     .upsert(payload,{onConflict:'user_id,race_date,race_name'}).select('race_date').single()
    if(dbError||!data)throw Error(dbError?.message||'Einstellungen nicht gespeichert.')
    setSettingsDirty(false)
+   setHasSavedPrefs(true)
+   setCrewTextOpen(false)
    setNotice('Verpflegungs- und Koffeinplanung für diesen Wettkampf gespeichert.')
   }catch(e){setError(e instanceof Error?e.message:'Einstellungen konnten nicht gespeichert werden.')}
   finally{setBusy('')}
@@ -477,6 +522,35 @@ export function GelInventoryPlanner({active,goal,durationMinutes,carbsGPerHour,
         bleibt bewusst außen vor. Das KH-Ziel ist ein Richtwert über das
         gesamte Rennen, keine Aufforderung zum hektischen Nachholen.</p>
       </div>}
+     {roundRoadmap.status==='ready'&&
+      <details className="gip-crew-backup">
+       <summary><Icon name="clipboard-list"/> Crew-Spickzettel für den Renntag sichern</summary>
+       <p>Alle Runden mit Soll-Uhrzeiten, Gels, Essen, Trinkplan,
+        langen Pausen und geplantem Koffein. Nur Sollwerte, kein Live-Tracking.
+        Als Textdatei oder in deinen Notizen auch ohne Internet lesbar.</p>
+       {(!hasSavedPrefs||settingsDirty||loading||loadedKey!==key)&&
+        <p className="gip-note">Zuerst den Verpflegungsplan für diesen Wettkampf
+         speichern. Eine ungespeicherte Vorschau wird nicht als Rennbackup ausgegeben.</p>}
+       {canExportCrew&&crewBackup.warnings.length>0&&
+        <p className="gip-note">Dieser Spickzettel enthält offene Punkte:
+         {' '}{crewBackup.warnings.join(' · ')}.
+         Bitte den Plan vor dem Start prüfen.</p>}
+       <div className="gip-crew-actions">
+        <button type="button" disabled={!canExportCrew} onClick={()=>void copyCrewBackup()}>
+         <Icon name="copy"/> Spickzettel kopieren</button>
+        <button type="button" disabled={!canExportCrew} onClick={downloadCrewBackup}>
+         <Icon name="download"/> Als TXT sichern</button>
+        <button type="button" disabled={!canExportCrew}
+         onClick={()=>setCrewTextOpen(v=>!v)}>
+         <Icon name="file-text"/> {crewTextOpen?'Text schließen':'Text anzeigen'}</button>
+       </div>
+       {crewTextOpen&&canExportCrew&&<textarea className="gip-crew-text"
+        aria-label="Crew-Spickzettel zum manuellen Kopieren"
+        readOnly rows={12} value={crewBackup.text}/>}
+       <p className="gip-disclaimer">Backup nur vor dem Start erstellen und außerhalb
+        von GARMIN_AI sichern. Beim Speichern neuer Verpflegungseinstellungen bitte
+        die Datei erneut erzeugen. Ein exportierter Text aktualisiert sich nicht automatisch.</p>
+      </details>}
      {roundRoadmap.status==='ready'&&<details className="gip-round-plan">
       <summary>{roundRoadmap.rounds.length} Runden · Essensfahrplan, Pausen und Koffein ansehen
        <small>{roundRoadmap.totals?.longStops||0} längere Stopps · nur Planung</small>

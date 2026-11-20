@@ -161,3 +161,29 @@
  .gip-carb-balance{grid-template-columns:1fr 1fr}
  .gip-carb-balance>div:last-of-type{grid-column:1/-1}
 }
+
+/* v1.2.2 — a print-friendly, copyable crew backup; folded away by default. */
+.gip-crew-backup{margin:12px 0;border:1px solid rgba(152,211,189,.32);
+ border-radius:10px;background:rgba(17,56,63,.35);overflow:hidden}
+.gip-crew-backup>summary{cursor:pointer;padding:12px 14px;display:flex;align-items:center;
+ gap:8px;color:#e6f7e9;font-size:11px;font-weight:800;min-height:43px}
+.gip-crew-backup>summary .ic{width:15px;height:15px}
+.gip-crew-backup>summary:focus-visible{outline:2px solid #daffe9;outline-offset:-3px}
+.gip-crew-backup>p{margin:0 13px 10px;font-size:10px;line-height:1.65;color:#bdd7d1}
+.gip-crew-actions{display:flex;gap:7px;flex-wrap:wrap;padding:0 12px 12px}
+.gip-crew-actions button{display:inline-flex;align-items:center;justify-content:center;
+ gap:6px;min-height:40px;padding:9px 10px;border:1px solid rgba(159,214,183,.37);
+ border-radius:8px;background:rgba(63,111,100,.35);color:#e7f6ed;
+ font-size:11px;font-weight:760;cursor:pointer}
+.gip-crew-actions button .ic{width:14px;height:14px}
+.gip-crew-actions button:disabled{opacity:.42;cursor:not-allowed}
+.gip-crew-actions button:focus-visible{outline:2px solid #e0ffea;outline-offset:2px}
+.gip-root .gip-crew-text{box-sizing:border-box;display:block;width:calc(100% - 26px);
+ min-height:210px;height:auto;margin:0 13px 10px;padding:10px;resize:vertical;
+ border-radius:8px;border:1px solid rgba(160,201,195,.33);background:#101c2c;
+ color:#e3f2e9;font-size:11px;line-height:1.6;white-space:pre;font-family:ui-monospace,monospace}
+.gip-crew-backup>.gip-disclaimer{color:#a4c2bd;font-size:9px}
+@media(max-width:650px){.gip-crew-actions button{flex:1 1 130px;min-height:44px}
+ .gip-crew-backup>summary{padding:11px;font-size:11px}
+ .gip-crew-backup>p{margin:0 11px 10px}
+ .gip-root .gip-crew-text{margin:0 11px 10px;width:calc(100% - 22px)}}
