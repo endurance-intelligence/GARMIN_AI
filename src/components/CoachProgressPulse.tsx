@@ -40,7 +40,7 @@ export function CoachProgressPulse({today,snapshot,onOpenLongTerm,onGoals}:{
      'Summe der vier vollständigen Wochen'}</small>
    </div>
    <div className="cpp-metric">
-    <span><Icon name="activity"/> LÄNGSTER LAUF</span>
+    <span><Icon name="activity"/> LÄNGSTER BELEGTER LAUF</span>
     <strong>{progress.longest?progress.longest.minutes+' Min.':'–'}</strong>
     <small>{progress.longest?
      (progress.longest.distanceKm===null?'Distanz nicht verfügbar':
