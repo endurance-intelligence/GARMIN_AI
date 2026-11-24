@@ -52,8 +52,9 @@ export function analyzeAutoRaceRecovery({today,goal,boards=[],health={},life={}}
  const activities=Array.isArray(boards)?boards.flatMap(b=>Array.isArray(b?.activities)?b.activities:[]):[]
  const checks=Array.isArray(life?.context?.race_recovery_checks)?
   life.context.race_recovery_checks:[]
- const outcome=assessRaceOutcome({raceDate,raceDistanceKm:Number(goal.distance_km),
-  plannedMinutes:null,board:{activities},checks})
+ const links=Array.isArray(life?.context?.race_activity_links)?life.context.race_activity_links:[]
+ const outcome=assessRaceOutcome({raceDate,raceName:String(goal.race_name||'Wettkampf'),
+  raceDistanceKm:Number(goal.distance_km),plannedMinutes:null,board:{activities},checks,links})
  const validCheck=outcome.raceCheck&&isDate(outcome.raceCheck.reportedOn)&&
   outcome.raceCheck.reportedOn<=today?outcome.raceCheck:null
  const metrics=Array.isArray(health?.metrics)?health.metrics:[]
@@ -105,7 +106,7 @@ export function analyzeAutoRaceRecovery({today,goal,boards=[],health={},life={}}
  }
  if(recoveryCaution)next='Die vorhandenen Garmin-/Erholungsangaben sprechen für mehr Ruhe. '+
   'Keine Intensität und keine Umfangssteigerung. Bei ungewöhnlichen Symptomen medizinisch abklären.'
- const status=outcome.matchStatus==='unique'?'matched':
+ const status=['unique','confirmed'].includes(outcome.matchStatus)?'matched':
   outcome.matchStatus==='ambiguous'?'ambiguous':'awaiting-sync'
  return {status,raceDate,raceName:String(goal.race_name||'Wettkampf'),
   daysSince,phase,title,next,matchStatus:outcome.matchStatus,
@@ -114,10 +115,15 @@ export function analyzeAutoRaceRecovery({today,goal,boards=[],health={},life={}}
   garminFeeling:outcome.garminFeeling,
   signals,recoveryCaution,healthEvidence,
   objectiveRecoveryUnknown:healthEvidence<2,checked:!!validCheck,check:validCheck,
-  source:'Garmin · eindeutige Aktivität nach Datum und Distanz, eigene Garmin-Bewertungen und Erholungsmessungen',
+  source:outcome.matchStatus==='confirmed'?
+   'Vom Athleten ausdrücklich bestätigte Garmin-Aufzeichnung; Garmin-RPE und Erholung':
+   'Garmin · eindeutige Aktivität nach Datum und Distanz, eigene Garmin-Bewertungen und Erholungsmessungen',
   careNote:status==='matched'?
-   'Zuordnung plausibel anhand Garmin-Datum und -Distanz; kein amtliches Rennergebnis. '+
-   'Gute Messwerte allein erlauben keine Rückkehr zum Laufen.':
+   (outcome.matchStatus==='confirmed'?
+    'Diese Garmin-Aufzeichnung wurde von dir als Renneinsatz bestätigt. ':
+    'Zuordnung plausibel anhand Garmin-Datum und -Distanz. ')+
+   (outcome.partial?'Die geplante Renndistanz wurde nicht vollständig erreicht. ':'')+
+   'Kein amtliches Rennergebnis. Gute Messwerte allein erlauben keine Rückkehr zum Laufen.':
    status==='ambiguous'?'Mehrere unterschiedliche Garmin-Läufe passen; keine automatische Zuordnung.':
     'Noch keine eindeutig passende Garmin-Aufzeichnung. Eine spätere Synchronisierung ist möglich.'}
 }
