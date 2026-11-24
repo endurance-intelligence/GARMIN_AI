@@ -12,6 +12,7 @@ import type {GelPlanEvent} from '../lib/gelTiming.mjs'
 import {GelInventoryPlanner} from './GelInventoryPlanner'
 import {RaceAfterActionCard} from './RaceAfterActionCard'
 import type {CoachGoal} from '../lib/coachGoal'
+import {berlinDateToday} from '../lib/coachGoal'
 import '../styles/race-strategy.css'
 
 type Mode='laps'|'point_to_point'|'other'
@@ -245,23 +246,28 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
   }catch(e){setError(e instanceof Error?e.message:'Rennplan nicht gespeichert.')}
   finally{setBusy(false)}
  }
+ const isPastRace=Boolean(goal&&goal.race_date<berlinDateToday())
  if(!active)return null
- return <details className="rsp-root" open aria-label="Deine Rennstrategie und Verpflegung">
+ return <details className="rsp-root" open aria-label={isPastRace?
+  'Dein abgeschlossener Wettkampf und Garmin-Rennrückblick':
+  'Deine Rennstrategie und Verpflegung'}>
   <summary className="rsp-heading">
    <span className="rsp-heading-icon"><Icon name="flag"/></span>
    <span className="rsp-heading-copy">
-    <small>DEIN NÄCHSTES EVENT / RENNPLAN</small>
-    <strong>Runner Mode · nächste Runde</strong>
+    <small>{isPastRace?'WETTKAMPF BEENDET / RÜCKBLICK':'DEIN NÄCHSTES EVENT / RENNPLAN'}</small>
+    <strong>{isPastRace?'Rennrückblick · Garmin zuordnen':'Runner Mode · nächste Runde'}</strong>
     <span>{goal?goal.race_name+' · '+goal.race_date.split('-').reverse().join('.'):
      'Bitte zuerst dein Hauptziel unter Goals festlegen.'}</span>
    </span>
-   <span className="rsp-state">{saved?'Gespeichert':loading?'Lädt …':goal&&recommendRacePlan(goal)?'Auto-Plan':'Entwurf'}</span>
+   <span className="rsp-state">{isPastRace?'Rennen beendet':saved?'Gespeichert':loading?'Lädt …':goal&&recommendRacePlan(goal)?'Auto-Plan':'Entwurf'}</span>
    <Icon name="chevron-down"/>
   </summary>
   <div className="rsp-body">
    {error&&<p className="rsp-error" role="alert">{error}</p>}
    {notice&&<p className="rsp-success" role="status">{notice}</p>}
    {goal&&<>
+    {isPastRace&&<RaceAfterActionCard goal={goal}
+     plannedMinutes={calculation?.totalMinutes??null} onCoach={onCoach}/>}
     {offlineMode&&<p className="rsp-weather">Lokale Sicherung geladen. Gel-Vorrat und Wetter können veraltet sein.
      Für einen vollständigen Neustart ohne Internet ist keine App-Offline-Installation eingerichtet.</p>}
     {executionInput&&viewerId&&<RaceDayCockpit active={active} goal={goal}
@@ -348,8 +354,6 @@ export function RaceStrategyCard({active,onCoach,forecast}:{active:boolean;onCoa
        onChange={e=>update('gearNotes',e.target.value)}/></label>
     </div>
     </details>
-    <RaceAfterActionCard goal={goal} plannedMinutes={calculation?.totalMinutes??null}
-     onCoach={onCoach}/>
     <div className="rsp-actions">
      <p>Deine Rennstrategie bleibt privat in GARMIN_AI. Keine automatische Trainingsfreigabe.</p>
      <button type="button" disabled={busy||loading||offlineMode} onClick={()=>void save()}>
