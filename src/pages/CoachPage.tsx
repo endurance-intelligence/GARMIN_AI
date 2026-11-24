@@ -9,6 +9,7 @@ import {CrossTrainingCoachCard} from '../components/CrossTrainingCoachCard'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {CoachSevenDay} from '../components/CoachSevenDay'
 import {CoachDailyBrief} from '../components/CoachDailyBrief'
+import {AskCoachCard} from '../components/AskCoachCard'
 import {CoachProgressPulse} from '../components/CoachProgressPulse'
 import {CoachSessionBridge} from '../components/CoachSessionBridge'
 import {CoachEvidenceSummary} from '../components/CoachEvidenceSummary'
@@ -115,6 +116,10 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
  {dailyBrief&&!snapshotLoading&&!snapshotError&&<CoachDailyBrief brief={dailyBrief}
   onDecision={openCoachDecision}
   onReportSymptoms={()=>setHealthOpenToken(n=>n+1)}/>}
+ {sharedSnapshot&&dailyPlan&&!snapshotLoading&&!snapshotError&&<AskCoachCard
+  today={coachToday} snapshot={sharedSnapshot} plan={dailyPlan}
+  onDecision={openCoachDecision} onProgress={openProgressHistory}
+  onGoals={()=>onGo('goals')} onSymptoms={()=>setHealthOpenToken(n=>n+1)}/>}
  {sharedSnapshot&&!snapshotLoading&&!snapshotError&&<CoachProgressPulse
   today={coachToday} snapshot={sharedSnapshot}
   onOpenLongTerm={openProgressHistory} onGoals={()=>onGo('goals')}/>}
