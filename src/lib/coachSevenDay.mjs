@@ -5,6 +5,7 @@ import {applyPolarizedGuidance} from './polarizedTraining.mjs'
 import {analyzeGarminPerception} from './garminPerception.mjs'
 import {analyzeCoachFourWeeks} from './coachFourWeeks.mjs'
 import {applyWorkoutToleranceGuidance} from './coachWorkoutTolerance.mjs'
+import {getTrainingGoalMode} from './trainingGoalMode.mjs'
 import {analyzeAdaptiveVolume,applyAdaptiveVolume} from './coachAdaptiveVolume.mjs'
 import {analyzeAutoRaceRecovery} from './raceRecoveryIntelligence.mjs'
 import {analyzeRecentCoachImpact,applyRecentCoachImpact} from './coachNextImpact.mjs'
@@ -105,6 +106,7 @@ export function buildSevenDayCoach(input){
     String(b.reportedOn).localeCompare(String(a.reportedOn)))[0]||null
  const isUnavailable=day=>blocks.find(b=>day>=b.start&&day<=b.end)
  const goal=input.goal?.goal||null
+ const trainingGoalMode=getTrainingGoalMode(goal,today)
  const raceDate=typeof goal?.race_date==='string'&&
   /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(goal.race_date)?goal.race_date:null
  const raceOffset=raceDate?Math.round((Date.parse(raceDate+'T12:00:00Z')-Date.parse(today+'T12:00:00Z'))/ONE_DAY):null
@@ -159,7 +161,9 @@ export function buildSevenDayCoach(input){
   latest&&pulse?.median!=null?'Ruhepuls '+quant(pulse.value,' bpm')+'; Median '+quant(pulse.median,' bpm'):'Ruhepuls: kein ausreichender Vergleich',
   latest&&sleep?.median!=null?'Schlaf '+quant(sleep.value===null?null:sleep.value/3600,' h')+
    '; Median '+quant(sleep.median/3600,' h'):'Schlaf: kein ausreichender Vergleich',
-  raceDate?'Wettkampfziel '+goal.race_name+' am '+raceDate:'Kein Wettkampfziel verfügbar',
+  trainingGoalMode.mode==='race'?'Wettkampfziel '+goal.race_name+' am '+raceDate:
+   trainingGoalMode.mode==='maintenance'?'Fit halten · '+trainingGoalMode.weeklyKm+' km/Woche als Richtwert, kein Kilometerzwang':
+   raceDate?'Vergangener Wettkampf: '+goal.race_name+' · neues Ziel oder Trainingsniveau wählen':'Kein Wettkampfziel verfügbar',
   crossNote
  ]
  if(activeRaceRecovery)flags.push(
@@ -448,7 +452,12 @@ export function buildSevenDayCoach(input){
   ill,returning,postIllness,symptoms:!!input.symptoms,caution,feedbackCaution,
   trendReducing,trendShortening,observationLimited,
   recentImpactEffect:adapted.impact.effect})
- const volumeStep=applyAdaptiveVolume(adapted.days,volume,{today})
+ // A completed race is not a mandate for further progression. Keep reductions and
+ // all race/health guards, but never add volume while waiting for a new goal or holding fitness.
+ const effectiveVolume=trainingGoalMode.mode!=='race'&&raceDate&&volume.status==='progress'?
+  {...volume,status:'maintain',title:'Trainingsniveau beibehalten',changeMinutes:0,
+   reason:trainingGoalMode.mode==='maintenance'?'Fit halten · '+trainingGoalMode.weeklyKm+' km/Woche als Richtwert. Keine automatische Umfangssteigerung.':'Wettkampf vorbei. Erst neues Ziel oder Trainingsniveau wählen.'}:volume
+ const volumeStep=applyAdaptiveVolume(adapted.days,effectiveVolume,{today})
  if(volumeStep.appliedDate)flags.push('Adaptive Umfangssteuerung ('+
   volumeStep.appliedDate+'): '+volume.reason)
  // A workout-type signal can only refine an open suggestion in normal
@@ -504,7 +513,8 @@ export function buildSevenDayCoach(input){
   fourWeekReview,
   autoRaceRecovery,
   nextImpact:adapted.impact,
-  adaptiveVolume:{...volume,appliedDate:volumeStep.appliedDate},
+  trainingGoalMode,
+  adaptiveVolume:{...effectiveVolume,appliedDate:volumeStep.appliedDate},
   feedbackTrend:{level:feedbackTrend.level,kind:feedbackTrend.kind,
    count14:feedbackTrend.count14,count28:feedbackTrend.count28}}
 }

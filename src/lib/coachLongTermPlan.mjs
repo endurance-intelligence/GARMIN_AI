@@ -1,6 +1,7 @@
 import {coachAddDays,coachMonday} from './coachSevenDay.mjs'
 import {analyzeWorkoutFeedbackTrend} from './feedbackTrend.mjs'
 import {POLARIZED_METHOD} from './polarizedTraining.mjs'
+import {getTrainingGoalMode} from './trainingGoalMode.mjs'
 
 const DAY=86400000
 const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&
@@ -36,6 +37,7 @@ const startOfWeek=day=>coachMonday(day)
 export function buildLongTermCoachPlan({today,goal,health,life}){
  if(!validDate(today))throw Error('Ungültiges Coach-Datum')
  const target=goal?.goal||null
+ const trainingMode=getTrainingGoalMode(target,today)
  const raceDate=validDate(target?.race_date)?target.race_date:null
  const name=typeof target?.race_name==='string'?target.race_name.trim():''
  const distance=Number(target?.distance_km)
@@ -56,9 +58,28 @@ export function buildLongTermCoachPlan({today,goal,health,life}){
  if(returning)notes.push('Wiedereinstieg: Belastung nur vorsichtig und nach deinem Feedback steigern.')
  if(feedback.kind==='reduce'||feedback.kind==='shorten')
   notes.push('Dein Feedback aus den letzten 14 Tagen spricht für einen vorsichtigeren Aufbau.')
+ if(trainingMode.mode==='maintenance'&&raceDate&&between(today,raceDate)<-14){
+  const weeks=[]
+  const km=trainingMode.weeklyKm
+  for(let i=0;i<4;i++){
+   const start=coachAddDays(startOfWeek(today),i*7),end=coachAddDays(start,6)
+   const hold=sick||returning||feedback.kind==='reduce'||feedback.kind==='shorten'||blocks.some(b=>b.start<=end&&b.end>=start)
+   const reliable=baseKm!==null&&!hold
+   const cap=reliable?Math.min(km,baseKm):null
+   const low=cap===null?null:Math.round(cap*(i===3?.7:.85)),high=cap===null?null:Math.round(cap*(i===3?.85:1))
+   weeks.push({index:i+1,start,end,phase:hold?'paused':'base',phaseLabel:hold?'Pause':'Fitness erhalten',
+    trainingMethod:'polarized',qualityOptions:0,polarization:'Überwiegend locker, Intensität individuell prüfen.',
+    focus:hold?'Erholung hat Vorrang.':'Regelmäßige lockere Läufe, Stabilität und Erholung. Keine Kilometer nachholen.',
+    key:'Fit halten · '+km+' km/Woche als gewünschter Richtwert',targetKm:low===null?null:{low,high},longRunMinutes:null,
+    kind:'Fitness erhalten',isCurrent:i===0,isRaceWeek:false,status:hold?'caution':'draft'})
+  }
+  return {raceName:null,raceDate:null,baselineKm:baseKm,weeks,hasGoal:false,
+   message:'Fitness erhalten bei '+km+' km/Woche als Richtwert. Coach begrenzt den Planungsrahmen auf die belegte aktuelle Laufbasis und berücksichtigt Erholung.',
+   notes,period:'4 Wochen',source:'Garmin + gewähltes Trainingsniveau',trainingMethod:POLARIZED_METHOD.id}
+ }
  if(!raceDate||between(today,raceDate)<-14)return {
   raceName:name||null,raceDate,baselineKm:baseKm,weeks:[],hasGoal:false,
-  message:'Bitte zuerst ein aktuelles Hauptziel setzen. Danach entsteht dein individueller Trainingsfahrplan.',
+  message:'Wähle ein neues Ziel oder lege fest, auf welchem Trainingsniveau du fit bleiben möchtest.',
   notes,period:'12 Wochen',source:'Garmin + Ziel + deine Rückmeldungen',
   trainingMethod:POLARIZED_METHOD.id}
  const monday=startOfWeek(today)
@@ -135,7 +156,8 @@ export function buildLongTermCoachPlan({today,goal,health,life}){
   'Nach dem Rennen hat Erholung Vorrang. Ein neuer Aufbau entsteht erst mit dem nächsten Ziel.')
  return {
   raceName:name||null,raceDate,baselineKm:baseKm,weeks,hasGoal:true,
-  message:'Grober Fahrplan für dein Ziel. Die konkreten nächsten sieben Tage entscheidet der Coach mit dir.',
+  message:trainingMode.mode==='race'?'Grober Fahrplan für dein Ziel. Die konkreten nächsten sieben Tage entscheidet der Coach mit dir.':
+   'Der Wettkampf liegt zurück. Die aktuelle Vorschau dient nur der Regeneration. '+(trainingMode.mode==='maintenance'?'Danach gilt dein gewähltes Trainingsniveau.':'Wähle ein neues Ziel oder fit halten.'),
   notes:[...new Set(notes)],period:'Bis zu 12 Wochen',
   source:'Garmin + Hauptziel + deine Rückmeldungen',
   trainingMethod:POLARIZED_METHOD.id

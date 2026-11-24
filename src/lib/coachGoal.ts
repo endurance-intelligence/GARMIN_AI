@@ -4,7 +4,8 @@
  */
 export type CoachGoal={
  race_name:string;race_date:string;distance_km:number;target_hours:number|null;
- race_location:string;race_start_time:string|null;coach_note:string;updated_at:string
+ race_location:string;race_start_time:string|null;coach_note:string;updated_at:string;
+ maintenance_weekly_km?:number|null
 }
 export type CoachPhase='base'|'build'|'specific'|'peak'|'taper'|'race'|'recovery'|'expired'
 export function berlinDateToday(now=Date.now()){

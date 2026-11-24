@@ -39,7 +39,7 @@ export function GoalsPage({active,onGo}:{active:boolean;onGo:(page:Page)=>void})
   <header className="page-intro goals-intro">
    <div><div className="eyebrow">GARMIN_AI / GOALS</div>
     <h1>Deine Ziele. Dein Weg.</h1>
-    <p>Hauptziel, weitere Rennen und langfristiger Trainingsaufbau – alles an einem Ort.</p></div>
+    <p>Wettkampf oder Fitness erhalten – du bestimmst, worauf der Coach hinarbeitet.</p></div>
    <button type="button" className="goals-race-link" onClick={()=>onGo('race')}>
     <Icon name="flag"/> Race Prep öffnen <Icon name="arrow-up-right"/>
    </button>

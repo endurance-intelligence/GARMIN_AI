@@ -84,7 +84,24 @@ Deno.serve(async req=>{
   }
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(input.id||'')))
    return reply(422,{error:'Ungültige Zielkennung'},h)
+  if(input.action==='update'){
+   if(!validGoal(input))return reply(422,{error:'Wettkampfdatum oder Zielangaben prüfen.'},h)
+   const {data:main,error:mainError}=await db.from('garmin_coach_goals').select('race_name,race_date').eq('user_id',user.id).maybeSingle()
+   if(mainError)return reply(503,{error:'Hauptziel nicht verfügbar'},h)
+   if(main?.race_name===String(input.raceName).trim()&&main?.race_date===input.raceDate)return reply(409,{error:'Dieses Rennen ist bereits dein Hauptziel.'},h)
+   const {data,error}=await db.from('garmin_coach_secondary_goals').update({race_name:String(input.raceName).trim(),race_date:input.raceDate,distance_km:input.distanceKm,target_hours:input.targetHours,race_location:String(input.raceLocation).trim(),race_start_time:input.raceStartTime,coach_note:String(input.coachNote).trim(),updated_at:new Date().toISOString()})
+    .eq('user_id',user.id).eq('id',input.id).select(fields).maybeSingle()
+   if(error)return reply(409,{error:'Änderung nicht gespeichert. Prüfe, ob das Ziel bereits existiert.'},h)
+   if(!data)return reply(404,{error:'Ziel nicht gefunden'},h)
+   return reply(200,{saved:true,goal:data,primaryUnchanged:true},h)
+  }
   if(input.action==='promote'){
+   const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
+   const today=['year','month','day'].map(type=>parts.find(p=>p.type===type)?.value).join('-')
+   const {data:chosen,error:chosenError}=await db.from('garmin_coach_secondary_goals').select('race_date').eq('user_id',user.id).eq('id',input.id).maybeSingle()
+   if(chosenError)return reply(503,{error:'Ziel nicht verfügbar'},h)
+   if(!chosen)return reply(404,{error:'Ziel nicht gefunden'},h)
+   if(chosen.race_date<today)return reply(409,{error:'Vergangene Rennen können kein aktives Hauptziel werden.'},h)
    const {data,error:promoteError}=await db.rpc('garmin_promote_race_goal',
     {p_user_id:user.id,p_secondary_id:input.id})
    if(promoteError)return reply(503,{error:'Hauptziel konnte nicht gewechselt werden.'},h)

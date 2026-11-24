@@ -47,7 +47,7 @@ Deno.serve(async req=>{
   const db=createClient(project,key('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
   if(req.method==='GET'){
    const {data,error}=await db.from('garmin_coach_goals')
-    .select('race_name,race_date,distance_km,target_hours,race_location,race_start_time,coach_note,updated_at')
+    .select('race_name,race_date,distance_km,target_hours,race_location,race_start_time,coach_note,updated_at,maintenance_weekly_km')
     .eq('user_id',user.id).maybeSingle()
    if(error)return response(503,{error:'Goal not available'},h)
    return response(200,{goal:data||null,phaseCalculated:true,autoSchedule:false},h)
@@ -58,6 +58,17 @@ Deno.serve(async req=>{
   try{input=JSON.parse(raw)}catch{return response(422,{error:'Invalid JSON'},h)}
   if(!input||typeof input!=='object'||Array.isArray(input))return response(422,{error:'Invalid goal'},h)
   const v=input as Record<string,unknown>
+  if(v.action==='maintenance'&&v.confirm===true){
+   if(!finite(v.weeklyKm,1,200)||!dateValid(v.expectedRaceDate)||typeof v.expectedRaceName!=='string')return response(422,{error:'Trainingsniveau prüfen.'},h)
+   const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
+   const today=['year','month','day'].map(type=>parts.find(p=>p.type===type)?.value).join('-')
+   if(v.expectedRaceDate>=today)return response(409,{error:'Das Hauptziel liegt noch nicht zurück.'},h)
+   const {data,error}=await db.from('garmin_coach_goals').update({maintenance_weekly_km:v.weeklyKm,updated_at:new Date().toISOString()})
+    .eq('user_id',user.id).eq('race_date',v.expectedRaceDate).eq('race_name',v.expectedRaceName)
+    .select('race_name,race_date,distance_km,target_hours,race_location,race_start_time,coach_note,updated_at,maintenance_weekly_km').maybeSingle()
+   if(error||!data)return response(409,{error:'Ziel hat sich geändert. Bitte aktualisieren.'},h)
+   return response(200,{saved:true,goal:data,trainingPlanChanged:false,garminChanged:false,intervalsChanged:false},h)
+  }
   if(v.action!=='save'||v.confirm!==true||
     typeof v.raceName!=='string'||v.raceName.trim().length<3||v.raceName.length>100||
     !dateValid(v.raceDate)||!finite(v.distanceKm,1,500)||
@@ -75,7 +86,7 @@ Deno.serve(async req=>{
   }
   const {data,error:saveError}=await db.from('garmin_coach_goals')
    .upsert(saved,{onConflict:'user_id'})
-   .select('race_name,race_date,distance_km,target_hours,race_location,race_start_time,coach_note,updated_at')
+   .select('race_name,race_date,distance_km,target_hours,race_location,race_start_time,coach_note,updated_at,maintenance_weekly_km')
    .single()
   if(saveError||!data)return response(503,{error:'Ziel konnte nicht gespeichert werden.'},h)
   return response(200,{saved:true,goal:data,garminChanged:false,intervalsChanged:false,

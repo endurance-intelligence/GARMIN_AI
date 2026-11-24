@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react'
 import type {CoachGoal} from '../lib/coachGoal'
 import {phaseForRace,berlinDateToday,suggestedGoal} from '../lib/coachGoal'
+import {getTrainingGoalMode} from '../lib/trainingGoalMode.mjs'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import '../styles/coach-goal.css'
 import {CoachRaceWeatherMini} from './CoachRaceWeatherMini'
@@ -24,12 +25,15 @@ type Draft={raceName:string;raceDate:string;distanceKm:string;targetHours:string
 const asDraft=(x:Omit<CoachGoal,'updated_at'>):Draft=>({
  raceName:x.race_name,raceDate:x.race_date,distanceKm:String(x.distance_km),
  targetHours:x.target_hours===null?'':String(x.target_hours),
- raceLocation:x.race_location,raceStartTime:x.race_start_time||'',
+ raceLocation:x.race_location,raceStartTime:(x.race_start_time||'').slice(0,5),
  coachNote:x.coach_note
 })
 export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onForecastOpen}:{active:boolean;compact?:boolean;onEdit?:()=>void;onSaved?:()=>void;logoUrl?:string|null;onForecastOpen?:()=>void}){
  const [goal,setGoal]=useState<CoachGoal|null>(null)
- const [draft,setDraft]=useState<Draft>(()=>asDraft(suggestedGoal))
+ const [draft,setDraft]=useState<Draft>(()=>({raceName:'',raceDate:'',distanceKm:'',targetHours:'',raceLocation:'',raceStartTime:'',coachNote:''}))
+ const [editOpen,setEditOpen]=useState(false)
+ const [maintainOpen,setMaintainOpen]=useState(false)
+ const [maintainKm,setMaintainKm]=useState('')
  const [loading,setLoading]=useState(false)
  const [saving,setSaving]=useState(false)
  const [error,setError]=useState('')
@@ -43,7 +47,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
   void goalRequest().then(result=>{
    if(!mounted)return
    setGoal(result.goal)
-   if(result.goal)setDraft(asDraft(result.goal))
+   if(result.goal){setDraft(asDraft(result.goal));setMaintainKm(result.goal.maintenance_weekly_km==null?'':String(result.goal.maintenance_weekly_km))}
    setReady(true)
   }).catch(e=>{if(mounted)setError(e instanceof Error?e.message:'Ziel nicht abrufbar')})
    .finally(()=>{if(mounted)setLoading(false)})
@@ -86,14 +90,31 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
    setGoal(response.goal)
    setDraft(asDraft(response.goal))
    setNotice('Dein aktives Wettkampfziel ist gespeichert. Garmin-Workouts bleiben unverändert.')
+   setEditOpen(false)
    onSaved?.()
   }catch(e){setError(e instanceof Error?e.message:'Ziel konnte nicht gespeichert werden.')}
   finally{setSaving(false)}
  }
+ async function saveMaintenance(){
+  if(saving||!goal)return
+  const km=Number(maintainKm)
+  if(!Number.isFinite(km)||km<1||km>200){setError('Bitte gewünschten Wochenumfang zwischen 1 und 200 km eingeben.');return}
+  setSaving(true);setError('');setNotice('')
+  try{
+   const response=await goalRequest({action:'maintenance',confirm:true,weeklyKm:km,expectedRaceDate:goal.race_date,expectedRaceName:goal.race_name})
+   if(!response.saved||!response.goal)throw Error('Speicherung nicht bestätigt.')
+   setGoal(response.goal);setMaintainOpen(false);setNotice('Fit halten: '+km+' km/Woche als Richtwert gespeichert. Erholung hat Vorrang.');onSaved?.()
+  }catch(e){setError(e instanceof Error?e.message:'Trainingsniveau nicht gespeichert.')}
+  finally{setSaving(false)}
+ }
  if(!active)return null
+ if(!ready)return <section className="cg-root" aria-label="Trainingsziel"><p className="cg-info">{error||'Lade dein Trainingsziel …'}</p></section>
  const current=goal||suggestedGoal
  const phase=phaseForRace(current.race_date,berlinDateToday())
  const goalIsPast=Boolean(goal&&phase.daysUntil<0)
+ const trainingMode=getTrainingGoalMode(goal,berlinDateToday())
+ const maintaining=trainingMode.mode==='maintenance'
+ const chooseNew=()=>{const el=document.getElementById('race-goal-portfolio');el?.scrollIntoView({behavior:'smooth',block:'start'});window.dispatchEvent(new Event('garmin-ai-add-race-goal'))}
  const distanceText=Number(current.distance_km).toLocaleString('de-DE',{maximumFractionDigits:1})
  const days=Math.max(0,phase.daysUntil)
  const eventLogo=logoUrl&&/^https:\/\//i.test(logoUrl)?logoUrl:savedLogo
@@ -103,6 +124,12 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
    onError={()=>setSavedLogo(null)}/>:
    <span className="cg-goal-emblem-fallback" aria-hidden="true"><Icon name="flag"/></span>}
  </span>
+ if(compact&&(!goal||goalIsPast))return <section className="cg-root cg-compact cg-home-hero cg-past-goal" aria-label="Trainingsauftrag">
+  <span className="cg-kicker">{maintaining?'FIT HALTEN':'NEUES ZIEL VERFOLGEN'}</span>
+  <h2>{maintaining?trainingMode.weeklyKm+' km/Woche als Richtwert':'Wie geht es weiter?'}</h2>
+  <p>{goal?'Letzter Wettkampf: '+goal.race_name+'. ':''}{goalIsPast&&phase.phase==='recovery'?'Regeneration bleibt unabhängig vom neuen Ziel wichtig. ':''} {maintaining?'Trainingsniveau beibehalten, nicht automatisch steigern.':'Neues Wettkampfziel auswählen oder Trainingsniveau halten.'}</p>
+  <button type="button" className="cg-home-edit" onClick={onEdit} disabled={!onEdit}>{maintaining?'Trainingsauftrag ändern ↗':'Neues Ziel / fit halten ↗'}</button>
+ </section>
  if(compact)return <section className={'cg-root cg-compact cg-home-hero'+(goalIsPast?' cg-past-goal':'')}
   aria-label={goalIsPast?'Letzter Wettkampf und Auswahl des nächsten Ziels':'Aktuelles Hauptziel und Rennwetter'}>
   <div className="cg-home-race">
@@ -130,9 +157,9 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
  return <section className={'cg-root'+(compact?' cg-compact':'')} aria-label="Trainingsziel und Vorbereitungsphase">
   <div className="cg-head">
    <span className="cg-kicker">COACH / MEIN ZIEL</span>
-   <span className={'cg-state'+(goal?' is-active':'')}>{goal?'AKTIVES ZIEL':'VORSCHLAG · NOCH NICHT GESPEICHERT'}</span>
+   <span className={'cg-state'+(goal?' is-active':'')}>{goalIsPast?'VERGANGENER WETTKAMPF':goal?'AKTIVES ZIEL':'NEUES ZIEL · NOCH NICHT GESPEICHERT'}</span>
   </div>
-  <div className="cg-summary">
+  {goal&&<div className="cg-summary">
    <div><div className="cg-title-row">{goalBadge}<h2>{current.race_name}</h2></div>
     <p>{current.race_date.split('-').reverse().join('.')} · {current.race_location||'Ort nicht festgelegt'}</p>
     <div className="cg-tags"><span>{distanceText} km</span>
@@ -142,17 +169,26 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
    </div>
    <div className="cg-countdown"><strong>{phase.daysUntil>0?days:phase.daysUntil===0?'GO':'–'}</strong>
     <small>{phase.daysUntil>0?'TAGE BIS START':phase.daysUntil===0?'HEUTE':'ZIELÜBERBLICK'}</small></div>
-  </div>
-  <p className="cg-disclaimer">{goal?'Die Phase wird aus deinem Wettkampfdatum abgeleitet – ohne medizinische Trainingsfreigabe.':
-   'Das bekannte Heartbeat-Ziel ist nur vorbelegt. Du bestätigst es unten ausdrücklich.'}</p>
+  </div>}
+  <p className="cg-disclaimer">{goalIsPast?'Das Rennen liegt zurück. Es bleibt für die Rennnachbereitung erhalten, ist aber kein aktives Trainingsziel.':goal?'Die Phase wird aus deinem Wettkampfdatum abgeleitet – ohne medizinische Trainingsfreigabe.':
+   'Noch kein Wettkampfziel gespeichert. Lege ein neues Ziel an.'}</p>
+  {goalIsPast&&<div className="cg-actions cg-mode-actions">
+   <strong>{maintaining?'Trainingsniveau halten · '+trainingMode.weeklyKm+' km/Woche':'Wie möchtest du weitertrainieren?'}</strong>
+   <button type="button" onClick={chooseNew}>Neues Ziel verfolgen</button>
+   <button type="button" onClick={()=>setMaintainOpen(x=>!x)}>{maintaining?'Trainingsniveau ändern':'Fit halten'}</button>
+   {maintainOpen&&<div className="cg-fields"><label>Gewünschter Laufumfang (km/Woche)<input type="number" min="1" max="200" step="1" value={maintainKm} onChange={e=>setMaintainKm(e.target.value)} placeholder="z. B. 45"/></label>
+    <button type="button" disabled={saving||!maintainKm} onClick={()=>void saveMaintenance()}>Trainingsniveau speichern</button>
+    <small>Richtwert, kein Kilometerzwang. Regeneration und aktuelle Belastbarkeit haben Vorrang.</small></div>}
+  </div>}
+  {goal&&<button type="button" className="cg-home-edit" disabled={saving} onClick={()=>{setEditOpen(x=>!x);setDraft(asDraft(goal))}}>{editOpen?'Bearbeitung schließen':'Ziel bearbeiten'}</button>}
   {compact?<>
     <button type="button" className="cg-link" onClick={onEdit} disabled={!onEdit}>
      Ziel & Trainingsphase bearbeiten
     </button>
    </>:
-   <div className="cg-edit">
-    <div className="cg-edit-head"><strong>Mein nächstes Ziel</strong>
-     <small>{goal?'Wettkampfziel ändern':'Vorschlag prüfen und als Coach-Ziel übernehmen'}</small></div>
+   (!goal||editOpen)&&<div className="cg-edit">
+    <div className="cg-edit-head"><strong>{goal?'Gespeichertes Ziel bearbeiten':'Mein nächstes Ziel'}</strong>
+     <small>{goal?'Korrekturen an diesem Rennen. Für ein neues Rennen bitte Neues Ziel verfolgen nutzen.':'Neues Wettkampfziel anlegen'}</small></div>
     <div className="cg-fields">
      <label>Wettkampf<input value={draft.raceName} maxLength={100}
       onChange={e=>setDraft(d=>({...d,raceName:e.target.value}))} placeholder="Name des Wettkampfs"/></label>
