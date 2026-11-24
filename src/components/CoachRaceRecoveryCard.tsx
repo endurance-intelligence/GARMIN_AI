@@ -21,10 +21,12 @@ export function CoachRaceRecoveryCard({review,onRacePrep}:{
    <p className="crr-next">{review.next}</p>
    {matched?<div className="crr-source">
     <Icon name="check-circle"/>
-    <div><strong>Garmin-Aufzeichnung eindeutig zugeordnet</strong>
+    <div><strong>{review.matchStatus==='confirmed'?
+     'Von dir bestätigte Garmin-Rennaufzeichnung':
+     'Garmin-Aufzeichnung eindeutig zugeordnet'}</strong>
      <span>{review.actualKm?.toLocaleString('de-DE',{maximumFractionDigits:1})} km
       {review.actualMinutes!==null?' · aufgezeichnete Dauer '+h(review.actualMinutes):''}
-      {' · '}kein amtliches Rennergebnis</span>
+      {' · '}{review.matchStatus==='confirmed'?'vom Athleten bestätigt · ':''}kein amtliches Rennergebnis</span>
      {review.garminRpe!==null&&<span>Dein Garmin-RPE: {review.garminRpe}/10</span>}
      {review.garminFeeling!==null&&<span>Garmin-Gefühl: {
       ({0:'sehr schwach',25:'schwach',50:'normal',75:'gut',100:'sehr gut'} as Record<number,string>)[review.garminFeeling]
