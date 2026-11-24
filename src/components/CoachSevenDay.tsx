@@ -230,7 +230,6 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
    <button type="button" className="c7-refresh" disabled={loading||saving!==null}
     onClick={()=>{setReload(x=>x+1);window.dispatchEvent(new Event('garmin-ai-coach-changed'));setReview(null);setSavedDay(null)}}><Icon name="refresh-cw"/> Aktualisieren</button>
   </div>
-  {snapshot&&<GarminFeedbackCard snapshot={snapshot} today={today}/>} 
   {plan?.autoRaceRecovery&&<CoachRaceRecoveryCard review={plan.autoRaceRecovery}
     onRacePrep={onRacePrep}/>}
   {snapshot&&plan?.autoRaceRecovery&&plan.autoRaceRecovery.daysSince!==null&&
@@ -253,17 +252,6 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
      Vergangene Entwürfe im Kalender prüfen <Icon name="arrow-up-right"/></button>
    </p>}
   {plan&&<>
-   <p className="c7-polarized-method" role="note">
-    <Icon name="activity"/> Polarisiert · überwiegend locker · höchstens eine harte Bahnoption.
-    <span>{plan.trainingMethod?.message}</span>
-   </p>
-   <CoachNextImpactCard impact={plan.nextImpact}/>
-   {plan.adaptiveVolume&&<CoachAdaptiveVolumeCard review={plan.adaptiveVolume}/>}
-   {snapshot&&<CoachFourWeekCard today={today} snapshot={snapshot}/>}
-   {snapshot&&<CoachMemoryCard today={today} snapshot={snapshot}/>}
-    {snapshot&&<CoachLongTermCard today={today} snapshot={snapshot} active={active}/>}
-   {plan.completedWeek&&<WeeklyPlanActualCard review={plan.completedWeek}
-    onCalendar={()=>onCalendar()}/>}
    <div className="c7-day-nav" id="c7-week-overview" role="tablist"
     aria-label="Wähle einen Tag für deine persönliche Coach-Entscheidung">
     {plan.days.map(day=><button type="button" key={day.date} role="tab"
@@ -388,6 +376,21 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
     <button type="button" className="c7-secondary" onClick={()=>onCalendar()}>
      Kalender ansehen <Icon name="arrow-up-right"/></button>
    </div>
+   <details className="c7-settings" id="c7-analysis-details">
+    <summary>Trainingsanalyse &amp; Coach-Gedächtnis</summary>
+    {snapshot&&<GarminFeedbackCard snapshot={snapshot} today={today}/>}
+   <p className="c7-polarized-method" role="note">
+    <Icon name="activity"/> Polarisiert · überwiegend locker · höchstens eine harte Bahnoption.
+    <span>{plan.trainingMethod?.message}</span>
+   </p>
+   <CoachNextImpactCard impact={plan.nextImpact}/>
+   {plan.adaptiveVolume&&<CoachAdaptiveVolumeCard review={plan.adaptiveVolume}/>}
+   {snapshot&&<CoachFourWeekCard today={today} snapshot={snapshot}/>}
+   {snapshot&&<CoachMemoryCard today={today} snapshot={snapshot}/>}
+    {snapshot&&<CoachLongTermCard today={today} snapshot={snapshot} active={active}/>}
+   {plan.completedWeek&&<WeeklyPlanActualCard review={plan.completedWeek}
+    onCalendar={()=>onCalendar()}/>}
+   </details>
   </>}
  </section>
 }

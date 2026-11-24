@@ -131,15 +131,15 @@ test('no fabricated performance claims and no extra source/network or writes',()
  assert.doesNotMatch(ui,/fetch\(|\.upsert\(|\.insert\(|localStorage/)
 })
 
-test('P2 follows the daily coach brief, precedes past race context and links to existing 8/12 week evidence',()=>{
+test('P2 follows the daily coach brief and decision workflow, links to existing 8/12 week evidence',()=>{
  const page=read('src/pages/CoachPage.tsx')
  const longTerm=read('src/components/CoachLongTermCard.tsx')
  const coach=read('src/components/CoachSevenDay.tsx')
  const style=read('src/styles/coach-progress-pulse.css')
  assert.match(page,/<CoachProgressPulse/)
  assert.ok(page.indexOf('<CoachDailyBrief')<page.indexOf('<CoachProgressPulse'))
- assert.ok(page.indexOf('<CoachProgressPulse')<
-  page.indexOf('<CoachGoalPanel active={active} compact'))
+ assert.ok(page.indexOf('<CoachSevenDay')<page.indexOf('<CoachProgressPulse'))
+ assert.match(page,/id="coach-development"[\s\S]*<CoachProgressPulse/)
  assert.match(page,/sharedSnapshot&&!snapshotLoading&&!snapshotError&&<CoachProgressPulse/)
  assert.match(page,/new Event\('garmin-ai-open-long-term-progress'\)/)
  assert.match(longTerm,/addEventListener\('garmin-ai-open-long-term-progress',openFromDashboard\)/)

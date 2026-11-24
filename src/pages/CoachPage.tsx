@@ -120,10 +120,7 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
   today={coachToday} snapshot={sharedSnapshot} plan={dailyPlan}
   onDecision={openCoachDecision} onProgress={openProgressHistory}
   onGoals={()=>onGo('goals')} onSymptoms={()=>setHealthOpenToken(n=>n+1)}/>}
- {sharedSnapshot&&!snapshotLoading&&!snapshotError&&<CoachProgressPulse
-  today={coachToday} snapshot={sharedSnapshot}
-  onOpenLongTerm={openProgressHistory} onGoals={()=>onGo('goals')}/>}
- <CoachGoalPanel active={active} compact onEdit={()=>onGo('goals')} onForecastOpen={onOpenRaceWeather}/>
+
  {snapshotLoading&&!sharedSnapshot&&!snapshotError&&<p className="co-data-note" role="status">
   Lade deine Garmin-, Kalender- und Coach-Daten gemeinsam …</p>}
  {snapshotError&&<p className="co-data-note" role="status">
@@ -132,11 +129,25 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
   <CoachGlance active={active} onCalendar={()=>onOpenCalendar()} sharedSnapshot={sharedSnapshot}>
    <CoachTodayWeather active={active}/>
   </CoachGlance>
-  {sharedSnapshot&&<CoachSessionBridge snapshot={sharedSnapshot} today={berlinToday()}
-   onOpenSession={onOpenSession}/>}
   <CoachSevenDay active={active} focus={focus} onCalendar={onOpenCalendar} sharedSnapshot={sharedSnapshot}
    onRacePrep={()=>onGo('race')}/>
  </>}
+ <details className="co-extra co-focus-details" id="coach-goals-weather">
+  <summary>Aktuelles Ziel</summary>
+  <div className="co-extra-content">
+   <CoachGoalPanel active={active} compact onEdit={()=>onGo('goals')} onForecastOpen={onOpenRaceWeather}/>
+  </div>
+ </details>
+ {sharedSnapshot&&<details className="co-extra co-focus-details" id="coach-development">
+  <summary>Deine Entwicklung &amp; letzte Läufe</summary>
+  <div className="co-extra-content">
+   {sharedSnapshot&&!snapshotLoading&&!snapshotError&&<CoachProgressPulse
+    today={coachToday} snapshot={sharedSnapshot}
+    onOpenLongTerm={openProgressHistory} onGoals={()=>onGo('goals')}/>}
+   <CoachSessionBridge snapshot={sharedSnapshot} today={berlinToday()}
+    onOpenSession={onOpenSession}/>
+  </div>
+ </details>}
  <details className="co-extra-tools" onToggle={event=>setShowWeeklyReview(event.currentTarget.open)}>
    <summary>Weitere Garmin-Analyse &amp; Gruppentermine <span>Bei Bedarf</span></summary>
    {showWeeklyReview&&<CoachEvidenceSummary active={active&&showWeeklyReview}

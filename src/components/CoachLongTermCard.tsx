@@ -29,6 +29,8 @@ export function CoachLongTermCard({today,snapshot,active}:{
  useEffect(()=>{
   if(!active)return
   const openFromDashboard=()=>{
+   const parent=document.getElementById('c7-analysis-details')
+   if(parent instanceof HTMLDetailsElement)parent.open=true
    setExpanded(true)
    // Open only the existing detailed Garmin analyzer; keep its own
    // on-demand authenticated 8/12-week fetch and user-selected nested panels.
