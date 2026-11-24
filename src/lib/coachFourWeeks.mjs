@@ -22,7 +22,7 @@ const empty=(start,end)=>({start,end,available:false,runs:null,distanceKm:null,
 export function analyzeCoachFourWeeks({today,boards,plans,life}={}){
  const unavailable={status:'unavailable',weeks:[],completeWeeks:0,
   totalRuns:null,totalRated:null,totalMatched:null,qualityCaution:false,
-  repeatedToughWeeks:0,workoutTolerance:[],title:'Mehrwöchiger Verlauf nicht verfügbar',
+  repeatedToughWeeks:0,workoutTolerance:[],lowIntensityCautionKinds:[],title:'Mehrwöchiger Verlauf nicht verfügbar',
   explanation:'Garmin-Wochen, Coach-Entscheidungen oder Planhistorie können fehlen. Keine Folgerung aus Datenlücken.',
   suggestion:'Erst die historischen Garmin-Daten prüfen. Keine automatische Planänderung.'}
  if(!validDate(today)||!Array.isArray(boards)||!Array.isArray(plans?.entries))
@@ -139,8 +139,14 @@ export function analyzeCoachFourWeeks({today,boards,plans,life}={}){
   return {kind:item.kind,label:item.label,matched:item.matched,rated:item.rated,
    hard:item.hard,weeks:item.weeks.size,hardWeeks:item.hardWeeks.size,assessment}
  }).sort((a,b)=>a.kind.localeCompare(b.kind))
+ // Actionable learning needs complete plan coverage and a signal of the
+ // SAME workout type in one of the two latest completed weeks. Old evidence
+ // stays visible but cannot indefinitely suppress the current plan.
+ const lowIntensityCautionKinds=dataLimited?[]:workoutTolerance.filter(item=>
+  item.assessment==='review-low-intensity'&&starts.slice(0,2).some(
+   start=>observed.get(item.kind)?.hardWeeks.has(start))).map(item=>item.kind)
  return {status:dataLimited?'partial':'ready',weeks,completeWeeks:available.length,
-  workoutTolerance,
+  workoutTolerance,lowIntensityCautionKinds,
   totalRuns,totalRated,totalMatched,qualityCaution,
   repeatedToughWeeks:toughWeeks.length,
   title:qualityCaution?'Mehrere anstrengende Wochen erkennbar':'Vier Wochen im Zusammenhang',
