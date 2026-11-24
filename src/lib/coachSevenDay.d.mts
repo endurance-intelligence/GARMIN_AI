@@ -7,6 +7,7 @@ export type SevenDayPlan={
  today:string;days:CoachDay[];signals:string[];flags:string[];
  attention:boolean;attentionText:string;basedOnActual:boolean;source:string;raceDate:string|null;
  returning?:boolean;ill?:boolean;postIllness?:boolean;concern?:boolean;acknowledgedRuns?:number;
+ trainingGoalMode?:import('./trainingGoalMode.mjs').TrainingGoalMode;
  recoveryRaceDate?:string|null;checkedRecently?:boolean;reportedExhaustion?:number|null;latestWorkoutFeedback?:string|null;
  feedbackTrend?:{level:string;kind:'none'|'reduce'|'shorten'|'maintain';count14:number;count28:number}
  garminPerception?:import('./garminPerception.mjs').GarminPerception

@@ -18,7 +18,7 @@ export function CoachLongTermPlan({today,snapshot}:{
    <span className="cltp-symbol"><Icon name="calendar-range"/></span>
    <span className="cltp-summary-text">
     <small>DEIN ZIEL · MEHRWÖCHIGE PLANUNG</small>
-    <strong>Dein Weg zum Wettkampf</strong>
+    <strong>{plan.hasGoal&&plan.raceDate&&plan.raceDate>=today?'Dein Weg zum Wettkampf':'Dein weiterer Trainingsfahrplan'}</strong>
     <span>{first?first.phaseLabel+' · '+first.focus:
      'Hauptziel festlegen, dann Trainingsphasen planen'}</span>
    </span>
