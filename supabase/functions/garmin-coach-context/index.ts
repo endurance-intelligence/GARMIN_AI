@@ -228,7 +228,7 @@ Deno.serve(async req=>{
      !Number.isFinite(run.duration_s)||run.duration_s<=0)
      return respond(422,{error:'Diese Garmin-Laufaktivität gehört nicht zum Renntag'},h)
     const confirmed:RaceActivityLink={raceDate,raceName:raceName.trim(),
-     activityId,confirmedOn:today}
+     activityId:activityId as string,confirmedOn:today}
     row={...row,race_activity_links:[...row.race_activity_links
      .filter(l=>day(l.raceDate)&&!(l.raceDate===raceDate&&l.raceName===raceName.trim())),
      confirmed].sort((a,b)=>a.raceDate.localeCompare(b.raceDate)).slice(-30)}
