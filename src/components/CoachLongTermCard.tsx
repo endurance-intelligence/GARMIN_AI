@@ -27,6 +27,21 @@ export function CoachLongTermCard({today,snapshot,active}:{
  const [loading,setLoading]=useState(false)
  const [error,setError]=useState('')
  useEffect(()=>{
+  if(!active)return
+  const openFromDashboard=()=>{
+   setExpanded(true)
+   // Open only the existing detailed Garmin analyzer; keep its own
+   // on-demand authenticated 8/12-week fetch and user-selected nested panels.
+   requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const detail=document.getElementById('coach-long-term-progress')
+    detail?.scrollIntoView({behavior:'smooth',block:'start'})
+    detail?.querySelector('summary')?.focus({preventScroll:true})
+   }))
+  }
+  window.addEventListener('garmin-ai-open-long-term-progress',openFromDashboard)
+  return ()=>window.removeEventListener('garmin-ai-open-long-term-progress',openFromDashboard)
+ },[active])
+ useEffect(()=>{
   // New authenticated snapshot, or a newly selected athlete, invalidates old board cache.
   setFetched({});setAttempted([]);setFailed([]);setError('');setLoading(false)
  },[snapshot,today])
@@ -103,7 +118,7 @@ export function CoachLongTermCard({today,snapshot,active}:{
  const retry=()=>{
   setError('');setAttempted(prev=>prev.filter(x=>!failed.includes(x)));setFailed([])
  }
- return <details className="clt-root" open={expanded}
+ return <details id="coach-long-term-progress" className="clt-root" open={expanded}
   onToggle={event=>setExpanded(event.currentTarget.open)}
   aria-label="Langfristige Garmin-Trainingsanalyse 8 und 12 Wochen">
   <summary className="clt-heading">

@@ -9,6 +9,7 @@ import {CrossTrainingCoachCard} from '../components/CrossTrainingCoachCard'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {CoachSevenDay} from '../components/CoachSevenDay'
 import {CoachDailyBrief} from '../components/CoachDailyBrief'
+import {CoachProgressPulse} from '../components/CoachProgressPulse'
 import {CoachSessionBridge} from '../components/CoachSessionBridge'
 import {CoachEvidenceSummary} from '../components/CoachEvidenceSummary'
 import {coachAddDays,buildSevenDayCoach} from '../lib/coachSevenDay.mjs'
@@ -70,6 +71,7 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
    const current=section?.querySelector<HTMLButtonElement>('button[aria-selected="true"]')
    current?.focus({preventScroll:true})
   }
+  const openProgressHistory=()=>window.dispatchEvent(new Event('garmin-ai-open-long-term-progress'))
   const closeRef=useRef<HTMLButtonElement|null>(null)
   useEffect(()=>{
     if(!weightOpen)return
@@ -113,6 +115,9 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
  {dailyBrief&&!snapshotLoading&&!snapshotError&&<CoachDailyBrief brief={dailyBrief}
   onDecision={openCoachDecision}
   onReportSymptoms={()=>setHealthOpenToken(n=>n+1)}/>}
+ {sharedSnapshot&&!snapshotLoading&&!snapshotError&&<CoachProgressPulse
+  today={coachToday} snapshot={sharedSnapshot}
+  onOpenLongTerm={openProgressHistory} onGoals={()=>onGo('goals')}/>}
  <CoachGoalPanel active={active} compact onEdit={()=>onGo('goals')} onForecastOpen={onOpenRaceWeather}/>
  {snapshotLoading&&!sharedSnapshot&&!snapshotError&&<p className="co-data-note" role="status">
   Lade deine Garmin-, Kalender- und Coach-Daten gemeinsam …</p>}
