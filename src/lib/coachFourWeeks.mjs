@@ -14,6 +14,7 @@ const add=(s,n)=>new Date(Date.parse(s+'T12:00:00Z')+n*DAY).toISOString().slice(
 const monday=s=>add(s,-((new Date(s+'T12:00:00Z').getUTCDay()+6)%7))
 const number=x=>typeof x==='number'&&Number.isFinite(x)
 const dayOf=x=>typeof x==='string'?x.slice(0,10):''
+const KINDS={easy:'Lockerer Lauf',long:'Langer Lauf',tempo:'Tempolauf',interval:'Intervalle',intervals:'Intervalle',threshold:'Schwellenlauf',quality:'Intensive Einheit'}
 const empty=(start,end)=>({start,end,available:false,runs:null,distanceKm:null,
  rated:null,hard:null,weak:null,longestRunMinutes:null,approved:null,matched:null,overlong:null,
  accepted:null,declined:null,planCoverage:false})
@@ -21,7 +22,7 @@ const empty=(start,end)=>({start,end,available:false,runs:null,distanceKm:null,
 export function analyzeCoachFourWeeks({today,boards,plans,life}={}){
  const unavailable={status:'unavailable',weeks:[],completeWeeks:0,
   totalRuns:null,totalRated:null,totalMatched:null,qualityCaution:false,
-  repeatedToughWeeks:0,title:'Mehrwöchiger Verlauf nicht verfügbar',
+  repeatedToughWeeks:0,workoutTolerance:[],title:'Mehrwöchiger Verlauf nicht verfügbar',
   explanation:'Garmin-Wochen, Coach-Entscheidungen oder Planhistorie können fehlen. Keine Folgerung aus Datenlücken.',
   suggestion:'Erst die historischen Garmin-Daten prüfen. Keine automatische Planänderung.'}
  if(!validDate(today)||!Array.isArray(boards)||!Array.isArray(plans?.entries))
@@ -30,6 +31,7 @@ export function analyzeCoachFourWeeks({today,boards,plans,life}={}){
  const starts=Array.from({length:4},(_,i)=>add(weekStart,-7*(i+1)))
  const historyFrom=validDate(plans.historyFrom)?plans.historyFrom:null
  const decisionRows=Array.isArray(life?.context?.day_decisions)?life.context.day_decisions:[]
+ const observed=new Map()
  const weeks=starts.map(start=>{
   const end=add(start,6)
   const board=boards.find(b=>b?.start===start&&Array.isArray(b.activities))
@@ -76,6 +78,26 @@ export function analyzeCoachFourWeeks({today,boards,plans,life}={}){
   const matched=covered?runs.map(a=>assessPlanActual(a,runs,approved))
    .filter(m=>m.status==='matched'&&m.plan):[]
   const unique=[...new Map(matched.map(m=>[m.plan.id,m])).values()]
+  // Retrospective evidence only: group uniquely matched Coach plans by
+  // intended workout type, not by inferred Garmin intensity.
+  for(const match of unique){
+   const p=match.plan
+   const kind=p.coachKind==='interval'?'intervals':p.coachKind
+   if(!Object.hasOwn(KINDS,kind))continue
+   const row=byId.get(p.activityId)
+   if(!row)continue
+   const rpe=normalizeGarminRpe(row.rpe_raw)
+   const feel=normalizeGarminFeeling(row.feeling_raw)
+   const item=observed.get(kind)??{kind,label:KINDS[kind],matched:0,rated:0,hard:0,hardWeeks:new Set(),weeks:new Set()}
+   item.matched++
+   item.weeks.add(start)
+   if(rpe!==null||feel!==null)item.rated++
+   if((rpe!==null&&rpe>=8)||(feel!==null&&feel<=25)){
+    item.hard++
+    item.hardWeeks.add(start)
+   }
+   observed.set(kind,item)
+  }
   const overlong=unique.filter(m=>m.plan.actualMinutes!==null&&
    m.plan.durationDeltaMinutes!==null&&
    m.plan.durationDeltaMinutes>=Math.max(15,Math.ceil(m.plan.plannedMinutes*.3)))
@@ -109,7 +131,16 @@ export function analyzeCoachFourWeeks({today,boards,plans,life}={}){
  const suggestion=qualityCaution?
   'Keine zusätzliche harte Bahnoption aufgrund einer Sollquote. Bestehende Gruppen- und Kalendereinträge bitte selbst prüfen; lockere Einheiten bleiben locker.':
   'Keine automatische Steigerung oder Kürzung aus dem Vierwochenverlauf. Der aktuelle Coach berücksichtigt weiterhin Erholung, Rennphase und jüngstes Feedback.'
+ const workoutTolerance=[...observed.values()].map(item=>{
+  const repeatedLowIntensityStrain=['easy','long'].includes(item.kind)&&
+   item.rated>=3&&item.hardWeeks.size>=2&&item.hard/item.rated>=0.5
+  const assessment=item.rated<3?'limited':repeatedLowIntensityStrain?'review-low-intensity':
+   item.hardWeeks.size>=2?'repeated-strain':'observed'
+  return {kind:item.kind,label:item.label,matched:item.matched,rated:item.rated,
+   hard:item.hard,weeks:item.weeks.size,hardWeeks:item.hardWeeks.size,assessment}
+ }).sort((a,b)=>a.kind.localeCompare(b.kind))
  return {status:dataLimited?'partial':'ready',weeks,completeWeeks:available.length,
+  workoutTolerance,
   totalRuns,totalRated,totalMatched,qualityCaution,
   repeatedToughWeeks:toughWeeks.length,
   title:qualityCaution?'Mehrere anstrengende Wochen erkennbar':'Vier Wochen im Zusammenhang',
