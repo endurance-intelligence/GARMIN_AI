@@ -14,6 +14,8 @@ import {GarminFeedbackCard} from './GarminFeedbackCard'
 import {WeeklyPlanActualCard} from './WeeklyPlanActualCard'
 import {CoachNextImpactCard} from './CoachNextImpactCard'
 import {CoachFourWeekCard} from './CoachFourWeekCard'
+import {CoachMemoryCard} from './CoachMemoryCard'
+import {boundedCoachReason} from '../lib/coachMemory.mjs'
 import {CoachLongTermCard} from './CoachLongTermCard'
 import {CoachAdaptiveVolumeCard} from './CoachAdaptiveVolumeCard'
 import {assessCustomProposal} from '../lib/coachCustomProposal.mjs'
@@ -125,7 +127,8 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
     ['easy','long','return_easy'].includes(day.kind)&&Number.isSafeInteger(day.minutes)
    const payload=structured?{
     action:'create_coach_workout',clientRequestId:requestId,date:day.date,
-    title:day.title,kind:day.kind,minutes:day.minutes,startTime
+    title:day.title,kind:day.kind,minutes:day.minutes,startTime,
+    coachReason:boundedCoachReason(day.reason)
    }:{
     action:'create',clientRequestId:requestId,date:day.date,
     title:day.title,sessionType:'event',sport:day.kind==='mobility'?'strength':day.sport,
@@ -141,7 +144,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
    const json=await res.json().catch(()=>({})) as SubmitResponse
    if(!res.ok||!json.saved)throw Error(json.error||'Entwurf nicht gespeichert.')
    setSnapshot(prev=>prev?{
-    ...prev,plans:{entries:[...prev.plans.entries,{
+    ...prev,plans:{...prev.plans,entries:[...prev.plans.entries,{
      id:json.id,training_date:day.date,title:day.title,
      sport:day.kind==='mobility'?'strength':day.sport,
      state:'draft',session_type:'event',revision:json.revision||1,
@@ -207,7 +210,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
    })
    const answer=await response.json().catch(()=>({})) as SubmitResponse
    if(!response.ok||!answer.saved)throw Error(answer.error||'Eigener Entwurf konnte nicht gespeichert werden.')
-   setSnapshot(prev=>prev?{...prev,plans:{entries:[...prev.plans.entries,{
+   setSnapshot(prev=>prev?{...prev,plans:{...prev.plans,entries:[...prev.plans.entries,{
     id:answer.id,training_date:day.date,title,sport:pick.sport,
     state:'draft',session_type:'event',revision:answer.revision||1,notes
    }]}}:prev)
@@ -257,6 +260,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
    <CoachNextImpactCard impact={plan.nextImpact}/>
    {plan.adaptiveVolume&&<CoachAdaptiveVolumeCard review={plan.adaptiveVolume}/>}
    {snapshot&&<CoachFourWeekCard today={today} snapshot={snapshot}/>}
+   {snapshot&&<CoachMemoryCard today={today} snapshot={snapshot}/>}
     {snapshot&&<CoachLongTermCard today={today} snapshot={snapshot} active={active}/>}
    {plan.completedWeek&&<WeeklyPlanActualCard review={plan.completedWeek}
     onCalendar={()=>onCalendar()}/>}
