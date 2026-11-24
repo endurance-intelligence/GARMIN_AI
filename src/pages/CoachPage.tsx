@@ -126,16 +126,16 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
  {snapshotError&&<p className="co-data-note" role="status">
   Gemeinsamer Coach-Snapshot nicht vollständig erreichbar. Die einzelnen Bereiche prüfen ihre Daten separat.</p>}
  {(!snapshotLoading||sharedSnapshot||snapshotError)&&<>
+  <CoachGlance active={active} onCalendar={()=>onOpenCalendar()} sharedSnapshot={sharedSnapshot}>
+   <CoachTodayWeather active={active}/>
+  </CoachGlance>
   <CoachSevenDay active={active} focus={focus} onCalendar={onOpenCalendar} sharedSnapshot={sharedSnapshot}
    onRacePrep={()=>onGo('race')}/>
  </>}
  <details className="co-extra co-focus-details" id="coach-goals-weather">
-  <summary>Ziel, Wetter &amp; aktuelle Werte</summary>
+  <summary>Aktuelles Ziel</summary>
   <div className="co-extra-content">
    <CoachGoalPanel active={active} compact onEdit={()=>onGo('goals')} onForecastOpen={onOpenRaceWeather}/>
-   {(!snapshotLoading||sharedSnapshot||snapshotError)&&<CoachGlance active={active} onCalendar={()=>onOpenCalendar()} sharedSnapshot={sharedSnapshot}>
-    <CoachTodayWeather active={active}/>
-   </CoachGlance>}
   </div>
  </details>
  {sharedSnapshot&&<details className="co-extra co-focus-details" id="coach-development">
