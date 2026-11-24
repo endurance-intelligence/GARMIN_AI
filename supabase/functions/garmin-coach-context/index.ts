@@ -36,6 +36,7 @@ type Period={id:string;start:string;end:string;reason:'vacation'|'unavailable'}
 type Review={activityId:string;assessment:'ok'|'concern';reviewedOn:string}
 type DayChoice={date:string;choice:'accepted'|'declined'}
 type RaceCheck={raceDate:string;raceName:string;reportedOn:string;fatigue:number;soreness:number;warning:boolean}
+type RaceActivityLink={raceDate:string;raceName:string;activityId:string;confirmedOn:string}
 type WorkoutFeedback={activityId:string;activityDate:string;activityName:string;reportedOn:string;rpe:number;
  legs:'fresh'|'ok'|'tired'|'heavy'|'destroyed';symptoms:'none'|'light'|'clear';
  feel:'easier'|'as_expected'|'harder';note:string}
@@ -44,10 +45,11 @@ type Row={user_id:string;illness_state:'well'|'sick'|'returning';
  illness_kind:'illness'|'pain'|'fatigue'|'other'|null;
  return_started_on:string|null;
  blocked_periods:Period[];run_reviews:Review[];day_decisions:DayChoice[];race_recovery_checks:RaceCheck[];
+  race_activity_links:RaceActivityLink[];
  post_workout_feedback:WorkoutFeedback[];updated_at:string}
 const empty=(id:string):Row=>({user_id:id,illness_state:'well',illness_started_on:null,
  illness_expected_end_on:null,illness_kind:null,
- return_started_on:null,blocked_periods:[],run_reviews:[],day_decisions:[],race_recovery_checks:[],
+ return_started_on:null,blocked_periods:[],run_reviews:[],day_decisions:[],race_recovery_checks:[],race_activity_links:[],
  post_workout_feedback:[],updated_at:new Date().toISOString()})
 const isRun=(sport:unknown)=>typeof sport==='string'&&/run|jog|trail|treadmill/i.test(sport)
 const activityFields='activity_id,activity_name,start_time_local,sport_type,distance_m,duration_s,average_heart_rate,rpe_raw'
@@ -71,13 +73,14 @@ Deno.serve(async req=>{
    return respond(403,{error:'Zugriff nicht erlaubt'},h)
   const db=createClient(project,key('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
   const {data:current,error:readError}=await db.from('garmin_coach_context')
-   .select('user_id,illness_state,illness_started_on,illness_expected_end_on,illness_kind,return_started_on,blocked_periods,run_reviews,day_decisions,race_recovery_checks,post_workout_feedback,updated_at')
+   .select('user_id,illness_state,illness_started_on,illness_expected_end_on,illness_kind,return_started_on,blocked_periods,run_reviews,day_decisions,race_recovery_checks,race_activity_links,post_workout_feedback,updated_at')
    .eq('user_id',user.id).maybeSingle()
   if(readError)return respond(503,{error:'Coach-Kontext nicht abrufbar'},h)
   let row=(current||empty(user.id)) as Row
   row={...row,
    day_decisions:Array.isArray(row.day_decisions)?row.day_decisions:[],
    race_recovery_checks:Array.isArray(row.race_recovery_checks)?row.race_recovery_checks:[],
+    race_activity_links:Array.isArray(row.race_activity_links)?row.race_activity_links:[],
    post_workout_feedback:Array.isArray(row.post_workout_feedback)?row.post_workout_feedback:[]}
   const today=berlinToday()
   const readRuns=async()=>{
@@ -192,6 +195,47 @@ Deno.serve(async req=>{
     !(x.raceDate===raceDate&&x.reportedOn===today))
    row={...row,race_recovery_checks:[...history,next]
     .sort((a,b)=>a.reportedOn.localeCompare(b.reportedOn)).slice(-30)}
+  }else if(input.action==='confirm_race_activity'||
+   input.action==='unlink_race_activity'){
+   const raceDate=input.raceDate,raceName=input.raceName
+   const activityId=input.activityId
+   if(input.confirm!==true||!day(raceDate)||raceDate>today||
+    raceDate<plusDays(today,-365)||
+    typeof raceName!=='string'||raceName.trim().length<1||raceName.length>100||
+    input.action==='confirm_race_activity'&&
+     (typeof activityId!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(activityId)))
+    return respond(422,{error:'Wettkampfdatum, Name oder ausdrückliche Bestätigung fehlt'},h)
+   // Only the owner's saved primary or archived secondary race may be associated.
+   // Date alone is not evidence that an arbitrary run belongs to an event.
+   const [primary,others]=await Promise.all([
+    db.from('garmin_coach_goals').select('race_name,race_date')
+     .eq('user_id',user.id).maybeSingle(),
+    db.from('garmin_coach_secondary_goals').select('race_name,race_date')
+     .eq('user_id',user.id).eq('race_date',raceDate).limit(60)
+   ])
+   if(primary.error||others.error)return respond(503,{error:'Deine Wettkampfziele nicht erreichbar'},h)
+   const known=[...(primary.data?[primary.data]:[]),...(others.data||[])]
+    .some(g=>g.race_date===raceDate&&g.race_name===raceName.trim())
+   if(!known)return respond(422,{error:'Der Wettkampf muss in deinen Goals gespeichert sein'},h)
+   if(input.action==='confirm_race_activity'){
+    const {data:run,error:runError}=await db.from('garmin_activities')
+     .select('activity_id,start_time_local,sport_type,distance_m,duration_s')
+     .eq('activity_id',activityId).maybeSingle()
+    if(runError)return respond(503,{error:'Garmin-Aufzeichnung nicht prüfbar'},h)
+    if(!run||typeof run.start_time_local!=='string'||
+     run.start_time_local.slice(0,10)!==raceDate||
+     !isRun(run.sport_type)||!Number.isFinite(run.distance_m)||run.distance_m<=0||
+     !Number.isFinite(run.duration_s)||run.duration_s<=0)
+     return respond(422,{error:'Diese Garmin-Laufaktivität gehört nicht zum Renntag'},h)
+    const confirmed:RaceActivityLink={raceDate,raceName:raceName.trim(),
+     activityId,confirmedOn:today}
+    row={...row,race_activity_links:[...row.race_activity_links
+     .filter(l=>day(l.raceDate)&&!(l.raceDate===raceDate&&l.raceName===raceName.trim())),
+     confirmed].sort((a,b)=>a.raceDate.localeCompare(b.raceDate)).slice(-30)}
+   }else{
+    row={...row,race_activity_links:row.race_activity_links
+     .filter(l=>!(l.raceDate===raceDate&&l.raceName===raceName.trim()))}
+   }
   }else if(input.action==='add_block'){
    if(!day(input.start)||!day(input.end)||!['vacation','unavailable'].includes(String(input.reason))||
     input.start<today||input.end<input.start||input.end>plusDays(today,365)||
@@ -209,7 +253,7 @@ Deno.serve(async req=>{
   }else return respond(422,{error:'Unbekannte Aktion'},h)
   const {data:saved,error:saveError}=await db.from('garmin_coach_context')
    .upsert({...row,user_id:user.id,updated_at:new Date().toISOString()},{onConflict:'user_id'})
-   .select('user_id,illness_state,illness_started_on,illness_expected_end_on,illness_kind,return_started_on,blocked_periods,run_reviews,day_decisions,race_recovery_checks,post_workout_feedback,updated_at').single()
+   .select('user_id,illness_state,illness_started_on,illness_expected_end_on,illness_kind,return_started_on,blocked_periods,run_reviews,day_decisions,race_recovery_checks,race_activity_links,post_workout_feedback,updated_at').single()
   if(saveError||!saved)return respond(503,{error:'Coach-Kontext konnte nicht gespeichert werden'},h)
   row=saved as Row
   return respond(200,{saved:true,context:row,runs:await readRuns(),
