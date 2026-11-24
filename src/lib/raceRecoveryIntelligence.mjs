@@ -123,7 +123,7 @@ export function analyzeAutoRaceRecovery({today,goal,boards=[],health={},life={}}
     'Diese Garmin-Aufzeichnung wurde von dir als Renneinsatz bestätigt. ':
     'Zuordnung plausibel anhand Garmin-Datum und -Distanz. ')+
    (outcome.partial?'Die geplante Renndistanz wurde nicht vollständig erreicht. ':'')+
-   'Kein amtliches Rennergebnis. Gute Messwerte allein erlauben keine Rückkehr zum Laufen.':
+   'kein amtliches Rennergebnis. Gute Messwerte allein erlauben keine Rückkehr zum Laufen.':
    status==='ambiguous'?'Mehrere unterschiedliche Garmin-Läufe passen; keine automatische Zuordnung.':
     'Noch keine eindeutig passende Garmin-Aufzeichnung. Eine spätere Synchronisierung ist möglich.'}
 }
