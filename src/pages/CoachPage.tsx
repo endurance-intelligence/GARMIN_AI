@@ -1,4 +1,4 @@
-import {useEffect,useRef,useState} from 'react'
+import {useEffect,useMemo,useRef,useState} from 'react'
 import {createPortal} from 'react-dom'
 import {SyncCenter} from '../components/SyncCenter'
 import {CoachTodayWeather} from '../components/CoachTodayWeather'
@@ -8,9 +8,11 @@ import {berlinToday,mondayOf} from '../components/WeeklyTrainingOptions'
 import {CrossTrainingCoachCard} from '../components/CrossTrainingCoachCard'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {CoachSevenDay} from '../components/CoachSevenDay'
+import {CoachDailyBrief} from '../components/CoachDailyBrief'
 import {CoachSessionBridge} from '../components/CoachSessionBridge'
 import {CoachEvidenceSummary} from '../components/CoachEvidenceSummary'
-import {coachAddDays} from '../lib/coachSevenDay.mjs'
+import {coachAddDays,buildSevenDayCoach} from '../lib/coachSevenDay.mjs'
+import {buildCoachDailyBrief} from '../lib/coachDailyBrief.mjs'
 import {garminSupabase} from '../lib/garminSupabase'
 import {loadCoachSnapshot} from '../lib/coachSnapshot'
 import type {CoachSnapshot} from '../lib/coachSnapshot'
@@ -23,6 +25,7 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
  onOpenSession:(activityId:string)=>void
 }) {
   const [weightOpen,setWeightOpen]=useState(false)
+  const [healthOpenToken,setHealthOpenToken]=useState(0)
   const [savedWeight,setSavedWeight]=useState<number|null>(null)
   const [savedWeightDelivery,setSavedWeightDelivery]=useState<'not_published'|'confirmed'|'needs_review'>('not_published')
   const [sharedSnapshot,setSharedSnapshot]=useState<CoachSnapshot|null>(null)
@@ -52,6 +55,21 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
     .finally(()=>{if(mounted)setSnapshotLoading(false)})
    return ()=>{mounted=false;abort.abort()}
   },[active,snapshotVersion])
+  const coachToday=berlinToday()
+  const dailyPlan=useMemo(()=>sharedSnapshot?buildSevenDayCoach({
+   today:coachToday,health:sharedSnapshot.health,options:sharedSnapshot.options,
+   boards:sharedSnapshot.boards,plans:sharedSnapshot.plans,goal:sharedSnapshot.goal,
+   life:sharedSnapshot.life,racePortfolio:sharedSnapshot.racePortfolio
+  }):null,[sharedSnapshot,coachToday])
+  const dailyBrief=useMemo(()=>dailyPlan&&sharedSnapshot?
+   buildCoachDailyBrief({today:coachToday,plan:dailyPlan,health:sharedSnapshot.health}):null,
+   [dailyPlan,sharedSnapshot,coachToday])
+  const openCoachDecision=()=>{
+   const section=document.getElementById('c7-week-overview')
+   section?.scrollIntoView({behavior:'smooth',block:'start'})
+   const current=section?.querySelector<HTMLButtonElement>('button[aria-selected="true"]')
+   current?.focus({preventScroll:true})
+  }
   const closeRef=useRef<HTMLButtonElement|null>(null)
   useEffect(()=>{
     if(!weightOpen)return
@@ -74,11 +92,11 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
  <header className="co-header">
   <div className="co-header-left">
    <span className="co-eyebrow">GARMIN_AI / COACH</span>
-   <h1>Dein Tag im Blick.</h1>
-   <p>Training, Wetter und Erholung. Ohne unnötige Zahlen.</p>
+   <h1>Dein Laufcoach. Jeden Tag.</h1>
+   <p>Deine Empfehlung, die Begründung und dein nächster Schritt.</p>
   </div>
   <div className="co-header-actions">
-   <CoachHealthStatus active={active} life={sharedSnapshot?.life}
+   <CoachHealthStatus active={active} openToken={healthOpenToken} life={sharedSnapshot?.life}
     onChanged={()=>window.dispatchEvent(new Event('garmin-ai-coach-changed'))}/>
    <button type="button" className="co-weight-action" aria-haspopup="dialog"
     onClick={()=>setWeightOpen(true)} title="Gewicht hinzufügen">
@@ -92,6 +110,9 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
    savedWeightDelivery==='needs_review'?' Intervals.icu-Übertragung prüfen':' nur in GARMIN_AI gespeichert'}
   
  </p>}
+ {dailyBrief&&!snapshotLoading&&!snapshotError&&<CoachDailyBrief brief={dailyBrief}
+  onDecision={openCoachDecision}
+  onReportSymptoms={()=>setHealthOpenToken(n=>n+1)}/>}
  <CoachGoalPanel active={active} compact onEdit={()=>onGo('goals')} onForecastOpen={onOpenRaceWeather}/>
  {snapshotLoading&&!sharedSnapshot&&!snapshotError&&<p className="co-data-note" role="status">
   Lade deine Garmin-, Kalender- und Coach-Daten gemeinsam …</p>}
