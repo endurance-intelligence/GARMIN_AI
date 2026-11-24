@@ -145,6 +145,6 @@ test('Goals owns a source-linked explanation and Coach shows only one compact me
  assert.match(goals,/<PolarizedMethodCard\/>/)
  assert.match(coach,/className="c7-polarized-method"/)
  assert.match(macro,/week\.qualityOptions>0/)
- assert.match(read('src/lib/coachSevenDay.mjs'),/applyPolarizedGuidance\(volumeStep\.days,/)
+ assert.match(read('src/lib/coachSevenDay.mjs'),/applyPolarizedGuidance\(toleranceStep\.days,/)
  assert.doesNotMatch(read('src/lib/polarizedTraining.mjs'),/\.upsert\(|\.insert\(|publishWorkout\(|sendToGarmin\(/)
 })
