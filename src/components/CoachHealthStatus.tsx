@@ -15,9 +15,10 @@ const categories:Record<Category,string>={
  illness:'Infekt / Krankheitsgefühl',pain:'Schmerzen / Verletzung',
  fatigue:'Erschöpfung / Überlastung',other:'Andere Beschwerden'
 }
-export function CoachHealthStatus({active,life,onChanged}:{active:boolean;
- life:CoachContextPayload|null|undefined;onChanged:()=>void}){
+export function CoachHealthStatus({active,life,onChanged,openToken=0}:{active:boolean;
+ life:CoachContextPayload|null|undefined;onChanged:()=>void;openToken?:number}){
  const [open,setOpen]=useState(false)
+ useEffect(()=>{if(active&&openToken>0)setOpen(true)},[active,openToken])
  const [category,setCategory]=useState<Category>('illness')
  const [startedOn,setStartedOn]=useState(berlinDateToday)
  const [duration,setDuration]=useState<Duration>('today')
