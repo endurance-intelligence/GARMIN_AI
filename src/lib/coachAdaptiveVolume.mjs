@@ -40,6 +40,9 @@ export function analyzeAdaptiveVolume({
    ': keine Steigerung aus vergangenen Trainingswochen.':
    'Nach dem Wettkampf hat Erholung Vorrang. Keine Umfangssteigerung.',{
    racePhase:true})
+ if(history.lowIntensityCautionKinds?.length)
+  return base('protected','Lockere Belastung zuerst stabilisieren',
+   'Wiederholt hohe subjektive Belastung bei geplanten lockeren oder langen Läufen. Keine neue Umfangssteigerung aus dem Vierwochenverlauf.')
  if(ill||returning||postIllness||symptoms||caution||feedbackCaution||
   trendReducing||trendShortening||recentImpactEffect==='shortened'||
   history.qualityCaution)

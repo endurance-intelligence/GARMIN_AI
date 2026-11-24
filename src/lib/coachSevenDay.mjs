@@ -4,6 +4,7 @@ import {summarizeLastCompletedWeek} from './completedWeekReview.mjs'
 import {applyPolarizedGuidance} from './polarizedTraining.mjs'
 import {analyzeGarminPerception} from './garminPerception.mjs'
 import {analyzeCoachFourWeeks} from './coachFourWeeks.mjs'
+import {applyWorkoutToleranceGuidance} from './coachWorkoutTolerance.mjs'
 import {analyzeAdaptiveVolume,applyAdaptiveVolume} from './coachAdaptiveVolume.mjs'
 import {analyzeAutoRaceRecovery} from './raceRecoveryIntelligence.mjs'
 import {analyzeRecentCoachImpact,applyRecentCoachImpact} from './coachNextImpact.mjs'
@@ -450,10 +451,26 @@ export function buildSevenDayCoach(input){
  const volumeStep=applyAdaptiveVolume(adapted.days,volume,{today})
  if(volumeStep.appliedDate)flags.push('Adaptive Umfangssteuerung ('+
   volumeStep.appliedDate+'): '+volume.reason)
- const polarized=applyPolarizedGuidance(volumeStep.days,{
+ // A workout-type signal can only refine an open suggestion in normal
+ // training. Protect the entire preview if it overlaps taper or recovery,
+ // including a recent archived race even when a new goal is active.
+ const recentRaceOffset=recoveryRaceDate?Math.round((Date.parse(recoveryRaceDate+'T12:00:00Z')-
+  Date.parse(today+'T12:00:00Z'))/ONE_DAY):null
+ const typeCaution= fourWeekReview.lowIntensityCautionKinds.length>0
+ const toleranceStep=applyWorkoutToleranceGuidance(volumeStep.days,fourWeekReview,{
+  today,protectedPhase:ill||returning||postIllness||!!input.symptoms||caution||
+   feedbackCaution||trendReducing||trendShortening||observationLimited||
+   (raceOffset!==null&&raceOffset>=-14&&raceOffset<=16)||
+   (recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<=0),
+  otherAdjustment:allowWeekAdjustment||adapted.impact.effect==='shortened'||!!volumeStep.appliedDate
+ })
+ if(toleranceStep.appliedDate)flags.push('Coach-Lernschleife ('+
+  toleranceStep.appliedDate+'): '+toleranceStep.message)
+ else if(typeCaution)flags.push('Coach-Lernschleife: Wiederholt hohe Belastung bei geplanten lockeren oder langen Läufen; keine zusätzliche Umfangssteigerung.')
+ const polarized=applyPolarizedGuidance(toleranceStep.days,{
   today,raceDate,ill,returning,postIllness,caution,
   feedbackCaution,trendReducing,observationLimited,
-  qualityLocked:garminPerception.qualityCaution||fourWeekReview.qualityCaution,
+  qualityLocked:garminPerception.qualityCaution||fourWeekReview.qualityCaution||typeCaution,
   boards:input.boards,feedback:life.post_workout_feedback
  })
  flags.push('Trainingsmethode: polarisiert (ca. vier locker / eine hart; '+
@@ -463,7 +480,7 @@ export function buildSevenDayCoach(input){
    status:polarized.status,plannedEasy:polarized.easyCount,
    message:polarized.message},
   attention:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||allowWeekAdjustment||
-  adapted.impact.effect==='shortened'||fourWeekReview.qualityCaution||observationLimited,
+  adapted.impact.effect==='shortened'||fourWeekReview.qualityCaution||typeCaution||observationLimited,
   attentionText:ill||input.symptoms?'Krank-Modus aktiv: Trainingsvorschläge sind gesperrt, bis du deine Genesung meldest.':
    returning?'Wiedereinstieg aktiv: erste Läufe und deine Folgetag-Rückmeldungen haben Vorrang. Keine automatische Freigabe.':
    postIllness?'Nach dem Wiedereinstieg Belastung weiter schrittweise aufbauen; keine Nachholeinheiten.':
@@ -472,6 +489,7 @@ export function buildSevenDayCoach(input){
     'Weitere Intensität erst nach Erholung, keine zusätzliche Eingabe notwendig.':
     'Deine bisherige Rückmeldung spricht für mehr Ruhe. Die nächsten Tage werden vorsichtiger geplant.'):
    trendReducing||trendShortening?'Dein Feedback aus mehreren Einheiten spricht für weniger Belastung. Vorschläge angepasst, nicht im Kalender geändert.':
+   toleranceStep.appliedDate?'Garmin-Bewertungen zeigen über mehrere Wochen hohe Belastung bei diesem geplanten Trainingstyp. Deshalb einen kürzeren nächsten offenen Lauf vorschlagen. Deine Freigabe bleibt erforderlich.':
    fourWeekReview.qualityCaution?'Über mehrere Wochen zeigt Garmin wiederholt harte Eigenbewertungen. Keine zusätzliche harte Bahnoption; vorhandene Einträge bleiben unverändert.':
    adapted.impact.effect==='shortened'?'Die letzte Garmin-Bewertung und die Plan-Ist-Abweichung sprechen zusammen für einen kürzeren nächsten offenen Vorschlag. Bitte prüfen und freigeben.':
    allowWeekAdjustment?'Dein Plan-Ist-Abgleich der letzten Woche spricht für einen kürzeren lockeren Lauf. Bitte selbst prüfen und freigeben.':

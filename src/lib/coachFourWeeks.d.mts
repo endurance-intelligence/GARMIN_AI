@@ -13,7 +13,7 @@ export type CoachFourWeeks={
  status:'unavailable'|'empty'|'partial'|'ready';weeks:CoachHistoryWeek[];
  completeWeeks:number;totalRuns:number|null;totalRated:number|null;
  totalMatched:number|null;qualityCaution:boolean;repeatedToughWeeks:number;
- workoutTolerance:CoachWorkoutTolerance[];
+ workoutTolerance:CoachWorkoutTolerance[];lowIntensityCautionKinds:string[];
  title:string;explanation:string;suggestion:string
 }
 export declare function analyzeCoachFourWeeks(input:{
