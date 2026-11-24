@@ -50,6 +50,21 @@ export function CoachFourWeekCard({today,snapshot}:{
      </>}
     </article>)}
    </div>
+   <div className="cfw-next" aria-label="Verträglichkeit nach Coach-Trainingstyp">
+    <strong>Wie verträgst du die verschiedenen Coach-Einheiten?</strong>
+    <p>Nur zeitlich eindeutig zugeordnete Coach-Läufe aus den geladenen Wochen. Die geplante Trainingsart ist kein Beleg für die tatsächlich gelaufene Intensität.</p>
+    {review.workoutTolerance.length===0?<p>Keine ausreichend eindeutig zugeordneten Coach-Läufe nach Trainingstyp verfügbar.</p>:
+     review.workoutTolerance.map(item=><article className="cfw-week" key={item.kind}>
+      <header><strong>{item.label}</strong><small>{item.weeks} Wochen</small></header>
+      <p>{item.matched} zugeordnet · {item.rated} mit Garmin-Feedback · {item.hard} sehr hart / schwaches Gefühl</p>
+      <p>{item.assessment==='limited'?'Zu wenige Bewertungen für eine belastbare Tendenz.':
+       item.assessment==='review-low-intensity'?'Wiederholt hohe Belastung bei geplant lockeren oder langen Läufen. Tempo, Dauer und Erholung prüfen; keine automatische Steigerung.':
+       item.assessment==='repeated-strain'?'Mehrere Wochen mit hoher subjektiver Belastung. Bei intensiven Einheiten kann das erwartbar sein; Regeneration und Trainingsziel im Zusammenhang prüfen.':
+       'Bisher kein wiederholtes deutliches Belastungssignal belegt. Keine Freigabe für mehr Intensität.'}</p>
+      {item.rated<item.matched&&<p className="cfw-muted">{item.matched-item.rated} ohne Bewertung – Verträglichkeit unbekannt.</p>}
+     </article>)}
+    <p>Keine zusätzliche Eingabe nötig. Keine automatische Änderung bestätigter Trainings.</p>
+   </div>
    <div className={'cfw-next'+(review.qualityCaution?' is-caution':'')}>
     <strong>{review.title}</strong>
     <p>{review.explanation}</p>
