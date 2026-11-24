@@ -2,6 +2,8 @@
  * All recommendations and calendar writes require separate athlete approval.
  */
 import {createClient} from 'npm:@supabase/supabase-js@2'
+import {validGoalLogo,MAX_LOGO_LENGTH} from '../_shared/goal-logo.mjs'
+const fields='race_name,race_date,distance_km,target_hours,race_location,race_start_time,coach_note,updated_at,maintenance_weekly_km'
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
 const isDev=(x:string)=>/^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(x)
@@ -45,19 +47,22 @@ Deno.serve(async req=>{
   if(!user.email_confirmed_at||user.email?.trim().toLowerCase()!==owner)
    return response(403,{error:'Not authorized'},h)
   const db=createClient(project,key('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
+  const viewFields=fields+(new URL(req.url).searchParams.get('includeLogo')==='1'?',goal_logo':'')
   if(req.method==='GET'){
    const {data,error}=await db.from('garmin_coach_goals')
-    .select('race_name,race_date,distance_km,target_hours,race_location,race_start_time,coach_note,updated_at,maintenance_weekly_km')
+    .select(viewFields)
     .eq('user_id',user.id).maybeSingle()
    if(error)return response(503,{error:'Goal not available'},h)
    return response(200,{goal:data||null,phaseCalculated:true,autoSchedule:false},h)
   }
   const raw=await req.text()
-  if(raw.length>4000)return response(413,{error:'Request too large'},h)
+  if(raw.length>MAX_LOGO_LENGTH+4000)return response(413,{error:'Request too large'},h)
   let input:unknown
   try{input=JSON.parse(raw)}catch{return response(422,{error:'Invalid JSON'},h)}
   if(!input||typeof input!=='object'||Array.isArray(input))return response(422,{error:'Invalid goal'},h)
   const v=input as Record<string,unknown>
+  if(v.logoData!==undefined&&!validGoalLogo(v.logoData))return response(422,{error:'Bitte ein gültiges WebP-Logo auswählen.'},h)
+  if(raw.length-(typeof v.logoData==='string'?v.logoData.length:0)>4000)return response(413,{error:'Request too large'},h)
   if(v.action==='maintenance'&&v.confirm===true){
    if(!finite(v.weeklyKm,1,200)||!dateValid(v.expectedRaceDate)||typeof v.expectedRaceName!=='string')return response(422,{error:'Trainingsniveau prüfen.'},h)
    const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
@@ -65,7 +70,7 @@ Deno.serve(async req=>{
    if(v.expectedRaceDate>=today)return response(409,{error:'Das Hauptziel liegt noch nicht zurück.'},h)
    const {data,error}=await db.from('garmin_coach_goals').update({maintenance_weekly_km:v.weeklyKm,updated_at:new Date().toISOString()})
     .eq('user_id',user.id).eq('race_date',v.expectedRaceDate).eq('race_name',v.expectedRaceName)
-    .select('race_name,race_date,distance_km,target_hours,race_location,race_start_time,coach_note,updated_at,maintenance_weekly_km').maybeSingle()
+    .select(viewFields).maybeSingle()
    if(error||!data)return response(409,{error:'Ziel hat sich geändert. Bitte aktualisieren.'},h)
    return response(200,{saved:true,goal:data,trainingPlanChanged:false,garminChanged:false,intervalsChanged:false},h)
   }
@@ -82,11 +87,12 @@ Deno.serve(async req=>{
    user_id:user.id,race_name:v.raceName.trim(),race_date:v.raceDate,
    distance_km:v.distanceKm,target_hours:v.targetHours,
    race_location:v.raceLocation.trim(),race_start_time:v.raceStartTime,
-   coach_note:v.coachNote.trim(),updated_at:new Date().toISOString()
+   coach_note:v.coachNote.trim(),updated_at:new Date().toISOString(),
+   ...(v.logoData===undefined?{}:{goal_logo:v.logoData})
   }
   const {data,error:saveError}=await db.from('garmin_coach_goals')
    .upsert(saved,{onConflict:'user_id'})
-   .select('race_name,race_date,distance_km,target_hours,race_location,race_start_time,coach_note,updated_at,maintenance_weekly_km')
+   .select(viewFields)
    .single()
   if(saveError||!data)return response(503,{error:'Ziel konnte nicht gespeichert werden.'},h)
   return response(200,{saved:true,goal:data,garminChanged:false,intervalsChanged:false,
