@@ -18,12 +18,15 @@ export function AskCoachCard({today,snapshot,plan,onDecision,onProgress,onGoals,
  const labels={decision:'Coach-Plan ansehen',progress:'Tempo/Puls und Strecken vergleichen',goals:'Goals öffnen',symptoms:'Beschwerden / Pause'}
  return <section className="ask-coach" aria-label="Frag deinen Coach">
   <header><span><Icon name="message-circle"/> DEIN PERSÖNLICHER COACH</span>
-   <h2>Frag deinen Coach.</h2><p>Antworten aus deinen bereits geladenen Daten. Keine zusätzlichen Garmin-Abfragen.</p></header>
+   <h2>Frag deinen Coach.</h2><p>Dein Training. Deine Fragen.</p></header>
+  <details className="ask-suggestions">
+   <summary>Beispielfragen</summary>
   <div className="ask-questions" aria-label="Vorgeschlagene Fragen">
    {COACH_QUESTIONS.map(q=><button key={q.id} type="button"
     aria-pressed={selected?.topic===q.id&&selected.text===q.label}
     onClick={()=>{setSelected({topic:q.id,text:q.label});setQuery('')}}>{q.label}</button>)}
   </div>
+  </details>
   <form className="ask-form" onSubmit={e=>{e.preventDefault();const text=query.trim()
    if(text){setSelected({topic:resolveCoachQuestion(text),text});setQuery('')}}}>
    <label htmlFor="ask-coach-query">Oder stelle eine Frage zu diesen Themen</label>
