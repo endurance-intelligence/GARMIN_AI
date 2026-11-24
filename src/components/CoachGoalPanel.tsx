@@ -93,6 +93,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
  if(!active)return null
  const current=goal||suggestedGoal
  const phase=phaseForRace(current.race_date,berlinDateToday())
+ const goalIsPast=Boolean(goal&&phase.daysUntil<0)
  const distanceText=Number(current.distance_km).toLocaleString('de-DE',{maximumFractionDigits:1})
  const days=Math.max(0,phase.daysUntil)
  const eventLogo=logoUrl&&/^https:\/\//i.test(logoUrl)?logoUrl:savedLogo
@@ -102,10 +103,10 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
    onError={()=>setSavedLogo(null)}/>:
    <span className="cg-goal-emblem-fallback" aria-hidden="true"><Icon name="flag"/></span>}
  </span>
- if(compact)return <section className="cg-root cg-compact cg-home-hero"
-  aria-label="Aktuelles Hauptziel und Rennwetter">
+ if(compact)return <section className={'cg-root cg-compact cg-home-hero'+(goalIsPast?' cg-past-goal':'')}
+  aria-label={goalIsPast?'Letzter Wettkampf und Auswahl des nächsten Ziels':'Aktuelles Hauptziel und Rennwetter'}>
   <div className="cg-home-race">
-   <div className="cg-home-race-head"><span className="cg-kicker">DEIN NÄCHSTES ZIEL</span></div>
+   <div className="cg-home-race-head"><span className="cg-kicker">{goalIsPast?'LETZTER WETTKAMPF · NÄCHSTES ZIEL WÄHLEN':'DEIN NÄCHSTES ZIEL'}</span></div>
    <div className="cg-home-race-main">
     <div className="cg-home-race-info">
      <div className="cg-goal-name">{goalBadge}<h2>{current.race_name}</h2></div>
@@ -116,13 +117,13 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
       <span>{phase.title}</span>
      </div>
      <button className="cg-home-edit" type="button" onClick={onEdit}
-      disabled={!onEdit}>Ziel bearbeiten ↗</button>
+      disabled={!onEdit}>{goalIsPast?'Nächstes Ziel festlegen ↗':'Ziel bearbeiten ↗'}</button>
     </div>
-    <div className="cg-home-days"><strong>{phase.daysUntil>0?days:phase.daysUntil===0?'GO':'–'}</strong>
-     <small>{phase.daysUntil>0?'TAGE BIS START':phase.daysUntil===0?'HEUTE':'ZIEL VORBEI'}</small></div>
+    {!goalIsPast&&<div className="cg-home-days"><strong>{phase.daysUntil>0?days:phase.daysUntil===0?'GO':'–'}</strong>
+     <small>{phase.daysUntil>0?'TAGE BIS START':phase.daysUntil===0?'HEUTE':'ZIEL VORBEI'}</small></div>}
    </div>
   </div>
-  <CoachRaceWeatherMini active={active} goal={current} onOpenDetails={onForecastOpen}/>
+  {!goalIsPast&&<CoachRaceWeatherMini active={active} goal={current} onOpenDetails={onForecastOpen}/>} 
   {loading&&<small className="cg-home-loading">Aktives Ziel wird aktualisiert …</small>}
   {error&&<small className="cg-home-error" role="alert">{error}</small>}
  </section>
