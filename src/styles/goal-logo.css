@@ -1,0 +1,13 @@
+.goal-logo-edit{display:flex;align-items:center;gap:16px;margin:12px 0 16px;padding:12px;border:1px solid rgba(153,178,226,.23);border-radius:12px;min-width:0}
+.goal-logo-preview{width:112px;height:112px;flex:0 0 112px;display:grid;place-items:center;background:#f5f7fb;border-radius:12px;overflow:hidden;color:#7e90b2;font-size:32px}
+.goal-logo-preview img{width:100%;height:100%;object-fit:contain;padding:5px;box-sizing:border-box}
+.goal-logo-controls{display:flex;flex-direction:column;gap:6px;min-width:0}
+.goal-logo-controls small{font-size:11px;line-height:1.4;color:#b6c5de}
+.goal-logo-actions{display:flex;gap:8px;flex-wrap:wrap}
+.goal-logo-actions button{border-radius:8px;padding:8px 12px;min-height:40px;border:1px solid #59698c;background:#24334f;color:#eef2fb;cursor:pointer;font:inherit}
+.goal-logo-actions button:disabled{opacity:.55;cursor:default}
+.goal-logo-error{color:#fca5a5;font-size:12px}
+.rgp-goal-heading{display:flex;align-items:center;gap:10px}
+.rgp-goal-logo{width:42px;height:42px;flex:0 0 42px;object-fit:contain;background:#f5f7fb;border-radius:7px}
+.cg-title-row>.cg-goal-emblem:has(img){width:88px;height:88px;flex-basis:88px}
+@media(max-width:540px){.goal-logo-edit{gap:10px;padding:10px}.goal-logo-preview{width:76px;height:76px;flex-basis:76px}.cg-title-row>.cg-goal-emblem:has(img){width:64px;height:64px;flex-basis:64px}}

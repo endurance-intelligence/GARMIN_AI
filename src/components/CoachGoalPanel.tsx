@@ -6,12 +6,13 @@ import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garm
 import '../styles/coach-goal.css'
 import {CoachRaceWeatherMini} from './CoachRaceWeatherMini'
 import {Icon} from './Icon'
+import {GoalLogoEditor} from './GoalLogoEditor'
 
 async function goalRequest(body?:Record<string,unknown>):Promise<{goal:CoachGoal|null;saved?:boolean}>{
  if(!garminSupabase)throw Error('Bitte zuerst anmelden.')
  const {data:{session}}=await garminSupabase.auth.getSession()
  if(!session)throw Error('Bitte zuerst anmelden.')
- const res=await fetch(garminSupabaseUrl+'/functions/v1/garmin-coach-goal',{
+ const res=await fetch(garminSupabaseUrl+'/functions/v1/garmin-coach-goal?includeLogo=1',{
   method:body?'POST':'GET',cache:'no-store',
   headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey,
    ...(body?{'content-type':'application/json'}:{})},
@@ -32,6 +33,8 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
  const [goal,setGoal]=useState<CoachGoal|null>(null)
  const [draft,setDraft]=useState<Draft>(()=>({raceName:'',raceDate:'',distanceKm:'',targetHours:'',raceLocation:'',raceStartTime:'',coachNote:''}))
  const [editOpen,setEditOpen]=useState(false)
+ const [logoDraft,setLogoDraft]=useState<string|undefined>(undefined)
+ const [logoPreparing,setLogoPreparing]=useState(false)
  const [maintainOpen,setMaintainOpen]=useState(false)
  const [maintainKm,setMaintainKm]=useState('')
  const [loading,setLoading]=useState(false)
@@ -46,7 +49,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
   setLoading(true);setError('')
   void goalRequest().then(result=>{
    if(!mounted)return
-   setGoal(result.goal)
+   setGoal(result.goal);setLogoDraft(undefined)
    if(result.goal){setDraft(asDraft(result.goal));setMaintainKm(result.goal.maintenance_weekly_km==null?'':String(result.goal.maintenance_weekly_km))}
    setReady(true)
   }).catch(e=>{if(mounted)setError(e instanceof Error?e.message:'Ziel nicht abrufbar')})
@@ -54,10 +57,10 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
   return ()=>{mounted=false}
  },[active])
  useEffect(()=>{
-  if(!active||!goal||!garminSupabase)return
+  setSavedLogo(null)
+  if(!active||!goal||goal.goal_logo!=null||!garminSupabase)return
   let mounted=true
   const controller=new AbortController()
-  setSavedLogo(null)
   void (async()=>{
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)return
@@ -72,9 +75,9 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
    if(mounted)setSavedLogo(typeof value==='string'&&/^https:\/\//i.test(value)?value:null)
   })().catch(()=>{if(mounted)setSavedLogo(null)})
   return ()=>{mounted=false;controller.abort()}
- },[active,goal?.race_date,goal?.race_name])
+ },[active,goal?.race_date,goal?.race_name,goal?.goal_logo])
  async function save(){
-  if(saving)return
+  if(saving||logoPreparing)return
   setError('');setNotice('');setSaving(true)
   try{
    if(!draft.raceName.trim()||!draft.raceDate||!draft.distanceKm)throw Error('Bitte Wettkampf, Datum und Distanz eintragen.')
@@ -84,13 +87,14 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
    const response=await goalRequest({action:'save',confirm:true,
     raceName:draft.raceName.trim(),raceDate:draft.raceDate,
     distanceKm:distance,targetHours:hours,raceLocation:draft.raceLocation.trim(),
-    raceStartTime:draft.raceStartTime||null,coachNote:draft.coachNote.trim()
+    raceStartTime:draft.raceStartTime||null,coachNote:draft.coachNote.trim(),
+    ...(logoDraft===undefined?{}:{logoData:logoDraft})
    })
    if(!response.saved||!response.goal)throw Error('Speicherung nicht bestätigt.')
    setGoal(response.goal)
    setDraft(asDraft(response.goal))
    setNotice('Dein aktives Wettkampfziel ist gespeichert. Garmin-Workouts bleiben unverändert.')
-   setEditOpen(false)
+   setEditOpen(false);setLogoDraft(undefined)
    onSaved?.()
   }catch(e){setError(e instanceof Error?e.message:'Ziel konnte nicht gespeichert werden.')}
   finally{setSaving(false)}
@@ -117,7 +121,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
  const chooseNew=()=>{const el=document.getElementById('race-goal-portfolio');el?.scrollIntoView({behavior:'smooth',block:'start'});window.dispatchEvent(new Event('garmin-ai-add-race-goal'))}
  const distanceText=Number(current.distance_km).toLocaleString('de-DE',{maximumFractionDigits:1})
  const days=Math.max(0,phase.daysUntil)
- const eventLogo=logoUrl&&/^https:\/\//i.test(logoUrl)?logoUrl:savedLogo
+ const eventLogo=goal?.goal_logo!=null?goal.goal_logo:(logoUrl&&/^https:\/\//i.test(logoUrl)?logoUrl:savedLogo)
  const goalBadge=<span className="cg-goal-emblem" aria-label={'Rennlogo '+current.race_name}>
   {eventLogo?<img src={eventLogo} alt={'Logo '+current.race_name}
    loading="lazy" referrerPolicy="no-referrer"
@@ -180,7 +184,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
     <button type="button" disabled={saving||!maintainKm} onClick={()=>void saveMaintenance()}>Trainingsniveau speichern</button>
     <small>Richtwert, kein Kilometerzwang. Regeneration und aktuelle Belastbarkeit haben Vorrang.</small></div>}
   </div>}
-  {goal&&<button type="button" className="cg-home-edit" disabled={saving} onClick={()=>{setEditOpen(x=>!x);setDraft(asDraft(goal))}}>{editOpen?'Bearbeitung schließen':'Ziel bearbeiten'}</button>}
+  {goal&&<button type="button" className="cg-home-edit" disabled={saving||logoPreparing} onClick={()=>{setEditOpen(x=>!x);setDraft(asDraft(goal));setLogoDraft(undefined)}}>{editOpen?'Bearbeitung schließen':'Ziel bearbeiten'}</button>}
   {compact?<>
     <button type="button" className="cg-link" onClick={onEdit} disabled={!onEdit}>
      Ziel & Trainingsphase bearbeiten
@@ -189,6 +193,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
    (!goal||editOpen)&&<div className="cg-edit">
     <div className="cg-edit-head"><strong>{goal?'Gespeichertes Ziel bearbeiten':'Mein nächstes Ziel'}</strong>
      <small>{goal?'Korrekturen an diesem Rennen. Für ein neues Rennen bitte Neues Ziel verfolgen nutzen.':'Neues Wettkampfziel anlegen'}</small></div>
+    <GoalLogoEditor value={logoDraft===undefined?eventLogo:logoDraft} onChange={setLogoDraft} disabled={saving} onPreparing={setLogoPreparing}/>
     <div className="cg-fields">
      <label>Wettkampf<input value={draft.raceName} maxLength={100}
       onChange={e=>setDraft(d=>({...d,raceName:e.target.value}))} placeholder="Name des Wettkampfs"/></label>
@@ -207,7 +212,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
        onChange={e=>setDraft(d=>({...d,coachNote:e.target.value}))}
        placeholder="z. B. Rundenformat, Versorgungsstrategie, Prioritäten"/></label>
     </div>
-    <div className="cg-actions"><button type="button" disabled={saving||loading} onClick={()=>void save()}>
+    <div className="cg-actions"><button type="button" disabled={saving||loading||logoPreparing} onClick={()=>void save()}>
       {saving?'Speichere Ziel …':goal?'Änderungen am Ziel speichern':'Dieses Ziel aktivieren'}
      </button>
      <small>Es werden keine Garmin-/Intervals-Workouts erzeugt oder automatisch geändert.</small></div>

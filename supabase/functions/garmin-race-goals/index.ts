@@ -2,6 +2,7 @@
  * Atomically switch main through database function. No workout/Garmin writes.
  */
 import {createClient} from 'npm:@supabase/supabase-js@2'
+import {validGoalLogo,MAX_LOGO_LENGTH} from '../_shared/goal-logo.mjs'
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
 const isDev=(x:string)=>/^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(x)
@@ -53,20 +54,23 @@ Deno.serve(async req=>{
   if(!user.email_confirmed_at||user.email?.trim().toLowerCase()!==owner)
    return reply(403,{error:'Not authorized'},h)
   const db=createClient(project,key('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
+  const includeLogo=new URL(req.url).searchParams.get('includeLogo')==='1'
   if(req.method==='GET'){
    const [main,other]=await Promise.all([
-    db.from('garmin_coach_goals').select('race_name,race_date,distance_km,target_hours,race_location,race_start_time,coach_note,updated_at').eq('user_id',user.id).maybeSingle(),
-    db.from('garmin_coach_secondary_goals').select(fields).eq('user_id',user.id).order('race_date',{ascending:true}).limit(60)
+    db.from('garmin_coach_goals').select('race_name,race_date,distance_km,target_hours,race_location,race_start_time,coach_note,updated_at'+(includeLogo?',goal_logo':'')).eq('user_id',user.id).maybeSingle(),
+    db.from('garmin_coach_secondary_goals').select(fields+(includeLogo?',goal_logo':'')).eq('user_id',user.id).order('race_date',{ascending:true}).limit(60)
    ])
    if(main.error||other.error)return reply(503,{error:'Wettkampfziele nicht verfügbar'},h)
    return reply(200,{primary:main.data,others:other.data||[],coachFollowsPrimary:true},h)
   }
   const body=await req.text()
-  if(body.length>3000)return reply(413,{error:'Request too large'},h)
+  if(body.length>MAX_LOGO_LENGTH+3000)return reply(413,{error:'Request too large'},h)
   let input:Record<string,unknown>
   try{const parsed=JSON.parse(body)
    if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw Error('Invalid')
    input=parsed}catch{return reply(422,{error:'Ungültige Eingabe'},h)}
+  if(input.logoData!==undefined&&!validGoalLogo(input.logoData))return reply(422,{error:'Bitte ein gültiges WebP-Logo auswählen.'},h)
+  if(body.length-(typeof input.logoData==='string'?input.logoData.length:0)>3000)return reply(413,{error:'Request too large'},h)
   if(input.confirm!==true)return reply(422,{error:'Bitte Änderung ausdrücklich bestätigen.'},h)
   if(input.action==='add'){
    if(!validGoal(input))return reply(422,{error:'Wettkampfdatum oder Zielangaben prüfen.'},h)
@@ -76,7 +80,7 @@ Deno.serve(async req=>{
    const row={user_id:user.id,race_name:String(input.raceName).trim(),
     race_date:input.raceDate,distance_km:input.distanceKm,target_hours:input.targetHours,
     race_location:String(input.raceLocation).trim(),race_start_time:input.raceStartTime,
-    coach_note:String(input.coachNote).trim(),updated_at:new Date().toISOString()}
+    coach_note:String(input.coachNote).trim(),updated_at:new Date().toISOString(),...(input.logoData===undefined?{}:{goal_logo:input.logoData})}
    const {data,error:saveError}=await db.from('garmin_coach_secondary_goals')
     .upsert(row,{onConflict:'user_id,race_name,race_date'}).select(fields).single()
    if(saveError||!data)return reply(503,{error:'Weiteres Ziel konnte nicht gespeichert werden.'},h)
@@ -89,7 +93,7 @@ Deno.serve(async req=>{
    const {data:main,error:mainError}=await db.from('garmin_coach_goals').select('race_name,race_date').eq('user_id',user.id).maybeSingle()
    if(mainError)return reply(503,{error:'Hauptziel nicht verfügbar'},h)
    if(main?.race_name===String(input.raceName).trim()&&main?.race_date===input.raceDate)return reply(409,{error:'Dieses Rennen ist bereits dein Hauptziel.'},h)
-   const {data,error}=await db.from('garmin_coach_secondary_goals').update({race_name:String(input.raceName).trim(),race_date:input.raceDate,distance_km:input.distanceKm,target_hours:input.targetHours,race_location:String(input.raceLocation).trim(),race_start_time:input.raceStartTime,coach_note:String(input.coachNote).trim(),updated_at:new Date().toISOString()})
+   const {data,error}=await db.from('garmin_coach_secondary_goals').update({race_name:String(input.raceName).trim(),race_date:input.raceDate,distance_km:input.distanceKm,target_hours:input.targetHours,race_location:String(input.raceLocation).trim(),race_start_time:input.raceStartTime,coach_note:String(input.coachNote).trim(),updated_at:new Date().toISOString(),...(input.logoData===undefined?{}:{goal_logo:input.logoData})})
     .eq('user_id',user.id).eq('id',input.id).select(fields).maybeSingle()
    if(error)return reply(409,{error:'Änderung nicht gespeichert. Prüfe, ob das Ziel bereits existiert.'},h)
    if(!data)return reply(404,{error:'Ziel nicht gefunden'},h)
