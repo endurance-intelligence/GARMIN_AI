@@ -13,6 +13,7 @@ export type CoachContext={
  illness_expected_end_on:string|null;
  return_started_on:string|null;blocked_periods:CoachBlock[];run_reviews:CoachRunReview[];
  day_decisions?:Array<{date:string;choice:'accepted'|'declined'}>;race_recovery_checks?:CoachRaceCheck[];
+ race_activity_links?:Array<{raceDate:string;raceName:string;activityId:string;confirmedOn:string}>;
  post_workout_feedback?:import('../lib/postWorkoutFeedback.mjs').WorkoutFeedback[];
  updated_at:string
 }

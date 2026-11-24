@@ -17,3 +17,25 @@
  background:#304660;border:1px solid rgba(179,207,237,.3);font-size:11px;font-weight:760}
 .raa-coach .ic{width:15px;height:15px}
 @media(max-width:500px){.raa-result{grid-template-columns:1fr}}
+
+
+/* P0: explicit athlete confirmation of a shorter, actually recorded race. */
+.raa-link{display:grid;gap:9px;padding:13px;margin-top:13px;
+ border:1px solid rgba(166,211,192,.31);border-radius:11px;
+ background:rgba(41,89,83,.25)}
+.raa-link>strong{font-size:12px;color:#e5f5e9}
+.raa-link>p{font-size:11px;line-height:1.6;color:#bad2d7;margin:0}
+.raa-link label{display:grid;gap:6px;font-size:10px;color:#cadadb}
+.raa-link select{width:100%;box-sizing:border-box;min-height:44px;
+ color:#e6f8ef;background:#203b4e;border:1px solid rgba(174,220,204,.38);
+ padding:10px;border-radius:8px;font-size:12px}
+.raa-link button{display:flex;align-items:center;justify-content:center;gap:6px;
+ min-height:44px;padding:10px 13px;border:1px solid rgba(186,223,207,.45);
+ border-radius:9px;color:#133e35;background:#c1efd6;font-size:11px;font-weight:800;cursor:pointer}
+.raa-link button:disabled,.raa-unlink:disabled{opacity:.5;cursor:not-allowed}
+.raa-link button .ic{width:15px;height:15px}
+.raa-unlink{margin-top:12px;display:inline-flex;min-height:40px;align-items:center;
+ background:transparent;border:1px solid rgba(180,214,234,.3);
+ color:#d2e3f0;padding:8px 11px;border-radius:8px;font-size:11px;cursor:pointer}
+.raa-link select:focus-visible,.raa-link button:focus-visible,.raa-unlink:focus-visible{
+ outline:2px solid #e1f9ee;outline-offset:2px}

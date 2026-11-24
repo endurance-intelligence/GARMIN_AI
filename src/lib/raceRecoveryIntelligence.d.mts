@@ -2,7 +2,7 @@ export type AutoRaceRecovery={
  status:'missing'|'upcoming'|'outside'|'matched'|'ambiguous'|'awaiting-sync';
  raceDate:string|null;raceName:string|null;daysSince:number|null;
  phase:'none'|'race'|'rest'|'protect'|'observe'|'return'|'rebuild';
- title:string;next:string;matchStatus:'unique'|'ambiguous'|'unavailable';
+ title:string;next:string;matchStatus:'unique'|'confirmed'|'ambiguous'|'unavailable';
  activityId:string|null;actualMinutes:number|null;actualKm:number|null;
  garminRpe:number|null;garminFeeling:number|null;
  signals:string[];recoveryCaution:boolean;healthEvidence:number;
