@@ -51,5 +51,5 @@ test('Race Prep page still mounts RaceStrategyCard directly and no new data writ
  assert.match(detail,/Diesen Garmin-Lauf dem Wettkampf zuordnen/)
  assert.match(detail,/Zuordnung wieder lösen/)
  assert.match(detail,/input|selected|changeLink/)
- assert.doesNotMatch(ui,/\\.upsert\\(\\{.*race_activity_links/)
+ assert.ok(!ui.includes('.upsert({race_activity_links'))
 })
