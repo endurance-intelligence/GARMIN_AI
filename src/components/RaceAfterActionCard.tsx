@@ -15,7 +15,6 @@ export function RaceAfterActionCard({goal,plannedMinutes,onCoach}:{
 }){
  const [outcome,setOutcome]=useState<RaceOutcome|null>(null)
  const [board,setBoard]=useState<RaceBoard|null>(null)
- const [links,setLinks]=useState<RaceActivityLink[]>([])
  const [checks,setChecks]=useState<unknown[]>([])
  const [runs,setRuns]=useState<RaceDayActivity[]>([])
  const [selected,setSelected]=useState('')
@@ -34,7 +33,7 @@ export function RaceAfterActionCard({goal,plannedMinutes,onCoach}:{
   let mounted=true
   const controller=new AbortController()
   setPending(true);setError('');setNotice('');setOutcome(null);setBoard(null)
-  setRuns([]);setSelected('');setLinks([]);setChecks([])
+  setRuns([]);setSelected('');setChecks([])
   void (async()=>{
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)throw Error('Bitte anmelden.')
@@ -54,7 +53,7 @@ export function RaceAfterActionCard({goal,plannedMinutes,onCoach}:{
     life.context.race_recovery_checks as unknown[]:[]
    const candidates=listRaceDayActivities({raceDate:goal.race_date,board:nextBoard})
    if(mounted){
-    setBoard(nextBoard);setLinks(nextLinks);setChecks(nextChecks);setRuns(candidates)
+    setBoard(nextBoard);setChecks(nextChecks);setRuns(candidates)
     setOutcome(build(nextBoard,nextLinks,nextChecks))
     if(candidates.length===1)setSelected(candidates[0].activityId)
    }
@@ -85,7 +84,7 @@ export function RaceAfterActionCard({goal,plannedMinutes,onCoach}:{
     !Array.isArray(payload.context?.race_activity_links))
     throw Error(payload.error||'Zuordnung konnte nicht bestätigt werden.')
    const nextLinks=payload.context.race_activity_links
-   setLinks(nextLinks);setOutcome(build(board,nextLinks,checks))
+   setOutcome(build(board,nextLinks,checks))
    setNotice(action==='confirm_race_activity'?
     'Deine Zuordnung ist gespeichert und wird im Coach berücksichtigt.':
     'Die Zuordnung wurde gelöst. Der Coach prüft das Rennen wieder automatisch.')
