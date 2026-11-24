@@ -56,6 +56,11 @@ export function buildCoachStructuredSnapshot(input){
  return {
   schemaVersion:1,sourceKind:'coach',coachKind:kind,
   title:input.title.trim(),coachName:'GARMIN_AI Coach',
+  // Optional private context for retrospective display only; not used for
+  // authorization, workout steps, or external workout descriptions.
+  ...(typeof input.coachReason==='string'&&input.coachReason.trim()&&
+   input.coachReason.length<=400&&new TextEncoder().encode(JSON.stringify(input.coachReason)).length<=600?
+   {coachReason:input.coachReason.trim()}:{}),
   sourceLabel:'Coach Intelligence · persönlich freigegebener Entwurf',
   startTime:input.startTime,
   group:{name:'Ruhiger Dauerlauf',

@@ -9,5 +9,5 @@ export type CoachSessionBridge={
  totalRuns:number|null;matchedCount:number|null
 }
 export declare function buildCoachSessionBridge(input:{
- boards:Array<{activities?:unknown[]}>;plans:unknown[];today:string;limit?:number
+ boards:Array<{activities?:unknown[]}>;plans:unknown[];today:string;limit?:number|null
 }):CoachSessionBridge

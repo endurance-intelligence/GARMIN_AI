@@ -53,7 +53,7 @@ export function buildCoachSessionBridge({boards,plans,today,limit=4}={}){
    feeling:garminFeelingLabel(row.feeling_raw),match}
  })
  const size=Number.isInteger(limit)?Math.max(1,Math.min(limit,10)):4
- const items=prepared.slice(0,size)
+ const items=limit===null?prepared:prepared.slice(0,size)
  return {status:source.length?'ready':'empty',items,totalRuns:source.length,
   matchedCount:prepared.filter(x=>x.match.status==='matched').length}
 }

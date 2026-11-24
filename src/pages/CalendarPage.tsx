@@ -9,6 +9,7 @@ import {CoachEvidenceSummary} from '../components/CoachEvidenceSummary'
 import {loadCoachSnapshot} from '../lib/coachSnapshot'
 import type {CoachSnapshot} from '../lib/coachSnapshot'
 import {buildSevenDayCoach} from '../lib/coachSevenDay.mjs'
+import {boundedCoachReason} from '../lib/coachMemory.mjs'
 import type {CoachDay} from '../lib/coachSevenDay.mjs'
 import '../styles/horizon-calendar.css'
 
@@ -248,7 +249,7 @@ export function CalendarPage({active,focus,onOpenCoach}:{
      const payload=structured?{
       action:'create_coach_workout',clientRequestId:requestId,
       date:day.date,title:day.title,kind:day.kind,minutes:day.minutes,
-      startTime:chosenTime
+      startTime:chosenTime,coachReason:boundedCoachReason(day.reason)
      }:{
       action:'create',clientRequestId:requestId,date:day.date,
       title:day.title,sessionType:'event',
@@ -347,7 +348,7 @@ export function CalendarPage({active,focus,onOpenCoach}:{
    const payload=structured?{
     action:'create_coach_workout',clientRequestId:requestId,
     date:day.date,title:day.title,kind:day.kind,minutes:day.minutes,
-    startTime:coachStartTime
+    startTime:coachStartTime,coachReason:boundedCoachReason(day.reason)
    }:{
     action:'create',clientRequestId:requestId,date:day.date,
     title:day.title,sessionType:'event',
