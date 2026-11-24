@@ -489,7 +489,7 @@ export function buildSevenDayCoach(input){
     'Weitere Intensität erst nach Erholung, keine zusätzliche Eingabe notwendig.':
     'Deine bisherige Rückmeldung spricht für mehr Ruhe. Die nächsten Tage werden vorsichtiger geplant.'):
    trendReducing||trendShortening?'Dein Feedback aus mehreren Einheiten spricht für weniger Belastung. Vorschläge angepasst, nicht im Kalender geändert.':
-   toleranceStep.appliedDate?'Die wiederholte hohe Belastung bei diesem geplanten Trainingstyp spricht für einen kürzeren nächsten offenen Lauf. Deine Freigabe bleibt erforderlich.':
+   toleranceStep.appliedDate?'Garmin-Bewertungen zeigen über mehrere Wochen hohe Belastung bei diesem geplanten Trainingstyp. Deshalb einen kürzeren nächsten offenen Lauf vorschlagen. Deine Freigabe bleibt erforderlich.':
    fourWeekReview.qualityCaution?'Über mehrere Wochen zeigt Garmin wiederholt harte Eigenbewertungen. Keine zusätzliche harte Bahnoption; vorhandene Einträge bleiben unverändert.':
    adapted.impact.effect==='shortened'?'Die letzte Garmin-Bewertung und die Plan-Ist-Abweichung sprechen zusammen für einen kürzeren nächsten offenen Vorschlag. Bitte prüfen und freigeben.':
    allowWeekAdjustment?'Dein Plan-Ist-Abgleich der letzten Woche spricht für einen kürzeren lockeren Lauf. Bitte selbst prüfen und freigeben.':
