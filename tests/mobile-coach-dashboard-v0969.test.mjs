@@ -61,14 +61,15 @@ test('a daily skipped choice updates Coach and removes the wrong fixed weather f
  assert.match(weather,/garmin-ai-weekly-choice-changed/)
  assert.doesNotMatch(glance,/Heute noch offen/)
 })
-test('race-and-weather hero is topmost and compact, preserving full goal edit view',()=>{
+test('coach today leads the dashboard; next goal stays compact with future weather',()=>{
  const page=read('src/pages/CoachPage.tsx')
  const goal=read('src/components/CoachGoalPanel.tsx')
  const weather=read('src/components/CoachRaceWeatherMini.tsx')
  const css=read('src/styles/coach-goal.css')
+ assert.ok(page.indexOf('<CoachDailyBrief brief={dailyBrief}')<page.indexOf('<CoachGoalPanel active={active} compact'))
  assert.ok(page.indexOf('<CoachGoalPanel active={active} compact')<page.indexOf('<CoachGlance active={active}'))
- assert.match(goal,/if\(compact\)return <section className="cg-root cg-compact cg-home-hero"/)
- assert.match(goal,/<CoachRaceWeatherMini active=\{active\} goal=\{current\} onOpenDetails=\{onForecastOpen\}\/>/)
+ assert.match(goal,/if\(compact\)return <section className=\{'cg-root cg-compact cg-home-hero'/)
+ assert.match(goal,/!goalIsPast&&<CoachRaceWeatherMini active=\{active\} goal=\{current\} onOpenDetails=\{onForecastOpen\}\/>/)
  assert.match(goal,/Ziel bearbeiten/)
  assert.match(goal,/Ziel & Trainingsphase bearbeiten/)
  assert.match(weather,/raceForecastStatus/)

@@ -1,0 +1,65 @@
+/* v1.2.5 — Today-first coach brief, same evidence as CoachSevenDay. */
+.cdb-root{box-sizing:border-box;position:relative;overflow:hidden;
+ margin:5px 0 14px;padding:19px 21px 16px;
+ border:1px solid rgba(178,189,237,.29);border-radius:18px;color:#f0f5ff;
+ background:linear-gradient(130deg,#1b3044 0%,#1a263c 50%,#131e32 100%);
+ box-shadow:0 10px 28px rgba(7,16,31,.18)}
+.cdb-root:before{content:'';position:absolute;top:0;left:22px;height:2px;width:94px;
+ background:linear-gradient(90deg,#b6eeaa,#85c4f6);border-radius:3px}
+.cdb-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cdb-eyebrow{display:inline-flex;align-items:center;gap:7px;letter-spacing:.1em;
+ font-size:10px;color:#b5e6da;font-weight:830}
+.cdb-eyebrow .ic{width:15px;height:15px}
+.cdb-heading time{font-size:11px;color:#b9c8d9;font-weight:660}
+.cdb-context{margin:14px 0 15px}
+.cdb-label{display:inline-flex;font-size:10px;font-weight:800;letter-spacing:.08em;color:#c8e9be}
+.cdb-context h2{font-size:clamp(21px,3vw,28px);font-weight:850;line-height:1.25;
+ letter-spacing:-.035em;margin:6px 0;color:#f4f8ff}
+.cdb-guidance{color:#c9dbe9;font-size:12px;line-height:1.65;margin:0}
+.cdb-columns{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);
+ gap:10px;margin:12px 0}
+.cdb-reason,.cdb-next{min-width:0;border-radius:12px;padding:12px 13px;
+ border:1px solid rgba(150,187,207,.17);background:rgba(11,26,43,.31)}
+.cdb-next{background:rgba(88,125,105,.15);border-color:rgba(166,221,186,.22)}
+.cdb-reason>strong,.cdb-next>strong{display:flex;align-items:center;gap:7px;
+ font-size:9px;font-weight:840;letter-spacing:.045em;color:#b4d4e8}
+.cdb-next>strong{color:#c2e6ba}
+.cdb-reason .ic,.cdb-next .ic{width:14px;height:14px;flex-shrink:0}
+.cdb-reason p,.cdb-next p{margin:9px 0 0;font-size:12px;line-height:1.6;color:#d7e5ee}
+.cdb-reason small{display:block;margin-top:9px;font-size:10px;line-height:1.5;color:#a4bfd1}
+.cdb-race,.cdb-data-note,.cdb-symptom-note{display:flex;align-items:flex-start;gap:9px;
+ padding:9px 10px;border-radius:9px;margin:9px 0;
+ font-size:10px;line-height:1.65;color:#c3d9e5;
+ background:rgba(110,142,172,.1)}
+.cdb-race .ic,.cdb-data-note .ic,.cdb-symptom-note .ic{width:14px;height:14px;
+ flex:0 0 14px;margin-top:1px}
+.cdb-data-note{border:1px solid rgba(222,168,99,.22);color:#e7d1b1}
+.cdb-symptom-note{color:#bed2d7}
+.cdb-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}
+.cdb-actions button{display:inline-flex;justify-content:center;align-items:center;
+ gap:9px;min-height:44px;padding:10px 15px;border-radius:10px;
+ font-size:11px;font-weight:800;cursor:pointer}
+.cdb-actions button .ic{width:15px;height:15px;flex-shrink:0}
+.cdb-actions .cdb-primary{background:#c8eca8;border:1px solid rgba(202,236,173,.85);
+ color:#18372c}
+.cdb-actions .cdb-secondary{background:transparent;color:#d9e8f5;
+ border:1px solid rgba(170,196,219,.36)}
+.cdb-actions button:focus-visible{outline:2px solid #c9f2df;outline-offset:3px}
+.cdb-foot{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;
+ align-items:center;border-top:1px solid rgba(176,195,222,.16);
+ margin-top:17px;padding-top:12px}
+.cdb-foot>span{font-size:11px;font-weight:780;color:#d1e8ce;letter-spacing:.015em}
+.cdb-foot small{font-size:10px;color:#b2c3d6;line-height:1.4}
+.cdb-source{color:#91a9bf;font-size:9px;margin:10px 0 0;line-height:1.5}
+@media(max-width:760px){
+ .cdb-root{margin:0 0 12px;padding:15px 13px;border-radius:15px}
+ .cdb-context{margin:11px 0 12px}
+ .cdb-context h2{font-size:21px}
+ .cdb-columns{grid-template-columns:minmax(0,1fr);gap:7px}
+ .cdb-reason,.cdb-next{padding:11px 12px}
+ .cdb-actions button{flex:1 1 160px}
+ .cdb-foot{margin-top:13px;padding-top:10px}
+}
+@media(max-width:400px){.cdb-actions button{flex:1 1 100%}
+ .cdb-foot>span{font-size:10px}
+ .cdb-heading time{font-size:10px}}

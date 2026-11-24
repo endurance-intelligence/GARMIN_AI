@@ -253,3 +253,21 @@
 @media(max-width:610px){
  .cg-root.cg-home-hero .cg-home-days{margin-right:0;gap:2px}
 }
+
+
+/* v1.2.5 · an ended race is context, not the prominent next destination. */
+.cg-root.cg-home-hero.cg-past-goal{display:block;min-height:0;padding:12px 15px;
+ margin:0 0 13px;background:linear-gradient(115deg,#182437,#131d2d);
+ border-color:rgba(163,182,207,.20)}
+.cg-past-goal .cg-home-race-main{display:block}
+.cg-past-goal .cg-home-race-head{margin-bottom:6px}
+.cg-past-goal .cg-kicker{font-size:9px;letter-spacing:.08em;color:#b3c7dc}
+.cg-past-goal .cg-home-race-info{min-width:0}
+.cg-past-goal .cg-goal-name{margin-bottom:6px;gap:9px}
+.cg-past-goal .cg-goal-name h2{font-size:16px!important;line-height:1.22}
+.cg-past-goal .cg-goal-emblem{width:38px;height:38px;flex-basis:38px;padding:4px}
+.cg-past-goal .cg-home-race-meta{margin-top:5px}
+.cg-past-goal .cg-home-edit{min-height:40px}
+@media(max-width:610px){.cg-root.cg-home-hero.cg-past-goal{padding:11px 12px}
+ .cg-past-goal .cg-home-race-head{margin-bottom:5px}
+ .cg-past-goal .cg-goal-name h2{font-size:15px!important}}
