@@ -76,9 +76,9 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
     </div>
     <div className="cdl-choice-body">
      <span className="cdl-plan-kicker"><Icon name="activity"/> DEIN PLAN FÜR DIESEN TAG</span>
-     <h4>{day.selectedGroup?.title||day.title}</h4>
+     {day.selectedGroup?<h4>{day.selectedGroup.title}</h4>:<h4>{day.title}</h4>}
      <p className="cdl-decision-note">{x.summary}</p>
-     {day.minutes!==null&&<div className="cdl-duration">
+     {day.minutes!==null&&!day.selectedGroup&&<div className="cdl-duration">
       <span>COACH-UMFANG</span><strong>{day.minutes} Min.</strong>
       <small>Vorschlag, noch kein freigegebenes Workout</small>
      </div>}

@@ -434,19 +434,17 @@ export function buildSevenDayCoach(input){
    'Als lockeren Grundlagenlauf im Sprechtempo gestalten, nicht das Tempo der Gruppe erzwingen.')+stop
   const selectedGroup={code:String(group.code),title:String(group.title),startTime:typeof group.start_time==='string'?group.start_time.slice(0,5):null,
    location:typeof group.location_label==='string'?group.location_label:null,advice,reason:guidance}
-  return {...item,kind:hardSafety||['existing','completed'].includes(item.kind)?item.kind:'chosen',
-   title:hardSafety||['existing','completed'].includes(item.kind)?item.title:group.title,
-   sport:group.sport||item.sport,minutes:null,approvable:false,reason:guidance,selectedGroup}
+  return {...item,approvable:false,reason:guidance,selectedGroup}
  }).map(item=>{
   // The coach decision is metadata, never a replacement for the original
   // training/rest/travel recommendation shown in both Coach and Calendar.
   const choice=dayDecisions.find(x=>x.date===item.date)?.choice
-  if(item.selectedGroup||!['accepted','declined'].includes(choice)||
+  if(!['accepted','declined'].includes(choice)||
     ['race','illness','blocked','existing','completed'].includes(item.kind))return item
   return {...item,decision:choice,approvable:false}
  }).map(item=>{
   // Only future suggestions change. Never overwrite calendar, race, illness or decisions.
-  if(item.decision||!['easy','long','return_easy'].includes(item.kind)||
+  if(item.selectedGroup||item.decision||!['easy','long','return_easy'].includes(item.kind)||
     item.date<today||item.date>coachAddDays(today,6))return item
   if(trendReducing)return {...item,kind:'recovery',title:'Nach Feedback: Erholung priorisieren',
    minutes:null,approvable:false,

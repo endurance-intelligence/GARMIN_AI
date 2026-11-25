@@ -623,7 +623,7 @@ export function CalendarPage({active,focus,onOpenCoach}:{
       <button type="button" className="hc-coach-accept" onClick={()=>onOpenCoach(selected)}>
        <Icon name="arrow-up-right"/> {coachPreview.selectedGroup?'Coach-Hinweise ansehen':'Im Coach entscheiden'}
       </button>}
-     {coachPreview.minutes!==null&&<span className="hc-coach-minutes">
+     {coachPreview.minutes!==null&&!coachPreview.selectedGroup&&<span className="hc-coach-minutes">
       {coachPreview.minutes} Minuten · {coachPreview.kind==='mobility'?'Stabi/Mobility':
        'Sprechtempo · ohne Pace- oder HF-Zwang'}
      </span>}

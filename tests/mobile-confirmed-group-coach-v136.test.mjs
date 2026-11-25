@@ -13,7 +13,7 @@ const fixture=()=>({today,health:{training:{runKm7:50,previousRunKm7:30,historyS
  life:{context:{illness_state:'well',blocked_periods:[],run_reviews:[],day_decisions:[],race_recovery_checks:[]},runs:[]}})
 test('confirmed ORC Run remains scheduled during previous ultra recovery, no workout approval',()=>{
  const f=fixture(),p=buildSevenDayCoach(f),d=p.days[0]
- assert.equal(d.kind,'chosen');assert.equal(d.title,'ORC Run');assert.equal(d.approvable,false)
+ assert.equal(d.kind,'recovery');assert.equal(d.selectedGroup.title,'ORC Run');assert.equal(d.approvable,false)
  assert.equal(d.selectedGroup.advice,'skip');assert.equal(d.selectedGroup.startTime,'19:00')
  assert.match(d.reason,/4 Tage nach Heartbeat Ultra/)
  assert.match(d.reason,/Coach rät heute/)
@@ -41,7 +41,7 @@ test('illness and blocked day retain protective state despite confirmed attendan
 test('normal confirmed group never creates extra workout, race day retains priority',()=>{
  const f=fixture();f.racePortfolio.others=[];f.health.training.runKm7=30
  const d=buildSevenDayCoach(f).days[0]
- assert.equal(d.kind,'chosen');assert.equal(d.approvable,false)
+ assert.equal(d.kind,'chosen');assert.equal(d.selectedGroup.title,'ORC Run');assert.equal(d.approvable,false)
  assert.match(d.reason,/Sprechtempo/)
  f.goal.goal.race_date=today
  assert.equal(buildSevenDayCoach(f).days[0].kind,'race')
@@ -55,4 +55,10 @@ test('calendar reloads upon stored choice and renders confirmed attendance separ
  assert.match(b,/TEILNAHME BESTÄTIGT/)
  assert.match(b,/!candidate.selectedGroup/)
  assert.match(b,/is-confirmed-group/)
+})
+
+test('a confirmed club date in taper keeps original safe plan kind and does not authorize a second workout',()=>{
+ const f=fixture();f.racePortfolio.others=[];f.goal.goal.race_date='2026-11-28'
+ const d=buildSevenDayCoach(f).days[0]
+ assert.equal(d.kind,'recovery');assert.equal(d.selectedGroup.advice,'skip');assert.equal(d.approvable,false)
 })

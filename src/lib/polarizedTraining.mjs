@@ -20,7 +20,7 @@ const age=(today,day)=>Math.round((dateMs(today)-dateMs(day))/86400000)
 const isTrack=day=>/track|intervall|bahnlauf|bahntraining/i.test(String(day.title||''))
 const isEasy=day=>['easy','long','return_easy'].includes(day.kind)
 const isScheduled=day=>['existing','completed','chosen'].includes(day.kind)
-const notCommitted=day=>day&&!day.decision&&!isScheduled(day)&&
+const notCommitted=day=>day&&!day.selectedGroup&&!day.decision&&!isScheduled(day)&&
  !['race','illness','blocked'].includes(day.kind)
 const hasFeedbackWarning=(entries,today)=>Array.isArray(entries)&&entries.some(f=>
  f&&typeof f.activityDate==='string'&&age(today,f.activityDate)>=0&&
@@ -52,7 +52,7 @@ export function applyPolarizedGuidance(days,ctx={}){
  const qualityCandidates=future.filter(d=>d.kind==='option'&&isTrack(d)&&notCommitted(d))
  // A future selected ORC Track already occupies the possible quality slot,
  // even if the athlete later elects to do that session easy.
- const qualityDay=protectedPhase||hardLoad?null:chosenTrack?chosenTrack.date:
+ const qualityDay=chosenTrack?chosenTrack.date:
   (!protectedPhase&&!hardLoad&&easyCount>=3?qualityCandidates[0]?.date||null:null)
  const updated=days.map(day=>{
   if(!notCommitted(day)||day.date<today||day.date>shift(today,6))return day

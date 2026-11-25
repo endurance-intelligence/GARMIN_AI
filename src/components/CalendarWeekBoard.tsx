@@ -168,7 +168,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
           'Deine Empfehlung kannst du im Coach prüfen.'}</small>
         </button>}
         {slot.map(option=>{
-         const choice=choices.find(x=>x.training_date===day&&x.option_code===option.code)?.choice||'open'
+         const choice=groupAdvice?.code===option.code?'selected':choices.find(x=>x.training_date===day&&x.option_code===option.code)?.choice||'open'
          const selected=choice==='selected'
          const guidance=groupAdvice?.code===option.code?groupAdvice:null
          const discouraged=guidance?.advice==='skip'||coach?.reason.startsWith('Coach-Entscheidung:')||false

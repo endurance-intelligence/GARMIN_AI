@@ -260,7 +260,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
       onClick={()=>{setSelectedDay(day.date);setReview(null);setCustomDate(null);
        setCustomAcknowledged(false);setNotice('')}}>
      <span>{formatDate(day.date)}</span>
-     <strong title={day.title}>{day.title}</strong>
+     {day.selectedGroup?<strong title={day.selectedGroup.title}>{day.selectedGroup.title}</strong>:<strong title={day.title}>{day.title}</strong>}
      {day.decision&&<small className="c7-day-choice">
       {day.decision==='accepted'?'✓ Angenommen':'× Abgelehnt'}</small>}
     </button>)}
