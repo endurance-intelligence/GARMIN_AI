@@ -33,7 +33,7 @@ test('minimal context excludes raw credentials, GPS, account IDs and stale weath
 test('external chat requires consent, owner authorization, bounded inputs and separate web research',()=>{
  const e=read('supabase/functions/garmin-coach-chat/index.ts'),c=read('src/components/AskCoachCard.tsx'),client=read('src/lib/coachChatClient.ts')
  assert.match(e,/auth\.auth\.getUser\(token\)/)
- assert.match(e,/user\.email_confirmed_at/)
+ assert.match(e,/user\?\.email_confirmed_at/)
  assert.match(e,/body\.consent!==true/)
  assert.match(e,/research&&body\.context/)
  assert.match(e,/store:false/)
