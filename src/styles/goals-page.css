@@ -129,3 +129,21 @@
 .challenge-empty{font-size:13px;color:var(--goal-muted);margin:12px 0 0}
 @media(max-width:850px){.goals-page .cg-goals-hero{grid-template-columns:minmax(0,1fr) 112px}.goals-page .cg-hero-identity{grid-template-columns:100px minmax(0,1fr)}.goals-page .cg-goals-hero .cg-countdown{min-height:115px}.goals-page .cg-goals-hero .cg-countdown strong{font-size:64px}}
 @media(max-width:560px){.goals-page .cg-goals-hero{grid-template-columns:minmax(0,1fr) 74px;gap:10px;align-items:start}.goals-page .cg-hero-identity{grid-template-columns:minmax(0,1fr);gap:12px}.goals-page .cg-hero-identity>.cg-goal-emblem{width:90px;border-radius:13px}.goals-page .cg-goals-hero .cg-countdown{min-height:90px;border:0;gap:6px;padding:12px 0}.goals-page .cg-goals-hero .cg-countdown strong{font-size:48px}.goals-page .cg-goals-hero .cg-countdown small{font-size:9px;text-align:center}.cg-hero-metrics{gap:14px 20px;margin:14px 0}.cg-hero-meta,.cg-hero-context{font-size:12px}.challenge-map iframe{height:600px}.goals-page .cg-hero-actions{gap:6px}.goals-page .rgp-actions button{min-height:44px}}
+
+/* v1.4.1 – focused goal and plan; management on demand. */
+.goals-header-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap}
+.goals-portfolio-link{background:#233d39;color:#d0f5df;border-color:#48695b}
+.goals-portfolio-dialog{width:min(850px,calc(100% - 28px));max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain;box-sizing:border-box;margin:auto;padding:clamp(15px,2.5vw,25px);border:1px solid #415669;border-radius:20px;background:#121d2c;color:#eef4ff;box-shadow:0 25px 100px #0009}
+.goals-portfolio-dialog::backdrop{background:#080c16ba;backdrop-filter:blur(4px)}
+.goals-portfolio-dialog:not([open]){display:none}
+.goals-portfolio-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.goals-portfolio-header h2{font-size:23px;margin:0}
+.goals-dialog-close{display:grid;place-items:center;width:44px;height:44px;border:1px solid #425566;border-radius:10px;background:#233344;color:#e8f0fb;cursor:pointer}
+.goals-dialog-close .ic{width:18px;height:18px}
+.goals-dialog-close:focus-visible{outline:2px solid #a8e6c0;outline-offset:2px}
+.race-prep-page{--goal-ink:#f2f6fc;--goal-muted:#a8b8cc;--goal-accent:#a8e6c0}
+.race-prep-page .challenge-editor{margin:12px 0;padding:0;border:0;border-radius:0;background:transparent}
+.race-prep-page .challenge-editor header{justify-content:flex-end}
+.race-prep-page .challenge-editor .challenge-actions{margin:5px 0}
+.race-prep-page .challenge-editor .challenge-form{padding:16px;border:1px solid #344354;border-radius:12px;background:#151f2e}
+@media(max-width:680px){.goals-header-actions{justify-content:flex-start}.goals-portfolio-dialog{width:calc(100% - 16px);max-height:calc(100dvh - 24px);padding:12px}}

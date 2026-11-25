@@ -22,7 +22,7 @@ async function call(action?:Record<string,unknown>){
  if(!response.ok)throw Error(String(data.error||'Ziele nicht verfügbar'))
  return data
 }
-export function RaceGoalsPanel({active,onPrimaryChange}:{active:boolean;onPrimaryChange:()=>void}){
+export function RaceGoalsPanel({active,onPrimaryChange,onPortfolioChange}:{active:boolean;onPrimaryChange:()=>void;onPortfolioChange?:()=>void}){
  const [others,setOthers]=useState<Race[]>([])
  const [draft,setDraft]=useState<Race>(fresh)
  const [editing,setEditing]=useState(false)
@@ -61,7 +61,7 @@ export function RaceGoalsPanel({active,onPrimaryChange}:{active:boolean;onPrimar
    await refresh()
    if(data.action==='promote'){onPrimaryChange();setNotice('Das Hauptziel wurde gewechselt. Das bisherige Hauptziel bleibt als weiteres Ziel erhalten.')}
    else setNotice(data.action==='add'?'Weiteres Ziel gespeichert. Wähle es als Hauptziel, wenn der Coach darauf ausgerichtet werden soll.':data.action==='update'?'Änderungen am Ziel gespeichert.':'Zusätzliches Ziel entfernt.')
-   if(data.action!=='promote')window.dispatchEvent(new Event('garmin-ai-coach-changed'))
+   if(data.action!=='promote'){onPortfolioChange?.();window.dispatchEvent(new Event('garmin-ai-coach-changed'))}
    setEditing(false);setConfirm(null);setEditId(null);setLogoDraft(undefined);setDraft({...fresh})
   }catch(e){setError(e instanceof Error?e.message:'Änderung fehlgeschlagen.')}
   finally{setBusy(false)}
