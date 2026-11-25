@@ -1,10 +1,11 @@
 import type {CoachDailyBrief as Brief} from '../lib/coachDailyBrief.mjs'
 import {Icon} from './Icon'
+import type {ReactNode} from 'react'
 import '../styles/coach-daily-brief.css'
 
 const dateLabel=(d:string)=>d.slice(8,10)+'.'+d.slice(5,7)+'.'+d.slice(0,4)
-export function CoachDailyBrief({brief,onDecision,onReportSymptoms}:{
- brief:Brief;onDecision:()=>void;onReportSymptoms:()=>void
+export function CoachDailyBrief({brief,onDecision,onReportSymptoms,weather}:{
+ brief:Brief;onDecision:()=>void;onReportSymptoms:()=>void;weather?:ReactNode
 }){
  const cautious=['illness','recovery','blocked'].includes(brief.kind)||
   Boolean(brief.race?.daysSince!==undefined&&brief.race.daysSince<=5)
@@ -22,6 +23,7 @@ export function CoachDailyBrief({brief,onDecision,onReportSymptoms}:{
    </div>
    {brief.minutes!==null&&brief.label!=='TEILNAHME BESTÄTIGT'&&<div className="cdb-hero-duration"><strong>{brief.minutes}<em> min</em></strong><small>VORGESCHLAGENE DAUER</small></div>}
   </div>
+  {weather&&<div className="cdb-weather">{weather}</div>}
   <div className="cdb-next">
    <strong><Icon name="check-circle"/> DEIN NÄCHSTER SCHRITT</strong>
    <p>{brief.next}</p>

@@ -27,10 +27,10 @@ const formatDate=(day:string)=>new Intl.DateTimeFormat('de-DE',{
  timeZone:'UTC',weekday:'short',day:'2-digit',month:'2-digit'
 }).format(new Date(day+'T12:00:00Z'))
 
-export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep}:{
+export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep,singleDay=false}:{
  active:boolean;focus?:{date:string;token:number}|null;
  onCalendar:(date?:string)=>void;sharedSnapshot?:CoachSnapshot|null;
- onRacePrep?:()=>void
+ onRacePrep?:()=>void;singleDay?:boolean
 }){
  const [snapshot,setSnapshot]=useState<CoachSnapshot|null>(null)
  const [loading,setLoading]=useState(false)
@@ -224,7 +224,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
  return <section className="c7-root" aria-label="Coach Intelligence mit sieben Tagen Trainingsvorschlägen">
   <div className="c7-top">
    <div><span className="c7-eyebrow"><Icon name="sparkles"/> DEIN TRAININGSPLAN</span>
-    <h2>Deine nächsten 7 Tage</h2>
+    <h2>{singleDay?'Deine Tagesentscheidung':'Deine nächsten 7 Tage'}</h2>
     <p>Wähle einen Tag und entscheide gemeinsam mit deinem Coach.</p>
    </div>
    <button type="button" className="c7-refresh" disabled={loading||saving!==null}
@@ -252,7 +252,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
      Vergangene Entwürfe im Kalender prüfen <Icon name="arrow-up-right"/></button>
    </p>}
   {plan&&<>
-   <div className="c7-day-nav" id="c7-week-overview" role="tablist"
+   <div className="c7-day-nav" id="c7-week-overview" role="tablist" hidden={singleDay}
     aria-label="Wähle einen Tag für deine persönliche Coach-Entscheidung">
     {plan.days.map(day=><button type="button" key={day.date} role="tab"
       data-coach-date={day.date} aria-selected={selectedDay===day.date}
@@ -379,7 +379,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
     <button type="button" className="c7-secondary" onClick={()=>onCalendar()}>
      Kalender ansehen <Icon name="arrow-up-right"/></button>
    </div>
-   <details className="c7-settings" id="c7-analysis-details">
+   {!singleDay&&<details className="c7-settings" id="c7-analysis-details">
     <summary>Trainingsanalyse &amp; Coach-Gedächtnis</summary>
     {snapshot&&<GarminFeedbackCard snapshot={snapshot} today={today}/>}
    <p className="c7-polarized-method" role="note">
@@ -393,7 +393,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
     {snapshot&&<CoachLongTermCard today={today} snapshot={snapshot} active={active}/>}
    {plan.completedWeek&&<WeeklyPlanActualCard review={plan.completedWeek}
     onCalendar={()=>onCalendar()}/>}
-   </details>
+   </details>}
   </>}
  </section>
 }

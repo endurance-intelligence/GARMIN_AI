@@ -128,8 +128,8 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDa
     const other=old.filter(x=>x.option_code!==option.code||x.training_date!==date)
     return choice==='open'?other:[...other,{option_code:option.code,training_date:date,choice}]
    })
-   setNotice(option.title+' · '+fullDate(date)+': '+(choice==='selected'?'Dabei':choice==='skipped'?'Auslassen':'Wieder offen')+
-    '. Keine automatische Übertragung an Garmin.')
+   setNotice(option.title+' · '+fullDate(date)+': '+(choice==='selected'?'Dabei':choice==='skipped'?'Abgesagt / auslassen':'Wieder offen')+
+    '. Coach und Kalender werden neu berechnet. Keine automatische Übertragung an Garmin.')
    // Keep the Coach day header and its weather consistent without a tab reload.
    window.dispatchEvent(new CustomEvent('garmin-ai-weekly-choice-changed',{detail:{date}}))
   }catch(e){setError(e instanceof Error?e.message:'Auswahl fehlgeschlagen')}
@@ -143,10 +143,10 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDa
  return <section className={'wo-root'+(compact?' wo-compact':'')} aria-label="Regelmäßige Trainingsoptionen">
   <header className="wo-head">
    <div><span className="wo-kicker">COACH / DEINE WOCHENOPTIONEN</span>
-    <h3>{selectedDate?'Trainingsoption für diesen Tag':compact?'Diese Woche möglich':'Deine festen Trainingsangebote'}</h3>
+    <h3>{selectedDate?'Trainingsoption für diesen Tag':compact?'Plane deine Woche':'Deine Gruppentermine'}</h3>
     <p>{selectedDate?'Fester Termin und Wetter direkt zur Startzeit – keine Pflicht zur Teilnahme.':
      'Feste Uhrzeit und Ort, aber keine Pflichttermine. Du entscheidest jede Woche neu.'}</p></div>
-   <span className="wo-pill">{selectedDate?visibleRows.length+' Option'+(visibleRows.length===1?'':'en'):'4 Optionen'}</span>
+   <span className="wo-pill">{selectedDate?visibleRows.length+' Option'+(visibleRows.length===1?'':'en'):visibleRows.length+' Optionen'}</span>
   </header>
   {loading&&!items.length&&<p className="wo-info">Trainingsmöglichkeiten werden geladen …</p>}
   <div className="wo-grid">
@@ -176,7 +176,7 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDa
        <button type="button" aria-pressed={choice==='selected'} disabled={busy!==null}
         className={choice==='selected'?'picked':''} onClick={()=>void setChoice(option,date,'selected')}>Dabei</button>
        <button type="button" aria-pressed={choice==='skipped'} disabled={busy!==null}
-        className={choice==='skipped'?'picked':''} onClick={()=>void setChoice(option,date,'skipped')}>Auslassen</button>
+        className={choice==='skipped'?'picked':''} onClick={()=>void setChoice(option,date,'skipped')}>{choice==='selected'?'Absagen':'Auslassen'}</button>
        {choice!=='open'&&<button type="button" disabled={busy!==null}
         onClick={()=>void setChoice(option,date,'open')}>Offen</button>}
       </div>}

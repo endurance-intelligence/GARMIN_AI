@@ -5,6 +5,7 @@ import {buildCoachMemory} from './coachMemory.mjs'
 
 export const COACH_QUESTIONS=[
  {id:'today',label:'Warum diese Einheit heute?'},
+ {id:'weather',label:'Wie wird das Wetter beim Lauf?'},
  {id:'recovery',label:'Wie sieht meine Erholung aus?'},
  {id:'progress',label:'Werde ich besser?'},
  {id:'goal',label:'Bin ich auf Kurs für mein Ziel?'},
@@ -18,6 +19,7 @@ export function resolveCoachQuestion(raw){
  const q=String(raw||'').toLowerCase().trim()
  if(!q)return null
  if(/brustschmerz|atemnot|ohnmacht|schwindel|schmerz|beschwerde|krank|fieber/.test(q))return 'symptoms'
+ if(/wetter|regen|böen|temperatur|wind|wetterfenster|wetterslot/.test(q))return 'weather'
  if(/gelernt|gedächtnis|historie|rpe|feeling|entscheidung|feedback|verträg/.test(q))return 'memory'
  if(/ziel|wettkampf|rennen|auf kurs|marathon|halbmarathon/.test(q))return 'goal'
  if(/woche|nächste tage|7 tage|wochenplan/.test(q))return 'week'
@@ -26,7 +28,7 @@ export function resolveCoachQuestion(raw){
  if(/heute|einheit|locker|training|laufen|trainieren/.test(q))return 'today'
  return null
 }
-export function answerCoachQuestion({topic,today,snapshot,plan}={}){
+export function answerCoachQuestion({topic,today,snapshot,plan,weather,query}={}){
  if(topic==='symptoms')return answer('Beschwerden haben Vorrang.',[
   'Der Coach kann Beschwerden nicht aus Garmin-Daten diagnostizieren. Bei akuten schweren Beschwerden wie Brustschmerz, starker Atemnot oder Ohnmacht medizinische Hilfe holen.',
   'Nutze bei Bedarf den Beschwerde-/Pause-Modus. Eine Trainingsfreigabe kann dieser Dialog nicht erteilen.'
@@ -35,6 +37,13 @@ export function answerCoachQuestion({topic,today,snapshot,plan}={}){
   return answer('Aktuelle Coach-Daten fehlen.',[
    'Ohne den aktuellen gemeinsamen Snapshot ist keine persönliche Aussage möglich.'
   ],'Daten nicht verfügbar')
+ if(topic==='weather'){
+  const q=String(query||'').toLowerCase()
+  const weekday=new Intl.DateTimeFormat('de-DE',{weekday:'long',timeZone:'UTC'}).format(new Date(today+'T12:00:00Z')).toLowerCase()
+  if(/morgen|gestern|wochenende|nächste woche|\b\d{1,2}\.\d{1,2}\./.test(q)||['montag','dienstag','mittwoch','donnerstag','freitag','samstag','sonntag'].some(d=>q.includes(d)&&d!==weekday))
+   return answer('Für diesen Tag kann ich hier noch keine Prognose geben.',['Ich beantworte derzeit Trainingswetter für heute. Andere Tage bitte im Kalender prüfen.'],'Trainingswetter')
+  return weather?.date===today&&typeof weather.text==='string'?answer('Dein Trainingswetter.',[weather.text,'Die Wetterprognose ändert nicht meine Trainingsempfehlung.'],'Open-Meteo · gemeinsame Trainingsprognose'):answer('Heute keine aktuelle Trainingsprognose verfügbar.',['Prüfe den Trainingsort und die Wetterkarte. An Ruhetagen suche ich kein zusätzliches Lauffenster.'],'Trainingswetter')
+ }
  const brief=buildCoachDailyBrief({today,plan,health:snapshot.health})
  if(topic==='today')return brief?answer(brief.title,[
   brief.reason,brief.next,brief.dataNote,brief.symptomNote

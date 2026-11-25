@@ -5,16 +5,10 @@ import {SyncCenter} from '../components/SyncCenter'
 import {CoachTodayWeather} from '../components/CoachTodayWeather'
 import {CoachGlance} from '../components/CoachGlance'
 import {CoachHealthStatus} from '../components/CoachHealthStatus'
-import {berlinToday,mondayOf} from '../components/WeeklyTrainingOptions'
-import {CrossTrainingCoachCard} from '../components/CrossTrainingCoachCard'
-import {CoachGoalPanel} from '../components/CoachGoalPanel'
-import {CoachSevenDay} from '../components/CoachSevenDay'
+import {berlinToday} from '../components/WeeklyTrainingOptions'
 import {CoachDailyBrief} from '../components/CoachDailyBrief'
 import {AskCoachCard} from '../components/AskCoachCard'
-import {CoachProgressPulse} from '../components/CoachProgressPulse'
-import {CoachSessionBridge} from '../components/CoachSessionBridge'
-import {CoachEvidenceSummary} from '../components/CoachEvidenceSummary'
-import {coachAddDays,buildSevenDayCoach} from '../lib/coachSevenDay.mjs'
+import {buildSevenDayCoach} from '../lib/coachSevenDay.mjs'
 import {buildCoachDailyBrief} from '../lib/coachDailyBrief.mjs'
 import {garminSupabase} from '../lib/garminSupabase'
 import {loadCoachSnapshot} from '../lib/coachSnapshot'
@@ -23,10 +17,8 @@ import '../styles/coach-glance.css'
 import '../styles/coach-roadmap.css'
 import type {Page} from '../navigation'
 
-export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,onOpenSession}: {
- active:boolean;focus?:{date:string;token:number}|null;
- onGo:(page:Page)=>void;onOpenCalendar:(date?:string)=>void;onOpenRaceWeather:()=>void;
- onOpenSession:(activityId:string)=>void
+export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
+ active:boolean;onGo:(page:Page)=>void;onOpenCalendar:(date?:string)=>void;onOpenDecision:(date:string)=>void
 }) {
   const [weightOpen,setWeightOpen]=useState(false)
   const [healthOpenToken,setHealthOpenToken]=useState(0)
@@ -36,7 +28,7 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
   const [snapshotError,setSnapshotError]=useState(false)
   const [snapshotLoading,setSnapshotLoading]=useState(true)
   const [snapshotVersion,setSnapshotVersion]=useState(0)
- const [showWeeklyReview,setShowWeeklyReview]=useState(false)
+ const [weatherAnswer,setWeatherAnswer]=useState<{date:string;text:string}|null>(null)
   useEffect(()=>{
    const update=()=>setSnapshotVersion(v=>v+1)
    window.addEventListener('garmin-ai-weekly-choice-changed',update)
@@ -68,14 +60,9 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
   const dailyBrief=useMemo(()=>dailyPlan&&sharedSnapshot?
    buildCoachDailyBrief({today:coachToday,plan:dailyPlan,health:sharedSnapshot.health}):null,
    [dailyPlan,sharedSnapshot,coachToday])
-  const openCoachDecision=()=>{
-   const section=document.getElementById('c7-week-overview')
-   section?.scrollIntoView({behavior:'smooth',block:'start'})
-   const current=section?.querySelector<HTMLButtonElement>('button[data-coach-date="'+coachToday+'"]')
-   if(current&&!current.disabled){current.click();current.focus({preventScroll:true})}
-  }
-  const openAskCoach=()=>{const el=document.getElementById('coach-ask');if(el instanceof HTMLDetailsElement){el.open=true;el.scrollIntoView({behavior:'smooth',block:'start'});el.querySelector('input')?.focus({preventScroll:true})}}
-  const openProgressHistory=()=>window.dispatchEvent(new Event('garmin-ai-open-long-term-progress'))
+  const openCoachDecision=()=>onOpenDecision(coachToday)
+  const openAskCoach=()=>{const el=document.getElementById('coach-ask');el?.scrollIntoView({behavior:'smooth',block:'start'});el?.querySelector('input')?.focus({preventScroll:true})}
+  const openProgressHistory=()=>onGo('training')
   const closeRef=useRef<HTMLButtonElement|null>(null)
   useEffect(()=>{
     if(!weightOpen)return
@@ -119,57 +106,24 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
  </p>}
  {dailyBrief&&!snapshotLoading&&!snapshotError&&<CoachDailyBrief brief={dailyBrief}
   onDecision={openCoachDecision}
-  onReportSymptoms={()=>setHealthOpenToken(n=>n+1)}/>}
+  onReportSymptoms={()=>setHealthOpenToken(n=>n+1)}
+  weather={<CoachTodayWeather active={active} snapshot={sharedSnapshot!} plan={dailyPlan!} onReport={setWeatherAnswer}/>}/>}
 
 
  {snapshotLoading&&!sharedSnapshot&&!snapshotError&&<p className="co-data-note" role="status">
   Lade deine Garmin-, Kalender- und Coach-Daten gemeinsam …</p>}
  {snapshotError&&<p className="co-data-note" role="status">
   Gemeinsamer Coach-Snapshot nicht vollständig erreichbar. Die einzelnen Bereiche prüfen ihre Daten separat.</p>}
- {(!snapshotLoading||sharedSnapshot||snapshotError)&&<>
-  <CoachGlance active={active} onCalendar={()=>onOpenCalendar()} sharedSnapshot={sharedSnapshot} compactToday={!!dailyBrief&&!snapshotLoading&&!snapshotError}>
-   <CoachTodayWeather active={active}/>
-  </CoachGlance>
-  <CoachSevenDay active={active} focus={focus} onCalendar={onOpenCalendar} sharedSnapshot={sharedSnapshot}
-   onRacePrep={()=>onGo('race')}/>
- </>}
- <details className="co-extra co-ask-details" id="coach-ask">
-  <summary><span><Icon name="message-circle"/> Frag deinen Coach</span></summary>
-  <div className="co-extra-content">
+ {(!snapshotLoading||sharedSnapshot||snapshotError)&&
+  <CoachGlance active={active} onCalendar={()=>onOpenCalendar()} sharedSnapshot={snapshotError?null:sharedSnapshot} recoveryOnly compactToday={!!dailyBrief&&!snapshotLoading&&!snapshotError}>
+   <span/>
+  </CoachGlance>}
+ <div id="coach-ask" className="co-chat-space">
  {sharedSnapshot&&dailyPlan&&!snapshotLoading&&!snapshotError&&<AskCoachCard
-  today={coachToday} snapshot={sharedSnapshot} plan={dailyPlan}
+  today={coachToday} snapshot={sharedSnapshot} plan={dailyPlan} weather={weatherAnswer}
   onDecision={openCoachDecision} onProgress={openProgressHistory}
   onGoals={()=>onGo('goals')} onSymptoms={()=>setHealthOpenToken(n=>n+1)}/>}
-   {(!sharedSnapshot||!dailyPlan||snapshotLoading||snapshotError)&&<p className="co-data-note">Coach-Daten werden benötigt, um deine Fragen zu beantworten.</p>}
-  </div>
- </details>
- <details className="co-extra co-focus-details" id="coach-goals-weather">
-  <summary>Aktuelles Ziel</summary>
-  <div className="co-extra-content">
-   <CoachGoalPanel active={active} compact onEdit={()=>onGo('goals')} onForecastOpen={onOpenRaceWeather}/>
-  </div>
- </details>
- {sharedSnapshot&&<details className="co-extra co-focus-details" id="coach-development">
-  <summary>Deine Entwicklung &amp; letzte Läufe</summary>
-  <div className="co-extra-content">
-   {sharedSnapshot&&!snapshotLoading&&!snapshotError&&<CoachProgressPulse
-    today={coachToday} snapshot={sharedSnapshot}
-    onOpenLongTerm={openProgressHistory} onGoals={()=>onGo('goals')}/>}
-   <CoachSessionBridge snapshot={sharedSnapshot} today={berlinToday()}
-    onOpenSession={onOpenSession}/>
-  </div>
- </details>}
- <details className="co-extra-tools" onToggle={event=>setShowWeeklyReview(event.currentTarget.open)}>
-   <summary>Weitere Garmin-Analyse &amp; Gruppentermine <span>Bei Bedarf</span></summary>
-   {showWeeklyReview&&<CoachEvidenceSummary active={active&&showWeeklyReview}
-    mode="weekly" weekStart={coachAddDays(mondayOf(berlinToday()),-7)}/>}
-   <div className="co-extra-actions">
-    <button type="button" onClick={()=>onOpenCalendar()}>
-     <span>Gruppentermine und Wochenplanung im Kalender</span> <span aria-hidden="true">↗</span>
-    </button>
-    <CrossTrainingCoachCard active={active&&showWeeklyReview} onOpen={()=>onGo('strength')}/>
-   </div>
-  </details>
+ </div>
  {weightOpen&&createPortal(<div className="co-dialog-backdrop"
    onPointerDown={event=>{if(event.currentTarget===event.target)setWeightOpen(false)}}>
    <div className="co-dialog" role="dialog" aria-modal="true" aria-label="Gewicht speichern">
