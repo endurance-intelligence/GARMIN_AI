@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
-import {coachMood,resolveFollowUp} from '../src/lib/coachPersonality.mjs'
+import {coachMood,resolveFollowUp,coachChatMood} from '../src/lib/coachPersonality.mjs'
 import {resolveCoachQuestion} from '../src/lib/askCoach.mjs'
 import {buildCoachChatContext} from '../src/lib/coachChatContext.mjs'
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
@@ -44,4 +44,17 @@ test('external chat requires consent, owner authorization, bounded inputs and se
  assert.match(c,/mode==='personal'&&topic==='weather'/)
  assert.match(client,/mode==='personal'\?context:''/)
  assert.doesNotMatch(client,/COACH_OPENAI_API_KEY|api\.openai\.com/)
+})
+
+test('chat welcomes warmly regardless of daily recommendation; only relevant safety responses are firm',()=>{
+ assert.equal(coachMood(p('chosen',{selectedGroup:{advice:'skip'}})),'firm')
+ assert.equal(coachChatMood(),'friendly')
+ for(const topic of ['today','weather','recovery','progress','goal','week','memory',null])assert.equal(coachChatMood(topic),'friendly')
+ assert.equal(coachChatMood('weather',true),'focused')
+ assert.equal(coachChatMood('symptoms'),'firm')
+ const c=read('src/components/AskCoachCard.tsx'),page=read('src/pages/CoachPage.tsx')
+ assert.match(c,/mood=\{coachChatMood\(\)\}/)
+ assert.match(c,/mood=\{coachChatMood\(t.topic,/)
+ assert.doesNotMatch(c,/mood=\{mood\}/)
+ assert.match(page,/mood=\{coachMood\(dailyPlan,coachToday\)\} onDecision/)
 })
