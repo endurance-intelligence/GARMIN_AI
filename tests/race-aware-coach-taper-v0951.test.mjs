@@ -106,7 +106,7 @@ test('calendar uses same target week throughout planning, optional club slots an
  assert.match(calendar,/const planStart=week>0\?start:today/)
  assert.match(calendar,/const horizonDay=moveDay\(planStart,6\)/)
  assert.match(calendar,/today,startDate:planStart/)
- assert.match(calendar,/loadCoachSnapshot\(session,today,controller\.signal,start\)/)
+ assert.match(calendar,/loadCoachSnapshot\(session,today,controller\.signal,start,4\)/)
  assert.match(calendar,/raceInWeek=coachPlan\?\.days\.find\(d=>d\.kind==='race'\)/)
  assert.match(calendar,/HAUPTZIEL \/ RENNTAG/)
  assert.match(snap,/const visible=visibleWeek\?coachMonday\(visibleWeek\):first/)

@@ -353,3 +353,8 @@
  .hc-week-planner-summary>.hc-week-planner-count{flex:1}
  .hc-day-extra>summary{padding:12px}
 }
+
+/* v1.3.4: calendar before optional actions and evidence. */
+.hc-intro h1{font-size:clamp(23px,3vw,32px);line-height:1.15;margin:5px 0}
+.hc-intro p{margin:4px 0 0}.hc-weekpanel .hc-week-planner{margin-top:16px}
+.hc-source-details .hc-source-grid{margin:10px 12px}.hc-source-details .hc-footnote{margin:10px 12px}

@@ -112,7 +112,7 @@ export function CalendarPage({active,focus,onOpenCoach}:{
  const coachPlan=useMemo(()=>coachSnapshot?buildSevenDayCoach({
   today,startDate:planStart,health:coachSnapshot.health,boards:coachSnapshot.boards,
   options:coachSnapshot.options,plans:coachSnapshot.plans,
-  goal:coachSnapshot.goal,life:coachSnapshot.life
+  goal:coachSnapshot.goal,life:coachSnapshot.life,racePortfolio:coachSnapshot.racePortfolio
  }):null,[coachSnapshot,today,planStart])
  const raceInWeek=coachPlan?.days.find(d=>d.kind==='race')||null
  const coachDay=coachPlan?.days.find(d=>d.date===selected)||null
@@ -171,7 +171,7 @@ export function CalendarPage({active,focus,onOpenCoach}:{
   void (async()=>{
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)throw Error('Bitte anmelden.')
-   const snapshot=await loadCoachSnapshot(session,today,controller.signal,start)
+   const snapshot=await loadCoachSnapshot(session,today,controller.signal,start,4)
    if(mounted)setCoachSnapshot(snapshot)
   })().catch(e=>{
    if(mounted&&!(e instanceof Error&&e.name==='AbortError')){
@@ -371,7 +371,7 @@ export function CalendarPage({active,focus,onOpenCoach}:{
    setPlans(old=>old.some(p=>p.id===newPlan.id)?old:[...old,newPlan])
    if(structured)setEligiblePlanIds(old=>old.includes(newPlan.id)?old:[...old,newPlan.id])
    setCoachSnapshot(old=>old?{
-    ...old,plans:{entries:[...old.plans.entries.filter(x=>x.id!==newPlan.id),
+    ...old,plans:{...old.plans,entries:[...old.plans.entries.filter(x=>x.id!==newPlan.id),
      {id:newPlan.id,training_date:day.date,state:newPlan.state,
       sport:newPlan.sport,title:day.title}]}
    }:old)
@@ -535,14 +535,14 @@ export function CalendarPage({active,focus,onOpenCoach}:{
  function changeWeek(delta:number){
   const next=Math.max(-1,Math.min(5,week+delta))
   setWeek(next)
-  setSelected(moveDay(monday(today),next*7))
+  setSelected(next===0?today:moveDay(monday(today),next*7));setCoachReview(null)
   setNotice('')
  }
  return <section className={active?'page active':'page'} aria-label="Trainingskalender">
   <div className="hc-intro">
    <div className="hc-eyebrow"><span className="hc-pulse"/> TRAININGSPLAN / HORIZON</div>
-   <h1>Deine Woche.<br/><span>Dein Rhythmus.</span></h1>
-   <p>Deine Termine, absolvierten Einheiten und freigegebenen Workouts. Empfehlungen entscheidest du im Coach.</p>
+   <h1>Trainingskalender</h1>
+   <p>Deine Einheiten, Termine und nächsten Schritte.</p>
   </div>
   <div className="hc-overview">
    <div><small>WOCHE</small><strong>{monthTitle(start)}</strong><span>{countInWeek} gespeicherte Trainings · {suggestionsInWeek} Coach-Vorschläge</span></div>
@@ -550,101 +550,6 @@ export function CalendarPage({active,focus,onOpenCoach}:{
     <Icon name="refresh-cw"/>{busy?'Prüfe …':'Aktualisieren'}
    </button>
   </div>
-  <details className="hc-week-planner" aria-label="Freigaben, Sammelplanung und Intervals-Versand">
-   <summary className="hc-week-planner-summary">
-    <span><Icon name="check-circle"/> Freigaben &amp; Versand <small>Erweiterte Wochenplanung</small></span>
-    <span className="hc-week-planner-count">{coachDrafts.length} Entwürfe · {coachPending.length} zum Senden · {coachConfirmed.length} bestätigt</span>
-    <Icon name="chevron-down"/>
-   </summary>
-   <div className="hc-week-planner-heading">
-    <div>
-     <span className="hc-week-planner-kicker"><Icon name="sparkles"/> COACH / WOCHENPLANUNG</span>
-     <h2>Deine Woche. Eine Entscheidung.</h2>
-     <p>Coach-Zeitraum: {planStart} bis {horizonDay}.
-      Wähle deine Vorschläge, prüfe die Startzeiten und gib sie gesammelt frei.
-      Erst der zweite Klick sendet freigegebene Lauf-Workouts an Intervals.icu.</p>
-    </div>
-    <span className="hc-week-planner-count">{weekOffers.length} Vorschläge · {coachDrafts.length} Entwürfe · {coachPending.length} bereit · {coachConfirmed.length} bestätigt</span>
-   </div>
-   {raceInWeek&&<div className="hc-race-priority" role="status">
-    <span className="hc-race-priority-label"><Icon name="flag-triangle-right"/> HAUPTZIEL / RENNTAG</span>
-    <strong>{raceInWeek.title}</strong>
-    <p>{longDate(raceInWeek.date)} · {raceInWeek.reason}</p>
-    <small>Der Wettkampf ist bereits als Coach-Ziel hinterlegt. Keine zusätzliche Freigabe oder
-     ORC-Einheit am Renntag. Die vorgeschlagenen Trainingstage sind auf den Start ausgerichtet.</small>
-   </div>}
-   {weekResult&&<p className="hc-week-planner-result" role="status">{weekResult}</p>}
-   {coachLoading&&<p className="hc-coach-loading">Prüfe deinen Wochenvorschlag …</p>}
-   {coachError&&<p className="hc-coach-unavailable">Wochenvorschläge derzeit nicht vollständig verfügbar. Es werden keine Trainingstage erfunden.</p>}
-   {coachConfirmed.length>0&&<p className="hc-week-planner-confirmed" role="status">
-    <Icon name="check-circle"/> {coachConfirmed.length} Workout{coachConfirmed.length===1?' ist':'s sind'}
-    bereits bei Intervals.icu bestätigt. Kein erneuter Versand nötig.
-   </p>}
-   {!coachLoading&&!coachError&&(weekOffers.length>0||coachDrafts.length>0)&&<>
-    <div className="hc-week-planner-list">
-     {weekOffers.map(day=>{
-      const chosen=weekChosen[day.date]!==false
-      const structured=day.sport==='running'&&['easy','long','return_easy'].includes(day.kind)
-      return <div className={'hc-week-planner-row'+(chosen?' is-chosen':'')} key={day.date}>
-       <label className="hc-week-planner-choice">
-        <input type="checkbox" checked={chosen}
-         disabled={weekWorking!==null||acting!==null}
-         onChange={e=>setWeekChosen(old=>({...old,[day.date]:e.target.checked}))}/>
-        <span><strong>{longDate(day.date)}</strong><small>{day.title} · {day.minutes} Min.</small></span>
-       </label>
-       {chosen&&structured&&<label className="hc-week-planner-time">
-        <span>Start</span>
-        <select aria-label={'Startzeit '+longDate(day.date)}
-         value={weekTimes[day.date]||'18:00'}
-         disabled={weekWorking!==null||acting!==null}
-         onChange={e=>setWeekTimes(old=>({...old,[day.date]:e.target.value}))}>
-         {Array.from({length:31},(_,i)=>{
-          const time=String(6+Math.floor(i/2)).padStart(2,'0')+':'+(i%2?'30':'00')
-          return <option value={time} key={time}>{time}</option>
-         })}
-        </select>
-       </label>}
-       {chosen&&!structured&&<span className="hc-week-planner-note">Nur Kalender · kein Garmin-Workout</span>}
-      </div>
-     })}
-     {coachDrafts.map(draft=>{
-      const chosen=weekChosen[draft.training_date]!==false
-      return <div className={'hc-week-planner-row is-draft'+(chosen?' is-chosen':'')}
-       key={'draft-'+draft.id}>
-       <label className="hc-week-planner-choice">
-        <input type="checkbox" checked={chosen}
-         disabled={weekWorking!==null||acting!==null}
-         onChange={e=>setWeekChosen(old=>({...old,[draft.training_date]:e.target.checked}))}/>
-        <span><strong>{longDate(draft.training_date)}</strong>
-         <small>{draft.title} · gespeicherter Entwurf · noch nicht freigegeben</small></span>
-       </label>
-      </div>
-     })}
-    </div>
-    <button type="button" className="hc-week-plan-action"
-     onClick={()=>void approveCoachWeek()} disabled={!weekApprovalCount||acting!==null||weekWorking!==null}>
-     <Icon name="check"/> {weekWorking==='approve'?'Prüfe & gebe frei …':
-      weekApprovalCount+' ausgewählte Trainings übernehmen & freigeben'}
-    </button>
-   </>}
-   {!coachLoading&&!coachError&&!weekOffers.length&&!coachDrafts.length&&!coachPending.length&&
-    <p className="hc-week-planner-idle">Aktuell keine neuen freigabefähigen Coach-Vorschläge.
-     Gespeicherte oder bereits bestätigte Trainings bleiben unverändert;
-     ORC- und Fußballtermine bleiben freiwillig.</p>}
-   {coachPending.length>0&&<div className="hc-week-planner-publish">
-    <div><strong>{coachPending.length} freigegebene Lauf-Workouts bereit</strong>
-     <p>{coachPending.map(p=>p.training_date).join(' · ')} · noch nicht an Intervals.icu bestätigt.</p></div>
-    <button type="button" onClick={()=>void publishCoachWeek()}
-     disabled={acting!==null||weekWorking!==null||!intervalsConnected}>
-     <Icon name="send"/> {weekWorking==='publish'?'Prüfe Intervals.icu …':
-      'Alle '+coachPending.length+' Workouts an Intervals.icu senden'}
-    </button>
-    {!intervalsConnected&&<small>Intervals.icu unter Einstellungen verbinden. Ohne Verbindung wird nichts gesendet.</small>}
-   </div>}
-   <small className="hc-week-planner-disclaimer">Nur bestätigte Garmin-Daten und dein aktueller Coach-Status.
-    Echte Krankheiten, Urlaubstage und bereits belegte Tage sperren die Freigabe.
-    Keine automatische externe Veröffentlichung und keine direkten Garmin-Schreibzugriffe.</small>
-  </details>
   {cleanupPending.length>0&&<div className="hc-remote-pending" role="status">
    <div><strong>Intervals.icu · {cleanupPending.length} offene Bereinigung{cleanupPending.length===1?'':'en'}</strong>
     <p>Diese Trainings sind aus GARMIN_AI ausgeblendet. Klicke auf „Bei Intervals.icu abgleichen“, um eine manuelle Löschung zu erkennen. Der Abgleich löscht nichts bei Intervals.icu.</p>
@@ -660,12 +565,22 @@ export function CalendarPage({active,focus,onOpenCoach}:{
     </div>)}
    </div>
   </div>}
+  {error&&<p className="hc-error" role="alert">{error}</p>}
+  {notice&&<p className="hc-notice" role="status">{notice}</p>}
+   {weekResult&&<p className="hc-week-planner-result" role="status">{weekResult}</p>}
+   {raceInWeek&&<div className="hc-race-priority" role="status">
+    <span className="hc-race-priority-label"><Icon name="flag-triangle-right"/> HAUPTZIEL / RENNTAG</span>
+    <strong>{raceInWeek.title}</strong>
+    <p>{longDate(raceInWeek.date)} · {raceInWeek.reason}</p>
+    <small>Der Wettkampf ist bereits als Coach-Ziel hinterlegt. Keine zusätzliche Freigabe oder
+     ORC-Einheit am Renntag. Die vorgeschlagenen Trainingstage sind auf den Start ausgerichtet.</small>
+   </div>}
   <div className="hc-weekpanel">
    <div className="hc-toolbar">
     <div><small>DEIN TRAININGSKALENDER</small><h2>Wochenansicht</h2></div>
     <div className="hc-weekactions">
      <button type="button" aria-label="Vorherige Woche" onClick={()=>changeWeek(-1)} disabled={week<=-1}>‹</button>
-     <button type="button" aria-label="Zur aktuellen Woche" onClick={()=>{setWeek(0);setSelected(today)}}>Heute</button>
+     <button type="button" aria-label="Zur aktuellen Woche" onClick={()=>{setWeek(0);setSelected(today);setCoachReview(null)}}>Heute</button>
      <button type="button" aria-label="Nächste Woche" onClick={()=>changeWeek(1)} disabled={week>=5}>›</button>
     </div>
    </div>
@@ -677,23 +592,16 @@ export function CalendarPage({active,focus,onOpenCoach}:{
    </div>
    <CalendarWeekBoard active={active} start={start} selected={selected}
     today={today} onSelect={day=>{setSelected(day);setCoachReview(null)}}
-    plans={plans} coachDays={coachPlan?.days||[]}/>
+    plans={plans} coachDays={coachPlan?.days||[]} refreshKey={refresh}/>
    <div className="hc-day-content">
     <div className="hc-day-heading">
      <div><span>AUSGEWÄHLTER TAG</span><h3>{longDate(selected)}</h3></div>
      <span className="hc-day-count">{matching.length} {matching.length===1?'gespeicherter Termin':'gespeicherte Termine'}{coachPreview?' · 1 Coach-Hinweis':''}</span>
     </div>
-    <details className="hc-day-extra" onToggle={event=>setShowDayEvidence(event.currentTarget.open)}>
-     <summary><Icon name="activity"/> Analyse des ausgewählten Tages <small>Optional</small></summary>
-     {showDayEvidence&&<CoachEvidenceSummary active={active&&showDayEvidence}
-      mode="calendar" weekStart={start} selectedDate={selected}/>}
-    </details>
     {coachLoading&&<p className="hc-coach-loading" role="status">Lade Coach-Empfehlungen …</p>}
     {coachError&&<p className="hc-coach-unavailable" role="status">
      Coach-Empfehlungen derzeit nicht erreichbar. Keine Trainingsvorgaben geschätzt.
     </p>}
-    {error&&<p className="hc-error" role="alert">{error}</p>}
-    {notice&&<p className="hc-notice" role="status">{notice}</p>}
     {coachPreview&&<article className={'hc-coach-proposal'+(coachPreview.approvable?' is-actionable':' is-rest')}
       aria-label="Coach-Empfehlung für diesen Kalendertag">
      <div className="hc-coach-proposal-top">
@@ -702,7 +610,8 @@ export function CalendarPage({active,focus,onOpenCoach}:{
        'Nur Orientierung · keine automatische Planung'}</small>
      </div>
      <h4>{coachPreview.title}</h4>
-     <p>Das ist eine Empfehlung, kein gespeicherter Termin. Du kannst sie im Coach annehmen, ablehnen oder ändern.</p>
+     <p>{coachPreview.reason}</p>
+     <small>Du kannst sie im Coach annehmen, ablehnen oder ändern.</small>
      {selected>=today&&selected<=moveDay(today,6)&&
       <button type="button" className="hc-coach-accept" onClick={()=>onOpenCoach(selected)}>
        <Icon name="arrow-up-right"/> Im Coach entscheiden
@@ -822,6 +731,98 @@ export function CalendarPage({active,focus,onOpenCoach}:{
        Freiwillige ORC-Angebote findest du in der Wochenübersicht.</span>
      </div>}
    </div>
+  <details className="hc-week-planner" aria-label="Freigaben, Sammelplanung und Intervals-Versand">
+   <summary className="hc-week-planner-summary">
+    <span><Icon name="check-circle"/> Freigaben &amp; Versand <small>Erweiterte Wochenplanung</small></span>
+    <span className="hc-week-planner-count">{coachDrafts.length} Entwürfe · {coachPending.length} zum Senden · {coachConfirmed.length} bestätigt</span>
+    <Icon name="chevron-down"/>
+   </summary>
+   <div className="hc-week-planner-heading">
+    <div>
+     <span className="hc-week-planner-kicker"><Icon name="sparkles"/> COACH / WOCHENPLANUNG</span>
+     <h2>Deine Woche. Eine Entscheidung.</h2>
+     <p>Coach-Zeitraum: {planStart} bis {horizonDay}.
+      Wähle deine Vorschläge, prüfe die Startzeiten und gib sie gesammelt frei.
+      Erst der zweite Klick sendet freigegebene Lauf-Workouts an Intervals.icu.</p>
+    </div>
+    <span className="hc-week-planner-count">{weekOffers.length} Vorschläge · {coachDrafts.length} Entwürfe · {coachPending.length} bereit · {coachConfirmed.length} bestätigt</span>
+   </div>
+   {coachLoading&&<p className="hc-coach-loading">Prüfe deinen Wochenvorschlag …</p>}
+   {coachError&&<p className="hc-coach-unavailable">Wochenvorschläge derzeit nicht vollständig verfügbar. Es werden keine Trainingstage erfunden.</p>}
+   {coachConfirmed.length>0&&<p className="hc-week-planner-confirmed" role="status">
+    <Icon name="check-circle"/> {coachConfirmed.length} Workout{coachConfirmed.length===1?' ist':'s sind'}
+    bereits bei Intervals.icu bestätigt. Kein erneuter Versand nötig.
+   </p>}
+   {!coachLoading&&!coachError&&(weekOffers.length>0||coachDrafts.length>0)&&<>
+    <div className="hc-week-planner-list">
+     {weekOffers.map(day=>{
+      const chosen=weekChosen[day.date]!==false
+      const structured=day.sport==='running'&&['easy','long','return_easy'].includes(day.kind)
+      return <div className={'hc-week-planner-row'+(chosen?' is-chosen':'')} key={day.date}>
+       <label className="hc-week-planner-choice">
+        <input type="checkbox" checked={chosen}
+         disabled={weekWorking!==null||acting!==null}
+         onChange={e=>setWeekChosen(old=>({...old,[day.date]:e.target.checked}))}/>
+        <span><strong>{longDate(day.date)}</strong><small>{day.title} · {day.minutes} Min.</small></span>
+       </label>
+       {chosen&&structured&&<label className="hc-week-planner-time">
+        <span>Start</span>
+        <select aria-label={'Startzeit '+longDate(day.date)}
+         value={weekTimes[day.date]||'18:00'}
+         disabled={weekWorking!==null||acting!==null}
+         onChange={e=>setWeekTimes(old=>({...old,[day.date]:e.target.value}))}>
+         {Array.from({length:31},(_,i)=>{
+          const time=String(6+Math.floor(i/2)).padStart(2,'0')+':'+(i%2?'30':'00')
+          return <option value={time} key={time}>{time}</option>
+         })}
+        </select>
+       </label>}
+       {chosen&&!structured&&<span className="hc-week-planner-note">Nur Kalender · kein Garmin-Workout</span>}
+      </div>
+     })}
+     {coachDrafts.map(draft=>{
+      const chosen=weekChosen[draft.training_date]!==false
+      return <div className={'hc-week-planner-row is-draft'+(chosen?' is-chosen':'')}
+       key={'draft-'+draft.id}>
+       <label className="hc-week-planner-choice">
+        <input type="checkbox" checked={chosen}
+         disabled={weekWorking!==null||acting!==null}
+         onChange={e=>setWeekChosen(old=>({...old,[draft.training_date]:e.target.checked}))}/>
+        <span><strong>{longDate(draft.training_date)}</strong>
+         <small>{draft.title} · gespeicherter Entwurf · noch nicht freigegeben</small></span>
+       </label>
+      </div>
+     })}
+    </div>
+    <button type="button" className="hc-week-plan-action"
+     onClick={()=>void approveCoachWeek()} disabled={!weekApprovalCount||acting!==null||weekWorking!==null}>
+     <Icon name="check"/> {weekWorking==='approve'?'Prüfe & gebe frei …':
+      weekApprovalCount+' ausgewählte Trainings übernehmen & freigeben'}
+    </button>
+   </>}
+   {!coachLoading&&!coachError&&!weekOffers.length&&!coachDrafts.length&&!coachPending.length&&
+    <p className="hc-week-planner-idle">Aktuell keine neuen freigabefähigen Coach-Vorschläge.
+     Gespeicherte oder bereits bestätigte Trainings bleiben unverändert;
+     ORC- und Fußballtermine bleiben freiwillig.</p>}
+   {coachPending.length>0&&<div className="hc-week-planner-publish">
+    <div><strong>{coachPending.length} freigegebene Lauf-Workouts bereit</strong>
+     <p>{coachPending.map(p=>p.training_date).join(' · ')} · noch nicht an Intervals.icu bestätigt.</p></div>
+    <button type="button" onClick={()=>void publishCoachWeek()}
+     disabled={acting!==null||weekWorking!==null||!intervalsConnected}>
+     <Icon name="send"/> {weekWorking==='publish'?'Prüfe Intervals.icu …':
+      'Alle '+coachPending.length+' Workouts an Intervals.icu senden'}
+    </button>
+    {!intervalsConnected&&<small>Intervals.icu unter Einstellungen verbinden. Ohne Verbindung wird nichts gesendet.</small>}
+   </div>}
+   <small className="hc-week-planner-disclaimer">Nur bestätigte Garmin-Daten und dein aktueller Coach-Status.
+    Echte Krankheiten, Urlaubstage und bereits belegte Tage sperren die Freigabe.
+    Keine automatische externe Veröffentlichung und keine direkten Garmin-Schreibzugriffe.</small>
+  </details>
+    <details className="hc-day-extra" onToggle={event=>setShowDayEvidence(event.currentTarget.open)}>
+     <summary><Icon name="activity"/> Analyse des ausgewählten Tages <small>Optional</small></summary>
+     {showDayEvidence&&<CoachEvidenceSummary active={active&&showDayEvidence}
+      mode="calendar" weekStart={start} selectedDate={selected}/>}
+    </details>
    <details className="hc-day-extra" onToggle={event=>setShowWeekOptions(event.currentTarget.open)}>
     <summary><Icon name="calendar-days"/> Freiwillige Gruppentermine <small>Bei Bedarf</small></summary>
     {showWeekOptions&&<WeeklyTrainingOptions active={active&&showWeekOptions}
@@ -833,6 +834,7 @@ export function CalendarPage({active,focus,onOpenCoach}:{
      onPlanned={()=>setRefresh(n=>n+1)}/>}
    </details>
   </div>
+  <details className="hc-day-extra hc-source-details"><summary>Datenquellen &amp; Hinweise</summary>
   <div className="hc-source-grid">
    <article><div className="hc-source-icon"><Icon name="check"/></div>
     <div><strong>Garmin-Aktivitäten</strong>
@@ -848,5 +850,6 @@ export function CalendarPage({active,focus,onOpenCoach}:{
   <p className="hc-footnote">Coach-Vorschläge entscheidest du im Coach – ohne automatische Speicherung.
     Im Kalender kontrollierst du Entwürfe, gibst Workouts frei und sendest sie bei Bedarf an Intervals.icu.
     Garmin-Aktivitäten bleiben unverändert. Garmin-Kalendervorlagen werden ausgeblendet.</p>
+ </details>
  </section>
 }
