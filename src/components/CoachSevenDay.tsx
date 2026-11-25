@@ -42,7 +42,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
  const [startTime,setStartTime]=useState('18:00')
  const [saving,setSaving]=useState<string|null>(null)
  const [savedDay,setSavedDay]=useState<string|null>(null)
- const [selectedDay,setSelectedDay]=useState(berlinDateToday)
+ const [selectedDay,setSelectedDay]=useState(()=>singleDay&&focus?.date?focus.date:berlinDateToday())
  const [customDate,setCustomDate]=useState<string|null>(null)
  const [customKind,setCustomKind]=useState<'walk'|'mobility'|'rowing'|'run'>('walk')
  const [customMinutes,setCustomMinutes]=useState(25)
@@ -79,10 +79,10 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
   // Never silently select a different day if the date is outside the visible 7 days.
   if(!plan.days.some(day=>day.date===focus.date))return
   setSelectedDay(focus.date);setReview(null);setCustomDate(null)
-  requestAnimationFrame(()=>document.getElementById('c7-week-overview')?.scrollIntoView({
+  if(!singleDay)requestAnimationFrame(()=>document.getElementById('c7-week-overview')?.scrollIntoView({
    behavior:'smooth',block:'start'
   }))
- },[active,focus,plan])
+ },[active,focus,plan,singleDay])
  const customDay=plan?.days.find(day=>day.date===customDate)||null
  const customAssessment=useMemo(()=>customDay&&plan?
   assessCustomProposal({day:customDay,plan,kind:customKind,minutes:customMinutes,
@@ -287,7 +287,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
      }))
     }}
     onCalendar={onCalendar}
-    onPlan={()=>document.getElementById('c7-week-overview')?.scrollIntoView({behavior:'smooth',block:'start'})}/>
+    onPlan={()=>singleDay?onCalendar(selectedDay):document.getElementById('c7-week-overview')?.scrollIntoView({behavior:'smooth',block:'start'})}/>
    <div className="c7-week" role="list">
     {plan.days.filter(day=>day.date===selectedDay&&(review===day.date||customDate===day.date)).map(day=><article className={'c7-day c7-'+day.kind} id={'c7-day-'+day.date} key={day.date} role="listitem">
      <div className="c7-editor-head">

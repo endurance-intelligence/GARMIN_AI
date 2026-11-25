@@ -110,10 +110,11 @@ export function WeatherPanel({active,mode='training',date,fixedTime,compact=fals
  const day=mode==='race'?raceDate:(date|| (report?localToday(report.timezone):''))
  const fixedHour=fixedTime&&/^\d{2}:\d{2}$/.test(fixedTime)?Number(fixedTime.slice(0,2)):null
  const effectiveDuration=durationHint&&durationHint>0?([30,45,60,75,90,120,150,180].find(n=>n>=durationHint)||180):duration
- const slot=report&&mode==='training'&&fixedHour===null?
-  bestTrainingSlot(report,day,effectiveDuration):null
- const fixedWeather=report&&mode==='training'&&fixedHour!==null?
-  hourAt(report,day,fixedHour):null
+ const matchedReport=report&&place&&report.place.latitude===place.latitude&&report.place.longitude===place.longitude?report:null
+ const slot=matchedReport&&mode==='training'&&fixedHour===null?
+  bestTrainingSlot(matchedReport,day,effectiveDuration):null
+ const fixedWeather=matchedReport&&mode==='training'&&fixedHour!==null?
+  hourAt(matchedReport,day,fixedHour):null
  const now=report?localParts(Math.floor(Date.now()/1000),report.timezone):null
  const live=report?.hours.find(h=>h.date===now?.date&&h.hour===now?.hour)
  const start=mode==='race'&&raceTime&&/^\d{2}:\d{2}$/.test(raceTime)?Number(raceTime.slice(0,2)):null
@@ -121,26 +122,27 @@ export function WeatherPanel({active,mode='training',date,fixedTime,compact=fals
   raceSegments(report,raceDate,start,raceDuration):null
  useEffect(()=>{
   if(!onTrainingReport)return
-  if(!active||loading||!report||!place||!day){onTrainingReport(null);return}
+  if(!active||loading||!matchedReport||!place||!day){onTrainingReport(null);return}
   if(fixedWeather){onTrainingReport({date:day,text:place.name+' · '+fixedTime+' Uhr (gewählter Referenzort) · '+condition(fixedWeather)+' · '+fmt(fixedWeather.temperature,' °C')+' · gefühlt '+fmt(fixedWeather.feelsLike,' °C')+' · Regen '+fmt(fixedWeather.rainProbability,'%')+' · Böen '+fmt(fixedWeather.gust,' km/h')});return}
   if(!slot){onTrainingReport(null);return}
   const h=slot.hours[0]
   const end=slot.startHour*60+slot.durationMinutes
   const until=String(Math.floor(end/60)).padStart(2,'0')+':'+String(end%60).padStart(2,'0')
   onTrainingReport({date:day,text:place.name+' · '+hr(slot.startHour)+'–'+until+' Uhr · '+slot.reason+' · '+fmt(h.temperature,' °C')+' · gefühlt '+fmt(h.feelsLike,' °C')+' · Regenrisiko bis '+fmt(Math.max(...slot.hours.map(x=>x.rainProbability)),'%')+' · Böen bis '+fmt(Math.max(...slot.hours.map(x=>x.gust)),' km/h')})
- },[active,loading,report,place,day,fixedTime,fixedWeather,slot?.startHour,slot?.durationMinutes,onTrainingReport])
+ },[active,loading,matchedReport,place,day,fixedTime,fixedWeather,slot?.startHour,slot?.durationMinutes,onTrainingReport])
  const upperDate=report?.hours.at(-1)?.date
  const forecastDateMissing=day&&report&&((report.hours[0]?.date||'9999')>day||(upperDate||'')<day)
  const showUnavailable=mode==='race'&&raceDate&&forecastDateMissing
 
 
  if(compact&&mode==='training'){
-  const glyph=live?
-   (live.code>=95?'⛈️':live.code>=71?'🌨️':live.code>=51?'🌧️':
-    live.code>=45?'🌫️':live.code>=3?'☁️':live.code>=1?'🌤️':live.isDay?'☀️':'🌙'):'🌤️'
+  const sample=fixedWeather||slot?.hours[0]||live
+  const glyph=sample?
+   (sample.code>=95?'⛈️':sample.code>=71?'🌨️':sample.code>=51?'🌧️':
+    sample.code>=45?'🌫️':sample.code>=3?'☁️':sample.code>=1?'🌤️':sample.isDay?'☀️':'🌙'):'🌤️'
   const summary=fixedWeather?
    ('Wetter um '+hr(fixedHour!)+' · '+fmt(fixedWeather.temperature,'°')+' · '+condition(fixedWeather)):
-   slot?('Bester Wetterslot '+hr(slot.startHour)+'–'+hr(slot.startHour+Math.ceil(slot.durationMinutes/60))):
+   slot?('Bester Wetterslot '+hr(slot.startHour)+'–'+String(Math.floor((slot.startHour*60+slot.durationMinutes)/60)).padStart(2,'0')+':'+String((slot.startHour*60+slot.durationMinutes)%60).padStart(2,'0')):
    place?'Kein Wetterfenster verfügbar':'Trainingsort auswählen'
   const detail=fixedWeather?
    'Regen '+fmt(fixedWeather.rainProbability,'%')+' · Wind '+fmt(fixedWeather.wind,' km/h'):
@@ -148,9 +150,9 @@ export function WeatherPanel({active,mode='training',date,fixedTime,compact=fals
    place?'Wettervorhersage noch nicht verfügbar':'Ort suchen oder freiwillig Standort teilen'
   return <section className="wx-brief" aria-label="Trainingswetter auf einen Blick">
    <div className="wx-brief-line">
-    <span className="wx-brief-glyph" role="img" aria-label={live?condition(live):'Wetter'}>{glyph}</span>
+    <span className="wx-brief-glyph" role="img" aria-label={sample?condition(sample):'Wetter'}>{glyph}</span>
     <div className="wx-brief-info">
-     <span>{place?place.name:'Wetter'} {live?('· '+fmt(live.temperature,'°')):''}</span>
+     <span>{place?place.name:'Wetter'} {fixedWeather?'· Referenzort':''}</span>
      <strong>{loading&&!report?'Wetter wird geladen …':summary}</strong>
      <small>{detail}</small>
     </div>

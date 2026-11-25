@@ -11,6 +11,8 @@ const clock=(m:number)=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m
 export function CoachTodayWeather({active,snapshot,plan,onReport}:{active:boolean;snapshot:CoachSnapshot;plan:SevenDayPlan;onReport:(r:Report|null)=>void}){
  const day=plan.days.find(d=>d.date===plan.today)
  const group=day?.selectedGroup
+ const noOutdoor=!day||['illness','blocked','completed','recovery','race','mobility','declined','acknowledged'].includes(day.kind)||day.decision==='declined'
+ const free=!group&&!noOutdoor
  const fixed=useMemo(()=>group?(snapshot.options.options as Slot[]|undefined)?.find(o=>o.code===group.code)||null:null,[group,snapshot.options])
  const [hours,setHours]=useState<WeatherHour[]>([]),[loading,setLoading]=useState(false),[error,setError]=useState('')
  const [loadedKey,setLoadedKey]=useState('')
@@ -23,7 +25,7 @@ export function CoachTodayWeather({active,snapshot,plan,onReport}:{active:boolea
  const signature=JSON.stringify([plan.today,group?.code,time,fixed?.location_lat,fixed?.location_lon,minutes])
  const visible=loadedKey===signature?hours:[]
  useEffect(()=>{
-  onReport(null);setHours([]);setLoadedKey('');setError('')
+  if(!free||!active)onReport(null);setHours([]);setLoadedKey('');setError('')
   if(!active||!group||!fixed||!valid){setLoading(false);return}
   let live=true;setLoading(true)
   void getWeather({name:fixed.location_label,latitude:fixed.location_lat,longitude:fixed.location_lon}).then(f=>{
@@ -38,15 +40,15 @@ export function CoachTodayWeather({active,snapshot,plan,onReport}:{active:boolea
    onReport({date:plan.today,text})
   }).catch(()=>{if(live)setError('Wetter derzeit nicht abrufbar.')}).finally(()=>{if(live)setLoading(false)})
   return ()=>{live=false}
- },[active,signature,onReport])
+ },[active,signature,free,onReport])
  if(!active)return null
  if(group)return <section className="ctw-root" aria-label="Wetter zum bestätigten Training">
   <div className="ctw-head"><div><small>TRAININGSWETTER · FESTER TERMIN</small><strong>{time||'Startzeit offen'} Uhr · {fixed?.location_label||group.location||'Ort fehlt'}</strong></div><Icon name="wind"/></div>
   {!valid?<p>Startzeit oder genaue Koordinaten fehlen. Kein Wetterort wird geraten.</p>:loading?<p role="status">Stundenprognose wird geladen …</p>:error?<p role="alert">{error}</p>:visible.length>0&&<><div className="ctw-metrics">
-   <div><small>TEMPERATUR</small><strong>{Math.round(visible[0].temperature)}°</strong></div><div><small>GEFÜHLT</small><strong>{Math.round(visible[0].feelsLike)}°</strong></div><div><small>REGENRISIKO MAX.</small><strong>{Math.round(Math.max(...visible.map(h=>h.rainProbability)))}%</strong></div><div><small>BÖEN MAX.</small><strong>{Math.round(Math.max(...visible.map(h=>h.gust)))}<em> km/h</em></strong></div>
+   <div><small>TEMPERATUR ZUM START</small><strong>{Math.round(visible[0].temperature)}°</strong></div><div><small>GEFÜHLT ZUM START</small><strong>{Math.round(visible[0].feelsLike)}°</strong></div><div><small>REGENRISIKO MAX.</small><strong>{Math.round(Math.max(...visible.map(h=>h.rainProbability)))}%</strong></div><div><small>BÖEN MAX.</small><strong>{Math.round(Math.max(...visible.map(h=>h.gust)))}<em> km/h</em></strong></div>
   </div><p>{time}–{end} Uhr · {weatherLabel(visible[0].code)}{estimated?' · Dauer geschätzt (60 Min.)':''} · Open-Meteo</p></>}
  </section>
- if(!day||['illness','blocked','completed','recovery','race','mobility','declined','acknowledged'].includes(day.kind)||day.decision==='declined')return null
+ if(!day||noOutdoor)return null
  const planned=snapshot.plans.entries.filter(p=>p.training_date===plan.today&&p.state!=='cancelled'&&p.state!=='draft')
  const archive=planned.length===1?planned[0].archive_snapshot as {startTime?:string}|null:null
  const fixedTime=archive?.startTime||null

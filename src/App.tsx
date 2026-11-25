@@ -81,7 +81,7 @@ function App() {
       <header className="topbar"><div className="crumbs"><span>WORKSPACE</span><span className="slash">/</span><strong>{(page==='gear'?'Equipment':page==='settings'?'Einstellungen':page==='strength'?'Stabi Studio':navigation.find(n=>n.id===page)?.name)}</strong></div><div className="top-actions"><div className="mobile-brand" style={{display:'none'}}><div className="brand-logo"><Icon name="activity"/></div>GARMIN_AI</div><span className="date">GARMIN_AI / DEIN TRAINING</span><span className="pill"><span className="pulse"/> DATEN LIVE · FREIGABE DURCH DICH</span><div className="round-icon"><Icon name="bell"/></div></div></header>
       <CoachPage active={page==='home'} onGo={go} onOpenCalendar={openCalendar} onOpenDecision={openCoach}/>
       <CalendarPage active={page==='calendar'} focus={calendarFocus} decisionFocus={coachFocus} onOpenCoach={openCoach} onGo={go}/>
-      <GoalsPage active={page==='goals'} onGo={go}/>
+      <GoalsPage active={page==='goals'} onGo={go} onOpenRaceWeather={openRaceWeather}/>
       <TrainingPage active={page==='training'} onGo={go} focus={sessionFocus} onOpenSession={openSession} onOpenCalendar={openCalendar}/>
       <StrengthPage active={page==='strength'}/>
       {import.meta.env.DEV && <LiveGarminActivities active={page==='training'}/>}

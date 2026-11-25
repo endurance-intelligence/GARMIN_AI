@@ -105,7 +105,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
  const [decisionOpen,setDecisionOpen]=useState(false)
  const decisionDialog=useRef<HTMLDialogElement>(null)
  const lastDecisionToken=useRef<number|null>(null)
- useEffect(()=>{if(!active){decisionDialog.current?.close();setDecisionOpen(false);return}if(decisionFocus&&lastDecisionToken.current!==decisionFocus.token){lastDecisionToken.current=decisionFocus.token;setDecisionOpen(true);decisionDialog.current?.showModal()}},[active,decisionFocus])
+ useEffect(()=>{if(!active){decisionDialog.current?.close();setDecisionOpen(false);return}if(decisionFocus&&lastDecisionToken.current!==decisionFocus.token){lastDecisionToken.current=decisionFocus.token;setDecisionOpen(true);if(decisionDialog.current&&!decisionDialog.current.open)decisionDialog.current.showModal()}},[active,decisionFocus])
  const [showWorkoutArchive,setShowWorkoutArchive]=useState(false)
  const coachRequestIds=useRef<Record<string,string>>({})
  const lastFocusToken=useRef<number|null>(null)
@@ -851,7 +851,8 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
   </div>
   <dialog className="coach-day-dialog" ref={decisionDialog} aria-label="Coach-Tagesentscheidung" onClose={()=>setDecisionOpen(false)}>
    <header><strong>Coach-Entscheidung</strong><button type="button" onClick={()=>decisionDialog.current?.close()} aria-label="Schließen"><Icon name="x"/></button></header>
-   <CoachSevenDay active={active&&decisionOpen} focus={decisionFocus} onCalendar={date=>{decisionDialog.current?.close();if(date){setSelected(date);setCoachReview(null)}}} sharedSnapshot={coachSnapshot} onRacePrep={()=>{decisionDialog.current?.close();onGo('race')}} singleDay/>
+   {decisionOpen&&(coachLoading||!coachSnapshot)&&<p role="status">{coachError||'Coach-Daten werden aktualisiert …'}</p>}
+   <CoachSevenDay key={decisionFocus?.token||0} active={active&&decisionOpen&&!coachLoading&&!!coachSnapshot} focus={decisionFocus} onCalendar={date=>{decisionDialog.current?.close();if(date){setSelected(date);setCoachReview(null)}}} sharedSnapshot={coachSnapshot} onRacePrep={()=>{decisionDialog.current?.close();onGo('race')}} singleDay/>
   </dialog>
   <details className="hc-day-extra hc-source-details"><summary>Datenquellen &amp; Hinweise</summary>
   <div className="hc-source-grid">

@@ -112,8 +112,7 @@ test('homepage puts one coaching decision before past goal and Garmin/calendar d
  const styles=read('src/styles/coach-daily-brief.css')
  assert.ok(page.indexOf('<CoachDailyBrief brief={dailyBrief}')>
   page.indexOf('return ('))
- assert.ok(page.indexOf('<CoachDailyBrief brief={dailyBrief}')<
-  page.indexOf('<CoachGoalPanel active={active} compact'))
+ assert.doesNotMatch(page,/<CoachGoalPanel/)
  assert.ok(page.indexOf('<CoachDailyBrief brief={dailyBrief}')<
   page.indexOf('<CoachGlance active={active}'))
  assert.match(page,/buildSevenDayCoach\(\{/)

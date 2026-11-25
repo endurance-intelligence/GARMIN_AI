@@ -52,7 +52,7 @@ test('only a valid future goal triggers race-day advice',()=>{
 test('real reviews are visible in day calendar, coach week and session analyst',()=>{
  const fs=requireSourceFiles()
  assert.ok(fs.calendar.includes('showDayEvidence&&<CoachEvidenceSummary active={active&&showDayEvidence}'))
- assert.ok(fs.coach.includes('showWeeklyReview&&<CoachEvidenceSummary active={active&&showWeeklyReview}'))
+ assert.ok(fs.coach.includes('<CoachEvidenceSummary active={active&&open} mode="weekly"'))
  assert.ok(fs.analyst.includes('<CoachEvidenceSummary active={active} mode="training" activityId={details.activity.id}/>'))
  assert.ok(fs.component.includes("garmin-coach-review"))
  assert.ok(fs.server.includes("auth.auth.getUser(bearer[1])"))
@@ -63,7 +63,7 @@ test('real reviews are visible in day calendar, coach week and session analyst',
 function requireSourceFiles(){
  const {readFileSync}=fsModule
  const get=file=>readFileSync(new URL('../'+file,import.meta.url),'utf8')
- return {calendar:get('src/pages/CalendarPage.tsx'),coach:get('src/pages/CoachPage.tsx'),
+ return {calendar:get('src/pages/CalendarPage.tsx'),coach:get('src/components/TrainingDevelopment.tsx'),
   analyst:get('src/components/LiveSessionAnalyst.tsx'),component:get('src/components/CoachEvidenceSummary.tsx'),
   server:get('supabase/functions/garmin-coach-review/index.ts')}
 }

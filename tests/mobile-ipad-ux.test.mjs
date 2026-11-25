@@ -15,7 +15,7 @@ test('iPad compact 761–1024px uses bottom touch nav, not cramped desktop sideb
 test('real Garmin recovery appears before REAL Coach decision and no fake prototype remains',()=>{
   const coach=read('src/pages/CoachPage.tsx')
   const iRecovery=coach.indexOf('<CoachGlance active={active}')
-  const iDecision=coach.indexOf('<CoachSevenDay active={active}')
+  const iDecision=coach.indexOf('<AskCoachCard')
   assert.ok(iRecovery>=0&&iRecovery<iDecision)
   assert.match(read('src/components/CoachGlance.tsx'),/MORGENCHECK/)
   assert.match(read('src/components/CoachSevenDay.tsx'),/<CoachDecisionLive/)

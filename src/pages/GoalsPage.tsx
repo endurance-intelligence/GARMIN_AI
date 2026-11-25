@@ -13,7 +13,7 @@ import type {CoachSnapshot} from '../lib/coachSnapshot'
 import type {Page} from '../navigation'
 import '../styles/goals-page.css'
 
-export function GoalsPage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
+export function GoalsPage({active,onGo,onOpenRaceWeather}:{active:boolean;onGo:(page:Page)=>void;onOpenRaceWeather?:()=>void}){
  const [revision,setRevision]=useState(0)
  const [routeSummary,setRouteSummary]=useState<GoalRouteSummary|null>(null)
  const [snapshot,setSnapshot]=useState<CoachSnapshot|null>(null)
@@ -56,7 +56,7 @@ export function GoalsPage({active,onGo}:{active:boolean;onGo:(page:Page)=>void})
     </button>
    </div>
   </header>
-  <CoachGoalPanel key={'primary-'+revision} active={active} onSaved={changed} routeSummary={routeSummary}/>
+  <CoachGoalPanel key={'primary-'+revision} active={active} onSaved={changed} routeSummary={routeSummary} onForecastOpen={onOpenRaceWeather}/>
   {loading&&<p role="status" className="goals-status">Trainingsfahrplan wird aktualisiert …</p>}
   {error&&<p role="alert" className="goals-status">{error}</p>}
   {snapshot&&!loading&&!error&&<CoachLongTermPlan today={berlinDateToday()} snapshot={snapshot}/>}

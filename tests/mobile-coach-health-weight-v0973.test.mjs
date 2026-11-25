@@ -27,7 +27,7 @@ test('a user can report just today, several days or open-ended illness from a co
  const style=read('src/styles/coach-health-status.css')
  assert.match(page,/<CoachHealthStatus active=\{active\} openToken=\{healthOpenToken\} life=\{sharedSnapshot\?\.life\}/)
  assert.match(page,/onReportSymptoms=\{\(\)=>setHealthOpenToken/)
- assert.ok(page.indexOf('<CoachHealthStatus')<page.indexOf('<CoachGoalPanel'))
+ assert.ok(page.indexOf('<CoachHealthStatus')<page.indexOf('<CoachDailyBrief'))
  assert.match(component,/Nur heute/)
  assert.match(component,/Mehrere Tage/)
  assert.match(component,/Noch offen/)

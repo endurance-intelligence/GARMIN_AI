@@ -6,7 +6,7 @@ const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8')
 test('Coach race weather is a real focusable control, not inert decorative data',()=>{
  const mini=read('src/components/CoachRaceWeatherMini.tsx')
  const goal=read('src/components/CoachGoalPanel.tsx')
- const coach=read('src/pages/CoachPage.tsx')
+ const coach=read('src/pages/GoalsPage.tsx')
  assert.match(mini,/return <button type="button" className="cg-home-weather"/)
  assert.match(mini,/onClick=\{onOpenDetails\}/)
  assert.match(mini,/disabled=\{!onOpenDetails\}/)
@@ -14,7 +14,7 @@ test('Coach race weather is a real focusable control, not inert decorative data'
  assert.match(mini,/cg-home-weather-open/)
  assert.match(goal,/onForecastOpen\?:\(\)=>void/)
  assert.match(goal,/onOpenDetails=\{onForecastOpen\}/)
- assert.match(coach,/onOpenRaceWeather:\s*\(\)=>void/)
+ assert.match(coach,/onOpenRaceWeather\?:\(\)=>void/)
  assert.match(coach,/onForecastOpen=\{onOpenRaceWeather\}/)
 })
 test('one tap switches Race Prep and focuses the detailed weather section',()=>{

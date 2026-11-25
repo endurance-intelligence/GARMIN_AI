@@ -87,7 +87,7 @@ test('Coach considers rowing but does not feature it as separate training card',
 test('iPhone navigation still exposes movement studio',()=>{
  assert.match(app,/StrengthPage active=\{page==='strength'\}/)
  assert.match(more,/onGo\('strength'\)/)
- assert.match(read('src/pages/CoachPage.tsx'),/CrossTrainingCoachCard/)
+ assert.match(read('src/components/TrainingDevelopment.tsx'),/CrossTrainingCoachCard/)
  assert.match(studio,/<section className="ss-root page active/)
  assert.match(read('src/styles/movement-studio-v2.css'),/@media\(max-width:490px\)/)
 })

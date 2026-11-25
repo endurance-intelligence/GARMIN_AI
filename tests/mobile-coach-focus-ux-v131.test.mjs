@@ -4,9 +4,10 @@ import {readFileSync} from 'node:fs'
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
 test('Coach home prioritizes daily decision, questions and weekly actions ahead of secondary information',()=>{
  const s=read('src/pages/CoachPage.tsx')
- const order=['<CoachDailyBrief','<CoachGlance','<CoachSevenDay','id="coach-ask"','<AskCoachCard','id="coach-goals-weather"','id="coach-development"']
+ const order=['<CoachDailyBrief','<CoachGlance','id="coach-ask"','<AskCoachCard']
  for(let i=1;i<order.length;i++)assert.ok(s.indexOf(order[i])>s.indexOf(order[i-1]),order[i])
- assert.match(s,/id="coach-development"[\s\S]*<CoachProgressPulse[\s\S]*<CoachSessionBridge/)
+ assert.doesNotMatch(s,/<CoachSevenDay|<CoachProgressPulse|<CoachSessionBridge|<CoachGoalPanel/)
+ assert.match(read('src/components/TrainingDevelopment.tsx'),/<CoachProgressPulse[\s\S]*<CoachSessionBridge/)
 })
 test('race recovery and stale plans remain visible, retrospective cards follow decisions',()=>{
  const s=read('src/components/CoachSevenDay.tsx')

@@ -100,8 +100,8 @@ test('weather is opt-in and weather-only, never a fake Garmin sync',()=>{
  assert.doesNotMatch(component,/service_role|GARMIN_API_KEY|scheduleWorkout\(/)
 })
 test('real weather cards are used on Coach, Calendar and Race',()=>{
- assert.match(read('src/pages/CoachPage.tsx'),/<CoachTodayWeather active=\{active\}\/>/)
- assert.match(read('src/pages/CalendarPage.tsx'),/selectedDate=\{selected\}/)
+ assert.match(read('src/pages/CoachPage.tsx'),/<CoachTodayWeather active=\{active\} snapshot=/)
+ assert.match(read('src/pages/CalendarPage.tsx'),/weekStart=\{start\} compact/)
  assert.match(read('src/components/CalendarWeekBoard.tsx'),/<FixedTrainingWeather active=\{active\}/)
  assert.match(read('src/pages/RacePage.tsx'),/<RaceForecastCompact active=\{active\}/)
  assert.match(read('src/App.tsx'),/<OnlineAccessGate>/)
