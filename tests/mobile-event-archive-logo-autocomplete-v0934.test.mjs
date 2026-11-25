@@ -15,7 +15,7 @@ test('autocomplete returns a complete selectable address, only required fields',
   address:'Johannisstraße 45, 36041 Fulda',
   subtitle:'Johannisstraße 45 36041 Fulda',
   source:'https://www.openstreetmap.org/way/123',
-  hasFullAddress:true
+  hasFullAddress:true,latitude:50.53,longitude:9.68
  })
 })
 test('suggestions do not fabricate a missing house number',()=>{
