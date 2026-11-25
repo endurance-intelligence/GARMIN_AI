@@ -2,8 +2,7 @@ import {useEffect,useState} from 'react'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {RaceGoalsPanel} from '../components/RaceGoalsPanel'
 import {CoachLongTermPlan} from '../components/CoachLongTermPlan'
-import {GoalProgressCard} from '../components/GoalProgressCard'
-import {PolarizedMethodCard} from '../components/PolarizedMethodCard'
+import {ChallengeSetup} from '../components/ChallengeSetup'
 import {RaceEventResearch} from '../components/RaceEventResearch'
 import {Icon} from '../components/Icon'
 import {garminSupabase} from '../lib/garminSupabase'
@@ -39,7 +38,7 @@ export function GoalsPage({active,onGo}:{active:boolean;onGo:(page:Page)=>void})
   <header className="page-intro goals-intro">
    <div><div className="eyebrow">GARMIN_AI / GOALS</div>
     <h1>Meine Ziele</h1>
-    <p>Wettkampf oder Fitness erhalten – du bestimmst, worauf der Coach hinarbeitet.</p></div>
+    <p>Dein nächstes Abenteuer. Dein Plan.</p></div>
    <button type="button" className="goals-race-link" onClick={()=>onGo('race')}>
     <Icon name="flag"/> Race Prep öffnen <Icon name="arrow-up-right"/>
    </button>
@@ -47,22 +46,17 @@ export function GoalsPage({active,onGo}:{active:boolean;onGo:(page:Page)=>void})
   <CoachGoalPanel key={'primary-'+revision} active={active} onSaved={changed}/>
   {loading&&<p role="status" className="goals-status">Trainingsfahrplan wird aktualisiert …</p>}
   {error&&<p role="alert" className="goals-status">{error}</p>}
-  {snapshot&&!loading&&!error&&<GoalProgressCard today={berlinDateToday()} snapshot={snapshot}
-   onRacePrep={()=>onGo('race')}/>}
+  <ChallengeSetup active={active} revision={revision} onSaved={changed}
+   onEventScout={()=>{const el=document.getElementById('goals-event-scout');if(el instanceof HTMLDetailsElement){el.open=true;el.scrollIntoView({behavior:'smooth',block:'start'})}}}/>
   {snapshot&&!loading&&!error&&<CoachLongTermPlan today={berlinDateToday()} snapshot={snapshot}/>}
   <RaceGoalsPanel key={'portfolio-'+revision} active={active} onPrimaryChange={changed}/>
-  <details className="goals-event-scout goals-method"><summary><span><strong>Trainingsmethode</strong>
-   <small>Polarisiertes Training · Grundlagen und Intensität</small></span><Icon name="chevron-down"/></summary>
-   <PolarizedMethodCard/>
-  </details>
-  <details className="goals-event-scout" onToggle={event=>setShowEventScout(event.currentTarget.open)}>
+  <details className="goals-event-scout" id="goals-event-scout" onToggle={event=>setShowEventScout(event.currentTarget.open)}>
    <summary><span><strong>Veranstaltungsdaten &amp; Wettkampfarchiv</strong>
     <small>Event Scout, Veranstalter-Webseite, Quellen und gespeicherte Strecken</small></span>
     <Icon name="chevron-down"/></summary>
    {showEventScout&&<RaceEventResearch active={active&&showEventScout}
     refreshKey={revision} onEventSaved={changed}/>}
   </details>
-  <p className="goals-hint">Dein Ziel steuert den Trainingsaufbau. Rennwetter, Streckenanalyse,
-   Verpflegung und Pausen für die nächste Veranstaltung findest du unter Race Prep.</p>
+  <button className="goals-analysis-link" type="button" onClick={()=>onGo('training')}>Trainingsfortschritt in Analyse ansehen <Icon name="arrow-up-right"/></button>
  </section>
 }

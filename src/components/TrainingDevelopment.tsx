@@ -4,11 +4,12 @@ import {berlinDateToday} from '../lib/coachGoal'
 import {loadCoachSnapshot} from '../lib/coachSnapshot'
 import type {CoachSnapshot} from '../lib/coachSnapshot'
 import {CoachProgressPulse} from './CoachProgressPulse'
+import {GoalProgressCard} from './GoalProgressCard'
 import {CoachLongTermCard} from './CoachLongTermCard'
 
 /** Deliberately on demand: opening a particular Garmin run never loads older weeks. */
-export function TrainingDevelopment({active,focusToken,onGoals}:{
- active:boolean;focusToken?:number;onGoals:()=>void
+export function TrainingDevelopment({active,focusToken,onGoals,onRacePrep}:{
+ active:boolean;focusToken?:number;onGoals:()=>void;onRacePrep:()=>void
 }){
  const [open,setOpen]=useState(false)
  const [snapshot,setSnapshot]=useState<CoachSnapshot|null>(null)
@@ -39,6 +40,7 @@ export function TrainingDevelopment({active,focusToken,onGoals}:{
    {!garminSupabase&&<p className="lsa-note">Garmin-Verbindung nicht konfiguriert.</p>}
    {garminSupabase&&!loading&&<button type="button" className="secondary" onClick={()=>setRefresh(n=>n+1)}>Historie aktualisieren</button>}
    {snapshot&&!loading&&!error&&<>
+    <GoalProgressCard today={today} snapshot={snapshot} onRacePrep={onRacePrep}/>
     <CoachProgressPulse today={today} snapshot={snapshot}
      onOpenLongTerm={()=>window.dispatchEvent(new Event('garmin-ai-open-long-term-progress'))} onGoals={onGoals}/>
     <CoachLongTermCard today={today} snapshot={snapshot} active={active&&open}/>

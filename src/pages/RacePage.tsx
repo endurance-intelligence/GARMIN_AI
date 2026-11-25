@@ -28,7 +28,7 @@ export function RacePage({active,onGo,focusWeatherToken=0}:{
  },[active,focusWeatherToken])
  const [raceForecast,setRaceForecast]=useState<Forecast|null>(null)
  const [eventCity,setEventCity]=useState<string|null>(null)
- const [course,setCourse]=useState<{courseType:string|null;finishCity:string|null}|null>(null)
+ const [course,setCourse]=useState<{courseType:string|null;finishCity:string|null;startLatitude?:number|null;startLongitude?:number|null;startName?:string|null}|null>(null)
  const [routePoints,setRoutePoints]=useState<Point[]|null>(null)
  return <section className={active?'page active race-prep-page':'page race-prep-page'}
   aria-label="Vorbereitung auf das kommende Event">

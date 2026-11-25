@@ -13,7 +13,7 @@ export function TrainingPage({active,focus,onGo}:{active:boolean;onGo:(page:Page
      erkennt den Trainingstyp automatisch und berücksichtigt dein Hauptziel.</p>
    </div>
   </div>
-  <TrainingDevelopment active={active} focusToken={focus?.token} onGoals={()=>onGo('goals')}/>
+  <TrainingDevelopment active={active} focusToken={focus?.token} onGoals={()=>onGo('goals')} onRacePrep={()=>onGo('race')}/>
   <LiveSessionAnalyst active={active} focus={focus}/>
   <p className="page-disclaimer">Nur echte Garmin-Daten. Keine künstlichen Trainingsnoten,
    keine vorgetäuschten Analyseergebnisse und keine automatischen Änderungen am Trainingsplan.</p>

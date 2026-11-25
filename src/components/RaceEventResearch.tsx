@@ -402,9 +402,9 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
     {busy==='save'?'Speichere …':'Diese Angaben und Quellen speichern'}
    </button>
   </div>}
-  {saved.length>0&&<div className="rer-saved">
+  {saved.some(item=>!item.event_url.includes('/GARMIN_AI/challenge/'))&&<div className="rer-saved">
    <strong>Gespeicherte Veranstaltungsdaten</strong>
-   {saved.map(item=><article key={item.id}>
+   {saved.filter(item=>!item.event_url.includes('/GARMIN_AI/challenge/')).map(item=><article key={item.id}>
     <div><b>{item.event_title}</b>
      <p>{item.race_date.split('-').reverse().join('.')} · {formatField('venue',item.details?.venue||null)}
       {item.details?.officialLoopKm?' · Runde '+formatField('officialLoopKm',item.details.officialLoopKm):''}</p>

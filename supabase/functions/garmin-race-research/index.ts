@@ -154,7 +154,7 @@ Deno.serve(async req=>{
    return reply(403,{error:'Not authorized'},h)
   const db=createClient(project,key('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
   const {data:goal,error:goalError}=await db.from('garmin_coach_goals')
-   .select('race_name,race_date,race_location').eq('user_id',user.id).maybeSingle()
+   .select('race_name,race_date,race_location,race_start_time').eq('user_id',user.id).maybeSingle()
   if(goalError)return reply(503,{error:'Race goal unavailable'},h)
   if(!goal)return reply(409,{error:'Bitte zuerst dein Wettkampfziel in Race Prep speichern.'},h)
   if(req.method==='GET'){
@@ -166,7 +166,7 @@ Deno.serve(async req=>{
     .select('id,canonical_url,event_name,template_details,evidence,last_race_date,updated_at')
     .eq('user_id',user.id).order('updated_at',{ascending:false}).limit(30)
    if(archiveError)return reply(503,{error:'Wettkampfarchiv nicht verfügbar'},h)
-   return reply(200,{goal:{raceName:goal.race_name,raceDate:goal.race_date,raceLocation:goal.race_location},
+   return reply(200,{goal:{raceName:goal.race_name,raceDate:goal.race_date,raceLocation:goal.race_location,raceStartTime:goal.race_start_time},
     saved:data||[],archive:archive||[],autoSaved:false},h)
   }
   const raw=await req.text()
@@ -183,7 +183,7 @@ Deno.serve(async req=>{
    const query=String(input.query||'').trim(),city=String(input.city||goal.race_location||'').trim()
    if(query.length<4||query.length>80||city.length>100)
     return reply(422,{error:'Bitte mindestens vier Zeichen und einen Ort eingeben.'},h)
-   const cacheKey=('suggest|'+query.toLocaleLowerCase('de-DE')+'|'+city.toLocaleLowerCase('de-DE')).slice(0,300)
+   const cacheKey=('suggest|v2|'+query.toLocaleLowerCase('de-DE')+'|'+city.toLocaleLowerCase('de-DE')).slice(0,300)
    const {data:cached,error:cacheError}=await db.from('garmin_race_venue_geocode_cache')
     .select('result,checked_at').eq('user_id',user.id).eq('query_key',cacheKey).maybeSingle()
    if(cacheError)return reply(503,{error:'Adresssuche gerade nicht verfügbar'},h)
@@ -270,6 +270,28 @@ Deno.serve(async req=>{
      addressResolution},h)
    }catch(e){return reply(422,{error:'Webseite konnte nicht vollständig geprüft werden: '+
       (e instanceof Error?e.message:'Abruf fehlgeschlagen')},h)}
+  }
+  if(input.action==='save_challenge'){
+   if(input.confirm!==true||input.raceName!==goal.race_name)return reply(409,{error:'Aktives Ziel prüfen und Angaben bestätigen.'},h)
+   try{
+    const fields=reviewed(input.details)
+    if(fields.eventDate!==goal.race_date)return reply(409,{error:'Zieldatum hat sich geändert.'},h)
+    fields.eventName=goal.race_name
+    fields.eventKind='challenge'
+    const supplied=input.details as Record<string,unknown>
+    const lat=numberValue(supplied.startLatitude,-90,90),lon=numberValue(supplied.startLongitude,-180,180)
+    if((lat===null)!==(lon===null))throw Error('Startkoordinaten müssen vollständig sein.')
+    fields.startLatitude=lat;fields.startLongitude=lon
+    fields.ascentM=numberValue(supplied.ascentM,0,30000)
+    // This is an internal record identifier, never a researched website.
+    const eventUrl='https://endurance-intelligence.github.io/GARMIN_AI/challenge/'+goal.race_date+'/'+encodeURIComponent(goal.race_name)
+    const row={user_id:user.id,race_date:goal.race_date,event_url:eventUrl,
+     event_title:goal.race_name,details:fields,evidence:[],checked_at:new Date().toISOString(),reviewed_at:new Date().toISOString()}
+    const {data,error}=await db.from('garmin_race_event_research').upsert(row,{onConflict:'user_id,race_date,event_url'})
+     .select('id,race_date,event_url,event_title,details,evidence,reviewed_at,checked_at').single()
+    if(error||!data)return reply(503,{error:'Challenge konnte nicht gespeichert werden.'},h)
+    return reply(200,{saved:true,record:data,trainingGoalChanged:false,garminChanged:false,intervalsChanged:false},h)
+   }catch(e){return reply(422,{error:e instanceof Error?e.message:'Challenge-Angaben ungültig'},h)}
   }
   if(input.action==='save'){
    if(input.confirm!==true)return reply(422,{error:'Angaben müssen vor dem Speichern bestätigt werden.'},h)
