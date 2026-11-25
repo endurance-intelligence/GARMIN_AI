@@ -528,7 +528,7 @@ export function buildSevenDayCoach(input){
  flags.push('Trainingsmethode: polarisiert (ca. vier locker / eine hart; '+
   'mittlere Intensität möglichst wenig). '+polarized.message)
  const goalProfile=buildGoalProfile({today,goal:input.goal,route:input.goalRoute})
- const supplement=buildGoalSupplement({today,profile:goalProfile,days:polarized.days,boards:input.boards,
+ const supplement=buildGoalSupplement({today,profile:goalProfile,days:polarized.days,boards:input.boards,equipment:input.life?.equipmentProfile,
   protectedPhase:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||observationLimited||allowWeekAdjustment||adapted.impact.effect==='shortened'||fourWeekReview.qualityCaution||typeCaution||(recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<=0)||(raceOffset!==null&&raceOffset>=-14&&raceOffset<=10),qualityDay:polarized.qualityDay})
  return {today,days:polarized.days,signals,flags,goalProfile,supplement,
   trainingMethod:{id:'polarized',qualityDay:polarized.qualityDay,

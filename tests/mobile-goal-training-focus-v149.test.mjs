@@ -22,7 +22,7 @@ test('profiles follow confirmed distance and exact course identity, not name',()
 const boards=[{start:'2026-11-16',activities:[],manual:[]},{start:'2026-11-23',activities:[],manual:[]}]
 const day={date:today,kind:'mobility',minutes:20,approvable:true}
 test('only existing open slot can get strength guidance; no extra activity or protected-day override',()=>{
- const p=profile(),input={today,profile:p,days:[day],boards}
+ const p=profile(),input={today,profile:p,days:[day],boards,equipment:{available:['bodyweight'],treadmillMaxInclinePct:null}}
  const before=JSON.stringify(input)
  const r=buildGoalSupplement(input)
  assert.equal(r.suggestion.kind,'strength')
