@@ -56,7 +56,7 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
   const dailyPlan=useMemo(()=>sharedSnapshot?buildSevenDayCoach({
    today:coachToday,health:sharedSnapshot.health,options:sharedSnapshot.options,
    boards:sharedSnapshot.boards,plans:sharedSnapshot.plans,goal:sharedSnapshot.goal,
-   life:sharedSnapshot.life,racePortfolio:sharedSnapshot.racePortfolio
+   life:sharedSnapshot.life,racePortfolio:sharedSnapshot.racePortfolio,goalRoute:sharedSnapshot.goalRoute
   }):null,[sharedSnapshot,coachToday])
   const dailyBrief=useMemo(()=>dailyPlan&&sharedSnapshot?
    buildCoachDailyBrief({today:coachToday,plan:dailyPlan,health:sharedSnapshot.health}):null,
@@ -106,7 +106,7 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
   
  </p>}
  {dailyBrief&&!snapshotLoading&&!snapshotError&&<CoachDailyBrief brief={dailyBrief}
-  mood={coachMood(dailyPlan,coachToday)} onDecision={openCoachDecision}
+  mood={coachMood(dailyPlan,coachToday)} onDecision={openCoachDecision} supplement={dailyPlan?.supplement?.suggestion?.date===coachToday?dailyPlan.supplement.suggestion:null}
   onReportSymptoms={()=>setHealthOpenToken(n=>n+1)}
   weather={<CoachTodayWeather active={active} snapshot={sharedSnapshot!} plan={dailyPlan!} onReport={setWeatherAnswer}/>}/>}
 

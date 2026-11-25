@@ -1,4 +1,5 @@
 import {useState} from 'react'
+import {buildGoalProfile,goalPhaseFocus} from '../lib/goalTrainingFocus.mjs'
 import {buildLongTermCoachPlan} from '../lib/coachLongTermPlan.mjs'
 import type {LongTermWeek} from '../lib/coachLongTermPlan.mjs'
 import type {CoachSnapshot} from '../lib/coachSnapshot'
@@ -19,6 +20,8 @@ export function CoachLongTermPlan({today,snapshot}:{
  const current=plan.weeks.find(w=>w.isCurrent)||plan.weeks[0]
  const week=(selection?.identity===identity?plan.weeks.find(w=>w.start===selection.start):undefined)||current
  const raceWeek=plan.weeks.find(w=>w.isRaceWeek)
+ const profile=buildGoalProfile({today,goal:snapshot.goal,route:snapshot.goalRoute})
+ const phaseFocus=week?goalPhaseFocus(profile,week.phase,{deload:week.index%4===0,hasBase:week.targetKm!==null}):null
  const goalAhead=plan.hasGoal&&plan.raceDate&&plan.raceDate>=today
  return <section className="cltp-root" aria-label="Dein langfristiger Trainingsfahrplan">
   <header className="cltp-roadmap-head">
@@ -49,6 +52,7 @@ export function CoachLongTermPlan({today,snapshot}:{
      <div><small>LANGER LAUF</small><strong>{week.longRunMinutes!==null?week.longRunMinutes:'—'}{week.longRunMinutes!==null&&<em> min</em>}</strong><span>{week.longRunMinutes!==null?'Ungefähr':'Nicht vorgegeben'}</span></div>
      <div><small>INTENSITÄT</small><strong>{week.qualityOptions>0?'Max. 1':'0'}</strong><span>{week.qualityOptions>0?'Harte Option · sonst locker':'Harte Einheiten empfohlen'}</span></div>
     </div>
+    {phaseFocus&&<div className="cltp-goal-focus"><div><small>DEIN ZIELPROFIL</small><strong>{profile.label}{profile.ascentM!==null?' · '+profile.ascentM.toLocaleString('de-DE')+' hm':''}</strong><p>{profile.requirements.join(' · ')}</p></div><div><small>TRAININGSREIZ DIESER WOCHE</small><strong>{phaseFocus.title}</strong><p>{phaseFocus.focus}</p><p className="cltp-complement">{phaseFocus.complement}</p></div><small className="cltp-terrain-note">{profile.terrainNote}</small></div>}
     {week.isRaceWeek&&<p className="cltp-race-note"><Icon name="flag"/> Zielwoche: {plan.raceName}. Der Start ist ein eigener Meilenstein, kein normales Wochenkilometerziel.</p>}
     {!week.isCurrent&&current&&<button type="button" className="cltp-back-current" onClick={()=>setSelection({identity,start:current.start})}>Zur aktuellen Woche</button>}
    </div>}

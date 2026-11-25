@@ -63,3 +63,5 @@
 @media(max-width:400px){.cdb-actions button{flex:1 1 100%}
  .cdb-foot>span{font-size:10px}
  .cdb-heading time{font-size:10px}}
+
+.cdb-supplement{display:grid;gap:5px;border-left:3px solid #a8e6c0;background:#1c302d;padding:12px 14px;border-radius:9px;margin:10px 0}.cdb-supplement strong{font-size:15px;color:#e5f4e9}.cdb-supplement p{margin:0;color:#c4d7cf;font-size:13px;line-height:1.5}.cdb-supplement small{font-size:11px;color:#afd5be}

@@ -121,7 +121,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
  const coachPlan=useMemo(()=>coachSnapshot&&!coachLoading&&!coachError?buildSevenDayCoach({
   today,startDate:planStart,health:coachSnapshot.health,boards:coachSnapshot.boards,
   options:coachSnapshot.options,plans:coachSnapshot.plans,
-  goal:coachSnapshot.goal,life:coachSnapshot.life,racePortfolio:coachSnapshot.racePortfolio
+  goal:coachSnapshot.goal,life:coachSnapshot.life,racePortfolio:coachSnapshot.racePortfolio,goalRoute:coachSnapshot.goalRoute
  }):null,[coachSnapshot,today,planStart,coachLoading,coachError])
  const raceInWeek=coachPlan?.days.find(d=>d.kind==='race')||null
  const coachDay=coachPlan?.days.find(d=>d.date===selected)||null
@@ -629,6 +629,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
      <h4>{coachPreview.selectedGroup?.title||coachPreview.title}</h4>
      {coachPreview.selectedGroup&&<small>{[coachPreview.selectedGroup.startTime?coachPreview.selectedGroup.startTime+' Uhr':'',coachPreview.selectedGroup.location].filter(Boolean).join(' · ')}</small>}
      <p>{coachPreview.reason}</p>
+     {coachPlan?.supplement?.suggestion?.date===selected&&<div className="cdb-supplement"><strong>{coachPlan.supplement.suggestion.title} · {coachPlan.supplement.suggestion.minutes} Min.</strong><p>{coachPlan.supplement.suggestion.reason}</p><small>{coachPlan.supplement.suggestion.intensity} · Nur Orientierung; keine zweite Einheit.</small></div>}
      {coachPreview.selectedGroup?<small>Deine Teilnahme änderst du über „Gruppentermine planen“. Kein zusätzliches Workout wird angelegt.</small>:<small>Du kannst sie hier im Kalender annehmen, ablehnen oder ändern.</small>}
      {selected>=today&&selected<=moveDay(today,6)&&
       <button type="button" className="hc-coach-accept" onClick={()=>onOpenCoach(selected)}>

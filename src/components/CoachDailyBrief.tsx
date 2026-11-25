@@ -1,13 +1,14 @@
 import type {CoachDailyBrief as Brief} from '../lib/coachDailyBrief.mjs'
 import {Icon} from './Icon'
 import type {ReactNode} from 'react'
+import type {GoalSupplementSuggestion} from '../lib/goalTrainingFocus.mjs'
 import {CoachAvatar} from './CoachAvatar'
 import type {CoachMood} from '../lib/coachPersonality.mjs'
 import '../styles/coach-daily-brief.css'
 
 const dateLabel=(d:string)=>d.slice(8,10)+'.'+d.slice(5,7)+'.'+d.slice(0,4)
-export function CoachDailyBrief({brief,onDecision,onReportSymptoms,weather,mood='neutral'}:{
- brief:Brief;onDecision:()=>void;onReportSymptoms:()=>void;weather?:ReactNode;mood?:CoachMood
+export function CoachDailyBrief({brief,onDecision,onReportSymptoms,weather,mood='neutral',supplement}:{
+ brief:Brief;onDecision:()=>void;onReportSymptoms:()=>void;weather?:ReactNode;mood?:CoachMood;supplement?:GoalSupplementSuggestion|null
 }){
  const cautious=['illness','recovery','blocked'].includes(brief.kind)||
   Boolean(brief.race?.daysSince!==undefined&&brief.race.daysSince<=5)
@@ -31,6 +32,7 @@ export function CoachDailyBrief({brief,onDecision,onReportSymptoms,weather,mood=
    <strong><Icon name="check-circle"/> DEIN NÄCHSTER SCHRITT</strong>
    <p>{brief.next}</p>
   </div>
+  {supplement&&<div className="cdb-supplement"><small>{supplement.mode==='alternative'?'OPTIONALE ALTERNATIVE':'ZIELGERICHTETER SCHWERPUNKT'}</small><strong>{supplement.title} · {supplement.minutes} Min.</strong><p>{supplement.reason}</p><small>{supplement.intensity} · Keine automatische Planänderung.</small></div>}
   <details className="cdb-reason cdb-reason-detail" open={cautious||brief.label==='TEILNAHME BESTÄTIGT'?true:undefined}>
    <summary><Icon name="activity"/> Coach-Einschätzung <Icon name="chevron-down"/></summary>
    <p>{brief.reason}</p>

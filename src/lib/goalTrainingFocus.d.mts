@@ -1,0 +1,9 @@
+export type GoalRouteEvidence={raceName:string;raceDate:string;ascentM:number}
+export type GoalProfile={kind:'short'|'half'|'marathon'|'ultra'|'maintenance'|'unknown';label:string;km:number|null;ascentM:number|null;ascentPerKm:number|null;hills:boolean;daysUntil:number|null;name:string|null;requirements:string[];terrainNote:string}
+export type GoalSupplementSuggestion={date:string;kind:'strength'|'rowing'|'cycling';title:string;minutes:number;intensity:string;reason:string;mode:'existing-slot'|'alternative'}
+export type GoalSupplement={suggestion:GoalSupplementSuggestion|null;evidence:{complete:boolean;strengthDays:number|null;rowingDays:number|null;cyclingDays:number|null;footballDays:number|null;minutes:number|null;recentHard:boolean;rows:unknown[]};reason:string}
+export function exactGoalRoute(goal:unknown,records:unknown):GoalRouteEvidence|null
+export function buildGoalProfile(input:{today:string;goal?:unknown;route?:GoalRouteEvidence|null}):GoalProfile
+export function goalPhaseFocus(profile:GoalProfile,phase:string,options?:{deload?:boolean;hasBase?:boolean}):{title:string;focus:string;complement:string}
+export function crossTrainingEvidence(input:{today:string;boards?:unknown}):GoalSupplement['evidence']
+export function buildGoalSupplement(input:{today:string;profile:GoalProfile;days:unknown[];boards?:unknown;protectedPhase?:boolean;qualityDay?:string|null}):GoalSupplement
