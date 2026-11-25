@@ -65,3 +65,5 @@
  .cdb-heading time{font-size:10px}}
 
 .cdb-supplement{display:grid;gap:5px;border-left:3px solid #a8e6c0;background:#1c302d;padding:12px 14px;border-radius:9px;margin:10px 0}.cdb-supplement strong{font-size:15px;color:#e5f4e9}.cdb-supplement p{margin:0;color:#c4d7cf;font-size:13px;line-height:1.5}.cdb-supplement small{font-size:11px;color:#afd5be}
+
+.cdb-supplement-session{display:grid;gap:6px;margin:8px 0}.cdb-supplement-session>div{display:grid;grid-template-columns:70px minmax(0,1fr);gap:10px;align-items:center;padding:9px 10px;background:#142321;border:1px solid #3b554b;border-radius:8px}.cdb-supplement-session>div>b{font-size:14px;color:#a8e6c0}.cdb-supplement-session>div>span{display:grid;gap:3px;min-width:0}.cdb-supplement-session>div>span strong{font-size:13px}.cdb-supplement-session small{line-height:1.45}

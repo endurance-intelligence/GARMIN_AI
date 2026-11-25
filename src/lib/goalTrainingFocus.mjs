@@ -3,6 +3,7 @@
  * Complementary sessions are optional alternatives, not extra training or automatic calendar writes.
  */
 import {hasEquipment,normalizeEquipmentProfile} from './equipmentProfile.mjs'
+import {buildTreadmillSession} from './treadmillTraining.mjs'
 const validDate=d=>typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&Number.isFinite(Date.parse(d+'T12:00:00Z'))&&new Date(d+'T12:00:00Z').toISOString().slice(0,10)===d
 const finite=n=>typeof n==='number'&&Number.isFinite(n)
 const add=(d,n)=>new Date(Date.parse(d+'T12:00:00Z')+n*86400000).toISOString().slice(0,10)
@@ -117,9 +118,14 @@ export function buildGoalSupplement({today,profile,days,boards,protectedPhase,qu
  // and the currently proposed easy session is not adjacent to a demanding planned day.
  const begin=add(today,-6),runDays=new Set(evidence.rows.filter(r=>r.kind==='running'&&r.date>=begin).map(r=>r.date)).size
  const lowImpact=['rowing','cycling'].find(k=>hasEquipment(equipment,k)&&evidence.rows.some(r=>r.kind===k&&r.minutes>=10)&&evidence[k==='rowing'?'rowingDays':'cyclingDays']===0)
- const easy=days.find(d=>open(d)&&d.kind==='easy'&&d.intensityIntent==='low'&&!nextDemanding(d))
+ const easy=days.find(d=>open(d)&&d.kind==='easy'&&d.intensityIntent==='low'&&!nextDemanding(d)&&d.minutes>=20)
+ // One optional replacement only. A confirmed hilly course may justify a
+ // gentle incline rather than generic cross-training; no new hard sessions.
+ const treadmill=easy&&runDays>=3?buildTreadmillSession({equipment,profile,minutes:easy.minutes,preferHills:true}):null
+ if(treadmill?.kind==='treadmill-hike')return {evidence,reason:'Bestätigtes Höhenprofil und verfügbares Laufband.',suggestion:{date:easy.date,...treadmill,mode:'alternative'}}
  if(lowImpact&&runDays>=3&&easy&&['base','build'].includes(profile.daysUntil===null||profile.daysUntil>98?'base':profile.daysUntil>56?'build':'specific')){
   return {evidence,reason:'Bekannte alternative Ausdauerform, mindestens drei beobachtete Lauftage.',suggestion:{date:easy.date,kind:lowImpact,title:lowImpact==='rowing'?'Lockeres Rudern als Alternative':'Lockeres Radfahren als Alternative',minutes:Math.min(30,easy.minutes),intensity:'Locker · Sprechtempo',reason:'Nur statt des offenen lockeren Laufs, um laufbedingte Stoßbelastung zu reduzieren. Kein Laufkilometer-Ersatz und keine neue Pflicht.',mode:'alternative'}}
  }
+ if(treadmill)return {evidence,reason:'Bestätigtes Laufband und mindestens drei beobachtete Lauftage.',suggestion:{date:easy.date,...treadmill,mode:'alternative'}}
  return none('Keine passende zusätzliche Option ohne Konflikt mit dem bestehenden Plan. Kein Training erzwingen.')
 }
