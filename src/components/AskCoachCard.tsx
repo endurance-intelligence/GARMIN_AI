@@ -3,8 +3,7 @@ import type {CoachSnapshot} from '../lib/coachSnapshot'
 import type {SevenDayPlan} from '../lib/coachSevenDay.mjs'
 import {COACH_QUESTIONS,answerCoachQuestion,resolveCoachQuestion} from '../lib/askCoach.mjs'
 import type {CoachTopic,CoachAnswer} from '../lib/askCoach.mjs'
-import {resolveFollowUp} from '../lib/coachPersonality.mjs'
-import type {CoachMood} from '../lib/coachPersonality.mjs'
+import {resolveFollowUp,coachChatMood} from '../lib/coachPersonality.mjs'
 import {buildCoachChatContext} from '../lib/coachChatContext.mjs'
 import {coachChatStatus,requestCoachChat} from '../lib/coachChatClient'
 import type {ChatMode,CoachRemoteAnswer,CoachChatMessage} from '../lib/coachChatClient'
@@ -12,8 +11,8 @@ import {CoachAvatar} from './CoachAvatar'
 import {Icon} from './Icon'
 import '../styles/ask-coach.css'
 type Turn={id:number;query:string;topic:CoachTopic|null;mode:ChatMode;local?:CoachAnswer;remote?:CoachRemoteAnswer;error?:string}
-export function AskCoachCard({active,today,snapshot,plan,weather,mood='neutral',onDecision,onProgress,onGoals,onSymptoms}:{
- active:boolean;today:string;snapshot:CoachSnapshot;plan:SevenDayPlan;weather?:{date:string;text:string}|null;mood?:CoachMood;
+export function AskCoachCard({active,today,snapshot,plan,weather,onDecision,onProgress,onGoals,onSymptoms}:{
+ active:boolean;today:string;snapshot:CoachSnapshot;plan:SevenDayPlan;weather?:{date:string;text:string}|null;
  onDecision:()=>void;onProgress:()=>void;onGoals:()=>void;onSymptoms:()=>void
 }){
  const [query,setQuery]=useState(''),[mode,setMode]=useState<ChatMode>('local'),[configured,setConfigured]=useState<boolean|null>(null)
@@ -49,7 +48,7 @@ export function AskCoachCard({active,today,snapshot,plan,weather,mood='neutral',
  }
  const enabled=mode==='local'||(configured===true&&consent)
  return <section className="ask-coach ask-chat" aria-label="Frag deinen Coach">
-  <header className="ask-chat-header"><CoachAvatar mood={mood} small/><div><span>DEIN TRAININGSPARTNER</span><h2>Frag deinen Coach.</h2><p>Dein Training. Deine Fragen.</p></div><button type="button" className="ask-new" disabled={!turns.length} onClick={clear}>Neu</button></header>
+  <header className="ask-chat-header"><CoachAvatar mood={coachChatMood()} small/><div><span>DEIN TRAININGSPARTNER</span><h2>Frag deinen Coach.</h2><p>Dein Training. Deine Fragen.</p></div><button type="button" className="ask-new" disabled={!turns.length} onClick={clear}>Neu</button></header>
   <div className="ask-modes" role="group" aria-label="Dialogmodus">
    {([['local','Coach'],['personal','KI-Dialog'],['research','Web-Recherche']] as const).map(([key,label])=><button type="button" key={key} aria-pressed={mode===key} onClick={()=>switchMode(key)}>{label}</button>)}
   </div>
@@ -64,10 +63,10 @@ export function AskCoachCard({active,today,snapshot,plan,weather,mood='neutral',
    </div>
   </details>
   <div className="ask-thread" aria-live="polite" aria-busy={pending}>
-   {!turns.length&&<div className="ask-welcome"><CoachAvatar mood={mood} small/><p>{mode==='research'?'Was möchtest du über Lauftraining recherchieren?':'Was beschäftigt dich heute? Wir schauen gemeinsam, was dich weiterbringt.'}</p></div>}
+   {!turns.length&&<div className="ask-welcome"><CoachAvatar mood={coachChatMood()} small/><p>{mode==='research'?'Was möchtest du über Lauftraining recherchieren?':'Was beschäftigt dich heute? Wir schauen gemeinsam, was dich weiterbringt.'}</p></div>}
    {turns.map(t=><div className="ask-turn" key={t.id}>
     <p className="ask-user">{t.query}</p>
-    <div className="ask-reply"><CoachAvatar mood={t.topic==='symptoms'?'firm':mood} small/><div className="ask-bubble">
+    <div className="ask-reply"><CoachAvatar mood={coachChatMood(t.topic,!t.local&&!t.remote&&!t.error)} small/><div className="ask-bubble">
      {t.error&&<p className="ask-error" role="alert">{t.error}{t.local?' · Lokale Einschätzung:':''}</p>}
      {t.local&&<><strong>{t.local.title}</strong>{t.local.body.map((p,i)=><p key={i}>{p}</p>)}<small>Quelle: {t.local.source}</small>{t.local.action&&<button type="button" onClick={actions[t.local.action]}>{labels[t.local.action]} <Icon name="arrow-up-right"/></button>}</>}
      {t.remote&&<><p className="ask-remote-text">{t.remote.text}</p><small>{t.remote.searched?'KI · Web-Recherche':'KI · ohne Websuche'} · keine Trainingsfreigabe</small>{t.remote.citations.length>0&&<div className="ask-citations">{t.remote.citations.map(c=><a key={c.url} href={c.url} target="_blank" rel="noreferrer">{c.title||c.url} ↗</a>)}</div>}</>}

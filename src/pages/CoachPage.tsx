@@ -121,7 +121,7 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
   </CoachGlance>}
  <div id="coach-ask" className="co-chat-space">
  {sharedSnapshot&&dailyPlan&&!snapshotLoading&&!snapshotError&&<AskCoachCard
-  active={active} today={coachToday} snapshot={sharedSnapshot} plan={dailyPlan} weather={weatherAnswer} mood={coachMood(dailyPlan,coachToday)}
+  active={active} today={coachToday} snapshot={sharedSnapshot} plan={dailyPlan} weather={weatherAnswer}
   onDecision={openCoachDecision} onProgress={openProgressHistory}
   onGoals={()=>onGo('goals')} onSymptoms={()=>setHealthOpenToken(n=>n+1)}/>}
  </div>

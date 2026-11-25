@@ -22,3 +22,10 @@ export function resolveFollowUp(query,previousTopic,resolve){
  if(previousTopic&&q.length<=90&&/^(und\b|warum\b|wieso\b|was bedeutet\b|was heißt\b|wie genau\b|was ist mit\b|wie sieht es\b|kannst du das\b|mehr dazu\b)/.test(q))return previousTopic
  return null
 }
+
+/** Conversation mood is independent of today's training recommendation. */
+export function coachChatMood(topic=null,pending=false){
+ if(topic==='symptoms')return 'firm'
+ if(pending)return 'focused'
+ return 'friendly'
+}

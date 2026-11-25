@@ -2,6 +2,7 @@ import {useId} from 'react'
 import type {CoachMood} from '../lib/coachPersonality.mjs'
 import '../styles/coach-avatar.css'
 const expressions={
+ friendly:{label:'Offen für deine Fragen',accent:'#a8e6c0',brow:'M42 56q7 -5 14 -1 M73 55q7 -4 14 1',eyes:'M46 66q4 -5 9 0 M75 66q4 -5 9 0',mouth:'M54 79Q65 94 76 79Z'},
  neutral:{label:'Aufmerksam',accent:'#a8b8cb',brow:'M42 58l14 -2 M73 56l14 2',eyes:'M47 66h7 M76 66h7',mouth:'M58 83Q65 86 72 83'},
  firm:{label:'Klare Ansage',accent:'#f0bd85',brow:'M41 53l15 6 M73 59l15 -6',eyes:'M46 67h9 M75 67h9',mouth:'M56 84Q65 80 74 84'},
  supportive:{label:'An deiner Seite',accent:'#a8e6c0',brow:'M42 57q7 -5 14 -2 M73 55q7 -3 14 2',eyes:'M46 67q4 -4 9 0 M75 67q4 -4 9 0',mouth:'M55 81Q65 91 75 81'},
@@ -28,7 +29,7 @@ export function CoachAvatar({mood='neutral',small=false}:{mood?:CoachMood;small?
     <path d={e.brow} fill="none" stroke="#48332e" strokeWidth="3.6" strokeLinecap="round"/>
     <path d={e.eyes} fill="none" stroke="#263039" strokeWidth="3.4" strokeLinecap="round"/>
     <path d="M64 67l-3 8 5 1" stroke="#a86f56" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
-    <path d={e.mouth} fill={mood==='celebrate'?'#fff7ed':'none'} stroke="#683e35" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d={e.mouth} fill={(mood==='celebrate'||mood==='friendly')?'#fff7ed':'none'} stroke="#683e35" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
     <path d="M83 125h12m-6 -6v12" stroke={e.accent} strokeWidth="2" strokeLinecap="round"/><path d="M17 138l21 -10M92 131l21 7" stroke={e.accent} opacity=".45" strokeWidth="2"/>
    </g><rect x="1" y="1" width="128" height="138" rx="24" fill="none" stroke={e.accent} strokeOpacity=".65" strokeWidth="2"/>
   </svg>{!small&&<span>{e.label}</span>}
