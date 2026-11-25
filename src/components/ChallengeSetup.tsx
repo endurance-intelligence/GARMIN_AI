@@ -83,7 +83,13 @@ export function ChallengeSetup({active,revision,onSaved,onEventScout}:{active:bo
    setNotice('GPX ausgewertet: '+(track.distanceM/1000).toLocaleString('de-DE',{maximumFractionDigits:1})+' km. Startkoordinaten und erkannte Angaben bitte prüfen. Die Ziel-Distanz bleibt unverändert. GPS-Strecke bei Bedarf in Race Prep speichern.')
   }catch(e){setError(e instanceof Error?e.message:'GPX nicht lesbar.')}
  }
- const update=(key:keyof Draft,value:string)=>setDraft(d=>({...d,[key]:value}))
+ const update=(key:keyof Draft,value:string)=>setDraft(d=>{
+  if(key!=='route'||komootEmbedFromTour(d.route)?.id===komootEmbedFromTour(value)?.id)return {...d,[key]:value}
+  // Changing the tour invalidates previously imported GPS coordinates and ascent.
+  // A typed start name is retained for review, but not an obsolete GPS pin.
+  return {...d,route:value,lat:'',lon:'',ascent:'',
+   start:d.start==='GPS-Startpunkt der Komoot-Tour'?'':d.start}
+ })
  const pick=(item:VenueSuggestion)=>setDraft(d=>({...d,start:item.address||item.name,venue:item.name,city:item.city,lat:item.latitude==null?'':String(item.latitude),lon:item.longitude==null?'':String(item.longitude)}))
  async function save(){
   if(!goal||busy)return
