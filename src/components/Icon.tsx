@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 const iconShapes: Record<string, ReactNode> = {
+"pencil": <><path d="m15 5 4 4M4 20l4.5-1 12-12-3.5-3.5-12 12L4 20Z"/></>,
 "clipboard-list": <><rect x="8" y="4" width="12" height="17" rx="2"/><path d="M8 7H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11"/><rect x="10" y="2" width="8" height="5" rx="1"/><path d="M11 12h6M11 16h6"/></>,
 "copy": <><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v7a3 3 0 0 0 3 3h2"/></>,
 "download": <><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3"/></>,

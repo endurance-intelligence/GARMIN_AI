@@ -70,3 +70,18 @@
 .goals-page .cltp-phase-race{border-left-color:#d7b0ff}
 .goals-analysis-link{margin:12px 0;color:var(--goal-muted);background:transparent}
 @media(max-width:600px){.challenge-form,.challenge-coord-grid{grid-template-columns:1fr}.challenge-map iframe{height:300px}.challenge-facts{gap:8px}.goals-page .cg-countdown{flex-basis:80px}}
+
+/* v1.3.9: one aligned header action, no large competing buttons. */
+.challenge-header-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:9px}
+.challenge-setup button.challenge-edit-control,.challenge-setup button.challenge-scout-link{display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;width:auto;min-height:36px;padding:7px 12px;font-size:12px;font-weight:650;line-height:1.25;border:1px solid #425566;background:transparent;color:#d5e0ee}
+.challenge-edit-control .ic,.challenge-scout-link .ic{display:inline-block;width:14px;height:14px;flex:0 0 14px;margin:0}
+.challenge-setup button.challenge-scout-link{border:0;padding-left:0;color:#a8b8cc}
+.challenge-form{margin-top:16px}
+.challenge-route-input label{font-size:13px}
+.challenge-import-status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:7px;color:#a8b8cc;font-size:12px}
+.challenge-import-preview{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:10px;padding:12px 14px;border:1px solid #456456;background:#192b2b;border-radius:10px}
+.challenge-import-preview>div{display:grid;gap:5px;min-width:0}
+.challenge-import-preview strong{font-size:14px;overflow-wrap:anywhere}
+.challenge-import-preview small{font-size:12px;color:#c2dfcf}
+.challenge-import-preview button{display:inline-flex;align-items:center;min-height:36px;font-size:12px;background:transparent;border-color:#54766a}
+@media(max-width:600px){.challenge-header-actions{gap:6px}.challenge-setup button.challenge-edit-control{min-height:44px}.challenge-import-preview{align-items:flex-start}.challenge-import-preview button{min-height:44px}}
