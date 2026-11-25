@@ -5,6 +5,7 @@
 import {createClient} from 'npm:@supabase/supabase-js@2'
 import {safeWebsiteUrl,parseEventPages,rankEventPages,discoverEventLogo} from '../_shared/race-event-extract.mjs'
 import {formatVenueSuggestions,archiveCanonicalUrl} from '../_shared/race-event-archive.mjs'
+import {komootTourRequest,parseKomootTour} from '../_shared/komoot-tour-import.mjs'
 import {venueAddressMatch,photonLookupURL} from '../_shared/race-venue-geocode.mjs'
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
@@ -179,6 +180,35 @@ Deno.serve(async req=>{
   }catch{return reply(422,{error:'Ungültige Eingabe'},h)}
   if(input.raceDate!==goal.race_date)
    return reply(409,{error:'Wettkampfziel hat sich geändert. Bitte Race Prep aktualisieren.'},h)
+  if(input.action==='import_komoot'){
+   if(input.raceName!==goal.race_name)return reply(409,{error:'Aktives Ziel hat sich geändert.'},h)
+   const tour=komootTourRequest(input.url)
+   if(!tour)return reply(422,{error:'Bitte einen gültigen Komoot-Tour-Link einfügen.'},h)
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6500)
+   try{
+    const res=await fetch(tour.url,{redirect:'error',cache:'no-store',signal:controller.signal,
+     headers:{Accept:'application/hal+json, application/json'}})
+    if(!res.ok||!/(?:application\/(?:hal\+)?json)/i.test(res.headers.get('content-type')||''))
+     return reply(200,{available:false,message:'Komoot stellt für diese Tour keine lesbaren Daten bereit. Karte oder GPX verwenden.'},h)
+    const reader=res.body?.getReader()
+    if(!reader)throw Error('Missing body')
+    const decoder=new TextDecoder();let raw='',bytes=0
+    try{
+     while(true){const {done,value}=await reader.read();if(done)break
+      bytes+=value.length
+      if(bytes>1000000){await reader.cancel();throw Error('Response too large')}
+      raw+=decoder.decode(value,{stream:true})
+     }
+     raw+=decoder.decode()
+    }finally{reader.releaseLock()}
+    const metadata=parseKomootTour(JSON.parse(raw),tour.id)
+    if(!metadata)return reply(200,{available:false,message:'Keine eindeutigen Tourdaten gefunden. Karte oder GPX verwenden.'},h)
+    return reply(200,{available:true,metadata,source:'komoot_tour',saved:false},h)
+   }catch{
+    // Do not log the URL, token, upstream body or exception.
+    return reply(200,{available:false,message:'Komoot-Datenabruf derzeit nicht möglich. Karte und GPX bleiben verfügbar.'},h)
+   }finally{clearTimeout(timer)}
+  }
   if(input.action==='suggest_venues'){
    const query=String(input.query||'').trim(),city=String(input.city||goal.race_location||'').trim()
    if(query.length<4||query.length>80||city.length>100)
