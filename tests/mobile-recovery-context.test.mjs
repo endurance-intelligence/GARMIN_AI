@@ -64,7 +64,7 @@ test('compact Coach health context is real, neutral and explicitly not a readine
  assert.match(glance,/Der gestrichelte Strich zeigt den Wert in der Mitte/)
  assert.match(glance,/keine Trainingsfreigabe/)
  assert.match(glance,/Mehr wissen\? Die Werte einfach erklärt/)
- assert.match(glance,/Schlaf & Erholung/)
+ assert.match(glance,/<h2>Deine Erholung<\/h2>/)
  assert.match(css,/\.co-trend-grid\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/)
  assert.match(css,/\.co-trend-tile\{[^}]*border:1px/)
  assert.doesNotMatch(glance,/<table>/)

@@ -223,9 +223,9 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
  if(!active)return null
  return <section className="c7-root" aria-label="Coach Intelligence mit sieben Tagen Trainingsvorschlägen">
   <div className="c7-top">
-   <div><span className="c7-eyebrow"><Icon name="sparkles"/> COACH INTELLIGENCE / V1.3</span>
-    <h2>Deine nächsten 7 Tage.</h2>
-    <p>Garmin-Daten, Erholung, Hauptziel und freiwillige Gruppentermine – erklärt statt bewertet.</p>
+   <div><span className="c7-eyebrow"><Icon name="sparkles"/> DEIN TRAININGSPLAN</span>
+    <h2>Deine nächsten 7 Tage</h2>
+    <p>Wähle einen Tag und entscheide gemeinsam mit deinem Coach.</p>
    </div>
    <button type="button" className="c7-refresh" disabled={loading||saving!==null}
     onClick={()=>{setReload(x=>x+1);window.dispatchEvent(new Event('garmin-ai-coach-changed'));setReview(null);setSavedDay(null)}}><Icon name="refresh-cw"/> Aktualisieren</button>
@@ -255,12 +255,15 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
    <div className="c7-day-nav" id="c7-week-overview" role="tablist"
     aria-label="Wähle einen Tag für deine persönliche Coach-Entscheidung">
     {plan.days.map(day=><button type="button" key={day.date} role="tab"
-      aria-selected={selectedDay===day.date} className={selectedDay===day.date?'is-selected':''}
+      data-coach-date={day.date} aria-selected={selectedDay===day.date}
+      className={'c7-road-day c7-road-'+day.kind+(selectedDay===day.date?' is-selected':'')+(day.date===today?' is-today':'')+(day.selectedGroup?' is-group':'')}
       disabled={saving!==null||contextBusy}
       onClick={()=>{setSelectedDay(day.date);setReview(null);setCustomDate(null);
        setCustomAcknowledged(false);setNotice('')}}>
-     <span>{formatDate(day.date)}</span>
+     <span className="c7-road-date"><span>{day.date===today?'HEUTE':new Intl.DateTimeFormat('de-DE',{timeZone:'UTC',weekday:'short'}).format(new Date(day.date+'T12:00:00Z')).replace('.','')}</span><strong>{day.date.slice(8,10)}</strong></span>
+     <span className="c7-road-icon"><Icon name={day.kind==='race'?'flag':day.selectedGroup?'check-circle':['recovery','illness','blocked'].includes(day.kind)?'heart-pulse':'footprints'}/></span>
      {day.selectedGroup?<strong title={day.selectedGroup.title}>{day.selectedGroup.title}</strong>:<strong title={day.title}>{day.title}</strong>}
+     {day.selectedGroup&&<small className="c7-group-label">{day.selectedGroup.advice==='skip'?'Coach rät ab':day.selectedGroup.advice==='easy'?'Locker & verkürzt':'Bestätigt'}</small>}
      {day.decision&&<small className="c7-day-choice">
       {day.decision==='accepted'?'✓ Angenommen':'× Abgelehnt'}</small>}
     </button>)}

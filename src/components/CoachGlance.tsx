@@ -33,8 +33,8 @@ function shortDay(iso:string){
  const [y,m,d]=iso.split('-')
  return d+'.'+m+'.'+y
 }
-export function CoachGlance({active,onCalendar,children,sharedSnapshot}:{
- active:boolean;onCalendar:()=>void;children:ReactNode;sharedSnapshot?:CoachSnapshot|null
+export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactToday=false}:{
+ active:boolean;onCalendar:()=>void;children:ReactNode;sharedSnapshot?:CoachSnapshot|null;compactToday?:boolean
 }){
  const [view,setView]=useState<Overview|null>(null)
  const [loading,setLoading]=useState(false)
@@ -137,7 +137,8 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot}:{
  const weekTrend=health?recoveryWeekTrend(view?.healthHistory||[],health.metric_date):null
  const [sleep,hrv,rhr]=comparison?.metrics||[]
  return <div className="co-at-a-glance">
-  <section className="co-today" aria-label="Training heute">
+  <details className="co-today co-today-details" open={compactToday?undefined:true} aria-label="Training heute">
+   <summary><span><Icon name="calendar-days"/> Tageskalender &amp; Wetter</span><Icon name="chevron-down"/></summary>
    <div className="co-section-head">
     <div><span className="co-eyebrow">HEUTE · TRAINING</span>
      {view&&<span className={'co-decision-chip '+(view.completedCount?'co-decision-active':view.skipped?'co-decision-skipped':view.plan||view.workout?'co-decision-active':view.option?'co-decision-optional':'co-decision-free')}>
@@ -152,19 +153,19 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot}:{
     <button type="button" className="co-link" onClick={onCalendar}>Kalender öffnen <Icon name="arrow-up-right"/></button>
    </div>
    {!loading&&view?.availabilityOk&&!view.blocked&&!view.skipped&&!view.completedCount&&children}
-  </section>
+  </details>
   <section className="co-recovery-glance" aria-label="Garmin Erholung mit grafischen Trends">
     <div className="co-recovery-heading">
       <div>
-        <span className="co-eyebrow">DEIN MORGENCHECK</span>
-        <h2>Schlaf & Erholung</h2>
+        <span className="co-eyebrow">GARMIN · MORGENCHECK</span>
+        <h2>Deine Erholung</h2>
       </div>
       <span className="co-data-day">{health?'Stand '+shortDay(health.metric_date):'Noch keine Daten'}</span>
     </div>
     <div className="co-recovery-insight">
       <span className="co-recovery-insight-icon"><Icon name="activity"/></span>
       <div>
-        <strong>Deine Erholung – kurz erklärt</strong>
+        <strong>Was deine Werte sagen</strong>
         <p>{recoveryNarrative(comparison)}</p>
         <p className="co-recovery-reading">{recoveryDashboardMeaning(comparison)}</p>
       </div>

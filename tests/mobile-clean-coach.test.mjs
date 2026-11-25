@@ -3,9 +3,9 @@ import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8')
 
-test('Coach uses a small header and glance, no default oversized cards',()=>{
+test('Coach uses focused daily hero and real recovery glance',()=>{
  const c=read('src/pages/CoachPage.tsx')
- assert.match(c,/Dein Laufcoach\. Jeden Tag\./)
+ assert.match(c,/<h1>Dein Coach<\/h1>/)
  assert.match(c,/<CoachDailyBrief brief=\{dailyBrief\}/)
  assert.match(c,/<CoachGlance active=\{active\}/)
  assert.match(c,/<CoachTodayWeather active=\{active\}\/>/)
