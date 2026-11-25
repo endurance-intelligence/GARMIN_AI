@@ -1,4 +1,4 @@
-import {buildGoalProfile,buildGoalSupplement} from './goalTrainingFocus.mjs'
+import {buildGoalProfile,buildGoalSupplement,buildDailyTrainingAlternatives} from './goalTrainingFocus.mjs'
 import {latestWorkoutFeedback,evaluateWorkoutFeedback} from './postWorkoutFeedback.mjs'
 import {analyzeWorkoutFeedbackTrend} from './feedbackTrend.mjs'
 import {summarizeLastCompletedWeek} from './completedWeekReview.mjs'
@@ -528,9 +528,11 @@ export function buildSevenDayCoach(input){
  flags.push('Trainingsmethode: polarisiert (ca. vier locker / eine hart; '+
   'mittlere Intensität möglichst wenig). '+polarized.message)
  const goalProfile=buildGoalProfile({today,goal:input.goal,route:input.goalRoute})
- const supplement=buildGoalSupplement({today,profile:goalProfile,days:polarized.days,boards:input.boards,equipment:input.life?.equipmentProfile,
-  protectedPhase:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||observationLimited||allowWeekAdjustment||adapted.impact.effect==='shortened'||fourWeekReview.qualityCaution||typeCaution||(recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<=0)||(raceOffset!==null&&raceOffset>=-14&&raceOffset<=10),qualityDay:polarized.qualityDay})
- return {today,days:polarized.days,signals,flags,goalProfile,supplement,
+ const supplementInput={today,profile:goalProfile,days:polarized.days,boards:input.boards,equipment:input.life?.equipmentProfile,
+  protectedPhase:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||observationLimited||allowWeekAdjustment||adapted.impact.effect==='shortened'||fourWeekReview.qualityCaution||typeCaution||(recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<=0)||(raceOffset!==null&&raceOffset>=-14&&raceOffset<=10),qualityDay:polarized.qualityDay}
+ const supplement=buildGoalSupplement(supplementInput)
+ const alternatives=buildDailyTrainingAlternatives(supplementInput)
+ return {today,days:polarized.days,signals,flags,goalProfile,supplement,alternatives,
   trainingMethod:{id:'polarized',qualityDay:polarized.qualityDay,
    status:polarized.status,plannedEasy:polarized.easyCount,
    message:polarized.message},

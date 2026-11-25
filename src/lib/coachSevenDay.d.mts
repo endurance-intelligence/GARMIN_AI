@@ -9,6 +9,7 @@ export type SevenDayPlan={
  attention:boolean;attentionText:string;basedOnActual:boolean;source:string;raceDate:string|null;
  goalProfile?:import('./goalTrainingFocus.mjs').GoalProfile;
  supplement?:import('./goalTrainingFocus.mjs').GoalSupplement;
+ alternatives?:import('./goalTrainingFocus.mjs').GoalSupplementSuggestion[];
  returning?:boolean;ill?:boolean;postIllness?:boolean;concern?:boolean;acknowledgedRuns?:number;
  trainingGoalMode?:import('./trainingGoalMode.mjs').TrainingGoalMode;
  recoveryRaceDate?:string|null;checkedRecently?:boolean;reportedExhaustion?:number|null;latestWorkoutFeedback?:string|null;

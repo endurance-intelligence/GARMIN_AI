@@ -5,6 +5,7 @@ import {Icon} from '../components/Icon'
 import {WorkoutArchivePanel} from '../components/WorkoutArchivePanel'
 import {WeeklyTrainingOptions} from '../components/WeeklyTrainingOptions'
 import {SupplementSessionDetails} from '../components/SupplementSessionDetails'
+import {trainingAlternativeForDate} from '../lib/goalTrainingFocus.mjs'
 import {CalendarWeekBoard} from '../components/CalendarWeekBoard'
 import {CoachSevenDay} from '../components/CoachSevenDay'
 import type {Page} from '../navigation'
@@ -126,6 +127,8 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
  }):null,[coachSnapshot,today,planStart,coachLoading,coachError])
  const raceInWeek=coachPlan?.days.find(d=>d.kind==='race')||null
  const coachDay=coachPlan?.days.find(d=>d.date===selected)||null
+ const alternative=trainingAlternativeForDate(coachPlan,selected)
+ const daySupplement=alternative||(coachPlan?.supplement?.suggestion?.date===selected&&coachPlan.supplement.suggestion.mode==='existing-slot'?coachPlan.supplement.suggestion:null)
  const coachPreview=coachDay&&(coachDay.selectedGroup||(!['existing','completed','chosen','option'].includes(coachDay.kind)&&
   !plans.some(p=>p.training_date===selected&&p.state!=='cancelled')))?coachDay:null
  const days=Array.from({length:7},(_,i)=>moveDay(start,i))
@@ -630,7 +633,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
      <h4>{coachPreview.selectedGroup?.title||coachPreview.title}</h4>
      {coachPreview.selectedGroup&&<small>{[coachPreview.selectedGroup.startTime?coachPreview.selectedGroup.startTime+' Uhr':'',coachPreview.selectedGroup.location].filter(Boolean).join(' · ')}</small>}
      <p>{coachPreview.reason}</p>
-     {coachPlan?.supplement?.suggestion?.date===selected&&<div className="cdb-supplement"><strong>{coachPlan.supplement.suggestion.title} · {coachPlan.supplement.suggestion.minutes} Min.</strong><p>{coachPlan.supplement.suggestion.reason}</p><SupplementSessionDetails suggestion={coachPlan.supplement.suggestion}/><small>{coachPlan.supplement.suggestion.intensity} · Nur Orientierung; keine zweite Einheit.</small></div>}
+     {daySupplement&&<div className="cdb-supplement"><small>{alternative?'ODER · AEROBE ALTERNATIVE':'ZIELGERICHTETER SCHWERPUNKT'}</small><strong>{daySupplement.title} · {daySupplement.minutes} Min.</strong><p>{daySupplement.reason}</p><SupplementSessionDetails suggestion={daySupplement}/><small>{daySupplement.intensity} · {alternative?'Über „Vorschlag prüfen“ eine Variante auswählen.':'Keine zweite Einheit.'}</small></div>}
      {coachPreview.selectedGroup?<small>Deine Teilnahme änderst du über „Gruppentermine planen“. Kein zusätzliches Workout wird angelegt.</small>:<small>Du kannst sie hier im Kalender annehmen, ablehnen oder ändern.</small>}
      {selected>=today&&selected<=moveDay(today,6)&&
       <button type="button" className="hc-coach-accept" onClick={()=>onOpenCoach(selected)}>

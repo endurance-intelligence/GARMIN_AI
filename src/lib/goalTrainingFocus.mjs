@@ -98,14 +98,14 @@ export function crossTrainingEvidence({today,boards}={}){
  const recentHard=seven.some(r=>r.date>=add(today,-1)&&(r.kind==='football'||(r.rpe!==null&&r.rpe>=8)))
  return {complete,strengthDays:count('strength'),rowingDays:count('rowing'),cyclingDays:count('cycling'),footballDays:count('football'),minutes:complete?Math.round(seven.reduce((s,r)=>s+r.minutes,0)):null,recentHard,rows}
 }
-export function buildGoalSupplement({today,profile,days,boards,protectedPhase,qualityDay,equipment}={}){
+export function buildGoalSupplement({today,profile,days,boards,protectedPhase,qualityDay,equipment,candidateDate}={}){
  const evidence=crossTrainingEvidence({today,boards})
  const none=(reason)=>({suggestion:null,evidence,reason})
  if(!validDate(today)||!profile||!Array.isArray(days)||profile.kind==='unknown')return none('Konkretes Ziel oder Trainingsniveau fehlt.')
  if(protectedPhase||profile.daysUntil!==null&&profile.daysUntil<=10||evidence.recentHard)return none('Erholung und bestehende Belastung haben Vorrang.')
  if(!evidence.complete)return none('Ergänzende Aktivitäten der letzten sieben Tage nicht vollständig geladen.')
  if(!normalizeEquipmentProfile(equipment))return none('Ausrüstungsprofil noch nicht bestätigt. Unter Einstellungen verfügbare Trainingsmöglichkeiten auswählen.')
- const open=d=>d.date>=today&&d.date<=add(today,6)&&d.approvable&&!d.decision&&!d.selectedGroup&&finite(d.minutes)&&d.minutes>=15
+ const open=d=>(!candidateDate||d.date===candidateDate)&&d.date>=today&&d.date<=add(today,6)&&d.approvable&&!d.decision&&!d.selectedGroup&&finite(d.minutes)&&d.minutes>=15
  // Do not introduce new strength immediately before a possible hard day, or a confirmed/scheduled group.
  const nextDemanding=d=>days.some(x=>x.date===add(d.date,1)&&(x.date===qualityDay||x.kind==='race'||x.kind==='existing'||!!x.selectedGroup||x.intensityIntent==='hard-option'||x.kind==='long'))
  const slot=days.find(d=>open(d)&&d.kind==='mobility'&&!nextDemanding(d))
@@ -128,4 +128,19 @@ export function buildGoalSupplement({today,profile,days,boards,protectedPhase,qu
  }
  if(treadmill)return {evidence,reason:'Bestätigtes Laufband und mindestens drei beobachtete Lauftage.',suggestion:{date:easy.date,...treadmill,mode:'alternative'}}
  return none('Keine passende zusätzliche Option ohne Konflikt mit dem bestehenden Plan. Kein Training erzwingen.')
+}
+
+/** At most one eligible aerobic alternative per open easy day. An existing
+ * strength focus remains independent; the alternatives are not additive workouts. */
+export function buildDailyTrainingAlternatives(input){
+ if(!Array.isArray(input?.days))return []
+ return input.days.filter(d=>d.kind==='easy'&&d.approvable&&!d.decision&&!d.selectedGroup).flatMap(day=>{
+  const result=buildGoalSupplement({...input,candidateDate:day.date})
+  return result.suggestion?.mode==='alternative'?[result.suggestion]:[]
+ })
+}
+export function trainingAlternativeForDate(plan,date){
+ const day=plan?.days?.find(d=>d.date===date)
+ if(!day||day.kind!=='easy'||!day.approvable||day.decision||day.selectedGroup)return null
+ return plan.alternatives?.find(s=>s.date===date&&s.mode==='alternative')||null
 }

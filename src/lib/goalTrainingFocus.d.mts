@@ -6,4 +6,7 @@ export function exactGoalRoute(goal:unknown,records:unknown):GoalRouteEvidence|n
 export function buildGoalProfile(input:{today:string;goal?:unknown;route?:GoalRouteEvidence|null}):GoalProfile
 export function goalPhaseFocus(profile:GoalProfile,phase:string,options?:{deload?:boolean;hasBase?:boolean}):{title:string;focus:string;complement:string}
 export function crossTrainingEvidence(input:{today:string;boards?:unknown}):GoalSupplement['evidence']
-export function buildGoalSupplement(input:{today:string;profile:GoalProfile;days:unknown[];boards?:unknown;protectedPhase?:boolean;qualityDay?:string|null;equipment?:unknown}):GoalSupplement
+export function buildGoalSupplement(input:{today:string;profile:GoalProfile;days:unknown[];boards?:unknown;protectedPhase?:boolean;qualityDay?:string|null;equipment?:unknown;candidateDate?:string}):GoalSupplement
+
+export function buildDailyTrainingAlternatives(input:Parameters<typeof buildGoalSupplement>[0]):GoalSupplementSuggestion[]
+export function trainingAlternativeForDate(plan:import('./coachSevenDay.mjs').SevenDayPlan|null|undefined,date:string):GoalSupplementSuggestion|null
