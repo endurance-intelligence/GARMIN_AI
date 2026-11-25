@@ -7,6 +7,8 @@ import '../styles/coach-goal.css'
 import {CoachRaceWeatherMini} from './CoachRaceWeatherMini'
 import {Icon} from './Icon'
 import {GoalLogoEditor} from './GoalLogoEditor'
+import {routeSummaryLabels} from '../lib/goalRouteSummary'
+import type {GoalRouteSummary} from '../lib/goalRouteSummary'
 
 async function goalRequest(body?:Record<string,unknown>):Promise<{goal:CoachGoal|null;saved?:boolean}>{
  if(!garminSupabase)throw Error('Bitte zuerst anmelden.')
@@ -29,7 +31,7 @@ const asDraft=(x:Omit<CoachGoal,'updated_at'>):Draft=>({
  raceLocation:x.race_location,raceStartTime:(x.race_start_time||'').slice(0,5),
  coachNote:x.coach_note
 })
-export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onForecastOpen}:{active:boolean;compact?:boolean;onEdit?:()=>void;onSaved?:()=>void;logoUrl?:string|null;onForecastOpen?:()=>void}){
+export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onForecastOpen,routeSummary}:{active:boolean;compact?:boolean;onEdit?:()=>void;onSaved?:()=>void;logoUrl?:string|null;onForecastOpen?:()=>void;routeSummary?:GoalRouteSummary|null}){
  const [goal,setGoal]=useState<CoachGoal|null>(null)
  const [draft,setDraft]=useState<Draft>(()=>({raceName:'',raceDate:'',distanceKm:'',targetHours:'',raceLocation:'',raceStartTime:'',coachNote:''}))
  const [editOpen,setEditOpen]=useState(false)
@@ -121,6 +123,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
  const chooseNew=()=>{const el=document.getElementById('race-goal-portfolio');el?.scrollIntoView({behavior:'smooth',block:'start'});window.dispatchEvent(new Event('garmin-ai-add-race-goal'))}
  const distanceText=Number(current.distance_km).toLocaleString('de-DE',{maximumFractionDigits:1})
  const days=Math.max(0,phase.daysUntil)
+ const routeFacts=routeSummaryLabels(routeSummary?.raceName===goal?.race_name&&routeSummary?.raceDate===goal?.race_date?routeSummary:null)
  const eventLogo=goal?.goal_logo!=null?goal.goal_logo:(logoUrl&&/^https:\/\//i.test(logoUrl)?logoUrl:savedLogo)
  const goalBadge=<span className="cg-goal-emblem" aria-label={'Rennlogo '+current.race_name}>
   {eventLogo?<img src={eventLogo} alt={'Logo '+current.race_name}
@@ -161,21 +164,27 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
  return <section className={'cg-root'+(compact?' cg-compact':'')} aria-label="Trainingsziel und Vorbereitungsphase">
   <div className="cg-head">
    <span className="cg-kicker">MEIN HAUPTZIEL</span>
-   <span className={'cg-state'+(goal?' is-active':'')}>{goalIsPast?'VERGANGENER WETTKAMPF':goal?'AKTIVES ZIEL':'NEUES ZIEL · NOCH NICHT GESPEICHERT'}</span>
+   <div className="cg-hero-actions"><span className={'cg-state'+(goal?' is-active':'')}>{goalIsPast?'VERGANGENES ZIEL':goal?'AKTIVES ZIEL':'NEUES ZIEL · NOCH NICHT GESPEICHERT'}</span>
+   {goal&&<button type="button" className="cg-home-edit cg-hero-edit" disabled={saving||logoPreparing} onClick={()=>{setEditOpen(x=>!x);setDraft(asDraft(goal));setLogoDraft(undefined)}}><Icon name={editOpen?'x':'pencil'}/>{editOpen?'Abbrechen':'Bearbeiten'}</button>}</div>
   </div>
-  {goal&&<div className="cg-summary">
-   <div><div className="cg-title-row">{goalBadge}<h2>{current.race_name}</h2></div>
-    <p>{current.race_date.split('-').reverse().join('.')} · {current.race_location||'Ort nicht festgelegt'}</p>
-    <div className="cg-tags"><span>{distanceText} km</span>
-     {current.target_hours&&<span>Ziel {Number(current.target_hours).toLocaleString('de-DE')} h</span>}
-     <span>{phase.title}</span></div>
+  {goal&&<div className="cg-summary cg-goals-hero">
+   <div className="cg-hero-identity">{goalBadge}<div className="cg-hero-content">
+    <h2>{current.race_name}</h2>
+    <div className="cg-hero-meta"><span><Icon name="calendar-days"/>{current.race_date.split('-').reverse().join('.')}{current.race_start_time?' · '+current.race_start_time.slice(0,5)+' Uhr':''}</span>
+     <span>{current.race_location||'Ort nicht festgelegt'}</span>{routeFacts.kind&&<span className="cg-hero-kind">{routeFacts.kind}</span>}</div>
+    <div className="cg-hero-metrics">
+     <div><small>DISTANZ</small><strong>{distanceText} <em>km</em></strong></div>
+     {current.target_hours!==null&&<div><small>ZIELZEIT</small><strong>{Number(current.target_hours).toLocaleString('de-DE')} <em>h</em></strong></div>}
+     {routeFacts.ascent&&<div><small>ANSTIEG</small><strong>{routeFacts.ascent}</strong></div>}
+     {routeFacts.course&&<div><small>STRECKE</small><strong>{routeFacts.course}</strong></div>}
+    </div>
+    <div className="cg-hero-context"><span>{phase.title}</span>{routeFacts.start&&<span>Start: {routeFacts.start}</span>}</div>
     {goalIsPast&&<p className="cg-guidance">{phase.guidance}</p>}
-   </div>
+   </div></div>
    <div className="cg-countdown"><strong>{phase.daysUntil>0?days:phase.daysUntil===0?'GO':'–'}</strong>
-    <small>{phase.daysUntil>0?'TAGE BIS START':phase.daysUntil===0?'HEUTE':'ZIELÜBERBLICK'}</small></div>
+    <small>{phase.daysUntil>0?'TAGE BIS START':phase.daysUntil===0?'HEUTE':'ZIEL VORBEI'}</small></div>
   </div>}
-  <p className="cg-disclaimer">{goalIsPast?'Das Rennen liegt zurück. Es bleibt für die Rennnachbereitung erhalten, ist aber kein aktives Trainingsziel.':goal?'Die Phase wird aus deinem Wettkampfdatum abgeleitet – ohne medizinische Trainingsfreigabe.':
-   'Noch kein Wettkampfziel gespeichert. Lege ein neues Ziel an.'}</p>
+  {(!goal||goalIsPast||editOpen)&&<p className="cg-disclaimer">{goalIsPast?'Das Ziel liegt zurück und bleibt für die Nachbereitung erhalten.':goal?'Die Phase wird aus dem Zieldatum abgeleitet, nicht als Trainingsfreigabe.':'Noch kein Ziel gespeichert. Lege ein neues Ziel an.'}</p>}
   {goalIsPast&&<div className="cg-actions cg-mode-actions">
    <strong>{maintaining?'Trainingsniveau halten · '+trainingMode.weeklyKm+' km/Woche':'Wie möchtest du weitertrainieren?'}</strong>
    <button type="button" onClick={chooseNew}>Neues Ziel verfolgen</button>
@@ -184,7 +193,6 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
     <button type="button" disabled={saving||!maintainKm} onClick={()=>void saveMaintenance()}>Trainingsniveau speichern</button>
     <small>Richtwert, kein Kilometerzwang. Regeneration und aktuelle Belastbarkeit haben Vorrang.</small></div>}
   </div>}
-  {goal&&<button type="button" className="cg-home-edit" disabled={saving||logoPreparing} onClick={()=>{setEditOpen(x=>!x);setDraft(asDraft(goal));setLogoDraft(undefined)}}>{editOpen?'Bearbeitung schließen':'Ziel bearbeiten'}</button>}
   {compact?<>
     <button type="button" className="cg-link" onClick={onEdit} disabled={!onEdit}>
      Ziel & Trainingsphase bearbeiten

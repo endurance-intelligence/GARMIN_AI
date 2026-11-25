@@ -26,7 +26,7 @@ test('recovery helper ignores future and invalid dates and expires after 14 days
 test('goal screen prioritizes current action and avoids stale plan while refreshing',()=>{
  const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
  const p=read('src/pages/GoalsPage.tsx')
- const order=['<CoachGoalPanel','<ChallengeSetup','<CoachLongTermPlan','<RaceGoalsPanel','<RaceEventResearch']
+ const order=['<CoachGoalPanel','<RaceGoalsPanel','<CoachLongTermPlan','<ChallengeSetup','<RaceEventResearch']
  for(let i=1;i<order.length;i++)assert.ok(p.indexOf(order[i])>p.indexOf(order[i-1]),order[i])
  assert.match(p,/snapshot&&!loading&&!error&&<CoachLongTermPlan/)
  assert.doesNotMatch(p,/<GoalProgressCard|<PolarizedMethodCard/)

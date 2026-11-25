@@ -5,6 +5,7 @@ import {komootEmbedFromTour} from '../lib/komootEmbed.mjs'
 import {VenueAutocomplete} from './VenueAutocomplete'
 import type {VenueSuggestion} from './VenueAutocomplete'
 import {Icon} from './Icon'
+import type {GoalRouteSummary} from '../lib/goalRouteSummary'
 
 type Goal={raceDate:string;raceName:string;raceLocation:string;raceStartTime?:string|null}
 type Details={eventKind?:string;routeUrl?:string|null;courseType?:string|null;venue?:string|null;venueAddress?:string|null;city?:string|null;finishVenue?:string|null;finishCity?:string|null;finishAddress?:string|null;startLatitude?:number|null;startLongitude?:number|null;ascentM?:number|null;routeNotes?:string|null}
@@ -23,7 +24,7 @@ async function request(body?:object){
  if(!res.ok)throw Error(result.error||'Zieldetails nicht verfügbar.')
  return result
 }
-export function ChallengeSetup({active,revision,onSaved,onEventScout}:{active:boolean;revision:number;onSaved:()=>void;onEventScout:()=>void}){
+export function ChallengeSetup({active,revision,onSaved,onEventScout,onRouteSummary}:{active:boolean;revision:number;onSaved:()=>void;onEventScout:()=>void;onRouteSummary?:(value:GoalRouteSummary|null)=>void}){
  const [goal,setGoal]=useState<Goal|null>(null),[saved,setSaved]=useState<Details|null>(null)
  const [draft,setDraft]=useState<Draft>(blank()),[editing,setEditing]=useState(false)
  const [imported,setImported]=useState<ImportedTour|null>(null),[importing,setImporting]=useState(false),[importMessage,setImportMessage]=useState(''),[importRetry,setImportRetry]=useState(0)
@@ -68,6 +69,10 @@ export function ChallengeSetup({active,revision,onSaved,onEventScout}:{active:bo
    ...(imported.start?{lat:String(imported.start.latitude),lon:String(imported.start.longitude),start:'GPS-Startpunkt der Komoot-Tour',venue:''}:{})}))
   setImportMessage('Höhenmeter und GPS-Startpunkt aus Komoot übernommen. Bitte prüfen und speichern.')
  }
+ useEffect(()=>{
+  if(!active||loading||!goal||!saved){onRouteSummary?.(null);return}
+  onRouteSummary?.({...saved,raceName:goal.raceName,raceDate:goal.raceDate})
+ },[active,loading,goal,saved,onRouteSummary])
  const suggest=useCallback(async(query:string,city:string):Promise<VenueSuggestion[]>=>{
   const data=await request({action:'suggest_venues',raceDate:goal?.raceDate,query,city})
   return Array.isArray(data.suggestions)?data.suggestions:[]
@@ -112,14 +117,10 @@ export function ChallengeSetup({active,revision,onSaved,onEventScout}:{active:bo
  const route=komootEmbedFromTour(editing?draft.route:saved?.routeUrl||'')
  const isChallenge=saved?.eventKind==='challenge'
  return <section className="challenge-setup" aria-label="Zieldetails und Strecke">
-  <header><div><span className="challenge-kicker">DEIN VORHABEN</span><h2>Strecke &amp; Start</h2></div><div className="challenge-header-actions">{isChallenge&&<span className="challenge-mode">Eigene Challenge</span>}{goal&&!loading&&<button className="challenge-edit-control" type="button" disabled={busy} onClick={()=>{setDraft(saved?asDraft(saved,goal.raceLocation):blank(goal.raceLocation));setEditing(x=>!x)}}><Icon name={editing?'x':'pencil'}/>{editing?'Abbrechen':isChallenge?'Bearbeiten':'Einrichten'}</button>}</div></header>
+  <header><div><span className="challenge-kicker">ROUTE</span><h2>Karte &amp; Höhenprofil</h2></div><div className="challenge-header-actions">{goal&&!loading&&<button className="challenge-edit-control" type="button" disabled={busy} onClick={()=>{setDraft(saved?asDraft(saved,goal.raceLocation):blank(goal.raceLocation));setEditing(x=>!x)}}><Icon name={editing?'x':'pencil'}/>{editing?'Abbrechen':isChallenge?'Bearbeiten':'Einrichten'}</button>}</div></header>
   {loading?<p role="status">Zieldetails werden geladen …</p>:goal&&<>
    {!isChallenge&&!editing&&<div className="challenge-actions"><button className="challenge-scout-link" type="button" disabled={busy} onClick={onEventScout}>Offizielles Event recherchieren <Icon name="arrow-up-right"/></button></div>}
-   {!editing&&<div className="challenge-facts">
-    <div><small>STRECKENTYP</small><strong>{courses.find(x=>x[0]===saved?.courseType)?.[1]||'Noch offen'}</strong></div>
-    <div><small>STARTORT</small><strong>{saved?.venueAddress||saved?.venue||'Noch offen'}</strong></div>
-    <div><small>HÖHENMETER</small><strong>{saved?.ascentM!=null?saved.ascentM.toLocaleString('de-DE')+' hm':'Noch offen'}</strong></div>
-   </div>}
+   {!editing&&!route&&<p className="challenge-empty">Noch keine Tour verknüpft. Komoot-Link oder Streckendaten über Bearbeiten ergänzen.</p>}
    {editing&&<div className="challenge-form">
     <div className="challenge-wide challenge-route-input"><label>Komoot-Tour<input type="url" value={draft.route} placeholder="Komoot-Teilungslink einfügen" onChange={e=>update('route',e.target.value)}/></label>
      {komootEmbedFromTour(draft.route)&&<div className="challenge-import-status">
@@ -141,7 +142,7 @@ export function ChallengeSetup({active,revision,onSaved,onEventScout}:{active:bo
     <label className="challenge-wide">Streckenhinweise<textarea rows={2} maxLength={240} value={draft.notes} onChange={e=>update('notes',e.target.value)}/></label>
     <button type="button" className="challenge-save" disabled={busy||importing} onClick={()=>void save()}>{busy?'Speichere …':'Challenge speichern'}</button>
    </div>}
-   {route&&<div className="challenge-map"><iframe title="Komoot-Strecke und Höhenprofil" src={route.url} loading="lazy" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/><small>Komoot-Karte und Höhenprofil. Tourwerte werden separat geprüft. Für eine eigene geometrische Streckenanalyse bleibt GPX verfügbar.</small></div>}
+   {route&&<div className="challenge-map"><div className="challenge-map-toolbar"><span>Interaktive Komoot-Tour</span><a href={editing?draft.route:saved?.routeUrl||route.canonicalUrl} target="_blank" rel="noreferrer">In Komoot öffnen <Icon name="arrow-up-right"/></a></div><iframe title="Komoot-Strecke und Höhenprofil" src={route.url} loading="lazy" referrerPolicy="no-referrer" allowFullScreen/></div>}
   </>}
   {error&&<p role="alert" className="challenge-error">{error}</p>}{notice&&<p role="status">{notice}</p>}
  </section>
