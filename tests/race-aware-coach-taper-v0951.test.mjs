@@ -104,7 +104,7 @@ test('calendar uses same target week throughout planning, optional club slots an
  const snap=file('src/lib/coachSnapshot.ts')
  const api=file('supabase/functions/garmin-training-plan/index.ts')
  assert.match(calendar,/const planStart=week>0\?start:today/)
- assert.match(calendar,/const horizonDay=moveDay\(planStart,6\)/)
+ assert.match(calendar,/today,startDate:planStart/)
  assert.match(calendar,/today,startDate:planStart/)
  assert.match(calendar,/loadCoachSnapshot\(session,today,controller\.signal,start,4\)/)
  assert.match(calendar,/raceInWeek=coachPlan\?\.days\.find\(d=>d\.kind==='race'\)/)
@@ -142,7 +142,7 @@ test('accepted race-week rest and travel decisions preserve their original calen
  assert.match(board,/<strong>\{coach.title\}<\/strong>/)
  assert.doesNotMatch(file('src/lib/coachSevenDay.mjs'),/Deine Entscheidung · übernommen/)
 })
-test('declining a proposed run does not generate a calendar blocker or display a rejected workout',()=>{
+test('declining a proposed run preserves a reversible decision, not a scheduled workout',()=>{
  const data=fixture()
  data.life.context.day_decisions=[{date:'2026-11-17',choice:'declined'}]
  const result=buildSevenDayCoach(data)
@@ -152,8 +152,10 @@ test('declining a proposed run does not generate a calendar blocker or display a
  assert.equal(day.decision,'declined')
  assert.equal(day.approvable,false)
  const board=file('src/components/CalendarWeekBoard.tsx')
- assert.match(board,/candidate\.decision==='declined'/)
- assert.match(board,/\['easy','long','mobility','return_easy'\]/)
+ assert.match(board,/coach.decision==='declined'\?'Von dir abgelehnt'/)
+ assert.match(board,/quickDecision\?\.\(day\)/)
+ assert.match(board,/!local.length&&!acts.length&&!manual.length/)
+ assert.match(board,/aria-pressed=\{\(coach.decision\|\|'open'\)===item.choice\}/)
  const decision=file('src/components/CoachDecisionLive.tsx')
  assert.match(decision,/day\.decision==='accepted'|day\.decision==='declined'/)
  assert.match(decision,/Umentscheiden/)
