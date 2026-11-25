@@ -98,3 +98,16 @@
 .hwb-day-header{min-height:54px;flex-direction:row;align-items:flex-start}
 .hwb-days{min-height:255px}
 .hwb-day-cards{min-height:160px}
+
+/* v1.3.4: compact weekly totals above the scrollable week. */
+.hwb-layout{grid-template-columns:minmax(0,1fr)}
+.hwb-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;padding:12px;gap:5px 12px}
+.hwb-summary>.hwb-eyebrow{grid-column:1/-1}
+.hwb-summary>strong{grid-column:1;font-size:clamp(20px,3vw,28px)}
+.hwb-summary>p{grid-column:1;grid-row:3;margin:0}
+.hwb-summary-metrics{grid-column:2/-1;grid-row:2/4;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;border:0}
+.hwb-summary-metrics>div{flex-direction:column;padding:0;border:0;white-space:normal}
+.hwb-summary>small{grid-column:1/-1;margin-top:3px}
+.hwb-days{grid-template-columns:repeat(7,minmax(112px,1fr));min-width:784px;min-height:220px}
+.hwb-day-header{min-height:44px}.hwb-day-cards{min-height:130px}
+@media(max-width:740px){.hwb-summary{gap:5px 8px}.hwb-summary-metrics{gap:7px}.hwb-days{grid-template-columns:repeat(7,150px);min-width:1050px}}

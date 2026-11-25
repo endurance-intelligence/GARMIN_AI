@@ -7,6 +7,7 @@ import '../styles/calendar-week-board.css'
 import {completedWeeklyOption} from '../lib/weeklyOptionCompletion'
 import {FixedTrainingWeather} from './FixedTrainingWeather'
 import type {CoachDay} from '../lib/coachSevenDay.mjs'
+import {normalizeGarminRpe} from '../lib/garminPerception.mjs'
 
 type Activity={activity_id:string;activity_name:string|null;start_time_local:string;
  sport_type:string;distance_m:number|null;duration_s:number|null;
@@ -19,7 +20,7 @@ type Opportunity={code:string;weekday:number;start_time:string;title:string;loca
 type Choice={option_code:string;training_date:string;choice:string}
 export type BoardPlan={id:string;training_date:string;title:string;state:string;session_type:string}
 type Props={active:boolean;start:string;selected:string;today:string;
- onSelect:(day:string)=>void;plans:BoardPlan[];coachDays?:CoachDay[]}
+ onSelect:(day:string)=>void;plans:BoardPlan[];coachDays?:CoachDay[];refreshKey?:number}
 const plusDay=(date:string,n:number)=>
  new Date(Date.parse(date+'T12:00:00Z')+n*86400000).toISOString().slice(0,10)
 function weekNumber(date:string){
@@ -32,7 +33,7 @@ function weekNumber(date:string){
 const fmt=(n:number,decimals=0)=>n.toLocaleString('de-DE',{
  minimumFractionDigits:decimals,maximumFractionDigits:decimals})
 const minutes=(s:number|null)=>typeof s==='number'&&Number.isFinite(s)&&s>0?Math.round(s/60):0
-const sportKind=(s:string)=>/run|jog|trail|treadmill|walking/.test(s.toLowerCase())?'run':
+const sportKind=(s:string)=>/run|jog|trail|treadmill/.test(s.toLowerCase())?'run':
  /soccer|football/.test(s.toLowerCase())?'football':
  /strength|mobility|yoga|pilates/.test(s.toLowerCase())?'strength':
  /rowing/.test(s.toLowerCase())?'rowing':'other'
@@ -45,7 +46,7 @@ async function read(endpoint:string){
  if(!response.ok)throw Error('Kalenderdaten derzeit nicht erreichbar ('+response.status+')')
  return await response.json() as Record<string,unknown>
 }
-export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,coachDays=[]}:Props){
+export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,coachDays=[],refreshKey=0}:Props){
  const [data,setData]=useState<WeekResponse|null>(null)
  const [options,setOptions]=useState<Opportunity[]>([])
  const [choices,setChoices]=useState<Choice[]>([])
@@ -54,7 +55,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
  useEffect(()=>{
   if(!active)return
   let mounted=true
-  setLoading(true);setError('')
+  setLoading(true);setError('');setData(null);setOptions([]);setChoices([])
   void Promise.allSettled([
    read('garmin-week-board?start='+encodeURIComponent(start)),
    read('garmin-weekly-options')
@@ -69,22 +70,24 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
    }
   }).finally(()=>{if(mounted)setLoading(false)})
   return ()=>{mounted=false}
- },[active,start])
+ },[active,start,refreshKey])
+ // Never show another week's activity totals during loading.
+ const visibleData=data?.start===start?data:null
  const days=useMemo(()=>Array.from({length:7},(_,i)=>plusDay(start,i)),[start])
  const stats=useMemo(()=>{
-  const activeRows=(data?.activities||[]).filter(a=>minutes(a.duration_s)>0)
+  const activeRows=(visibleData?.activities||[]).filter(a=>minutes(a.duration_s)>0)
   const duration=activeRows.reduce((a,b)=>a+minutes(b.duration_s),0)
-   +(data?.manual||[]).reduce((a,b)=>a+(b.duration_minutes||0),0)
+   +(visibleData?.manual||[]).reduce((a,b)=>a+(b.duration_minutes||0),0)
   const runningDistance=activeRows.filter(a=>sportKind(a.sport_type)==='run')
    .reduce((a,b)=>a+(Number(b.distance_m)||0),0)/1000
-  return {duration,runningDistance,count:activeRows.length+(data?.manual||[]).length}
- },[data])
+  return {duration,runningDistance,count:activeRows.length+(visibleData?.manual||[]).length}
+ },[visibleData])
  const shortDay=(day:string)=>new Intl.DateTimeFormat('de-DE',{weekday:'short',timeZone:'UTC'}).format(new Date(day+'T12:00:00Z'))
  const dayLabel=(day:string)=>day.slice(8,10)+'.'+day.slice(5,7)+'.'
  const calendarDays=days.map((day,index)=>{
-  const acts=(data?.activities||[]).filter(x=>x.start_time_local?.slice(0,10)===day)
+  const acts=(visibleData?.activities||[]).filter(x=>x.start_time_local?.slice(0,10)===day)
     .filter(x=>sportKind(x.sport_type)!=='rowing')
-  const manual=(data?.manual||[]).filter(x=>x.session_date===day&&x.kind!=='rowing')
+  const manual=(visibleData?.manual||[]).filter(x=>x.session_date===day&&x.kind!=='rowing')
   const local=plans.filter(p=>p.training_date===day&&p.state!=='cancelled')
   const candidate=coachDays.find(x=>x.date===day)
   // The recorded race takes precedence over the regular Saturday club slot.
@@ -106,12 +109,12 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
   <div className="hwb-layout">
    <aside className="hwb-summary" aria-label="Wochenbilanz">
     <span className="hwb-eyebrow">KW {weekNumber(start)} / BILANZ</span>
-    <strong>{loading?'Lade …':fmt(Math.floor(stats.duration/60))+'h '+String(stats.duration%60).padStart(2,'0')+'m'}</strong>
+    <strong>{loading?'Lade …':!visibleData?'–':fmt(Math.floor(stats.duration/60))+'h '+String(stats.duration%60).padStart(2,'0')+'m'}</strong>
     <p>Trainingszeit · tatsächliche Einheiten</p>
     <div className="hwb-summary-metrics">
-     <div><span>Laufen</span><b>{fmt(stats.runningDistance,1)} km</b></div>
-     <div><span>Einheiten</span><b>{stats.count}</b></div>
-     <div><span>Datenlage</span><b>{data?'Garmin':'Nicht verfügbar'}</b></div>
+     <div><span>Laufen</span><b>{visibleData?fmt(stats.runningDistance,1)+' km':'–'}</b></div>
+     <div><span>Einheiten</span><b>{visibleData?stats.count:'–'}</b></div>
+     <div><span>Datenlage</span><b>{visibleData?'Garmin':loading?'Lädt …':'Nicht verfügbar'}</b></div>
     </div>
     <small>Erfasste Aktivitäten inkl. Ergänzungstraining. Keine künstlichen Belastungs-/Fitness-Scores.</small>
    </aside>
@@ -138,7 +141,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
            <span>{[time?time+' Min.':'',km].filter(Boolean).join(' · ')}</span>
            {typeof activity.average_heart_rate==='number'&&
             <small>Ø HF {Math.round(activity.average_heart_rate)} bpm</small>}
-           {typeof activity.rpe_raw==='number'&&<small>RPE {activity.rpe_raw}/10</small>}
+           {normalizeGarminRpe(activity.rpe_raw)!==null&&<small>RPE {normalizeGarminRpe(activity.rpe_raw)}/10</small>}
           </button>
         })}
         {manual.map(m=><button type="button" className="hwb-card is-manual"
@@ -179,7 +182,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
          </button>
         })}
         {!acts.length&&!manual.length&&!local.length&&!slot.length&&!coach&&
-         <span className="hwb-empty">Noch nichts eingetragen</span>}
+         <span className="hwb-empty">{loading?"Lade …":!visibleData?"Daten fehlen":"Noch nichts eingetragen"}</span>}
        </div>
       </section>
      )}
