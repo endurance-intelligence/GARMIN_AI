@@ -5,6 +5,8 @@ import {Icon} from '../components/Icon'
 import {WorkoutArchivePanel} from '../components/WorkoutArchivePanel'
 import {WeeklyTrainingOptions} from '../components/WeeklyTrainingOptions'
 import {CalendarWeekBoard} from '../components/CalendarWeekBoard'
+import {CoachSevenDay} from '../components/CoachSevenDay'
+import type {Page} from '../navigation'
 import {CoachEvidenceSummary} from '../components/CoachEvidenceSummary'
 import {loadCoachSnapshot} from '../lib/coachSnapshot'
 import type {CoachSnapshot} from '../lib/coachSnapshot'
@@ -72,8 +74,8 @@ async function ownerGet<T>(session:Session,endpoint:string):Promise<T>{
  return await res.json() as T
 }
 
-export function CalendarPage({active,focus,onOpenCoach}:{
- active:boolean;focus:{date:string;token:number}|null;onOpenCoach:(date?:string)=>void
+export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
+ active:boolean;focus:{date:string;token:number}|null;onOpenCoach:(date?:string)=>void;decisionFocus?:{date:string;token:number}|null;onGo:(page:Page)=>void
 }){
  const today=useMemo(todayBerlin,[])
  const [selected,setSelected]=useState(today)
@@ -100,6 +102,10 @@ export function CalendarPage({active,focus,onOpenCoach}:{
  const [weekResult,setWeekResult]=useState('')
  const [showDayEvidence,setShowDayEvidence]=useState(false)
  const [showWeekOptions,setShowWeekOptions]=useState(false)
+ const [decisionOpen,setDecisionOpen]=useState(false)
+ const decisionDialog=useRef<HTMLDialogElement>(null)
+ const lastDecisionToken=useRef<number|null>(null)
+ useEffect(()=>{if(!active){decisionDialog.current?.close();setDecisionOpen(false);return}if(decisionFocus&&lastDecisionToken.current!==decisionFocus.token){lastDecisionToken.current=decisionFocus.token;setDecisionOpen(true);if(decisionDialog.current&&!decisionDialog.current.open)decisionDialog.current.showModal()}},[active,decisionFocus])
  const [showWorkoutArchive,setShowWorkoutArchive]=useState(false)
  const coachRequestIds=useRef<Record<string,string>>({})
  const lastFocusToken=useRef<number|null>(null)
@@ -158,7 +164,8 @@ export function CalendarPage({active,focus,onOpenCoach}:{
   if(!active)return
   const changed=()=>setRefresh(n=>n+1)
   window.addEventListener('garmin-ai-weekly-choice-changed',changed)
-  return ()=>window.removeEventListener('garmin-ai-weekly-choice-changed',changed)
+  window.addEventListener('garmin-ai-coach-changed',changed)
+  return ()=>{window.removeEventListener('garmin-ai-weekly-choice-changed',changed);window.removeEventListener('garmin-ai-coach-changed',changed)}
  },[active])
  useEffect(()=>{
   if(!active||!focus||lastFocusToken.current===focus.token)return
@@ -552,6 +559,7 @@ export function CalendarPage({active,focus,onOpenCoach}:{
   </div>
   <div className="hc-overview">
    <div><small>WOCHE</small><strong>{monthTitle(start)}</strong><span>{countInWeek} gespeicherte Trainings · {suggestionsInWeek} Coach-Vorschläge</span></div>
+   <button type="button" className="hc-refresh" onClick={()=>{setShowWeekOptions(true);const el=document.getElementById('calendar-group-week');if(el instanceof HTMLDetailsElement){el.open=true;el.scrollIntoView({behavior:'smooth',block:'start'})}}}><Icon name="calendar-days"/> Gruppentermine planen</button>
    <button type="button" className="hc-refresh" onClick={()=>setRefresh(v=>v+1)} disabled={busy}>
     <Icon name="refresh-cw"/>{busy?'Prüfe …':'Aktualisieren'}
    </button>
@@ -618,10 +626,10 @@ export function CalendarPage({active,focus,onOpenCoach}:{
      <h4>{coachPreview.selectedGroup?.title||coachPreview.title}</h4>
      {coachPreview.selectedGroup&&<small>{[coachPreview.selectedGroup.startTime?coachPreview.selectedGroup.startTime+' Uhr':'',coachPreview.selectedGroup.location].filter(Boolean).join(' · ')}</small>}
      <p>{coachPreview.reason}</p>
-     {coachPreview.selectedGroup?<small>Deine Teilnahme änderst du bei den Gruppenterminen. Kein zusätzliches Workout wird angelegt.</small>:<small>Du kannst sie im Coach annehmen, ablehnen oder ändern.</small>}
+     {coachPreview.selectedGroup?<small>Deine Teilnahme änderst du bei den Gruppenterminen. Kein zusätzliches Workout wird angelegt.</small>:<small>Du kannst sie hier im Kalender annehmen, ablehnen oder ändern.</small>}
      {selected>=today&&selected<=moveDay(today,6)&&
       <button type="button" className="hc-coach-accept" onClick={()=>onOpenCoach(selected)}>
-       <Icon name="arrow-up-right"/> {coachPreview.selectedGroup?'Coach-Hinweise ansehen':'Im Coach entscheiden'}
+       <Icon name="arrow-up-right"/> {coachPreview.selectedGroup?'Coach-Hinweise ansehen':'Vorschlag prüfen'}
       </button>}
      {coachPreview.minutes!==null&&!coachPreview.selectedGroup&&<span className="hc-coach-minutes">
       {coachPreview.minutes} Minuten · {coachPreview.kind==='mobility'?'Stabi/Mobility':
@@ -830,10 +838,10 @@ export function CalendarPage({active,focus,onOpenCoach}:{
      {showDayEvidence&&<CoachEvidenceSummary active={active&&showDayEvidence}
       mode="calendar" weekStart={start} selectedDate={selected}/>}
     </details>
-   <details className="hc-day-extra" onToggle={event=>setShowWeekOptions(event.currentTarget.open)}>
-    <summary><Icon name="calendar-days"/> Freiwillige Gruppentermine <small>Bei Bedarf</small></summary>
+   <details className="hc-day-extra" id="calendar-group-week" onToggle={event=>setShowWeekOptions(event.currentTarget.open)}>
+    <summary><Icon name="calendar-days"/> Gruppentermine dieser Woche <small>Teilnahme planen oder absagen</small></summary>
     {showWeekOptions&&<WeeklyTrainingOptions active={active&&showWeekOptions}
-     weekStart={start} selectedDate={selected} compact/>}
+     weekStart={start} compact/>}
    </details>
    <details className="hc-day-extra" onToggle={event=>setShowWorkoutArchive(event.currentTarget.open)}>
     <summary><Icon name="folder-open"/> Workout-Bibliothek &amp; ORC-Import <small>Bei Bedarf</small></summary>
@@ -841,6 +849,11 @@ export function CalendarPage({active,focus,onOpenCoach}:{
      onPlanned={()=>setRefresh(n=>n+1)}/>}
    </details>
   </div>
+  <dialog className="coach-day-dialog" ref={decisionDialog} aria-label="Coach-Tagesentscheidung" onClose={()=>setDecisionOpen(false)}>
+   <header><strong>Coach-Entscheidung</strong><button type="button" onClick={()=>decisionDialog.current?.close()} aria-label="Schließen"><Icon name="x"/></button></header>
+   {decisionOpen&&(coachLoading||!coachSnapshot)&&<p role="status">{coachError||'Coach-Daten werden aktualisiert …'}</p>}
+   <CoachSevenDay key={decisionFocus?.token||0} active={active&&decisionOpen&&!coachLoading&&!!coachSnapshot} focus={decisionFocus} onCalendar={date=>{decisionDialog.current?.close();if(date){setSelected(date);setCoachReview(null)}}} sharedSnapshot={coachSnapshot} onRacePrep={()=>{decisionDialog.current?.close();onGo('race')}} singleDay/>
+  </dialog>
   <details className="hc-day-extra hc-source-details"><summary>Datenquellen &amp; Hinweise</summary>
   <div className="hc-source-grid">
    <article><div className="hc-source-icon"><Icon name="check"/></div>
@@ -854,7 +867,7 @@ export function CalendarPage({active,focus,onOpenCoach}:{
      <span>Übertragung und Löschen nur nach deiner Freigabe</span>
     </div></article>
   </div>
-  <p className="hc-footnote">Coach-Vorschläge entscheidest du im Coach – ohne automatische Speicherung.
+  <p className="hc-footnote">Coach-Vorschläge entscheidest du im Kalender – ohne automatische Speicherung.
     Im Kalender kontrollierst du Entwürfe, gibst Workouts frei und sendest sie bei Bedarf an Intervals.icu.
     Garmin-Aktivitäten bleiben unverändert. Garmin-Kalendervorlagen werden ausgeblendet.</p>
  </details>

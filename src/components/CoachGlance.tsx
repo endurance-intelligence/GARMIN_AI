@@ -33,8 +33,8 @@ function shortDay(iso:string){
  const [y,m,d]=iso.split('-')
  return d+'.'+m+'.'+y
 }
-export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactToday=false}:{
- active:boolean;onCalendar:()=>void;children:ReactNode;sharedSnapshot?:CoachSnapshot|null;compactToday?:boolean
+export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactToday=false,recoveryOnly=false}:{
+ active:boolean;onCalendar:()=>void;children:ReactNode;sharedSnapshot?:CoachSnapshot|null;compactToday?:boolean;recoveryOnly?:boolean
 }){
  const [view,setView]=useState<Overview|null>(null)
  const [loading,setLoading]=useState(false)
@@ -137,7 +137,7 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
  const weekTrend=health?recoveryWeekTrend(view?.healthHistory||[],health.metric_date):null
  const [sleep,hrv,rhr]=comparison?.metrics||[]
  return <div className="co-at-a-glance">
-  <details className="co-today co-today-details" open={compactToday?undefined:true} aria-label="Training heute">
+  {!recoveryOnly&&<details className="co-today co-today-details" open={compactToday?undefined:true} aria-label="Training heute">
    <summary><span><Icon name="calendar-days"/> Tageskalender &amp; Wetter</span><Icon name="chevron-down"/></summary>
    <div className="co-section-head">
     <div><span className="co-eyebrow">HEUTE · TRAINING</span>
@@ -153,7 +153,7 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
     <button type="button" className="co-link" onClick={onCalendar}>Kalender öffnen <Icon name="arrow-up-right"/></button>
    </div>
    {!loading&&view?.availabilityOk&&!view.blocked&&!view.skipped&&!view.completedCount&&children}
-  </details>
+  </details>}
   <section className="co-recovery-glance" aria-label="Garmin Erholung mit grafischen Trends">
     <div className="co-recovery-heading">
       <div>

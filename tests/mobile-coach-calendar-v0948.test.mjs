@@ -29,7 +29,7 @@ test('Seven-day Coach hints are VISIBLE in calendar but not silently scheduled',
  assert.match(board,/!\['existing','completed','chosen','option'\]\.includes\(candidate\.kind\)/)
  assert.match(calendar,/Coach-Empfehlung für diesen Kalendertag/)
  assert.match(calendar,/Noch nicht gespeichert · freiwillig/)
- assert.match(calendar,/Im Coach entscheiden/)
+ assert.match(calendar,/Vorschlag prüfen/)
  assert.match(calendar,/!coachPreview&&!coachLoading&&<div className="hc-empty"/)
 })
 test('single calendar day allows one explicit draft, then manual approval, then explicit Intervals publish',()=>{
@@ -53,7 +53,7 @@ test('mobile cards and direct navigation focus the exact day for continuation',(
  assert.match(coach,/Im Kalender weiter/)
  assert.match(app,/setCalendarFocus\(prev=>\(\{date,token:/)
  assert.match(app,/focus=\{calendarFocus\}/)
- assert.match(coachPage,/onCalendar=\{onOpenCalendar\}/)
+ assert.match(coachPage,/openCoachDecision=\(\)=>onOpenDecision\(coachToday\)/)
  assert.match(calendar,/lastFocusToken\.current===focus\.token/)
  assert.match(calendar,/setWeek\(targetWeek\);setSelected\(focus\.date\)/)
  assert.match(style,/\.hc-coach-proposal\{/)

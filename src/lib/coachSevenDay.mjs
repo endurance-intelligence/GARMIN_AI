@@ -389,6 +389,11 @@ export function buildSevenDayCoach(input){
      'Datenlage eingeschränkt: nur ruhiger, gut kontrollierbarer Lauf; Sprechtest statt starrem Pace-Ziel.'):
     make(day,'recovery','Erholung / Mobility',null,'Keine hohe Intensität ohne belastbare Verlaufssignale.')
   }
+  if(choice==='skipped'&&option?.sport==='running'&&!feedbackCaution&&!trendReducing&&!trendShortening&&
+   !fourWeekReview.qualityCaution&&(untilRace===null||untilRace>10)){
+   return make(day,'easy','Optionaler Ersatzlauf · 30 Min. locker',30,
+    option.title+' wurde abgesagt oder ausgelassen. Wenn du an diesem Tag tatsächlich Zeit hast, sind 30 Minuten locker eine mögliche Alternative. Keine verlorenen Kilometer nachholen, kein Ersatzintervall und kein zusätzlicher Termin ohne deine Freigabe.')
+  }
   if(weekday(day)===7&&valid(nowKm)&&nowKm>=25)
    return make(day,'long','Langer lockerer Lauf · 60–75 Min.',65,
     'Ausdauerreiz bei stabilem Verlauf; nur wenn du dich gut fühlst, keine Nachholung versäumter Kilometer.')

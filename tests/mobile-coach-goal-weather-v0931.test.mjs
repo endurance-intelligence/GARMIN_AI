@@ -23,7 +23,7 @@ test('previously known Fulda 112km, 15h is an UNSAVED proposal until confirmed',
  assert.match(goal,/NOCH NICHT GESPEICHERT/)
  assert.match(goal,/confirm:true/)
  assert.match(goals,/<CoachGoalPanel key=\{'primary-'\+revision\} active=\{active\}/)
- assert.match(coach,/<CoachGoalPanel active=\{active\} compact/)
+ assert.doesNotMatch(coach,/<CoachGoalPanel/)
 })
 test('phase is transparent and exact, including recovery and after-race state',()=>{
  const cases=[
@@ -63,13 +63,13 @@ test('forecast follows actual start time at ORC location and weather is in both 
  assert.match(board,/latitude=\{option\.location_lat\} longitude=\{option\.location_lon\}/)
  assert.match(options,/selectedDate\?:string/)
  assert.match(options,/selectedDate\|\|row\.date===selectedDate/)
- assert.match(calendar,/selectedDate=\{selected\} compact\/>/)
+ assert.match(calendar,/weekStart=\{start\} compact\/>/)
  assert.doesNotMatch(calendar,/<WeatherPanel/)
 })
 test('Coach shows fixed 19:00 and 09:00 weather instead of a free best slot when booked',()=>{
- assert.match(today,/garmin-weekly-options/)
- assert.match(today,/slot\.start_time/)
- assert.match(today,/<FixedTrainingWeather active=\{active\}/)
+ assert.match(today,/snapshot\.options\.options/)
+ assert.match(today,/group\?\.startTime/)
+ assert.match(today,/getWeather\(\{name:fixed\.location_label,latitude:fixed\.location_lat,longitude:fixed\.location_lon\}/)
  assert.match(coach,/<CoachTodayWeather active=\{active\}/)
  assert.doesNotMatch(coach,/<WeatherPanel/)
  assert.doesNotMatch(glance,/get\('garmin-connect-snapshot'/)

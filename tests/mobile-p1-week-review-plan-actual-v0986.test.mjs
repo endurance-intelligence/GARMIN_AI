@@ -158,5 +158,5 @@ test('summary stays compact and athlete can inspect Plan-Ist and choose calendar
  assert.match(code,/assessPlanActual\(a,normalizedRuns,approved\)/)
  assert.doesNotMatch(code,/fetch\(|\\.from\(|\\.upsert\(|\\.insert\(/)
  assert.match(styles,/\.wpa-stats/)
- assert.match(read('src/pages/CoachPage.tsx'),/Weitere Garmin-Analyse &amp; Gruppentermine/)
+ assert.match(read('src/components/TrainingDevelopment.tsx'),/<WeeklyPlanActualCard/)
 })

@@ -5,11 +5,21 @@ import {loadCoachSnapshot} from '../lib/coachSnapshot'
 import type {CoachSnapshot} from '../lib/coachSnapshot'
 import {CoachProgressPulse} from './CoachProgressPulse'
 import {GoalProgressCard} from './GoalProgressCard'
+import {CoachSessionBridge} from './CoachSessionBridge'
+import {CrossTrainingCoachCard} from './CrossTrainingCoachCard'
+import {CoachEvidenceSummary} from './CoachEvidenceSummary'
+import {GarminFeedbackCard} from './GarminFeedbackCard'
+import {CoachNextImpactCard} from './CoachNextImpactCard'
+import {CoachAdaptiveVolumeCard} from './CoachAdaptiveVolumeCard'
+import {CoachFourWeekCard} from './CoachFourWeekCard'
+import {CoachMemoryCard} from './CoachMemoryCard'
+import {WeeklyPlanActualCard} from './WeeklyPlanActualCard'
+import {buildSevenDayCoach,coachAddDays,coachMonday} from '../lib/coachSevenDay.mjs'
 import {CoachLongTermCard} from './CoachLongTermCard'
 
 /** Deliberately on demand: opening a particular Garmin run never loads older weeks. */
-export function TrainingDevelopment({active,focusToken,onGoals,onRacePrep}:{
- active:boolean;focusToken?:number;onGoals:()=>void;onRacePrep:()=>void
+export function TrainingDevelopment({active,focusToken,onGoals,onRacePrep,onOpenSession,onOpenCalendar,onStrength}:{
+ active:boolean;focusToken?:number;onGoals:()=>void;onRacePrep:()=>void;onOpenSession:(id:string)=>void;onOpenCalendar:()=>void;onStrength:()=>void
 }){
  const [open,setOpen]=useState(false)
  const [snapshot,setSnapshot]=useState<CoachSnapshot|null>(null)
@@ -17,6 +27,7 @@ export function TrainingDevelopment({active,focusToken,onGoals,onRacePrep}:{
  const [loading,setLoading]=useState(false)
  const [refresh,setRefresh]=useState(0)
  const today=berlinDateToday()
+ const plan=snapshot?buildSevenDayCoach({today,health:snapshot.health,boards:snapshot.boards,options:snapshot.options,plans:snapshot.plans,goal:snapshot.goal,life:snapshot.life,racePortfolio:snapshot.racePortfolio}):null
  useEffect(()=>{setOpen(false)},[focusToken])
  useEffect(()=>{
   if(!active||!open||!garminSupabase){setSnapshot(null);return}
@@ -44,6 +55,16 @@ export function TrainingDevelopment({active,focusToken,onGoals,onRacePrep}:{
     <CoachProgressPulse today={today} snapshot={snapshot}
      onOpenLongTerm={()=>window.dispatchEvent(new Event('garmin-ai-open-long-term-progress'))} onGoals={onGoals}/>
     <CoachLongTermCard today={today} snapshot={snapshot} active={active&&open}/>
+    <CoachSessionBridge snapshot={snapshot} today={today} onOpenSession={onOpenSession}/>
+    <details><summary>Trainingshistorie &amp; Coach-Gedächtnis</summary>
+     <GarminFeedbackCard snapshot={snapshot} today={today}/>
+     <CoachNextImpactCard impact={plan?.nextImpact}/>
+     {plan?.adaptiveVolume&&<CoachAdaptiveVolumeCard review={plan.adaptiveVolume}/>}
+     <CoachFourWeekCard today={today} snapshot={snapshot}/><CoachMemoryCard today={today} snapshot={snapshot}/>
+     {plan?.completedWeek&&<WeeklyPlanActualCard review={plan.completedWeek} onCalendar={onOpenCalendar}/>}
+     <CoachEvidenceSummary active={active&&open} mode="weekly" weekStart={coachAddDays(coachMonday(today),-7)}/>
+     <CrossTrainingCoachCard active={active&&open} onOpen={onStrength}/>
+    </details>
    </>}
   </div>}
  </details>
