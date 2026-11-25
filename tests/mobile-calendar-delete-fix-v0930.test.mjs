@@ -10,10 +10,12 @@ const remote=src('supabase/functions/garmin-intervals/index.ts')
 const feed=src('supabase/functions/garmin-training-plan/index.ts')
 const styles=src('src/styles/horizon-calendar.css')
 
-test('expired ORC/football options disappear, real past Garmin activities stay',()=>{
+test('expired ORC/football options disappear from board, past participation remains read-only in dialog',()=>{
  assert.match(board,/x\.weekday===index\+1&&day>=today&&/)
  assert.match(board,/\{acts\.map\(activity=>/)
- assert.match(options,/rows\.filter\(row=>row\.date>=today&&/)
+ assert.match(options,/rows\.filter\(row=>!selectedDate\|\|row\.date===selectedDate\)/)
+ assert.match(options,/!old&&!completed&&!loading/)
+ assert.match(options,/date<today\)return/)
  assert.match(board,/completedWeeklyOption\(x,day,acts\)/)
 })
 test('failed remote delete never strands user in the GARMIN_AI calendar',()=>{
