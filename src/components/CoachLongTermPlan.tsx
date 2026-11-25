@@ -10,7 +10,7 @@ export function CoachLongTermPlan({today,snapshot}:{
  today:string;snapshot:CoachSnapshot
 }){
  const plan=buildLongTermCoachPlan({
-  today,goal:snapshot.goal,health:snapshot.health,life:snapshot.life
+  today,goal:snapshot.goal,health:snapshot.health,life:snapshot.life,racePortfolio:snapshot.racePortfolio
  })
  const first=plan.weeks[0]
  return <details className="cltp-root" aria-label="Dein langfristiger Trainingsfahrplan">

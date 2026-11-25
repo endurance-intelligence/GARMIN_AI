@@ -5,6 +5,7 @@
  * intensity-zone percentages, no fitness/race-completion prediction.
  */
 import {coachMonday,coachAddDays} from './coachSevenDay.mjs'
+import {recentGoalRecovery} from './recentGoalRecovery.mjs'
 
 const isDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&
  Number.isFinite(Date.parse(s+'T12:00:00Z'))&&
@@ -18,7 +19,7 @@ const fmt=(n)=>Number(n).toLocaleString('de-DE',{maximumFractionDigits:1})
 const label=(start)=>start.slice(8,10)+'.'+start.slice(5,7)+'.'
 const unavailable='Aus diesen Garmin-Daten noch nicht belegbar.'
 
-export function analyzeGoalProgress({today,goal,boards,health}={}){
+export function analyzeGoalProgress({today,goal,boards,health,racePortfolio}={}){
  if(!isDate(today))throw Error('Ungültiges Fortschrittsdatum')
  const target=goal?.goal||null
  const raceName=typeof target?.race_name==='string'?target.race_name.trim():''
@@ -118,7 +119,8 @@ export function analyzeGoalProgress({today,goal,boards,health}={}){
  const daysToRace=raceDate?daySpan(today,raceDate):null
  const raceSoon=daysToRace!==null&&daysToRace>=0&&daysToRace<=10
  const afterRace=daysToRace!==null&&daysToRace<0
- const next=afterRace?
+ const recentRecovery=recentGoalRecovery({today,racePortfolio})
+ const next=recentRecovery&&!afterRace?recentRecovery.message:afterRace?
   'Das Rennen liegt zurück. Erholung und deinen persönlichen Renn-Check zuerst prüfen.':
   raceSoon?
    'Rennwoche: frisch bleiben, keine fehlenden langen Läufe oder Kilometer nachholen.':

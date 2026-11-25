@@ -22,7 +22,6 @@ async function call(action?:Record<string,unknown>){
  return data
 }
 export function RaceGoalsPanel({active,onPrimaryChange}:{active:boolean;onPrimaryChange:()=>void}){
- const [main,setMain]=useState<Race|null>(null)
  const [others,setOthers]=useState<Race[]>([])
  const [draft,setDraft]=useState<Race>(fresh)
  const [editing,setEditing]=useState(false)
@@ -42,14 +41,12 @@ export function RaceGoalsPanel({active,onPrimaryChange}:{active:boolean;onPrimar
  },[active])
  async function refresh(){
   const data=await call()
-  setMain(data.primary as Race|null)
   setOthers(Array.isArray(data.others)?data.others as Race[]:[])
  }
  useEffect(()=>{
   if(!active)return
   let live=true
-  void call().then(data=>{if(live){setMain(data.primary as Race|null)
-   setOthers(Array.isArray(data.others)?data.others as Race[]:[])}})
+  void call().then(data=>{if(live){setOthers(Array.isArray(data.others)?data.others as Race[]:[])}})
    .catch(e=>{if(live)setError(e instanceof Error?e.message:'Ziele nicht abrufbar')})
   return ()=>{live=false}
  },[active])
@@ -69,15 +66,14 @@ export function RaceGoalsPanel({active,onPrimaryChange}:{active:boolean;onPrimar
  if(!active)return null
  return <section className="rgp-root" id="race-goal-portfolio" aria-label="Weitere Wettkampfziele">
   <div className="rgp-head"><div><small>RACE PREP / ZIELPORTFOLIO</small>
-   <h2>Ein Hauptziel. Weitere Rennen.</h2>
-   <p>Der Coach richtet die Trainingsphasen nach deinem Hauptziel aus. Andere Rennen sind Testläufe oder zusätzliche Ziele.</p></div>
+   <h2>Weitere Ziele</h2>
+   <p>Weitere Rennen und vergangene Wettkämpfe verwalten.</p></div>
    <button type="button" disabled={busy||logoPreparing} onClick={()=>{setEditing(x=>!x);setEditId(null);setLogoDraft(undefined);setDraft({...fresh});setConfirm(null)}}>{editing?'Schließen':'+ Weiteres Ziel'}</button>
   </div>
-  {main&&<div className="rgp-main"><span>{main.race_date<today?'LETZTER WETTKAMPF · KEIN AKTIVES RENNEN':'HAUPTZIEL · STEUERT DEN COACH'}</span>
-   <strong>{main.race_name}</strong><small>{main.race_date.split('-').reverse().join('.')} · {main.distance_km} km</small>
-  </div>}
-  {others.length>0&&<div className="rgp-items">
-   {others.map(x=><div className="rgp-item" key={x.id}>
+  <p className="rgp-focus-count">{others.filter(x=>x.race_date>=today).length} kommende · {others.filter(x=>x.race_date<today).length} vergangene</p>
+  {others.length>0&&<details className="rgp-focus-list">
+   <summary>Weitere Ziele und vergangene Rennen anzeigen</summary><div className="rgp-items">
+   {[...others].sort((a,b)=>Number(a.race_date<today)-Number(b.race_date<today)||(a.race_date<today?b.race_date.localeCompare(a.race_date):a.race_date.localeCompare(b.race_date))).map(x=><div className="rgp-item" key={x.id}>
     <div className="rgp-goal-heading">{x.goal_logo&&<img className="rgp-goal-logo" src={x.goal_logo} alt=""/>}<div><strong>{x.race_name}</strong><span>{x.race_date<today?'Vergangen · ':''}{x.race_date.split('-').reverse().join('.')} · {x.distance_km} km · {x.race_location||'Ort offen'}</span></div></div>
     <div className="rgp-actions">
      {confirm===x.id+'-promote'?<>
@@ -93,7 +89,7 @@ export function RaceGoalsPanel({active,onPrimaryChange}:{active:boolean;onPrimar
      </>}
     </div>
    </div>)}
-  </div>}
+  </div></details>}
   {editing&&<div className="rgp-form">
    <strong>{editId?'Ziel bearbeiten':'Neues Wettkampfziel'}</strong>
    <GoalLogoEditor value={logoDraft===undefined?draft.goal_logo:logoDraft} onChange={setLogoDraft} disabled={busy} onPreparing={setLogoPreparing}/>

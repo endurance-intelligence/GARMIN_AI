@@ -24,3 +24,10 @@
 .goals-event-scout>.rer-root{margin:0 12px 12px;min-width:0}
 @media(max-width:600px){.goals-event-scout>summary{padding:13px}
  .goals-event-scout>.rer-root{margin:0 7px 7px}}
+
+/* Goal first, next action before evidence, management and method on demand. */
+.goals-method>.pm-root{margin:0 12px 12px}
+.rgp-focus-count{font-size:12px;color:#b9c8e3;margin:8px 0}
+.rgp-focus-list>summary{cursor:pointer;color:#dbe6fc;font-size:13px;padding:10px 0;min-height:40px}
+.rgp-focus-list>summary:focus-visible{outline:2px solid #b4dbff;outline-offset:2px}
+.goals-page .gpg-next{margin:12px 0 16px}

@@ -55,7 +55,7 @@ export function answerCoachQuestion({topic,today,snapshot,plan}={}){
   ],'Bestehender Vierwochenvergleich · Garmin','progress')
  }
  if(topic==='goal'){
-  const goal=analyzeGoalProgress({today,goal:snapshot.goal,boards:snapshot.boards,health:snapshot.health})
+  const goal=analyzeGoalProgress({today,goal:snapshot.goal,boards:snapshot.boards,health:snapshot.health,racePortfolio:snapshot.racePortfolio})
   if(!goal.raceName)return answer('Noch kein aktives Wettkampfziel.',[
    'Lege ein Ziel in Goals an, damit der Coach deine Vorbereitung einordnen kann.'
   ],'Goals','goals')
@@ -67,7 +67,7 @@ export function answerCoachQuestion({topic,today,snapshot,plan}={}){
   ],'Bestehende Goal-Progress-Analyse','goals')
  }
  if(topic==='week')return answer('Deine nächsten sieben Tage.',[
-  ...plan.days.filter(d=>d.date>=today).map(d=>d.date+' · '+d.title+(d.decision?' · '+(d.decision==='accepted'?'angenommen':'abgelehnt'):'')+' – '+d.reason),
+  ...plan.days.filter(d=>d.date>=today).map(d=>d.date+' · '+(d.selectedGroup?d.selectedGroup.title+' · Teilnahme bestätigt':d.title)+(d.decision?' · '+(d.decision==='accepted'?'angenommen':'abgelehnt'):'')+' – '+d.reason),
   'Vorschläge sind keine automatische Kalenderfreigabe.'
  ],'Gemeinsame Coach- und Kalenderplanung','decision')
  if(topic==='memory'){

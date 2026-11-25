@@ -16,5 +16,5 @@ export type GoalProgress={
  pillars:GoalProgressPillar[];next:string;raceSoon:boolean;afterRace:boolean;note:string
 }
 export function analyzeGoalProgress(input:{
- today:string;goal?:any;boards?:any[];health?:any
+ today:string;goal?:any;boards?:any[];health?:any;racePortfolio?:{others?:any[]}
 }):GoalProgress
