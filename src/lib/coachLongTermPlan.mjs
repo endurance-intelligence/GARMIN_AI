@@ -2,6 +2,7 @@ import {coachAddDays,coachMonday} from './coachSevenDay.mjs'
 import {analyzeWorkoutFeedbackTrend} from './feedbackTrend.mjs'
 import {POLARIZED_METHOD} from './polarizedTraining.mjs'
 import {getTrainingGoalMode} from './trainingGoalMode.mjs'
+import {recentGoalRecovery} from './recentGoalRecovery.mjs'
 
 const DAY=86400000
 const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&
@@ -34,7 +35,7 @@ const brief={
  paused:'Gesundheit und Verfügbarkeit haben Vorrang.'
 }
 const startOfWeek=day=>coachMonday(day)
-export function buildLongTermCoachPlan({today,goal,health,life}){
+export function buildLongTermCoachPlan({today,goal,health,life,racePortfolio}){
  if(!validDate(today))throw Error('Ungültiges Coach-Datum')
  const target=goal?.goal||null
  const trainingMode=getTrainingGoalMode(target,today)
@@ -44,7 +45,9 @@ export function buildLongTermCoachPlan({today,goal,health,life}){
  const ultra=number(distance,42,500)
  const kind=ultra?'Ultra':number(distance,15,41.99)?'Langer Lauf':'Lauf'
  const training=health?.training||null
- const baseKm=number(training?.runKm7,5,180)&&
+ const recentRecovery=recentGoalRecovery({today,racePortfolio})
+ // Two rolling weeks can include the race itself, not a sustainable training base.
+ const baseKm=!recentRecovery&&number(training?.runKm7,5,180)&&
   !training?.truncated&&training.historyStatus==='complete'?
    Math.round((training.runKm7+
     (number(training.previousRunKm7,5,180)?training.previousRunKm7:training.runKm7))/2):null
@@ -53,6 +56,7 @@ export function buildLongTermCoachPlan({today,goal,health,life}){
  const returning=life?.context?.illness_state==='returning'
  const blocks=Array.isArray(life?.context?.blocked_periods)?life.context.blocked_periods:[]
  const notes=[]
+ if(recentRecovery)notes.push(recentRecovery.message+' Wochenumfang neu berechnen, sobald die Rennbelastung nicht mehr in den letzten zwei Laufwochen steckt.')
  if(baseKm===null)notes.push('Für konkrete Wochenumfänge brauchen wir eine vollständige Garmin-Trainingshistorie.')
  if(sick)notes.push('Krank-/Beschwerdenmodus: bis zur Genesung kein Trainingsaufbau.')
  if(returning)notes.push('Wiedereinstieg: Belastung nur vorsichtig und nach deinem Feedback steigern.')
@@ -95,6 +99,8 @@ export function buildLongTermCoachPlan({today,goal,health,life}){
   if(fromRace>14)break
   let phase=raceWeek?'race':end<raceDate?phaseForDays(between(end,raceDate)):'recovery'
   if(raceWeek)phase='race'
+  const protectedRecovery=!!recentRecovery&&!raceWeek&&start<=recentRecovery.until&&end>=today
+  if(protectedRecovery)phase='recovery'
   let focus=brief[phase]||brief.base
   let key=phase==='specific'?'Versorgung und Tempo für '+(name||'dein Rennen')+' testen':
    phase==='build'?'Konstanz und ruhigen Umfang aufbauen':
@@ -103,6 +109,7 @@ export function buildLongTermCoachPlan({today,goal,health,life}){
    phase==='race'?'Start frisch, nicht erschöpft':
    phase==='taper'?'Entlasten statt Kilometer sammeln':
    'Erholen und Körpergefühl überprüfen'
+  if(protectedRecovery){focus=recentRecovery.message;key='Regeneration vor neuem Aufbau'}
   if(ultra&&phase==='specific')
    focus='Zeit auf den Beinen, Lauf-/Gehstrategie und Verpflegung kontrolliert testen.'
   if(ultra&&phase==='peak')focus='Keine neuen Extremumfänge. Bestehende lange Einheiten gut erholen.'

@@ -14,7 +14,7 @@ export function GoalProgressCard({today,snapshot,onRacePrep}:{
  today:string;snapshot:CoachSnapshot;onRacePrep:()=>void
 }){
  const progress=analyzeGoalProgress({
-  today,goal:snapshot.goal,boards:snapshot.boards,health:snapshot.health
+  today,goal:snapshot.goal,boards:snapshot.boards,health:snapshot.health,racePortfolio:snapshot.racePortfolio
  })
  const full=progress.status==='ready'
  const finiteKm=progress.weeks.filter(w=>w.km!==null).map(w=>w.km as number)
@@ -33,6 +33,10 @@ export function GoalProgressCard({today,snapshot,onRacePrep}:{
    </span>
   </div>
   {progress.status!=='missing-goal'&&<>
+   <div className="gpg-next">
+    <span><Icon name="compass"/> NÄCHSTER SINNVOLLER SCHRITT</span>
+    <p>{progress.next}</p>
+   </div>
    <div className="gpg-metrics">
     <div><span>Laufumfang</span><strong>{progress.totalKm===null?'—':number(progress.totalKm)+' km'}</strong>
      <small>{progress.totalKm===null?'Noch nicht vollständig':'Vier volle Wochen'}</small></div>
@@ -53,10 +57,6 @@ export function GoalProgressCard({today,snapshot,onRacePrep}:{
      <strong>{w.km===null?'Keine Angabe':number(w.km)+' km'}</strong>
     </div>)}
     <p>Balken zeigen nur die tatsächlich erfassten Wochenkilometer – keinen Fitnesswert.</p>
-   </div>
-   <div className="gpg-next">
-    <span><Icon name="compass"/> NÄCHSTER SINNVOLLER SCHRITT</span>
-    <p>{progress.next}</p>
    </div>
    <details className="gpg-details">
     <summary>Was ist bereits belegt – und was fehlt noch? <Icon name="chevron-down"/></summary>
