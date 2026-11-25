@@ -8,7 +8,7 @@ test('Goals is a configuration workspace, not a duplicate analytics screen',()=>
  assert.doesNotMatch(p,/<GoalProgressCard|<PolarizedMethodCard/)
  assert.match(p,/<ChallengeSetup/)
  assert.match(read('src/components/TrainingDevelopment.tsx'),/<GoalProgressCard/)
- assert.match(read('src/components/CoachLongTermPlan.tsx'),/className="cltp-root" open/)
+ assert.match(read('src/components/CoachLongTermPlan.tsx'),/<section className="cltp-root"/)
 })
 test('personal challenge uses existing owner-scoped event record, not a fake official source or archive entry',()=>{
  const s=read('supabase/functions/garmin-race-research/index.ts')

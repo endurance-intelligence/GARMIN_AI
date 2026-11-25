@@ -1,57 +1,71 @@
-/* P1 long-term plan: one small entry, complete 12-week view only if opened. */
-.cltp-root{margin:12px 0;border:1px solid rgba(154,182,229,.23);border-radius:14px;
- background:linear-gradient(130deg,#1a2943,#131f33);color:#e5efff;overflow:hidden}
-.cltp-summary{list-style:none;display:flex;align-items:center;gap:12px;min-height:66px;padding:12px 15px;cursor:pointer}
-.cltp-summary::-webkit-details-marker{display:none}
-.cltp-summary:focus-visible{outline:2px solid #caec9b;outline-offset:-3px}
-.cltp-symbol{flex:0 0 37px;width:37px;height:37px;border-radius:11px;
- background:rgba(187,176,253,.13);color:#c7bcf6;display:grid;place-items:center}
-.cltp-symbol .ic{width:18px;height:18px}
-.cltp-summary-text{display:grid;gap:4px;flex:1;min-width:0}
-.cltp-summary-text>small{color:#aea4ee;font-weight:850;font-size:9px;letter-spacing:.1em}
-.cltp-summary-text>strong{font-size:14px;line-height:1.2;color:#f4f5ff}
-.cltp-summary-text>span{color:#b8c9df;font-size:11px;line-height:1.5}
-.cltp-counter{display:grid;text-align:right;gap:4px;white-space:nowrap;font-size:12px;font-weight:850}
-.cltp-counter small{font-size:9px;color:#9fb5d1;font-weight:600}
-.cltp-summary>.ic{flex:0 0 16px;width:16px;height:16px;color:#aabfdf}
-.cltp-root[open] .cltp-summary>.ic{transform:rotate(180deg)}
-.cltp-body{padding:2px 14px 14px;border-top:1px solid rgba(161,186,229,.16)}
-.cltp-intro,.cltp-basis{color:#bfd0e8;font-size:11px;line-height:1.6;margin:10px 0}
-.cltp-basis strong{color:#e7f4d2}
-.cltp-weeks{display:grid;gap:8px;margin:13px 0}
-.cltp-week{display:grid;grid-template-columns:120px minmax(0,1fr);gap:13px;
- background:#17263e;border:1px solid rgba(148,185,224,.19);border-left:3px solid #899ec9;
- border-radius:11px;padding:12px}
-.cltp-phase-build,.cltp-phase-specific{border-left-color:#b6a9ee}
-.cltp-phase-peak,.cltp-phase-taper{border-left-color:#e4bd8a}
-.cltp-phase-race{border-left-color:#c0ee8b}
-.cltp-phase-recovery,.cltp-phase-paused{border-left-color:#a2bec9}
-.cltp-week-when{display:grid;align-content:start;gap:5px}
-.cltp-week-when small{font-size:9px;font-weight:850;color:#bcb9ed;letter-spacing:.06em}
-.cltp-week-when strong{font-size:12px;color:#e1ebf9;font-variant-numeric:tabular-nums}
-.cltp-week-when span{font-size:10px;font-weight:750;color:#c2e79c}
-.cltp-week-content{display:grid;gap:6px;min-width:0}
-.cltp-week-title{display:flex;flex-wrap:wrap;gap:5px 11px;align-items:baseline}
-.cltp-week-title strong{font-size:13px;color:#f2f6fd}
-.cltp-week-title span{font-size:11px;color:#cdd7e9}
-.cltp-week-content p{font-size:11px;line-height:1.55;margin:0;color:#b5c9e2}
-.cltp-week-content .cltp-week-target{color:#cbe9c0;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-.cltp-week-target .ic{height:13px;width:13px}
-.cltp-no-target{font-size:10px;color:#b1c4dc;line-height:1.4}
-.cltp-notes{border-top:1px solid rgba(152,186,225,.18);padding-top:8px}
-.cltp-notes p{display:flex;align-items:flex-start;gap:8px;font-size:10px;
- line-height:1.5;color:#b4c7df;margin:8px 0}
-.cltp-notes .ic{flex:0 0 14px;width:14px;height:14px}
-.cltp-disclaimer{color:#91a6c6;font-size:10px;line-height:1.6;margin:12px 0 0}
-@media(max-width:610px){
- .cltp-summary{padding:11px;gap:9px}.cltp-counter{font-size:10px}
- .cltp-week{grid-template-columns:1fr;gap:8px;padding:10px}
- .cltp-week-when{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
- .cltp-week-title{display:grid;gap:3px}
+/* v1.4.2 – interactive roadmap; distinct from historical Garmin evidence. */
+.cltp-root{--road-accent:#a8e6c0;margin:17px 0;padding:clamp(18px,2.5vw,30px);border:1px solid #344354;border-radius:18px;background:#151f2e;color:#f2f6fc;min-width:0}
+.cltp-roadmap-head{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.cltp-kicker{display:block;font-size:10px;font-weight:800;letter-spacing:.12em;color:#a8e6c0}
+.cltp-roadmap-head h2{font-size:clamp(24px,3vw,34px);line-height:1.1;letter-spacing:-.035em;margin:7px 0}
+.cltp-roadmap-head p{margin:0;color:#a8b8cc;font-size:13px;line-height:1.5}
+.cltp-horizon{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.cltp-horizon strong{font-size:clamp(30px,4vw,48px);line-height:1;font-weight:850;letter-spacing:-.05em;color:#e2f0e9}
+.cltp-horizon span{font-size:10px;line-height:1.45;letter-spacing:.08em;color:#a8b8cc}
+.cltp-roadmap-caption{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:26px 0 9px;font-size:13px;font-weight:700}
+.cltp-roadmap-caption small{font-size:11px;font-weight:500;color:#a8b8cc}
+.cltp-roadmap{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;min-width:0}
+.cltp-step-base,.cltp-step-build{--road-accent:#91c8ee}
+.cltp-step-specific,.cltp-step-peak{--road-accent:#c6b7fa}
+.cltp-step-taper{--road-accent:#f0c78b}
+.cltp-step-race,.cltp-step.is-race{--road-accent:#d4f78b}
+.cltp-step-recovery{--road-accent:#a8e6c0}
+.cltp-step-paused{--road-accent:#e5aa9b}
+.cltp-roadmap button.cltp-step{display:grid;grid-template-rows:auto 1fr auto auto;align-items:start;gap:8px;min-height:125px;min-width:0;text-align:left;position:relative;border:1px solid #405165;border-top:3px solid var(--road-accent);border-radius:11px;background:#1a2838;color:#e8effa;padding:11px 12px;font:inherit;cursor:pointer;transition:background .15s,border-color .15s}
+.cltp-roadmap button.cltp-step:hover{background:#25394a}
+.cltp-roadmap button.cltp-step.is-selected{background:#263b40;border-color:var(--road-accent);box-shadow:inset 0 0 0 1px var(--road-accent)}
+.cltp-roadmap button.cltp-step.is-race{background:#28392d}
+.cltp-roadmap button:focus-visible,.cltp-bottom button:focus-visible,.cltp-back-current:focus-visible,.cltp-explanation summary:focus-visible{outline:2px solid #d4f78b;outline-offset:3px}
+.cltp-step-top{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--road-accent)}
+.cltp-step-top small{font-size:11px;font-weight:800;letter-spacing:.08em}
+.cltp-step-top .ic{width:18px;height:18px}
+.cltp-step>strong{font-size:15px;line-height:1.2;overflow-wrap:anywhere;letter-spacing:-.015em}
+.cltp-step-date{font-size:11px;color:#b9c8db;white-space:nowrap;font-variant-numeric:tabular-nums}
+.cltp-step-marker{font-size:9px;font-weight:850;letter-spacing:.09em;color:var(--road-accent);min-height:12px}
+.cltp-focus{margin-top:16px;padding:clamp(16px,2vw,23px);border:1px solid #405368;border-left:3px solid var(--road-accent);border-radius:13px;background:#101c2a;min-width:0}
+.cltp-focus-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.cltp-focus-top>div{min-width:0;flex:1 1 250px}
+.cltp-focus-meta{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--road-accent)}
+.cltp-focus-meta span{color:#9daec5;letter-spacing:0;font-weight:600}
+.cltp-focus h3{font-size:clamp(18px,2.3vw,25px);line-height:1.2;letter-spacing:-.025em;margin:8px 0 0;overflow-wrap:anywhere}
+.cltp-focus-status{display:inline-flex;align-items:center;gap:6px;color:var(--road-accent);font-size:12px;font-weight:700}
+.cltp-focus-status .ic{width:17px;height:17px}
+.cltp-focus-copy{font-size:14px;line-height:1.65;color:#c4d2e5;margin:12px 0 20px;max-width:78ch}
+.cltp-focus-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding-top:17px;border-top:1px solid #344354}
+.cltp-focus-metrics>div{display:grid;align-content:start;gap:7px;min-width:0}
+.cltp-focus-metrics small{font-size:10px;font-weight:700;letter-spacing:.07em;color:#a8b8cc}
+.cltp-focus-metrics strong{font-size:clamp(24px,3vw,36px);font-weight:850;line-height:1.1;letter-spacing:-.04em;color:#f0f5fd;overflow-wrap:anywhere}
+.cltp-focus-metrics em{font-style:normal;font-size:.55em;letter-spacing:0;color:#afc1d4}
+.cltp-focus-metrics span{font-size:11px;color:#b9c8db;line-height:1.5}
+.cltp-race-note{display:flex;align-items:center;gap:9px;color:#d4f78b;line-height:1.5;font-size:12px;margin:16px 0 0}
+.cltp-race-note .ic{width:17px;height:17px;flex:0 0 17px}
+.cltp-bottom{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0 0}
+.cltp-bottom>span{display:flex;gap:6px;align-items:center;font-size:11px;color:#a8b8cc}
+.cltp-bottom .ic{width:14px;height:14px}
+.cltp-root button.cltp-race-jump,.cltp-root button.cltp-back-current{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:7px 11px;border:1px solid #405368;border-radius:8px;background:transparent;color:#d7edc9;font:inherit;font-size:12px;cursor:pointer}
+.cltp-root button.cltp-back-current{margin-top:15px}
+.cltp-explanation{margin-top:14px;border-top:1px solid #344354}
+.cltp-explanation summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 0 0;cursor:pointer;list-style:none;color:#b9c8db;font-size:12px;font-weight:650}
+.cltp-explanation summary::-webkit-details-marker{display:none}
+.cltp-explanation summary .ic{width:15px;height:15px}
+.cltp-explanation[open] summary .ic{transform:rotate(180deg)}
+.cltp-explanation-body p,.cltp-empty{color:#b9c8db;font-size:13px;line-height:1.65}
+.cltp-notes p{display:flex;align-items:flex-start;gap:8px}
+.cltp-notes .ic{width:15px;height:15px;flex:0 0 15px;margin-top:3px}
+.cltp-explanation-body .cltp-disclaimer{font-size:11px;color:#a8b8cc}
+@media(max-width:680px){
+ .cltp-root{padding:16px}.cltp-roadmap{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .cltp-roadmap button.cltp-step{min-height:110px;padding:10px}.cltp-roadmap-caption{margin-top:20px}
+ .cltp-focus-metrics{gap:9px}.cltp-focus-metrics small{font-size:9px;letter-spacing:0}
+ .cltp-focus-metrics strong{font-size:23px}.cltp-focus-copy{font-size:13px}
+ .cltp-root button.cltp-race-jump,.cltp-root button.cltp-back-current{min-height:44px}
 }
-
-.cltp-week-content .cltp-polarized{color:#badaac;font-size:10px;line-height:1.5}
-
+@media(prefers-reduced-motion:reduce){.cltp-roadmap button.cltp-step{transition:none}}
 
 /* Long-term actual Garmin evidence, separate from the existing future training plan. */
 .clt-root{margin:13px 0;border:1px solid rgba(147,193,203,.26);border-radius:14px;background:linear-gradient(135deg,rgba(22,49,65,.85),rgba(17,29,53,.85));color:#edf6fc;overflow:hidden}
