@@ -24,7 +24,7 @@ export function selectCoachDecision(plan,context={}){
   mobility:'Stabil bleiben.'
  }
  const headline=labels[candidate.kind]||'Deine nächste Entscheidung.'
- const actionable=!candidate.decision&&(candidate.approvable===true||candidate.kind==='option')
+ const actionable=!candidate.selectedGroup&&!candidate.decision&&(candidate.approvable===true||candidate.kind==='option')
  const existing=candidate.kind==='existing'
  const proposal=actionable?candidate.title:
   candidate.title
@@ -36,7 +36,8 @@ export function selectCoachDecision(plan,context={}){
   choice==='skipped'?(option?.title||'Gruppentraining')+' · ausgelassen':
   option?(option.title||'Gruppentraining')+' · optional':'Kein Training eingetragen'
  const state=actionable?'review':existing?'calendar':candidate.kind==='completed'?'completed':'no-write'
- const summary=actionable?'Vorschlag, noch nicht im Kalender':
+ const summary=candidate.selectedGroup?'Teilnahme bestätigt · '+(candidate.selectedGroup.advice==='skip'?'Coach rät ab':candidate.selectedGroup.advice==='easy'?'Coach empfiehlt verkürzt und locker':'Coach-Hinweise beachten'):
+  actionable?'Vorschlag, noch nicht im Kalender':
   existing?'Bereits im Kalender – keine neue Einheit':
   candidate.kind==='race'?'Wettkampftag – keine zusätzliche Einheit':
   candidate.kind==='illness'?'Kein Training während Beschwerden':

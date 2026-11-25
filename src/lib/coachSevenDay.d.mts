@@ -1,6 +1,7 @@
 export type CoachDay={
  date:string;kind:string;title:string;minutes:number|null;reason:string;
  sport:string;approvable:boolean;decision?:'accepted'|'declined';
+ selectedGroup?:{code:string;title:string;startTime:string|null;location:string|null;advice:'skip'|'easy'|'review';reason:string};
  intensityIntent?:'low'|'low-option'|'hard-option'
 }
 export type SevenDayPlan={

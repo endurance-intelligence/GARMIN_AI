@@ -116,8 +116,8 @@ export function CalendarPage({active,focus,onOpenCoach}:{
  }):null,[coachSnapshot,today,planStart])
  const raceInWeek=coachPlan?.days.find(d=>d.kind==='race')||null
  const coachDay=coachPlan?.days.find(d=>d.date===selected)||null
- const coachPreview=coachDay&&!['existing','completed','chosen','option'].includes(coachDay.kind)&&
-  !plans.some(p=>p.training_date===selected&&p.state!=='cancelled')?coachDay:null
+ const coachPreview=coachDay&&(coachDay.selectedGroup||(!['existing','completed','chosen','option'].includes(coachDay.kind)&&
+  !plans.some(p=>p.training_date===selected&&p.state!=='cancelled')))?coachDay:null
  const days=Array.from({length:7},(_,i)=>moveDay(start,i))
  const weekOffers=(coachPlan?.days||[]).filter(d=>d.approvable&&
   d.date>=today&&d.date<=moveDay(today,13)&&
@@ -154,6 +154,12 @@ export function CalendarPage({active,focus,onOpenCoach}:{
  const suggestionsInWeek=coachPlan?.days.filter(d=>d.date>=start&&d.date<=days[6]&&
   d.approvable&&!plans.some(p=>p.training_date===d.date&&p.state!=='cancelled')).length||0
 
+ useEffect(()=>{
+  if(!active)return
+  const changed=()=>setRefresh(n=>n+1)
+  window.addEventListener('garmin-ai-weekly-choice-changed',changed)
+  return ()=>window.removeEventListener('garmin-ai-weekly-choice-changed',changed)
+ },[active])
  useEffect(()=>{
   if(!active||!focus||lastFocusToken.current===focus.token)return
   if(!/^\d{4}-\d{2}-\d{2}$/.test(focus.date))return
@@ -606,17 +612,18 @@ export function CalendarPage({active,focus,onOpenCoach}:{
       aria-label="Coach-Empfehlung für diesen Kalendertag">
      <div className="hc-coach-proposal-top">
       <span><Icon name="sparkles"/> COACH / EMPFEHLUNG</span>
-      <small>{coachPreview.approvable?'Noch nicht gespeichert · freiwillig':
+      <small>{coachPreview.selectedGroup?'Teilnahme bestätigt · '+(coachPreview.selectedGroup.advice==='skip'?'Coach rät ab':coachPreview.selectedGroup.advice==='easy'?'Verkürzt & locker':'Hinweise beachten'):coachPreview.approvable?'Noch nicht gespeichert · freiwillig':
        'Nur Orientierung · keine automatische Planung'}</small>
      </div>
-     <h4>{coachPreview.title}</h4>
+     <h4>{coachPreview.selectedGroup?.title||coachPreview.title}</h4>
+     {coachPreview.selectedGroup&&<small>{[coachPreview.selectedGroup.startTime?coachPreview.selectedGroup.startTime+' Uhr':'',coachPreview.selectedGroup.location].filter(Boolean).join(' · ')}</small>}
      <p>{coachPreview.reason}</p>
-     <small>Du kannst sie im Coach annehmen, ablehnen oder ändern.</small>
+     {coachPreview.selectedGroup?<small>Deine Teilnahme änderst du bei den Gruppenterminen. Kein zusätzliches Workout wird angelegt.</small>:<small>Du kannst sie im Coach annehmen, ablehnen oder ändern.</small>}
      {selected>=today&&selected<=moveDay(today,6)&&
       <button type="button" className="hc-coach-accept" onClick={()=>onOpenCoach(selected)}>
-       <Icon name="arrow-up-right"/> Im Coach entscheiden
+       <Icon name="arrow-up-right"/> {coachPreview.selectedGroup?'Coach-Hinweise ansehen':'Im Coach entscheiden'}
       </button>}
-     {coachPreview.minutes!==null&&<span className="hc-coach-minutes">
+     {coachPreview.minutes!==null&&!coachPreview.selectedGroup&&<span className="hc-coach-minutes">
       {coachPreview.minutes} Minuten · {coachPreview.kind==='mobility'?'Stabi/Mobility':
        'Sprechtempo · ohne Pace- oder HF-Zwang'}
      </span>}

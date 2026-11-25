@@ -57,7 +57,7 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
  if(!x)return null
  const {day}=x
  const reviewIsOpen=reviewDate===day.date
- const canChoose=!['illness','blocked','race','existing','completed'].includes(day.kind)
+ const canChoose=!day.selectedGroup&&!['illness','blocked','race','existing','completed'].includes(day.kind)
  const alreadyDecided=day.decision==='declined'||day.decision==='accepted'
  return <section className="cdl-root" aria-label="Echte Coach-Entscheidung mit Begründung">
   <header className="cdl-head">
@@ -70,15 +70,15 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
     <div className="cdl-choice-top">
      <span className="cdl-overline"><span className="cdl-led"/> VORSCHLAG / {dated(day.date).toUpperCase()}</span>
      <span className={'cdl-status cdl-status-'+x.state}>
-      {day.decision==='accepted'?'Von dir angenommen':day.decision==='declined'?'Von dir abgelehnt':
+      {day.selectedGroup?'Teilnahme bestätigt':day.decision==='accepted'?'Von dir angenommen':day.decision==='declined'?'Von dir abgelehnt':
        x.actionable?'Prüfung offen':x.state==='calendar'?'Bereits eingetragen':'Kein Entwurf nötig'}
      </span>
     </div>
     <div className="cdl-choice-body">
      <span className="cdl-plan-kicker"><Icon name="activity"/> DEIN PLAN FÜR DIESEN TAG</span>
-     <h4>{day.title}</h4>
+     {day.selectedGroup?<h4>{day.selectedGroup.title}</h4>:<h4>{day.title}</h4>}
      <p className="cdl-decision-note">{x.summary}</p>
-     {day.minutes!==null&&<div className="cdl-duration">
+     {day.minutes!==null&&!day.selectedGroup&&<div className="cdl-duration">
       <span>COACH-UMFANG</span><strong>{day.minutes} Min.</strong>
       <small>Vorschlag, noch kein freigegebenes Workout</small>
      </div>}
@@ -88,7 +88,9 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
       {x.state==='calendar'&&<small>Bestehender Eintrag wird nicht überschrieben</small>}
      </div>}
      <div className="cdl-actions">
-      {alreadyDecided?
+      {day.selectedGroup?<button className="cdl-primary" type="button" onClick={()=>onCalendar(day.date)}>
+        <Icon name="calendar-days"/> Teilnahme im Kalender prüfen <Icon name="arrow-up-right"/></button>:
+       alreadyDecided?
        <button className="cdl-primary" type="button" disabled={saving}
         onClick={()=>onReset(day.date)}><Icon name="rotate-ccw"/> Umentscheiden</button>:
        x.actionable?
