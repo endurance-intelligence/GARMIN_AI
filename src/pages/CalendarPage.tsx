@@ -6,7 +6,8 @@ import {WorkoutArchivePanel} from '../components/WorkoutArchivePanel'
 import {WeeklyTrainingOptions} from '../components/WeeklyTrainingOptions'
 import {SupplementSessionDetails} from '../components/SupplementSessionDetails'
 import {trainingAlternativeForDate} from '../lib/goalTrainingFocus.mjs'
-import {quickCoachAction} from '../lib/calendarQuickAccept.mjs'
+import {quickCoachAction,quickDecisionAvailable} from '../lib/calendarQuickAccept.mjs'
+import type {QuickDecisionChoice} from '../lib/calendarQuickAccept.mjs'
 import type {CoachContextPayload} from '../components/CoachLifeContext'
 import {CalendarWeekBoard} from '../components/CalendarWeekBoard'
 import {CoachSevenDay} from '../components/CoachSevenDay'
@@ -267,13 +268,17 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
    setError(e instanceof Error?e.message:'Vorschlag konnte nicht übernommen werden.')
   }finally{quickLock.current=false;setActing(null)}
  }
- async function quickAccept(day:CoachDay){
+ async function quickAccept(day:CoachDay,choice:QuickDecisionChoice){
   if(!garminSupabase||acting||quickLock.current||coachLoading||coachError||!coachPlan||coachPlan.days.find(d=>d.date===day.date)!==day)return
   const action=quickCoachAction(coachPlan,day.date,today)
-  if(!action)return
+  if(!quickDecisionAvailable(coachPlan,day.date,today))return
   setSelected(day.date);setCoachReview(null)
-  if(action==='choose'){onOpenCoach(day.date);return}
-  if(action==='draft'){await acceptCoach(day,true);return}
+  if((day.decision||'open')===choice)return
+  if(choice==='accepted'&&action==='choose'){onOpenCoach(day.date);return}
+  if(choice==='accepted'&&action==='draft'){await acceptCoach(day,true);return}
+  // Reopening a rejected training must not bypass a new Coach assessment.
+  const reopenForReview=choice==='accepted'&&day.kind!=='recovery'
+  const storedChoice=reopenForReview?'open':choice
   quickLock.current=true;setActing('coach-'+day.date);setError('');setNotice('')
   try{
    const {data:{session}}=await garminSupabase.auth.getSession()
@@ -281,13 +286,15 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
    const fresh=await loadCoachSnapshot(session,today,undefined,start,4)
    const next=buildSevenDayCoach({today,startDate:planStart,health:fresh.health,boards:fresh.boards,options:fresh.options,plans:fresh.plans,goal:fresh.goal,life:fresh.life,racePortfolio:fresh.racePortfolio,goalRoute:fresh.goalRoute})
    const current=next.days.find(d=>d.date===day.date)
-   if(!current||JSON.stringify(current)!==JSON.stringify(day)||quickCoachAction(next,day.date,today)!=='rest'||fresh.plans.entries.some(p=>p.training_date===day.date&&p.state!=='cancelled')){setRefresh(n=>n+1);throw Error('Coach-Empfehlung hat sich geändert. Bitte den aktualisierten Tag prüfen.')}
-   const result=await ownerPost<{saved:boolean;context:CoachContextPayload['context'];runs:CoachContextPayload['runs']}>(session,'garmin-coach-context',{action:'set_day_decision',date:day.date,choice:'accepted'})
-   if(result.saved!==true||!result.context||!Array.isArray(result.runs)||!result.context.day_decisions?.some(d=>d.date===day.date&&d.choice==='accepted'))throw Error('Erholungstag nicht bestätigt.')
+   if(!current||JSON.stringify(current)!==JSON.stringify(day)||!quickDecisionAvailable(next,day.date,today)||fresh.plans.entries.some(p=>p.training_date===day.date&&p.state!=='cancelled')){setRefresh(n=>n+1);throw Error('Coach-Empfehlung hat sich geändert. Bitte den aktualisierten Tag prüfen.')}
+   const result=await ownerPost<{saved:boolean;context:CoachContextPayload['context'];runs:CoachContextPayload['runs']}>(session,'garmin-coach-context',{action:'set_day_decision',date:day.date,choice:storedChoice})
+   const savedChoice=result.context?.day_decisions?.find(d=>d.date===day.date)?.choice||'open'
+   if(result.saved!==true||!result.context||!Array.isArray(result.runs)||savedChoice!==storedChoice)throw Error('Entscheidung nicht bestätigt.')
    setCoachSnapshot({...fresh,life:{...fresh.life,context:result.context,runs:result.runs}})
    window.dispatchEvent(new Event('garmin-ai-coach-changed'))
-   setNotice('Erholungstag angenommen. Kein zusätzlicher Kalendereintrag und keine Übertragung.')
-  }catch(e){setError(e instanceof Error?e.message:'Erholungstag konnte nicht übernommen werden.')}
+   setNotice(storedChoice==='accepted'?'Erholungstag angenommen. Kein zusätzlicher Kalendereintrag.':storedChoice==='declined'?'Empfehlung abgelehnt. Kein Ersatztraining automatisch geplant.':'Entscheidung wieder offen (50:50). Kein Training gespeichert.')
+   if(reopenForReview&&day.date<=moveDay(today,6))onOpenCoach(day.date)
+  }catch(e){setError(e instanceof Error?e.message:'Entscheidung konnte nicht gespeichert werden.')}
   finally{quickLock.current=false;setActing(null)}
  }
  async function approvePlan(plan:Plan){
@@ -499,7 +506,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
    </div>
    <CalendarWeekBoard active={active} start={start} selected={selected}
     today={today} onSelect={day=>{setSelected(day);setCoachReview(null)}}
-    plans={plans} coachDays={coachPlan?.days||[]} refreshKey={refresh} quickAction={date=>quickCoachAction(coachPlan,date,today)} onQuickAccept={day=>void quickAccept(day)} quickBusy={acting!==null||coachLoading||!!coachError||busy}/>
+    plans={plans} coachDays={coachPlan?.days||[]} refreshKey={refresh} quickAction={date=>quickCoachAction(coachPlan,date,today)} quickDecision={date=>quickDecisionAvailable(coachPlan,date,today)} onQuickAccept={(day,choice)=>void quickAccept(day,choice)} quickBusy={acting!==null||coachLoading||!!coachError||busy}/>
    <div className="hc-day-content">
     <div className="hc-day-heading">
      <div><span>AUSGEWÄHLTER TAG</span><h3>{longDate(selected)}</h3></div>

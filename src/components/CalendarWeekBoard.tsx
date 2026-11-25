@@ -7,7 +7,7 @@ import '../styles/calendar-week-board.css'
 import {completedWeeklyOption} from '../lib/weeklyOptionCompletion'
 import {FixedTrainingWeather} from './FixedTrainingWeather'
 import type {CoachDay} from '../lib/coachSevenDay.mjs'
-import type {QuickCoachAction} from '../lib/calendarQuickAccept.mjs'
+import type {QuickCoachAction,QuickDecisionChoice} from '../lib/calendarQuickAccept.mjs'
 import {normalizeGarminRpe} from '../lib/garminPerception.mjs'
 
 type Activity={activity_id:string;activity_name:string|null;start_time_local:string;
@@ -21,7 +21,7 @@ type Opportunity={code:string;weekday:number;start_time:string;title:string;loca
 type Choice={option_code:string;training_date:string;choice:string}
 export type BoardPlan={id:string;training_date:string;title:string;state:string;session_type:string}
 type Props={active:boolean;start:string;selected:string;today:string;
- onSelect:(day:string)=>void;plans:BoardPlan[];coachDays?:CoachDay[];refreshKey?:number;quickAction?:(date:string)=>QuickCoachAction;onQuickAccept?:(day:CoachDay)=>void;quickBusy?:boolean}
+ onSelect:(day:string)=>void;plans:BoardPlan[];coachDays?:CoachDay[];refreshKey?:number;quickAction?:(date:string)=>QuickCoachAction;quickDecision?:(date:string)=>boolean;onQuickAccept?:(day:CoachDay,choice:QuickDecisionChoice)=>void;quickBusy?:boolean}
 const plusDay=(date:string,n:number)=>
  new Date(Date.parse(date+'T12:00:00Z')+n*86400000).toISOString().slice(0,10)
 function weekNumber(date:string){
@@ -47,7 +47,7 @@ async function read(endpoint:string){
  if(!response.ok)throw Error('Kalenderdaten derzeit nicht erreichbar ('+response.status+')')
  return await response.json() as Record<string,unknown>
 }
-export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,coachDays=[],refreshKey=0,quickAction,onQuickAccept,quickBusy=false}:Props){
+export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,coachDays=[],refreshKey=0,quickAction,quickDecision,onQuickAccept,quickBusy=false}:Props){
  const [data,setData]=useState<WeekResponse|null>(null)
  const [options,setOptions]=useState<Opportunity[]>([])
  const [choices,setChoices]=useState<Choice[]>([])
@@ -97,8 +97,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
   // Even a conflicting local plan must never hide the real race goal.
   const coach=day>=today&&candidate&&
    (candidate.kind==='race'||(!candidate.selectedGroup&&!local.length&&!acts.length&&!manual.length&&
-    !['existing','completed','chosen','option'].includes(candidate.kind)&&
-    !(candidate.decision==='declined'&&['easy','long','mobility','return_easy'].includes(candidate.kind))))?candidate:null
+    !['existing','completed','chosen','option'].includes(candidate.kind)))?candidate:null
   return {day,index,acts,manual,local,slot,coach,groupAdvice:candidate?.selectedGroup}
  })
  return <section className="hwb-root" aria-label="Wochenübersicht mit echten Garmin-Aktivitäten und Gesundheitsdaten">
@@ -163,11 +162,13 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
           '🏁 RENNTAG / HAUPTZIEL':coach.approvable?
           '✦ COACH / VORSCHLAG':'✦ COACH / ANSAGE'}</span>
          <strong>{coach.title}</strong>
-         {coach.minutes!==null&&<span>{coach.minutes} Minuten · noch nicht eingetragen</span>}
+         {coach.minutes!==null&&<span>{coach.minutes} Minuten{coach.decision?'':' · noch nicht eingetragen'}</span>}
          <small>{coach.decision==='accepted'?'Von dir angenommen · kein zusätzlicher Eintrag':
           coach.decision==='declined'?'Von dir abgelehnt':
           'Empfehlung in den Tagesdetails prüfen.'}</small>
-        </button>{coach.decision==='accepted'?<span className="hwb-quick-done">✓ Angenommen</span>:quickAction?.(day)&&onQuickAccept&&<button type="button" className="hwb-quick-accept" disabled={quickBusy||loading||!visibleData} onClick={()=>onQuickAccept(coach)} aria-label={(quickAction(day)==='choose'?'Trainingsvariante auswählen: ':'Annehmen: ')+coach.title+' am '+dayLabel(day)}>{quickAction(day)==='choose'?'Variante wählen':'✓ Annehmen'}{quickAction(day)==='draft'&&coach.sport==='running'&&<small>Entwurf · 18:00</small>}{quickAction(day)==='draft'&&coach.sport!=='running'&&<small>Als Entwurf</small>}</button>}</div>}
+        </button>{quickDecision?.(day)&&onQuickAccept&&<div className="hwb-quick-segment" role="group" aria-label={'Entscheidung '+dayLabel(day)}>
+         {([{choice:'accepted',symbol:'✓',label:quickAction?.(day)==='choose'?'Variante wählen':'Annehmen'},{choice:'open',symbol:'50:50',label:'Vielleicht'},{choice:'declined',symbol:'✕',label:'Ablehnen'}] as const).map(item=><button key={item.choice} type="button" className={'hwb-quick-accept hwb-quick-'+item.choice} aria-label={item.label+' · '+coach.title+' · '+dayLabel(day)} title={item.label} aria-pressed={(coach.decision||'open')===item.choice} disabled={quickBusy||loading||!visibleData} onClick={()=>onQuickAccept(coach,item.choice)}>{item.symbol}</button>)}
+        </div>}{quickDecision?.(day)&&quickAction?.(day)==='draft'&&coach.sport==='running'&&<small className="hwb-quick-note">✓ Entwurf · 18:00</small>}{quickDecision?.(day)&&quickAction?.(day)==='choose'&&<small className="hwb-quick-note">✓ Variante wählen</small>}</div>}
         {slot.map(option=>{
          const choice=groupAdvice?.code===option.code?'selected':choices.find(x=>x.training_date===day&&x.option_code===option.code)?.choice||'open'
          const selected=choice==='selected'
