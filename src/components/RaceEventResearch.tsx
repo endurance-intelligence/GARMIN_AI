@@ -97,6 +97,7 @@ export function RaceEventResearch({active,refreshKey=0,onLogoChange,onEventSaved
   void request().then(value=>{
    if(!mounted)return
    const result=value as unknown as GoalStatus
+   result.saved=(result.saved||[]).filter(x=>!x.event_url.includes('/GARMIN_AI/challenge/'))
    loadedRefreshKey.current=refreshKey
    if(initializedGoal.current!==result.goal.raceDate){
     initializedGoal.current=result.goal.raceDate

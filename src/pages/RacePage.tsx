@@ -26,6 +26,12 @@ export function RacePage({active,onGo,focusWeatherToken=0}:{
   const settle=window.setTimeout(focus,650)
   return ()=>{cancelAnimationFrame(frame);window.clearTimeout(settle)}
  },[active,focusWeatherToken])
+ const [revision,setRevision]=useState(0)
+ useEffect(()=>{
+  const changed=()=>{setRevision(x=>x+1);setRaceForecast(null);setEventCity(null);setCourse(null);setRoutePoints(null)}
+  window.addEventListener('garmin-ai-coach-changed',changed)
+  return ()=>window.removeEventListener('garmin-ai-coach-changed',changed)
+ },[])
  const [raceForecast,setRaceForecast]=useState<Forecast|null>(null)
  const [eventCity,setEventCity]=useState<string|null>(null)
  const [course,setCourse]=useState<{courseType:string|null;finishCity:string|null;startLatitude?:number|null;startLongitude?:number|null;startName?:string|null}|null>(null)
@@ -41,12 +47,12 @@ export function RacePage({active,onGo,focusWeatherToken=0}:{
    </button>
   </header>
   <RaceStrategyCard active={active} forecast={raceForecast} onCoach={()=>onGo('home')}/>
-  <RaceEventDossier active={active}
+  <RaceEventDossier active={active} refreshKey={revision}
    onEventCityChange={setEventCity} onCourseChange={setCourse}>
    <RaceForecastCompact active={active} eventCity={eventCity}
-    course={course} routePoints={routePoints} refreshKey={0}
+    course={course} routePoints={routePoints} refreshKey={revision}
     onForecast={setRaceForecast}/>
-   <RaceRouteViewer active={active} refreshKey={0}
+   <RaceRouteViewer active={active} refreshKey={revision}
     forecast={raceForecast} onTrack={setRoutePoints}/>
   </RaceEventDossier>
  </section>
