@@ -56,7 +56,7 @@ test('morning UI is readable immediately; technical methods stay optional and ex
  const card=read('src/lib/recoveryMeaning.mjs')
  const trends=read('src/lib/recoveryWeekTrend.mjs')
  const graph=read('src/components/RecoverySparkline.tsx')
- assert.match(panel,/Deine Erholung – kurz erklärt/)
+ assert.match(panel,/Was deine Werte sagen/)
  assert.match(panel,/Linie: letzte 7 Tage · gestrichelt: dein üblicher Wert/)
  assert.match(panel,/Mehr wissen\? Die Werte einfach erklärt/)
  assert.match(panel,/Fachbegriff: Median/)
