@@ -20,7 +20,10 @@ test('day cards retain selected attendance and actual decision controls, today s
  assert.match(read('src/pages/CalendarPage.tsx'),/focus=\{decisionFocus\}/)
  assert.match(s,/data-coach-date=\{day.date\}/)
  assert.match(s,/day.selectedGroup.advice==='skip'\?'Coach rät ab'/)
- assert.match(s,/onClick=\{\(\)=>void accept\(day\)\}/)
+ // The confirmation now selects exactly one branch instead of always accepting the original.
+ assert.match(s,/onClick=\{\(\)=>\{if\(variant==='alternative'\)\{if\(alternative\)void acceptAlternative\(day,alternative\)\}else void accept\(day\)\}\}/)
+ assert.match(s,/disabled=\{saving!==null\|\|\(variant==='alternative'&&!alternative\)\}/)
+ assert.match(s,/plan.days.find\(x=>x.date===day.date\)!==day/)
  assert.match(d,/onReview\(day.date\)/)
  assert.match(d,/onDecline\(day.date\)/)
  assert.match(d,/onCustom\(day.date\)/)
