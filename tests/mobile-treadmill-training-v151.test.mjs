@@ -39,6 +39,6 @@ test('only an open easy slot, never a protected day or existing choice; actual p
 test('same session rendered on Coach and Calendar; no writes or direct device controls',()=>{
  const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
  assert.match(read('src/components/CoachDailyBrief.tsx'),/<SupplementSessionDetails suggestion={supplement}/)
- assert.match(read('src/pages/CalendarPage.tsx'),/<SupplementSessionDetails suggestion={coachPlan.supplement.suggestion}/)
+ assert.match(read('src/pages/CalendarPage.tsx'),/<SupplementSessionDetails suggestion={daySupplement}/)
  assert.doesNotMatch(read('src/lib/treadmillTraining.mjs'),/fetch\(|\.insert\(|\.upsert\(|createWorkout|backward|rückwärts/i)
 })

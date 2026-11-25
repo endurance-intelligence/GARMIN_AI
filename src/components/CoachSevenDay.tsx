@@ -19,6 +19,9 @@ import {boundedCoachReason} from '../lib/coachMemory.mjs'
 import {CoachLongTermCard} from './CoachLongTermCard'
 import {CoachAdaptiveVolumeCard} from './CoachAdaptiveVolumeCard'
 import {assessCustomProposal} from '../lib/coachCustomProposal.mjs'
+import {trainingAlternativeForDate} from '../lib/goalTrainingFocus.mjs'
+import type {GoalSupplementSuggestion} from '../lib/goalTrainingFocus.mjs'
+import {SupplementSessionDetails} from './SupplementSessionDetails'
 import type {CoachContextPayload} from './CoachLifeContext'
 import '../styles/coach-seven-day.css'
 
@@ -39,6 +42,8 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
  const [contextBusy,setContextBusy]=useState(false)
  const [reload,setReload]=useState(0)
  const [review,setReview]=useState<string|null>(null)
+ const [variant,setVariant]=useState<'original'|'alternative'>('original')
+ const variantLock=useRef(false)
  const [startTime,setStartTime]=useState('18:00')
  const [saving,setSaving]=useState<string|null>(null)
  const [savedDay,setSavedDay]=useState<string|null>(null)
@@ -83,6 +88,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
    behavior:'smooth',block:'start'
   }))
  },[active,focus,plan,singleDay])
+ const alternative=trainingAlternativeForDate(plan,selectedDay)
  const customDay=plan?.days.find(day=>day.date===customDate)||null
  const customAssessment=useMemo(()=>customDay&&plan?
   assessCustomProposal({day:customDay,plan,kind:customKind,minutes:customMinutes,
@@ -105,7 +111,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
    }
    if(!response.ok||result.saved!==true||!result.context||!Array.isArray(result.runs))
     throw Error(result.error||'Coach-Kontext konnte nicht gespeichert werden.')
-   setSnapshot(prev=>prev?{...prev,life:{context:result.context!,runs:result.runs!}}:prev)
+   setSnapshot(prev=>prev?{...prev,life:{...prev.life,context:result.context!,runs:result.runs!}}:prev)
    window.dispatchEvent(new Event('garmin-ai-coach-changed'))
    setReview(null)
    setCustomDate(null)
@@ -116,8 +122,9 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
  }
  async function accept(day:CoachDay){
   if(!garminSupabase||saving||contextBusy||!plan||!snapshot||
-   !(day.approvable||day.kind==='option')||review!==day.date)return
+   variantLock.current||!(day.approvable||day.kind==='option')||review!==day.date)return
   if(plan.days.find(x=>x.date===day.date)!==day)return
+  variantLock.current=true
   setSaving(day.date);setError('');setNotice('')
   try{
    const {data:{session}}=await garminSupabase.auth.getSession()
@@ -162,7 +169,37 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
     'Kalendereintrag als Entwurf gespeichert; keine strukturierte Garmin-Übertragung.')+
     ' Es wurde noch nichts an Garmin oder Intervals.icu gesendet.')
   }catch(e){setError(e instanceof Error?e.message:'Speichern fehlgeschlagen.')}
-  finally{setSaving(null)}
+  finally{variantLock.current=false;setSaving(null)}
+ }
+ async function acceptAlternative(day:CoachDay,choice:GoalSupplementSuggestion){
+  if(!garminSupabase||!plan||!snapshot||saving||contextBusy||variantLock.current||review!==day.date||day.date<today||
+   plan.days.find(x=>x.date===day.date)!==day||trainingAlternativeForDate(plan,day.date)!==choice)return
+  variantLock.current=true;setSaving(day.date);setError('');setNotice('')
+  try{
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)throw Error('Bitte erneut anmelden.')
+   // Refresh evidence before using the existing explicitly confirmed calendar
+   // event path. Same day request ID is shared with the original choice.
+   const fresh=await loadCoachSnapshot(session,today,undefined,undefined,4)
+   const current=buildSevenDayCoach({today,health:fresh.health,boards:fresh.boards,options:fresh.options,plans:fresh.plans,goal:fresh.goal,life:fresh.life,racePortfolio:fresh.racePortfolio,goalRoute:fresh.goalRoute})
+   const next=trainingAlternativeForDate(current,day.date)
+   if(!next||JSON.stringify(next)!==JSON.stringify(choice)||fresh.plans.entries.some(p=>p.training_date===day.date&&p.state!=='cancelled')){
+    setSnapshot(fresh);setReview(null);throw Error('Die Trainingslage hat sich geändert. Bitte die aktuelle Empfehlung erneut prüfen.')
+   }
+   const title=choice.title.replace(/ als Alternative$/,'')+' · '+choice.minutes+' Min.'
+   const sport=choice.kind==='treadmill-run'?'running':choice.kind==='cycling'?'cycling':'other'
+   const segments=choice.segments?.map(s=>s.minutes+' Min. '+s.label+' ('+s.incline+' %)').join(' / ')||''
+   const notes=('Coach-Alternative · '+choice.minutes+' Min. · '+choice.intensity+'. '+segments+' '+choice.reason+' Nur Kalendereintrag, kein strukturiertes Workout.').slice(0,500)
+   const requestId=ids.current[day.date]||(ids.current[day.date]=crypto.randomUUID())
+   const res=await fetch(garminSupabaseUrl+'/functions/v1/garmin-training-plan',{method:'POST',cache:'no-store',headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey,'content-type':'application/json'},body:JSON.stringify({action:'create',clientRequestId:requestId,date:day.date,title,sessionType:'event',sport,notes})})
+   const result=await res.json().catch(()=>({})) as SubmitResponse
+   if(!res.ok||result.saved!==true||result.state!=='draft'||!result.id)throw Error(result.error||'Alternative nicht als Entwurf bestätigt.')
+   setSnapshot({...fresh,plans:{...fresh.plans,entries:[...fresh.plans.entries,{id:result.id,training_date:day.date,title,sport,state:'draft',session_type:'event',revision:result.revision||1,notes}]}})
+   setReview(null);setCustomDate(null);setSavedDay(day.date)
+   window.dispatchEvent(new Event('garmin-ai-coach-changed'))
+   setNotice('Gewählte Alternative als Entwurf gespeichert. Der ursprüngliche Lauf wurde nicht eingeplant. Keine strukturierte Garmin-Übertragung.')
+  }catch(e){setError(e instanceof Error?e.message:'Alternative konnte nicht gespeichert werden.')}
+  finally{variantLock.current=false;setSaving(null)}
  }
  async function saveCustom(day:CoachDay){
   if(!garminSupabase||saving||contextBusy||!snapshot||customDate!==day.date||
@@ -271,7 +308,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
    <CoachDecisionLive plan={plan} snapshot={snapshot!} reviewDate={review}
     selectedDate={selectedDay} saving={saving!==null||contextBusy}
     onReview={date=>{
-     setSelectedDay(date);setCustomDate(null);setReview(date);setStartTime('18:00')
+     setSelectedDay(date);setCustomDate(null);setVariant('original');setReview(date);setStartTime('18:00')
      requestAnimationFrame(()=>document.getElementById('c7-day-'+date)?.scrollIntoView({
       behavior:'smooth',block:'center'
      }))
@@ -296,8 +333,9 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
      </div>
      {review===day.date&&(day.approvable||day.kind==='option')&&!contextBusy&&<div className="c7-actions">
       {review===day.date?<div className="c7-confirm">
-       <span>Nur diesen Vorschlag als Entwurf speichern?</span>
-       {day.sport==='running'&&['easy','long','return_easy'].includes(day.kind)&&
+       <span>{alternative?'Wähle einen Trainingsreiz. Nur die ausgewählte Variante wird als Entwurf gespeichert.':'Nur diesen Vorschlag als Entwurf speichern?'}</span>
+       {alternative&&<fieldset className="c7-variants"><legend>Deine Trainingsvarianten</legend><label className={variant==='original'?'is-selected':''}><input type="radio" name="coach-variant" checked={variant==='original'} disabled={saving!==null} onChange={()=>setVariant('original')}/><span><strong>{day.title}</strong><small>{day.minutes} Min. · Laufspezifischer Reiz</small></span></label><label className={variant==='alternative'?'is-selected':''}><input type="radio" name="coach-variant" checked={variant==='alternative'} disabled={saving!==null} onChange={()=>setVariant('alternative')}/><span><strong>{alternative.title} · {alternative.minutes} Min.</strong><small>{alternative.intensity}</small></span></label>{variant==='alternative'&&<div className="cdb-supplement"><p>{alternative.reason}</p><SupplementSessionDetails suggestion={alternative}/><small>Nur Kalendereintrag; keine automatische Steuerung deines Geräts.</small></div>}</fieldset>}
+       {variant==='original'&&day.sport==='running'&&['easy','long','return_easy'].includes(day.kind)&&
         <div className="c7-structured-preview">
          <span>Garmin-Workout: {day.minutes} Min. · Einlaufen, lockerer Lauf, Auslaufen.
           Automatisch zeitgesteuert, ohne Pace- oder HF-Ziel.</span>
@@ -313,7 +351,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
          <small>Erst hier speichern, danach im Kalender freigeben und ausdrücklich senden.
           Intervals.icu muss das Workout korrekt bestätigen, bevor du es auf Garmin verwendest.</small>
         </div>}
-       <div><button type="button" disabled={saving!==null} onClick={()=>void accept(day)}>
+       <div><button type="button" disabled={saving!==null||(variant==='alternative'&&!alternative)} onClick={()=>{if(variant==='alternative'){if(alternative)void acceptAlternative(day,alternative)}else void accept(day)}}>
         {saving===day.date?'Speichere …':'Ja, Entwurf speichern'}</button>
         <button type="button" className="c7-secondary" disabled={saving!==null}
          onClick={()=>setReview(null)}>Abbrechen</button></div>

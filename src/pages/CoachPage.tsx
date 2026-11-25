@@ -7,6 +7,7 @@ import {CoachGlance} from '../components/CoachGlance'
 import {CoachHealthStatus} from '../components/CoachHealthStatus'
 import {berlinToday} from '../components/WeeklyTrainingOptions'
 import {CoachDailyBrief} from '../components/CoachDailyBrief'
+import {trainingAlternativeForDate} from '../lib/goalTrainingFocus.mjs'
 import {AskCoachCard} from '../components/AskCoachCard'
 import {buildSevenDayCoach} from '../lib/coachSevenDay.mjs'
 import {coachMood} from '../lib/coachPersonality.mjs'
@@ -106,7 +107,7 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
   
  </p>}
  {dailyBrief&&!snapshotLoading&&!snapshotError&&<CoachDailyBrief brief={dailyBrief}
-  mood={coachMood(dailyPlan,coachToday)} onDecision={openCoachDecision} supplement={dailyPlan?.supplement?.suggestion?.date===coachToday?dailyPlan.supplement.suggestion:null}
+  mood={coachMood(dailyPlan,coachToday)} onDecision={openCoachDecision} supplement={trainingAlternativeForDate(dailyPlan,coachToday)||(dailyPlan?.supplement?.suggestion?.date===coachToday&&dailyPlan.supplement.suggestion.mode==='existing-slot'?dailyPlan.supplement.suggestion:null)}
   onReportSymptoms={()=>setHealthOpenToken(n=>n+1)}
   weather={<CoachTodayWeather active={active} snapshot={sharedSnapshot!} plan={dailyPlan!} onReport={setWeatherAnswer}/>}/>}
 

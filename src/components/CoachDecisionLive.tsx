@@ -3,6 +3,7 @@ import type {SevenDayPlan} from '../lib/coachSevenDay.mjs'
 import type {CoachSnapshot} from '../lib/coachSnapshot'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {selectCoachDecision} from '../lib/coachDecision.mjs'
+import {trainingAlternativeForDate} from '../lib/goalTrainingFocus.mjs'
 import {Icon} from './Icon'
 import '../styles/coach-decision-live.css'
 
@@ -56,6 +57,7 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
  const x=selectCoachDecision(plan,{options,choices,lastRun,review,intervals,selectedDate})
  if(!x)return null
  const {day}=x
+ const alternative=trainingAlternativeForDate(plan,day.date)
  const reviewIsOpen=reviewDate===day.date
  const canChoose=!day.selectedGroup&&!['illness','blocked','race','existing','completed'].includes(day.kind)
  const alreadyDecided=day.decision==='declined'||day.decision==='accepted'
@@ -82,6 +84,7 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
       <span>COACH-UMFANG</span><strong>{day.minutes} Min.</strong>
       <small>Vorschlag, noch kein freigegebenes Workout</small>
      </div>}
+     {alternative&&<div className="cdl-context-line"><span>ODER · AEROBE ALTERNATIVE</span><strong>{alternative.title} · {alternative.minutes} Min.</strong><small>Eine Variante auswählen, nicht beide trainieren.</small></div>}
      {x.current!=='Kein Training eingetragen'&&<div className="cdl-context-line">
       <span>{x.state==='calendar'?'IM KALENDER':'DEIN GRUPPENTERMIN'}</span>
       <strong>{x.current}</strong>
@@ -96,7 +99,7 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
        x.actionable?
        <button className="cdl-primary" type="button" disabled={saving}
         onClick={()=>onReview(day.date)}>
-        <Icon name="check"/> {reviewIsOpen?'Entwurf unten bestätigen':'Annehmen · Entwurf prüfen'}
+        <Icon name="check"/> {reviewIsOpen?'Entwurf unten bestätigen':alternative?'Trainingsvariante auswählen':'Annehmen · Entwurf prüfen'}
         <Icon name="arrow-up-right"/></button>:
        x.state==='calendar'?
        <button className="cdl-primary" type="button" onClick={()=>onCalendar(day.date)}>

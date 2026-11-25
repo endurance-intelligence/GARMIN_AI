@@ -33,7 +33,7 @@ export function CoachDailyBrief({brief,onDecision,onReportSymptoms,weather,mood=
    <strong><Icon name="check-circle"/> DEIN NÄCHSTER SCHRITT</strong>
    <p>{brief.next}</p>
   </div>
-  {supplement&&<div className="cdb-supplement"><small>{supplement.mode==='alternative'?'OPTIONALE ALTERNATIVE':'ZIELGERICHTETER SCHWERPUNKT'}</small><strong>{supplement.title} · {supplement.minutes} Min.</strong><p>{supplement.reason}</p><SupplementSessionDetails suggestion={supplement}/><small>{supplement.intensity} · Keine automatische Planänderung.</small></div>}
+  {supplement&&<div className="cdb-supplement"><small>{supplement.mode==='alternative'?'ODER · AEROBE ALTERNATIVE':'ZIELGERICHTETER SCHWERPUNKT'}</small><strong>{supplement.title} · {supplement.minutes} Min.</strong><p>{supplement.reason}</p><SupplementSessionDetails suggestion={supplement}/><small>{supplement.intensity} · {supplement.mode==='alternative'?'Über die Tagesentscheidung eine Variante auswählen.':'Keine automatische Planänderung.'}</small></div>}
   <details className="cdb-reason cdb-reason-detail" open={cautious||brief.label==='TEILNAHME BESTÄTIGT'?true:undefined}>
    <summary><Icon name="activity"/> Coach-Einschätzung <Icon name="chevron-down"/></summary>
    <p>{brief.reason}</p>
