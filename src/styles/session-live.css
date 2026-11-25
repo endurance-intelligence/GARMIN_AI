@@ -58,3 +58,19 @@
  .lsa-garmin-zone-detail>button{padding:10px 9px;align-items:flex-start;flex-direction:column;gap:4px}
  .lsa-garmin-zone-body{padding:8px}
 }
+
+/* v1.3.5: a compact run summary and on-demand development view. */
+.lsa-run-summary{margin:0 0 18px}
+.lsa-run-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.lsa-run-heading strong{font-size:17px;overflow-wrap:anywhere}.lsa-run-heading small,.lsa-metric-note{font-size:11px;color:#a9b7d0}
+.lsa-stat-grid.lsa-run-metrics{grid-template-columns:repeat(5,minmax(0,1fr));margin:0 0 8px}
+.lsa-run-metrics>div{padding:12px;min-width:0}.lsa-run-metrics strong{font-size:clamp(19px,2.2vw,25px);margin-top:6px;overflow-wrap:anywhere}
+.lsa-development{border:1px solid #343f60;background:#172137;border-radius:16px;margin:0 0 18px;min-width:0}
+.lsa-development>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;list-style:none;padding:14px 17px;min-height:48px;color:#eef2ff}
+.lsa-development>summary::-webkit-details-marker{display:none}
+.lsa-development>summary>span:first-child{display:grid;gap:4px}.lsa-development>summary small{font-size:11px;color:#a9b7d0}
+.lsa-development[open]>summary{border-bottom:1px solid #343f60}
+.lsa-development[open]>summary>span:last-child{transform:rotate(180deg)}
+.lsa-development-body{padding:12px;min-width:0}
+.lsa-development>summary:focus-visible{outline:2px solid #b6ccff;outline-offset:2px}
+@media(max-width:740px){.lsa-stat-grid.lsa-run-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.lsa-run-metrics>div:last-child{grid-column:1/-1}}
