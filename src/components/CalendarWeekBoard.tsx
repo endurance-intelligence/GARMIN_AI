@@ -95,10 +95,10 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
     candidate?.kind!=='race'&&!completedWeeklyOption(x,day,acts))
   // Even a conflicting local plan must never hide the real race goal.
   const coach=day>=today&&candidate&&
-   (candidate.kind==='race'||(!local.length&&!acts.length&&!manual.length&&
+   (candidate.kind==='race'||(!candidate.selectedGroup&&!local.length&&!acts.length&&!manual.length&&
     !['existing','completed','chosen','option'].includes(candidate.kind)&&
     !(candidate.decision==='declined'&&['easy','long','mobility','return_easy'].includes(candidate.kind))))?candidate:null
-  return {day,index,acts,manual,local,slot,coach}
+  return {day,index,acts,manual,local,slot,coach,groupAdvice:candidate?.selectedGroup}
  })
  return <section className="hwb-root" aria-label="Wochenübersicht mit echten Garmin-Aktivitäten und Gesundheitsdaten">
   <div className="hwb-title">
@@ -120,7 +120,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
    </aside>
    <div className="hwb-scroll" role="region" aria-label="Sieben Wochentage, horizontal scrollbar" tabIndex={0}>
     <div className="hwb-days">
-     {calendarDays.map(({day,acts,manual,local,slot,coach})=>
+     {calendarDays.map(({day,acts,manual,local,slot,coach,groupAdvice})=>
       <section key={day} className={'hwb-day'+(day===selected?' is-selected':'')+(day===today?' is-today':'')}
        aria-label={shortDay(day)+' '+dayLabel(day)}>
        <button type="button" className="hwb-day-header"
@@ -169,13 +169,16 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
         </button>}
         {slot.map(option=>{
          const choice=choices.find(x=>x.training_date===day&&x.option_code===option.code)?.choice||'open'
-         const discouraged=coach?.reason.startsWith('Coach-Entscheidung:')||false
+         const selected=choice==='selected'
+         const guidance=groupAdvice?.code===option.code?groupAdvice:null
+         const discouraged=guidance?.advice==='skip'||coach?.reason.startsWith('Coach-Entscheidung:')||false
          return <button type="button" key={'o-'+option.code}
-           onClick={()=>onSelect(day)} className={'hwb-card is-option'+(choice==='skipped'?' is-muted':'')+
+           onClick={()=>onSelect(day)} className={'hwb-card '+(selected?'is-confirmed-group':'is-option')+(choice==='skipped'?' is-muted':'')+
             (discouraged?' is-discouraged':'')}>
-          <span className="hwb-card-label">◇ OPTION / {discouraged?'COACH RÄT AB':choice==='selected'?'DABEI':choice==='skipped'?'AUSLASSEN':'OFFEN'}</span>
+          <span className="hwb-card-label">{selected?'✓ TEILNAHME BESTÄTIGT':discouraged?'◇ OPTION / COACH RÄT AB':choice==='skipped'?'◇ AUSLASSEN':'◇ OPTION / OFFEN'}</span>
           <strong>{option.title}</strong>
-          {discouraged&&<small>Coach-Empfehlung oben hat Vorrang; keine automatische Trainingsfreigabe.</small>}
+          {selected&&guidance&&<small className="hwb-group-guidance">{guidance.advice==='skip'?'Coach rät ab · Hinweise ansehen':guidance.advice==='easy'?'Coach: verkürzt & sehr locker':'Coach-Hinweise ansehen'}</small>}
+          {discouraged&&!selected&&<small>Coach-Empfehlung oben hat Vorrang; keine automatische Trainingsfreigabe.</small>}
           <span>{option.start_time.slice(0,5)} Uhr · {option.location_label}</span>
           <FixedTrainingWeather active={active} compact date={day} time={option.start_time}
            location={option.location_label} latitude={option.location_lat} longitude={option.location_lon}/>

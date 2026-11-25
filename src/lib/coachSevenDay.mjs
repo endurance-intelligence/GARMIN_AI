@@ -400,10 +400,48 @@ export function buildSevenDayCoach(input){
   return make(day,'recovery','Erholung / freier Tag',null,
    'Abstand zwischen Belastungen erhalten, optionale Vereinstrainings bleiben freiwillig.')
  }).map(item=>{
+  // A saved attendance choice is a calendar fact, not medical clearance.
+  // Keep health/race advice separate, and do not propose a duplicate workout.
+  const group=options.find(o=>o.enabled&&o.weekday===weekday(item.date)&&
+   choices.some(c=>c.training_date===item.date&&c.option_code===o.code&&c.choice==='selected'))
+  if(!group||item.date<today||item.kind==='race')return item
+  const daysAfter=recoveryRaceDate?Math.round((Date.parse(item.date+'T12:00:00Z')-
+   Date.parse(recoveryRaceDate+'T12:00:00Z'))/ONE_DAY):null
+  const recovering=daysAfter!==null&&daysAfter>0&&daysAfter<=14
+  const hardSafety=['illness','blocked'].includes(item.kind)
+  const cautionDay=caution||feedbackCaution||trendReducing||trendShortening||observationLimited||
+   returning||postIllness||fourWeekReview.qualityCaution
+  const restAdvice=item.kind==='recovery'||hardSafety||item.kind==='completed'||
+   (item.kind==='existing')||((recovering||cautionDay)&&group.sport==='football')
+  const advice=restAdvice?'skip':recovering||cautionDay||['easy','return_easy'].includes(item.kind)?
+   'easy':'review'
+  const isFootball=group.sport==='football'||/fußball|football/i.test(group.title)
+  const track=/track|intervall|bahn/i.test(group.title)
+  const event= recovering?' '+daysAfter+' Tage nach '+(recoveryGoal?.race_name||'dem Wettkampf')+'.':''
+  const stop=' Bei zunehmenden Schmerzen, verändertem Laufstil, Schwindel oder ungewöhnlicher Erschöpfung sofort abbrechen. Bei Brustschmerz oder ungewöhnlicher Atemnot medizinische Hilfe holen.'
+  let guidance
+  if(hardSafety)guidance='Zusage bleibt sichtbar, aber heute nicht teilnehmen. '+item.reason
+  else if(item.kind==='completed')guidance='Du hast bereits trainiert. Keine weitere Einheit nachholen; die Zusage ist kein Nachweis der Teilnahme.'
+  else if(item.kind==='existing')guidance='Es gibt zusätzlich einen gespeicherten Trainingsplan. Keine Doppelbelastung; bestehenden Termin und Teilnahme prüfen. '+item.reason
+  else if(advice==='skip')guidance='Teilnahme zugesagt.'+event+' Der Coach rät heute von der Laufeinheit bzw. dem Training ab: '+item.reason+
+   (isFootball?' Keine Sprints oder Zweikämpfe.':' Falls du trotzdem zur Gruppe gehst: lieber nur begleiten oder bei Beschwerdefreiheit spazieren, statt den gesamten Lauf mitzulaufen.')+stop
+  else if(advice==='easy')guidance='Teilnahme zugesagt.'+event+' '+item.reason+
+   (isFootball?' Keine intensive Teilnahme; lieber auslassen.':
+    ' Wenn du teilnimmst: nur symptomfrei, sehr locker im Sprechtempo, höchstens '+Math.min(item.minutes||20,30)+' Minuten; keine Intervalle, kein Mitziehen mit der Gruppe, bei Bedarf frühzeitig umdrehen.')+stop
+  else guidance='Teilnahme zugesagt. '+(isFootball?
+   'Fußball ist eine intensive Belastungsoption. Keine zusätzliche harte Laufeinheit.':
+   track?'Bahntraining zählt als mögliche Qualitätseinheit. Intensität vor Ort prüfen und bei Müdigkeit locker bleiben oder auslassen.':
+   'Als lockeren Grundlagenlauf im Sprechtempo gestalten, nicht das Tempo der Gruppe erzwingen.')+stop
+  const selectedGroup={code:String(group.code),title:String(group.title),startTime:typeof group.start_time==='string'?group.start_time.slice(0,5):null,
+   location:typeof group.location_label==='string'?group.location_label:null,advice,reason:guidance}
+  return {...item,kind:hardSafety||['existing','completed'].includes(item.kind)?item.kind:'chosen',
+   title:hardSafety||['existing','completed'].includes(item.kind)?item.title:group.title,
+   sport:group.sport||item.sport,minutes:null,approvable:false,reason:guidance,selectedGroup}
+ }).map(item=>{
   // The coach decision is metadata, never a replacement for the original
   // training/rest/travel recommendation shown in both Coach and Calendar.
   const choice=dayDecisions.find(x=>x.date===item.date)?.choice
-  if(!['accepted','declined'].includes(choice)||
+  if(item.selectedGroup||!['accepted','declined'].includes(choice)||
     ['race','illness','blocked','existing','completed'].includes(item.kind))return item
   return {...item,decision:choice,approvable:false}
  }).map(item=>{
@@ -479,7 +517,8 @@ export function buildSevenDayCoach(input){
  const polarized=applyPolarizedGuidance(toleranceStep.days,{
   today,raceDate,ill,returning,postIllness,caution,
   feedbackCaution,trendReducing,observationLimited,
-  qualityLocked:garminPerception.qualityCaution||fourWeekReview.qualityCaution||typeCaution,
+  qualityLocked:garminPerception.qualityCaution||fourWeekReview.qualityCaution||typeCaution||
+   (recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<0),
   boards:input.boards,feedback:life.post_workout_feedback
  })
  flags.push('Trainingsmethode: polarisiert (ca. vier locker / eine hart; '+

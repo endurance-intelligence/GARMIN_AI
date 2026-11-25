@@ -111,3 +111,8 @@
 .hwb-days{grid-template-columns:repeat(7,minmax(112px,1fr));min-width:784px;min-height:220px}
 .hwb-day-header{min-height:44px}.hwb-day-cards{min-height:130px}
 @media(max-width:740px){.hwb-summary{gap:5px 8px}.hwb-summary-metrics{gap:7px}.hwb-days{grid-template-columns:repeat(7,150px);min-width:1050px}}
+
+.hwb-card.is-confirmed-group{border:1px solid rgba(114,211,168,.48);border-left:3px solid #79d6ae;background:rgba(56,130,101,.16)}
+.hwb-card.is-confirmed-group .hwb-card-label{color:#b3ecd0}
+.hwb-card.is-confirmed-group.is-discouraged{border-left-color:#e3af75;background:rgba(146,104,61,.13)}
+.hwb-card.is-confirmed-group.is-discouraged .hwb-group-guidance{color:#ffd4a8}

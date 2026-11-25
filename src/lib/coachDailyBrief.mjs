@@ -73,15 +73,16 @@ export function buildCoachDailyBrief({plan,health,today}={}){
   ' (älter als zwei Tage). Keine vermeintlich aktuelle Erholungsbewertung.'
  const extraCaution=kind==='existing'&&raceActive&&raceDays<=9?
   'Achtung: Trotz Regenerationsphase steht bereits ein Termin im Kalender. Bitte vor Belastung selbst prüfen.':null
- const nextText=extraCaution||next
+ const group=day.selectedGroup
+ const nextText=group?(group.advice==='skip'?'Teilnahme prüfen – Coach rät heute ab. Zusage ist keine Trainingsfreigabe.':group.advice==='easy'?'Nur locker und verkürzt, wenn du dich beschwerdefrei fühlst.':'Teilnahme steht. Belastung vor Ort prüfen.'):(extraCaution||next)
  const motive=kind==='recovery'||kind==='illness'||kind==='blocked'?
   'Ein bewusst ruhiger Tag gehört zu deinem Fortschritt.':
   kind==='completed'?'Konstanz entsteht durch die richtigen Einheiten – nicht durch ständiges Mehr.':
   'Besser werden heißt, passend zu trainieren – nicht jeden Tag härter.'
  return {
-  date:today,kind,label,
-  title:tidy(day.title,150),
-  guidance,reason:tidy(day.reason,650),
+  date:today,kind,label:group?'TEILNAHME BESTÄTIGT':label,
+  title:tidy(group?.title||day.title,150),
+  guidance:group?(group.advice==='skip'?'Der Coach rät von der Teilnahme ab.':group.advice==='easy'?'Heute bewusst verkürzt und locker.':guidance):guidance,reason:tidy(day.reason,1400),
   next:nextText,
   minutes:Number.isFinite(day.minutes)&&day.minutes>0?Math.round(day.minutes):null,
   race:raceInfo,
