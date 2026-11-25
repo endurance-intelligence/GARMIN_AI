@@ -1,0 +1,1 @@
+export function buildCoachChatContext(input:{today:string;snapshot:unknown;plan:import('./coachSevenDay.mjs').SevenDayPlan;weather?:{date:string;text:string}|null}):string

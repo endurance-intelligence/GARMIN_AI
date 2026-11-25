@@ -1,0 +1,8 @@
+# Coach Persönlichkeit und Dialog (v1.4.5)
+
+- Originaler skalierbarer Vektor-Avatar, sechs Ausdrücke aus dem vorhandenen Coach-Plan bzw. eindeutig zugeordnetem Garmin-Feedback. Keine Bewertung allein nach Geschwindigkeit oder Kilometerzahl. Kein künstlicher Readiness-Score.
+- Lokaler Dialog funktioniert ohne externe API. Mehrere Fragen, einfache kontextbezogene Rückfragen, kein behaupteter freier KI-Dialog.
+- Optionaler KI-Dialog: owner-only Edge Function `garmin-coach-chat`, `COACH_OPENAI_API_KEY` als Supabase Secret, optional `COACH_OPENAI_MODEL` (Standard gpt-5-mini). Ohne Secret meldet GET configured:false. Kein Schlüssel im Frontend. Keine Nutzung externer KI ohne explizite Zustimmung im gewählten Modus; Kosten nach API-Vertrag. Separate Web-Recherche ohne automatisch mitgesendete Trainingsdaten. Keine persönlichen Angaben in Recherchefragen.
+- OpenAI Responses API, store:false, begrenzte Nachrichten und Tool-Aufrufe. store:false bedeutet nicht zwingend Null-Aufbewahrung beim Anbieter. Keine dauerhafte Speicherung des Dialogs in der App, kein Garmin-/Intervals-Schreibzugriff. Sitzungshistorie bleibt nur im React-State, Moduswechsel leert sie. Lokale Symptome und persönliches Tageswetter werden aus dem bestehenden System beantwortet.
+- Backend nach grünem PR deployen, GET ohne Token muss 401/403 liefern; authentifizierter GET mit Owner muss nur configured liefern. Echte bezahlte Anfrage erst nach Secret-Konfiguration und Zustimmung testen. In Supabase Dashboard Edge Functions → Secrets setzen; niemals in GitHub oder Chat posten.
+- Referenz: https://developers.openai.com/api/docs/guides/tools-web-search und https://developers.openai.com/api/reference/resources/responses/methods/create
