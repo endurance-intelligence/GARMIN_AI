@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { garminPublishableKey, garminSupabase, garminSupabaseReady, garminSupabaseUrl } from '../lib/garminSupabase'
 import { analyzeSession } from '../lib/sessionAnalysis'
+import {normalizeGarminRpe} from '../lib/garminPerception.mjs'
+import {summarizeRunMetrics} from '../lib/runMetrics.mjs'
 import {SessionIntensityDetails} from './SessionIntensityDetails'
 import {CoachEvidenceSummary} from './CoachEvidenceSummary'
 import { SessionGearEditor } from './SessionGearEditor'
@@ -67,7 +69,7 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
   const [authReady,setAuthReady] = useState(false)
   const [list,setList] = useState<Activity[]>([])
   const [selected,setSelected] = useState<string>('')
-  const [details,setDetails] = useState<SessionResponse | null>(null)
+  const [loadedDetails,setDetails] = useState<SessionResponse | null>(null)
   const [planEntries,setPlanEntries]=useState<PlanActualPlan[]>([])
   const [plansLoaded,setPlansLoaded]=useState(false)
   const [planError,setPlanError]=useState('')
@@ -137,14 +139,17 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
   const planActual=useMemo(()=>plansLoaded&&selectedActivity?
    assessPlanActual(selectedActivity,list,planEntries):null,
    [plansLoaded,selectedActivity,list,planEntries])
+  const details=loadedDetails?.activity.id===selected?loadedDetails:null
+  const metricActivity=details?.activity??selectedActivity
+  const metrics=summarizeRunMetrics(metricActivity)
   const analysis = useMemo(() => details ? analyzeSession(details.details.samples) : null, [details])
   const path = useMemo(() => details ? heartPath(details.details.samples) : '', [details])
   if (!active) return null
   return <section className="lsa-wrap" aria-label="Echter Garmin Session Analyst">
     <div className="lsa-head">
       <div><span className="micro-label">GARMIN / SESSION INTELLIGENCE · LIVE</span>
-        <h2>Dein Lauf. Die echten Signale.</h2>
-        <p>Ein Coach-Fazit aus den tatsächlich absolvierten Läufen: Intervalle, Dauerlauf und Bezug zum Hauptziel.</p></div>
+        <h2>Mein Lauf</h2>
+        <p>Deine Leistung, das Coach-Fazit und die wichtigsten Messwerte.</p></div>
       {session && <button className="secondary" type="button" onClick={()=>setRefresh(r=>r+1)} disabled={loading}>Aktualisieren</button>}
     </div>
     {!garminSupabaseReady && <p className="lsa-note">Supabase ist lokal noch nicht konfiguriert.</p>}
@@ -152,28 +157,29 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
     {garminSupabaseReady && authReady && !session && <p className="lsa-note">Bitte zuerst unter <strong>Einstellungen</strong> anmelden. Der Analyst nutzt denselben privaten Supabase-Zugang wie Recovery.</p>}
     {session && <>
       <label className="lsa-picker">Garmin-Lauf auswählen
-        <select value={selected} onChange={e=>setSelected(e.target.value)}>
+        <select value={selected} onChange={e=>{setDetails(null);setSelected(e.target.value)}}>
           {!list.length && <option value="">Noch keine Läufe geladen</option>}
           {list.map(a=><option key={a.id} value={a.id}>{a.date?.slice(0,10)} · {a.name} · {runTypes[a.sport]??a.sport}{a.hrSamples>0?' · HF verfügbar':' · Details ausstehend'}</option>)}
         </select>
       </label>
       {error && <div className="lsa-error" role="alert">{error}</div>}
+      {metricActivity&&<div className="lsa-run-summary" aria-label="Garmin-Kerndaten des ausgewählten Laufs">
+       <div className="lsa-run-heading"><strong>{metricActivity.name}</strong><small>{metricActivity.date?.slice(0,10).split('-').reverse().join('.')} · Garmin</small></div>
+       <div className="lsa-stat-grid lsa-run-metrics">
+        {metrics.map(metric=><div key={metric.key}><span>{metric.label}</span><strong>{metric.value} {metric.unit&&<small>{metric.unit}</small>}</strong></div>)}
+       </div>
+       <small className="lsa-metric-note">Ø Pace aus Garmin-Dauer und Distanz; kein Nachweis von Bewegungszeit oder Trainingsintensität.</small>
+      </div>}
       {loading && <p className="lsa-note">Lese Garmin-Aktivität …</p>}
       {details && analysis && <>
+        <CoachEvidenceSummary active={active} mode="training" activityId={details.activity.id}/>
         <PlanActualReview match={planActual} loading={!plansLoaded&&!planError}
          error={planError}/>
-        <CoachEvidenceSummary active={active} mode="training" activityId={details.activity.id}/>
         <SessionIntensityDetails key={details.activity.id} samples={details.details.samples}
           activityDate={details.activity.date} activityId={details.activity.id} active={active}/>
         <details className="lsa-deep-dive">
           <summary>HF-Verlauf, Messwerte und technische Beobachtungen <span>Optional ansehen</span></summary>
           <div className="lsa-deep-dive-content">
-        <div className="lsa-stat-grid">
-          <div><span>DISTANZ</span><strong>{details.activity.distanceM==null?'–':formatNumber(details.activity.distanceM/1000,2)} <small>km</small></strong></div>
-          <div><span>DAUER</span><strong>{details.activity.durationS==null?'–':formatNumber(details.activity.durationS/60)} <small>Min.</small></strong></div>
-          <div><span>Ø HF · GARMIN</span><strong>{details.activity.avgHr==null?'–':formatNumber(details.activity.avgHr)} <small>bpm</small></strong></div>
-          <div><span>HF-MESSPUNKTE</span><strong>{analysis.validHr} <small>/ {details.details.samples.length}</small></strong></div>
-        </div>
         {import.meta.env.DEV ? <SessionGearEditor key={details.activity.id} activityId={details.activity.id} session={session}/> : <p className="lsa-demo-divider">Laufschuhe werden hier aktuell nur gelesen. Direktes Ändern folgt nach der sicheren Cloud-Schreibanbindung.</p>}
         <div className="lsa-panels">
           <article className="lsa-chart">
@@ -184,7 +190,7 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
             </svg> : <p className="lsa-note">HF-Verlauf für diese Einheit noch nicht verfügbar.</p>}
             <div className="lsa-chart-axis"><span>Beginn</span><span>Mitte</span><span>Ende</span></div>
             <p className="lsa-quality">Technischer Datenstatus: {details.details.status} ·
-              {details.activity.rpeRaw == null ? 'RPE nicht hinterlegt' : `Garmin-RPE Rohwert ${details.activity.rpeRaw} (nicht skaliert)`}.
+              {normalizeGarminRpe(details.activity.rpeRaw)===null?'RPE nicht hinterlegt oder ungültig':`Garmin-RPE ${normalizeGarminRpe(details.activity.rpeRaw)}/10`}. {analysis.validHr} valide HF-Messpunkte von {details.details.samples.length}.
               Die tatsächlichen FIT-Belastungsabschnitte stehen im Coach-Fazit oben.</p>
           </article>
           <article className="lsa-findings"><div className="lsa-section-title"><strong>Was zeigen die Daten?</strong><small>Belegbasiert · v0.6.0</small></div>
