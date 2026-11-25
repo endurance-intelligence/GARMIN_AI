@@ -1,5 +1,6 @@
 import {useEffect,useState} from 'react'
 import {berlinDateToday} from '../lib/coachGoal'
+import {Icon} from './Icon'
 import {GoalLogoEditor} from './GoalLogoEditor'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import '../styles/race-goal-portfolio.css'
@@ -33,6 +34,7 @@ export function RaceGoalsPanel({active,onPrimaryChange}:{active:boolean;onPrimar
  const [confirm,setConfirm]=useState<string|null>(null)
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
+ const [loading,setLoading]=useState(true)
  useEffect(()=>{
   if(!active)return
   const start=()=>{setDraft({...fresh});setLogoDraft(undefined);setEditId(null);setEditing(true);setConfirm(null)}
@@ -45,9 +47,9 @@ export function RaceGoalsPanel({active,onPrimaryChange}:{active:boolean;onPrimar
  }
  useEffect(()=>{
   if(!active)return
-  let live=true
+  let live=true;setLoading(true);setError('')
   void call().then(data=>{if(live){setOthers(Array.isArray(data.others)?data.others as Race[]:[])}})
-   .catch(e=>{if(live)setError(e instanceof Error?e.message:'Ziele nicht abrufbar')})
+   .catch(e=>{if(live)setError(e instanceof Error?e.message:'Ziele nicht abrufbar')}).finally(()=>{if(live)setLoading(false)})
   return ()=>{live=false}
  },[active])
  async function action(data:Record<string,unknown>){
@@ -59,22 +61,15 @@ export function RaceGoalsPanel({active,onPrimaryChange}:{active:boolean;onPrimar
    await refresh()
    if(data.action==='promote'){onPrimaryChange();setNotice('Das Hauptziel wurde gewechselt. Das bisherige Hauptziel bleibt als weiteres Ziel erhalten.')}
    else setNotice(data.action==='add'?'Weiteres Ziel gespeichert. Wähle es als Hauptziel, wenn der Coach darauf ausgerichtet werden soll.':data.action==='update'?'Änderungen am Ziel gespeichert.':'Zusätzliches Ziel entfernt.')
+   if(data.action!=='promote')window.dispatchEvent(new Event('garmin-ai-coach-changed'))
    setEditing(false);setConfirm(null);setEditId(null);setLogoDraft(undefined);setDraft({...fresh})
   }catch(e){setError(e instanceof Error?e.message:'Änderung fehlgeschlagen.')}
   finally{setBusy(false)}
  }
- if(!active)return null
- return <section className="rgp-root" id="race-goal-portfolio" aria-label="Weitere Wettkampfziele">
-  <div className="rgp-head"><div><small>RACE PREP / ZIELPORTFOLIO</small>
-   <h2>Weitere Ziele</h2>
-   <p>Weitere Rennen und vergangene Wettkämpfe verwalten.</p></div>
-   <button type="button" disabled={busy||logoPreparing} onClick={()=>{setEditing(x=>!x);setEditId(null);setLogoDraft(undefined);setDraft({...fresh});setConfirm(null)}}>{editing?'Schließen':'+ Weiteres Ziel'}</button>
-  </div>
-  <p className="rgp-focus-count">{others.filter(x=>x.race_date>=today).length} kommende · {others.filter(x=>x.race_date<today).length} vergangene</p>
-  {others.length>0&&<details className="rgp-focus-list">
-   <summary>Weitere Ziele und vergangene Rennen anzeigen</summary><div className="rgp-items">
-   {[...others].sort((a,b)=>Number(a.race_date<today)-Number(b.race_date<today)||(a.race_date<today?b.race_date.localeCompare(a.race_date):a.race_date.localeCompare(b.race_date))).map(x=><div className="rgp-item" key={x.id}>
-    <div className="rgp-goal-heading">{x.goal_logo&&<img className="rgp-goal-logo" src={x.goal_logo} alt=""/>}<div><strong>{x.race_name}</strong><span>{x.race_date<today?'Vergangen · ':''}{x.race_date.split('-').reverse().join('.')} · {x.distance_km} km · {x.race_location||'Ort offen'}</span></div></div>
+ const upcoming=others.filter(x=>x.race_date>=today).sort((a,b)=>a.race_date.localeCompare(b.race_date))
+ const past=others.filter(x=>x.race_date<today).sort((a,b)=>b.race_date.localeCompare(a.race_date))
+ const renderRace=(x:Race)=><div className="rgp-item" key={x.id}>
+    <div className="rgp-goal-heading"><span className="rgp-date-tile"><strong>{x.race_date.slice(8,10)}</strong><small>{new Date(x.race_date+'T12:00:00Z').toLocaleDateString('de-DE',{month:'short',timeZone:'UTC'})}</small></span>{x.goal_logo&&<img className="rgp-goal-logo" src={x.goal_logo} alt=""/>}<div><strong>{x.race_name}</strong><span>{x.race_date.slice(0,4)} · {x.distance_km} km{ x.target_hours!==null?' · Ziel '+x.target_hours+' h':''} · {x.race_location||'Ort offen'}</span></div></div>
     <div className="rgp-actions">
      {confirm===x.id+'-promote'?<>
       <button type="button" disabled={busy} onClick={()=>void action({action:'promote',id:x.id})}>Als Hauptziel bestätigen</button>
@@ -88,12 +83,22 @@ export function RaceGoalsPanel({active,onPrimaryChange}:{active:boolean;onPrimar
       <button type="button" disabled={busy} onClick={()=>setConfirm(x.id+'-remove')}>Entfernen</button>
      </>}
     </div>
-   </div>)}
-  </div></details>}
+   </div>
+ if(!active)return null
+ return <section className="rgp-root" id="race-goal-portfolio" aria-label="Weitere Wettkampfziele">
+  <div className="rgp-head"><div><small>DEIN ZIELPORTFOLIO</small>
+   <h2>Weitere Ziele &amp; Events</h2>
+   <p>Ein Hauptziel steuert den Coach. Weitere Events bleiben im Kalender.</p></div>
+   <button type="button" disabled={busy||logoPreparing} onClick={()=>{setEditing(x=>!x);setEditId(null);setLogoDraft(undefined);setDraft({...fresh});setConfirm(null)}}>{editing?<><Icon name="x"/> Abbrechen</>:'+ Weiteres Ziel'}</button>
+  </div>
+  <p className="rgp-focus-count">{others.filter(x=>x.race_date>=today).length} kommende · {others.filter(x=>x.race_date<today).length} vergangene</p>
+  {loading?<p className="rgp-focus-count" role="status">Ziele werden geladen …</p>:!error&&upcoming.length===0&&<p className="rgp-empty">Keine weiteren kommenden Ziele. Über „+ Weiteres Ziel“ kannst du ein Event oder eine Challenge ergänzen.</p>}
+  {upcoming.length>0&&<div className="rgp-items rgp-upcoming">{upcoming.map(renderRace)}</div>}
+  {past.length>0&&<details className="rgp-focus-list"><summary>Vergangene Ziele · {past.length}</summary><div className="rgp-items">{past.map(renderRace)}</div></details>}
   {editing&&<div className="rgp-form">
    <strong>{editId?'Ziel bearbeiten':'Neues Wettkampfziel'}</strong>
    <GoalLogoEditor value={logoDraft===undefined?draft.goal_logo:logoDraft} onChange={setLogoDraft} disabled={busy} onPreparing={setLogoPreparing}/>
-   <div><label>Wettkampf<input value={draft.race_name} maxLength={100}
+   <div><label>Zielname<input value={draft.race_name} maxLength={100}
     onChange={e=>setDraft(x=>({...x,race_name:e.target.value}))}/></label>
     <label>Datum<input type="date" value={draft.race_date}
      onChange={e=>setDraft(x=>({...x,race_date:e.target.value}))}/></label>
