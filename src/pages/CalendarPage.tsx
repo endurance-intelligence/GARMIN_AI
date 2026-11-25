@@ -4,6 +4,7 @@ import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garm
 import {Icon} from '../components/Icon'
 import {WorkoutArchivePanel} from '../components/WorkoutArchivePanel'
 import {WeeklyTrainingOptions} from '../components/WeeklyTrainingOptions'
+import {SupplementSessionDetails} from '../components/SupplementSessionDetails'
 import {CalendarWeekBoard} from '../components/CalendarWeekBoard'
 import {CoachSevenDay} from '../components/CoachSevenDay'
 import type {Page} from '../navigation'
@@ -629,7 +630,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
      <h4>{coachPreview.selectedGroup?.title||coachPreview.title}</h4>
      {coachPreview.selectedGroup&&<small>{[coachPreview.selectedGroup.startTime?coachPreview.selectedGroup.startTime+' Uhr':'',coachPreview.selectedGroup.location].filter(Boolean).join(' · ')}</small>}
      <p>{coachPreview.reason}</p>
-     {coachPlan?.supplement?.suggestion?.date===selected&&<div className="cdb-supplement"><strong>{coachPlan.supplement.suggestion.title} · {coachPlan.supplement.suggestion.minutes} Min.</strong><p>{coachPlan.supplement.suggestion.reason}</p><small>{coachPlan.supplement.suggestion.intensity} · Nur Orientierung; keine zweite Einheit.</small></div>}
+     {coachPlan?.supplement?.suggestion?.date===selected&&<div className="cdb-supplement"><strong>{coachPlan.supplement.suggestion.title} · {coachPlan.supplement.suggestion.minutes} Min.</strong><p>{coachPlan.supplement.suggestion.reason}</p><SupplementSessionDetails suggestion={coachPlan.supplement.suggestion}/><small>{coachPlan.supplement.suggestion.intensity} · Nur Orientierung; keine zweite Einheit.</small></div>}
      {coachPreview.selectedGroup?<small>Deine Teilnahme änderst du über „Gruppentermine planen“. Kein zusätzliches Workout wird angelegt.</small>:<small>Du kannst sie hier im Kalender annehmen, ablehnen oder ändern.</small>}
      {selected>=today&&selected<=moveDay(today,6)&&
       <button type="button" className="hc-coach-accept" onClick={()=>onOpenCoach(selected)}>

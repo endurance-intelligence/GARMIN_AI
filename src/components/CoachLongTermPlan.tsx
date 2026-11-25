@@ -1,5 +1,6 @@
 import {useState} from 'react'
 import {buildGoalProfile,goalPhaseFocus} from '../lib/goalTrainingFocus.mjs'
+import {hasEquipment} from '../lib/equipmentProfile.mjs'
 import {buildLongTermCoachPlan} from '../lib/coachLongTermPlan.mjs'
 import type {LongTermWeek} from '../lib/coachLongTermPlan.mjs'
 import type {CoachSnapshot} from '../lib/coachSnapshot'
@@ -52,7 +53,7 @@ export function CoachLongTermPlan({today,snapshot}:{
      <div><small>LANGER LAUF</small><strong>{week.longRunMinutes!==null?week.longRunMinutes:'—'}{week.longRunMinutes!==null&&<em> min</em>}</strong><span>{week.longRunMinutes!==null?'Ungefähr':'Nicht vorgegeben'}</span></div>
      <div><small>INTENSITÄT</small><strong>{week.qualityOptions>0?'Max. 1':'0'}</strong><span>{week.qualityOptions>0?'Harte Option · sonst locker':'Harte Einheiten empfohlen'}</span></div>
     </div>
-    {phaseFocus&&<div className="cltp-goal-focus"><div><small>DEIN ZIELPROFIL</small><strong>{profile.label}{profile.ascentM!==null?' · '+profile.ascentM.toLocaleString('de-DE')+' hm':''}</strong><p>{profile.requirements.join(' · ')}</p></div><div><small>TRAININGSREIZ DIESER WOCHE</small><strong>{phaseFocus.title}</strong><p>{phaseFocus.focus}</p><p className="cltp-complement">{phaseFocus.complement}</p></div><small className="cltp-terrain-note">{profile.terrainNote}</small></div>}
+    {phaseFocus&&<div className="cltp-goal-focus"><div><small>DEIN ZIELPROFIL</small><strong>{profile.label}{profile.ascentM!==null?' · '+profile.ascentM.toLocaleString('de-DE')+' hm':''}</strong><p>{profile.requirements.join(' · ')}</p></div><div><small>TRAININGSREIZ DIESER WOCHE</small><strong>{phaseFocus.title}</strong><p>{phaseFocus.focus}</p><p className="cltp-complement">{phaseFocus.complement}</p>{profile.hills&&week.targetKm!==null&&['base','build','specific'].includes(week.phase)&&week.index%4!==0&&hasEquipment(snapshot.life.equipmentProfile,'treadmill')&&<p>Dein Laufband kann als kontrollierte Bergauf-Alternative dienen. Konkrete Einheit erst nach aktueller Erholungsprüfung im Coach.</p>}</div><small className="cltp-terrain-note">{profile.terrainNote}</small></div>}
     {week.isRaceWeek&&<p className="cltp-race-note"><Icon name="flag"/> Zielwoche: {plan.raceName}. Der Start ist ein eigener Meilenstein, kein normales Wochenkilometerziel.</p>}
     {!week.isCurrent&&current&&<button type="button" className="cltp-back-current" onClick={()=>setSelection({identity,start:current.start})}>Zur aktuellen Woche</button>}
    </div>}
