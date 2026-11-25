@@ -1,3 +1,4 @@
+import {buildGoalProfile,buildGoalSupplement} from './goalTrainingFocus.mjs'
 import {latestWorkoutFeedback,evaluateWorkoutFeedback} from './postWorkoutFeedback.mjs'
 import {analyzeWorkoutFeedbackTrend} from './feedbackTrend.mjs'
 import {summarizeLastCompletedWeek} from './completedWeekReview.mjs'
@@ -526,7 +527,10 @@ export function buildSevenDayCoach(input){
  })
  flags.push('Trainingsmethode: polarisiert (ca. vier locker / eine hart; '+
   'mittlere Intensität möglichst wenig). '+polarized.message)
- return {today,days:polarized.days,signals,flags,
+ const goalProfile=buildGoalProfile({today,goal:input.goal,route:input.goalRoute})
+ const supplement=buildGoalSupplement({today,profile:goalProfile,days:polarized.days,boards:input.boards,
+  protectedPhase:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||observationLimited||allowWeekAdjustment||adapted.impact.effect==='shortened'||fourWeekReview.qualityCaution||typeCaution||(recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<=0)||(raceOffset!==null&&raceOffset>=-14&&raceOffset<=10),qualityDay:polarized.qualityDay})
+ return {today,days:polarized.days,signals,flags,goalProfile,supplement,
   trainingMethod:{id:'polarized',qualityDay:polarized.qualityDay,
    status:polarized.status,plannedEasy:polarized.easyCount,
    message:polarized.message},

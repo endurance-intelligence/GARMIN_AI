@@ -7,6 +7,8 @@ export type CoachDay={
 export type SevenDayPlan={
  today:string;days:CoachDay[];signals:string[];flags:string[];
  attention:boolean;attentionText:string;basedOnActual:boolean;source:string;raceDate:string|null;
+ goalProfile?:import('./goalTrainingFocus.mjs').GoalProfile;
+ supplement?:import('./goalTrainingFocus.mjs').GoalSupplement;
  returning?:boolean;ill?:boolean;postIllness?:boolean;concern?:boolean;acknowledgedRuns?:number;
  trainingGoalMode?:import('./trainingGoalMode.mjs').TrainingGoalMode;
  recoveryRaceDate?:string|null;checkedRecently?:boolean;reportedExhaustion?:number|null;latestWorkoutFeedback?:string|null;
@@ -22,5 +24,5 @@ export type SevenDayPlan={
 export function coachAddDays(date:string,delta:number):string
 export function coachMonday(date:string):string
 export function buildSevenDayCoach(input:{
- today:string;startDate?:string;health?:any;boards?:any[];options?:any;plans?:any;goal?:any;racePortfolio?:{others?:any[]};life?:any;symptoms?:boolean
+ today:string;startDate?:string;health?:any;boards?:any[];options?:any;plans?:any;goal?:any;goalRoute?:import('./goalTrainingFocus.mjs').GoalRouteEvidence|null;racePortfolio?:{others?:any[]};life?:any;symptoms?:boolean
 }):SevenDayPlan
