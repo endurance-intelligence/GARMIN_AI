@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {CoachGoalPanel} from '../components/CoachGoalPanel'
 import {RaceGoalsPanel} from '../components/RaceGoalsPanel'
 import {CoachLongTermPlan} from '../components/CoachLongTermPlan'
@@ -20,6 +20,14 @@ export function GoalsPage({active,onGo}:{active:boolean;onGo:(page:Page)=>void})
  const [loading,setLoading]=useState(false)
  const [error,setError]=useState('')
  const [showEventScout,setShowEventScout]=useState(false)
+ const [planRevision,setPlanRevision]=useState(0)
+ const portfolioDialog=useRef<HTMLDialogElement>(null)
+ const openPortfolio=()=>{const el=portfolioDialog.current;if(el&&!el.open)el.showModal()}
+ useEffect(()=>{
+  if(!active){portfolioDialog.current?.close();return}
+  window.addEventListener('garmin-ai-add-race-goal',openPortfolio)
+  return ()=>window.removeEventListener('garmin-ai-add-race-goal',openPortfolio)
+ },[active])
  useEffect(()=>{
   if(!active||!garminSupabase)return
   let mounted=true
@@ -33,7 +41,7 @@ export function GoalsPage({active,onGo}:{active:boolean;onGo:(page:Page)=>void})
     setError(e instanceof Error?e.message:'Trainingsziel derzeit nicht verfügbar.')})
    .finally(()=>{if(mounted)setLoading(false)})
   return ()=>{mounted=false;controller.abort()}
- },[active,revision])
+ },[active,revision,planRevision])
  const changed=()=>{setRouteSummary(null);setLoading(true);setRevision(x=>x+1);window.dispatchEvent(new Event('garmin-ai-coach-changed'))}
  return <section className={active?'page active goals-page':'page goals-page'}
   aria-label="Goals und langfristige Trainingsziele">
@@ -41,24 +49,28 @@ export function GoalsPage({active,onGo}:{active:boolean;onGo:(page:Page)=>void})
    <div><div className="eyebrow">GARMIN_AI / GOALS</div>
     <h1>Meine Ziele</h1>
     <p>Dein nächstes Abenteuer. Dein Plan.</p></div>
-   <button type="button" className="goals-race-link" onClick={()=>onGo('race')}>
-    <Icon name="flag"/> Race Prep öffnen <Icon name="arrow-up-right"/>
-   </button>
+   <div className="goals-header-actions">
+    <button type="button" className="goals-race-link goals-portfolio-link" onClick={openPortfolio}><Icon name="target"/> Weitere Ziele</button>
+    <button type="button" className="goals-race-link" onClick={()=>onGo('race')}>
+     <Icon name="flag"/> Race Prep öffnen <Icon name="arrow-up-right"/>
+    </button>
+   </div>
   </header>
   <CoachGoalPanel key={'primary-'+revision} active={active} onSaved={changed} routeSummary={routeSummary}/>
   {loading&&<p role="status" className="goals-status">Trainingsfahrplan wird aktualisiert …</p>}
   {error&&<p role="alert" className="goals-status">{error}</p>}
-  <RaceGoalsPanel key={'portfolio-'+revision} active={active} onPrimaryChange={changed}/>
   {snapshot&&!loading&&!error&&<CoachLongTermPlan today={berlinDateToday()} snapshot={snapshot}/>}
-  <ChallengeSetup active={active} revision={revision} onSaved={changed} onRouteSummary={setRouteSummary}
-   onEventScout={()=>{const el=document.getElementById('goals-event-scout');if(el instanceof HTMLDetailsElement){el.open=true;el.scrollIntoView({behavior:'smooth',block:'start'})}}}/>
-  <details className="goals-event-scout" id="goals-event-scout" onToggle={event=>setShowEventScout(event.currentTarget.open)}>
+  <ChallengeSetup active={active} revision={revision} onSaved={changed} onRouteSummary={setRouteSummary} summaryOnly/>
+  <dialog ref={portfolioDialog} className="goals-portfolio-dialog" aria-labelledby="goals-portfolio-title" onClose={()=>setShowEventScout(false)}>
+   <header className="goals-portfolio-header"><h2 id="goals-portfolio-title">Ziele verwalten</h2><button type="button" className="goals-dialog-close" aria-label="Zielverwaltung schließen" onClick={()=>portfolioDialog.current?.close()}><Icon name="x"/></button></header>
+   <RaceGoalsPanel key={'portfolio-'+revision} active={active} onPrimaryChange={changed} onPortfolioChange={()=>setPlanRevision(n=>n+1)}/>
+  <details className="goals-event-scout" id="goals-event-scout" open={showEventScout} onToggle={event=>setShowEventScout(event.currentTarget.open)}>
    <summary><span><strong>Veranstaltungsdaten &amp; Wettkampfarchiv</strong>
     <small>Event Scout, Veranstalter-Webseite, Quellen und gespeicherte Strecken</small></span>
     <Icon name="chevron-down"/></summary>
    {showEventScout&&<RaceEventResearch active={active&&showEventScout}
     refreshKey={revision} onEventSaved={changed}/>}
   </details>
-  <button className="goals-analysis-link" type="button" onClick={()=>onGo('training')}>Trainingsfortschritt in Analyse ansehen <Icon name="arrow-up-right"/></button>
+  </dialog>
  </section>
 }

@@ -1,4 +1,5 @@
 import {useEffect,useRef,useState} from 'react'
+import type {ReactNode} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import type {Forecast,WeatherHour} from '../lib/weatherIntelligence'
 import {parseGpxTrack,inferCourseType,routeSvg,windSegments} from '../lib/gpxRaceRoute.mjs'
@@ -24,7 +25,7 @@ async function request(body?:Record<string,unknown>):Promise<Loaded&{saved?:bool
  if(!result.ok)throw Error(json.error||'Streckenservice nicht erreichbar')
  return json
 }
-export function RaceRouteViewer({active,refreshKey=0,forecast,onTrack}:{active:boolean;refreshKey?:number;forecast:Forecast|null;onTrack?:(points:Point[]|null)=>void}){
+export function RaceRouteViewer({active,refreshKey=0,forecast,onTrack,routeEditor}:{active:boolean;refreshKey?:number;forecast:Forecast|null;onTrack?:(points:Point[]|null)=>void;routeEditor?:ReactNode}){
  const [loaded,setLoaded]=useState<Loaded|null>(null)
  const [draft,setDraft]=useState<Draft|null>(null)
  const [busy,setBusy]=useState(false)
@@ -85,22 +86,23 @@ export function RaceRouteViewer({active,refreshKey=0,forecast,onTrack}:{active:b
   windSegments(points,weather.windDirection,weather.wind):[]
  return <section className="rrv-root" aria-label="Streckenkarte und Streckenwetter">
   <div className="rrv-head"><div><small>RACE INTELLIGENCE / STRECKE</small>
-   <h2>Dein Kurs auf einen Blick.</h2>
+   <h2>Karte &amp; Höhenprofil</h2>
    <p>GPX-basierte Streckenansicht, Höhenprofil und Wetterhinweise zur Laufrichtung.</p>
   </div>{loaded?.routeUrl&&<a href={loaded.routeUrl} target="_blank" rel="noreferrer">
    Originalkarte öffnen</a>}</div>
+  {routeEditor}
   {!loaded&&!error&&<p className="rrv-info">Lade deine gespeicherte Wettkampfstrecke …</p>}
   {komoot&&<div className="rrv-komoot">
    <div className="rrv-komoot-top"><strong>Komoot · Interaktive Karte & Höhenprofil</strong>
     <span>Direkt aus der gespeicherten Event-Strecke</span></div>
    <iframe title={'Komoot-Karte und Höhenprofil der Tour '+komoot.id}
-    src={komoot.url} loading="lazy" referrerPolicy="strict-origin-when-cross-origin"
+    src={komoot.url} loading="lazy" referrerPolicy="no-referrer"
     allowFullScreen/>
    <p>Offizielle Komoot-Einbettung. Bei privaten oder entfernten Touren kann die Karte
     eingeschränkt sein. Über „Originalkarte öffnen“ gelangst du immer direkt zur Quelle.</p>
   </div>}
   {loaded?.reason==='no_saved_route_link'&&
-   <p className="rrv-info">Bitte zuerst die Veranstaltungsdaten mit dem Streckenlink im Event Scout speichern.</p>}
+   <p className="rrv-info">Noch keine Strecke verknüpft. Ergänze die Challenge-Strecke hier oder nutze den Event Scout unter Goals.</p>}
   {loaded?.routeUrl&&<details className="rrv-gpx-advanced"><summary>Optionale GPX-Analyse für Gegenwindabschnitte</summary><div className="rrv-tools">
    <label className="rrv-file">GPX-Strecke auswählen
     <input type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml"

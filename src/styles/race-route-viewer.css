@@ -43,3 +43,7 @@
 .rrv-gpx-advanced>p{font-size:10px;color:#97aecf;line-height:1.5}
 .rrv-own-analysis{margin-top:12px;border-top:1px solid rgba(151,178,220,.2)}
 @media(max-width:560px){.rrv-komoot iframe{height:460px;min-height:370px}}
+
+/* Preserve the improved map viewport in Race Prep. */
+.rrv-komoot iframe{height:clamp(620px,53vw,820px);min-height:0;background:#f5f6f7}
+@media(max-width:560px){.rrv-komoot iframe{height:600px;min-height:0}}

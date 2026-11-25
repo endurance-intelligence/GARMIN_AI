@@ -10,7 +10,7 @@ import type {GoalRouteSummary} from '../lib/goalRouteSummary'
 type Goal={raceDate:string;raceName:string;raceLocation:string;raceStartTime?:string|null}
 type Details={eventKind?:string;routeUrl?:string|null;courseType?:string|null;venue?:string|null;venueAddress?:string|null;city?:string|null;finishVenue?:string|null;finishCity?:string|null;finishAddress?:string|null;startLatitude?:number|null;startLongitude?:number|null;ascentM?:number|null;routeNotes?:string|null}
 type ImportedTour={tourId:string;name:string|null;distanceM:number|null;ascentM:number|null;descentM:number|null;start:{latitude:number;longitude:number}|null}
-type RecordRow={event_title:string;details:Details;event_url:string}
+type RecordRow={event_title:string;race_date:string;details:Details;event_url:string}
 type Draft={route:string;course:string;start:string;city:string;venue:string;lat:string;lon:string;finish:string;finishCity:string;ascent:string;notes:string}
 const blank=(city=''):Draft=>({route:'',course:'',start:'',city,venue:'',lat:'',lon:'',finish:'',finishCity:'',ascent:'',notes:''})
 const courses=[['','Noch offen'],['out_and_back','Hin und zurück'],['loop','Rundkurs'],['point_to_point','A nach B'],['multi_loop','Mehrere Runden']]
@@ -24,7 +24,7 @@ async function request(body?:object){
  if(!res.ok)throw Error(result.error||'Zieldetails nicht verfügbar.')
  return result
 }
-export function ChallengeSetup({active,revision,onSaved,onEventScout,onRouteSummary}:{active:boolean;revision:number;onSaved:()=>void;onEventScout:()=>void;onRouteSummary?:(value:GoalRouteSummary|null)=>void}){
+export function ChallengeSetup({active,revision,onSaved,onEventScout,onRouteSummary,summaryOnly=false}:{active:boolean;revision:number;onSaved:()=>void;onEventScout?:()=>void;onRouteSummary?:(value:GoalRouteSummary|null)=>void;summaryOnly?:boolean}){
  const [goal,setGoal]=useState<Goal|null>(null),[saved,setSaved]=useState<Details|null>(null)
  const [draft,setDraft]=useState<Draft>(blank()),[editing,setEditing]=useState(false)
  const [imported,setImported]=useState<ImportedTour|null>(null),[importing,setImporting]=useState(false),[importMessage,setImportMessage]=useState(''),[importRetry,setImportRetry]=useState(0)
@@ -35,7 +35,7 @@ export function ChallengeSetup({active,revision,onSaved,onEventScout,onRouteSumm
   void request().then(data=>{
    if(!alive)return
    const g=data.goal as Goal
-   const row=(data.saved as RecordRow[]||[]).find(x=>x.event_title===g.raceName)||null
+   const row=(data.saved as RecordRow[]||[]).find(x=>x.event_title===g.raceName&&x.race_date===g.raceDate)||null
    setGoal(g);setSaved(row?.details||null);setDraft(row?asDraft(row.details,g.raceLocation):blank(g.raceLocation));setEditing(false)
   }).catch(e=>{if(alive){setGoal(null);setError(e instanceof Error?e.message:'Nicht verfügbar')}}).finally(()=>{if(alive)setLoading(false)})
   return ()=>{alive=false}
@@ -44,7 +44,7 @@ export function ChallengeSetup({active,revision,onSaved,onEventScout,onRouteSumm
  // An obsolete response may never update a different tour or goal.
  useEffect(()=>{
   setImported(null);setImportMessage('');setImporting(false)
-  if(!active||!editing||!goal||!komootEmbedFromTour(draft.route))return
+  if(!active||summaryOnly||!editing||!goal||!komootEmbedFromTour(draft.route))return
   let alive=true
   const link=draft.route
   const timer=window.setTimeout(()=>{
@@ -62,7 +62,7 @@ export function ChallengeSetup({active,revision,onSaved,onEventScout,onRouteSumm
    }).catch(()=>{if(alive)setImportMessage('Tourdaten nicht abrufbar. Karte oder GPX verwenden.')}).finally(()=>{if(alive)setImporting(false)})
   },650)
   return ()=>{alive=false;window.clearTimeout(timer)}
- },[active,editing,goal?.raceDate,goal?.raceName,draft.route,importRetry])
+ },[active,summaryOnly,editing,goal?.raceDate,goal?.raceName,draft.route,importRetry])
  function applyTour(){
   if(!imported||busy)return
   setDraft(d=>({...d,ascent:imported.ascentM===null?d.ascent:String(imported.ascentM),
@@ -113,14 +113,13 @@ export function ChallengeSetup({active,revision,onSaved,onEventScout,onRouteSumm
   }catch(e){setError(e instanceof Error?e.message:'Speichern fehlgeschlagen.')}
   finally{setBusy(false)}
  }
- if(!active)return null
- const route=komootEmbedFromTour(editing?draft.route:saved?.routeUrl||'')
+ if(!active||summaryOnly)return null
  const isChallenge=saved?.eventKind==='challenge'
- return <section className="challenge-setup" aria-label="Zieldetails und Strecke">
-  <header><div><span className="challenge-kicker">ROUTE</span><h2>Karte &amp; Höhenprofil</h2></div><div className="challenge-header-actions">{goal&&!loading&&<button className="challenge-edit-control" type="button" disabled={busy} onClick={()=>{setDraft(saved?asDraft(saved,goal.raceLocation):blank(goal.raceLocation));setEditing(x=>!x)}}><Icon name={editing?'x':'pencil'}/>{editing?'Abbrechen':isChallenge?'Bearbeiten':'Einrichten'}</button>}</div></header>
+ const canEdit=!saved||isChallenge
+ return <section className="challenge-setup challenge-editor" aria-label="Streckenkonfiguration">
+  <header><div className="challenge-header-actions">{goal&&!loading&&canEdit&&<button className="challenge-edit-control" type="button" disabled={busy} onClick={()=>{setDraft(saved?asDraft(saved,goal.raceLocation):blank(goal.raceLocation));setEditing(x=>!x)}}><Icon name={editing?'x':'pencil'}/>{editing?'Abbrechen':isChallenge?'Strecke bearbeiten':'Challenge-Strecke einrichten'}</button>}</div></header>
   {loading?<p role="status">Zieldetails werden geladen …</p>:goal&&<>
-   {!isChallenge&&!editing&&<div className="challenge-actions"><button className="challenge-scout-link" type="button" disabled={busy} onClick={onEventScout}>Offizielles Event recherchieren <Icon name="arrow-up-right"/></button></div>}
-   {!editing&&!route&&<p className="challenge-empty">Noch keine Tour verknüpft. Komoot-Link oder Streckendaten über Bearbeiten ergänzen.</p>}
+   {!isChallenge&&!editing&&onEventScout&&<div className="challenge-actions"><button className="challenge-scout-link" type="button" disabled={busy} onClick={onEventScout}>Offizielles Event in Goals verwalten <Icon name="arrow-up-right"/></button></div>}
    {editing&&<div className="challenge-form">
     <div className="challenge-wide challenge-route-input"><label>Komoot-Tour<input type="url" value={draft.route} placeholder="Komoot-Teilungslink einfügen" onChange={e=>update('route',e.target.value)}/></label>
      {komootEmbedFromTour(draft.route)&&<div className="challenge-import-status">
@@ -142,7 +141,7 @@ export function ChallengeSetup({active,revision,onSaved,onEventScout,onRouteSumm
     <label className="challenge-wide">Streckenhinweise<textarea rows={2} maxLength={240} value={draft.notes} onChange={e=>update('notes',e.target.value)}/></label>
     <button type="button" className="challenge-save" disabled={busy||importing} onClick={()=>void save()}>{busy?'Speichere …':'Challenge speichern'}</button>
    </div>}
-   {route&&<div className="challenge-map"><div className="challenge-map-toolbar"><span>Interaktive Komoot-Tour</span><a href={editing?draft.route:saved?.routeUrl||route.canonicalUrl} target="_blank" rel="noreferrer">In Komoot öffnen <Icon name="arrow-up-right"/></a></div><iframe title="Komoot-Strecke und Höhenprofil" src={route.url} loading="lazy" referrerPolicy="no-referrer" allowFullScreen/></div>}
+
   </>}
   {error&&<p role="alert" className="challenge-error">{error}</p>}{notice&&<p role="status">{notice}</p>}
  </section>

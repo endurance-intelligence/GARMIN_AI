@@ -3,6 +3,8 @@ import {Icon} from '../components/Icon'
 import {RaceEventDossier} from '../components/RaceEventDossier'
 import {RaceForecastCompact} from '../components/RaceForecastCompact'
 import {RaceRouteViewer} from '../components/RaceRouteViewer'
+import {ChallengeSetup} from '../components/ChallengeSetup'
+import '../styles/goals-page.css'
 import {RaceStrategyCard} from '../components/RaceStrategyCard'
 import type {Forecast} from '../lib/weatherIntelligence'
 import type {Point} from '../lib/gpxRaceRoute.mjs'
@@ -53,7 +55,8 @@ export function RacePage({active,onGo,focusWeatherToken=0}:{
     course={course} routePoints={routePoints} refreshKey={revision}
     onForecast={setRaceForecast}/>
    <RaceRouteViewer active={active} refreshKey={revision}
-    forecast={raceForecast} onTrack={setRoutePoints}/>
+    forecast={raceForecast} onTrack={setRoutePoints}
+    routeEditor={<ChallengeSetup active={active} revision={revision} onSaved={()=>window.dispatchEvent(new Event('garmin-ai-coach-changed'))} onEventScout={()=>onGo('goals')}/>}/>
   </RaceEventDossier>
  </section>
 }
