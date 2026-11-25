@@ -239,7 +239,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
     title:day.title,sessionType:'event',
     sport:day.kind==='mobility'?'strength':day.sport,
     notes:'Coach Intelligence · '+day.minutes+
-     ' Minuten. Nur Kalendereintrag, kein strukturiertes Lauftraining.'
+     ' Minuten. Nur Kalendereintrag, kein strukturiertes Lauftraining.'+(day.kind==='mobility'?' '+boundedCoachReason(day.reason):'')
    }
    const result=await ownerPost<{saved:boolean;id:string;revision:number;state:string}>(
     session,'garmin-training-plan',payload)

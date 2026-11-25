@@ -264,10 +264,38 @@ export function buildSevenDayCoach(input){
   if(daysPostRace!==null&&daysPostRace>0&&daysPostRace<=14){
    // The optional athlete warning check remains higher priority than Garmin
    // metrics. Other subjective ratings retain their original numeric advice.
-   if(raceCheck?.warning&&checkedRecently)
+   if(raceCheck?.warning)
     return make(day,'illness','Warnzeichen · Belastung abklären',null,
      'Du hast Warnzeichen gemeldet. Kein Laufvorschlag. Bei Brustschmerzen, Atemnot, '+
      'Schwindel oder starken Beschwerden medizinisch abklären.')
+   // Recovery is not a blanket ban on movement. Do not treat a missing
+   // optional barometer as clearance, and never replace a protected day.
+   const objectiveCaution=activeRaceRecovery&&autoRaceRecovery.signals.some(x=>
+    /HRV|Ruhepuls|Schlafdauer/i.test(x))
+   const lowReported=checkedRecently&&Number.isFinite(reportedExhaustion)&&reportedExhaustion<4
+   const unknownReported=!raceCheck||!checkedRecently
+   const staleHigh=!!raceCheck&&(!Number.isFinite(reportedExhaustion)||reportedExhaustion>=4)
+   const stableRecovery=activeRaceRecovery&&autoRaceRecovery.status==='matched'&&
+    !autoRaceRecovery.objectiveRecoveryUnknown&&!observationLimited&&!objectiveCaution&&
+    !caution&&!dayFeedbackCaution&&!feedbackCaution&&!trendReducing&&!trendShortening
+   const gentleMovement=daysPostRace>=3&&!objectiveCaution&&!dayFeedbackCaution&&
+    !feedbackCaution&&!trendReducing&&!trendShortening&&!staleHigh&&
+    (unknownReported||lowReported)
+   // A limited core session is an optional, explicit calendar draft,
+   // not the regular randomized strength session. Never plan it on race
+   // day or the first days, or on a day already assigned to something else.
+   const coreDay=(ultraRecovery?[4,7,10,13]:[3,6,9,12]).includes(daysPostRace)
+   if(coreDay&&day>=today&&gentleMovement&&stableRecovery&&
+    (lowReported||unknownReported))
+    return make(day,'mobility','Leichte Rumpfstabi / Mobility · 10 Min.',10,
+     'Nur wenn du dich aktuell erholt und beschwerdefrei fühlst: sanfte Mobilität, '+
+     'leichte Rumpfaktivierung (z. B. Dead Bug oder Bird Dog), ohne Ermüdung, Widerstand oder Beinlast. '+
+     'Kein reguläres Stabi-Workout, keine Sprünge, keine Kniebeugen oder Ausfallschritte. '+
+     'Bei Schmerzen oder ungewöhnlicher Müdigkeit auslassen. Freiwillig; am Tag selbst erneut prüfen.','strength')
+   const movementNote=gentleMovement?
+    ' Optional 5–10 Minuten sanfte Mobility ohne Dehnzwang oder Ermüdung, nur nach Wohlbefinden.':''
+   const crossNote=stableRecovery&&lowReported&&daysPostRace>=(ultraRecovery?7:5)?
+    ' Wenn bereits leichte Bewegung gut vertragen wurde: statt Laufen eventuell sehr lockeres Radfahren oder Rudern ohne Widerstandsspitzen; keine zusätzliche Einheit.':''
    if(!raceCheck||!checkedRecently)
     return make(day,'recovery','Regeneration nach dem Wettkampf',null,
      day>today?
@@ -275,7 +303,7 @@ export function buildSevenDayCoach(input){
       (activeRaceRecovery&&autoRaceRecovery.status==='matched'?
        'Die Garmin-Aufzeichnung ist erkannt. '+autoRaceRecovery.next+' ':
        'Keine eindeutige Garmin-Rennaufzeichnung verfügbar. Regeneration vor weiteren Laufvorschlägen. ')+
-      'Das Renn-Barometer ist freiwillig; fehlende Angaben gelten niemals als gute Erholung.')
+      'Das Renn-Barometer ist freiwillig; fehlende Angaben gelten niemals als gute Erholung.'+movementNote)
    if(raceCheck.warning)
     return make(day,'illness','Warnzeichen · Belastung abklären',null,
      'Du hast Warnzeichen gemeldet. Kein Laufvorschlag. Bei Brustschmerzen, Atemnot, '+
@@ -300,7 +328,7 @@ export function buildSevenDayCoach(input){
     return make(day,'recovery','Nach dem Rennen · ruhig regenerieren',null,
      'Subjektiv schon frischer ('+reportedExhaustion+'/10), aber '+daysPostRace+
      ' Tage nach '+(ultraRecovery?'einem langen Ultra':'dem Rennen')+
-     ' noch keine Laufeinheit automatisch freigeben.')
+     ' noch keine Laufeinheit automatisch freigeben.'+movementNote)
    if(!dataReady||caution||dayFeedbackCaution)
     return make(day,'recovery','Erholung & Garmin-Daten prüfen',null,
      'Barometer '+reportedExhaustion+'/10, aber Garmin-Verlauf oder Erholungssignale '+
@@ -308,7 +336,7 @@ export function buildSevenDayCoach(input){
    const minutes=ultraRecovery?20:25
    return make(day,'easy','Behutsam zurück · '+minutes+' Min. locker',minutes,
     'Barometer '+reportedExhaustion+'/10, '+daysPostRace+' Tage nach dem Rennen. '+
-    'Nur symptomfrei im Sprechtempo, keine Intervalle und kein Nachholen. Am Folgetag bewerten.')
+    'Nur symptomfrei im Sprechtempo, keine Intervalle und kein Nachholen. Am Folgetag bewerten.'+crossNote)
   }
   const option=options.find(o=>o.enabled&&o.weekday===weekday(day))
   const choice=option?choices.find(c=>c.training_date===day&&c.option_code===option.code)?.choice:null
@@ -417,7 +445,7 @@ export function buildSevenDayCoach(input){
   const hardSafety=['illness','blocked'].includes(item.kind)
   const cautionDay=caution||feedbackCaution||trendReducing||trendShortening||observationLimited||
    returning||postIllness||fourWeekReview.qualityCaution
-  const restAdvice=item.kind==='recovery'||hardSafety||item.kind==='completed'||
+  const restAdvice=item.kind==='recovery'||(recovering&&item.kind==='mobility')||hardSafety||item.kind==='completed'||
    (item.kind==='existing')||((recovering||cautionDay)&&group.sport==='football')
   const advice=restAdvice?'skip':recovering||cautionDay||['easy','return_easy'].includes(item.kind)?
    'easy':'review'
