@@ -34,14 +34,14 @@ test('Calendar defaults to schedule and preserves manual batch approval safely b
  assert.match(css,/\.hc-week-planner-summary\{display:flex/)
  assert.match(css,/\.hc-week-planner\[open\]/)
 })
-test('Calendar shows only small coach preview by default, with optional legacy direct draft creation',()=>{
+test('Calendar shows concise coach reason and optional direct draft creation',()=>{
  const cal=read('src/pages/CalendarPage.tsx')
  assert.match(cal,/Die persönliche Empfehlung|Du kannst sie im Coach annehmen, ablehnen oder ändern/)
  assert.match(cal,/<details className="hc-coach-manual">/)
  assert.match(cal,/Alternative: direkt im Kalender als Entwurf übernehmen/)
  assert.match(cal,/Ja, als Entwurf übernehmen/)
  assert.match(cal,/Im Coach entscheiden/)
- assert.doesNotMatch(cal,/<p>\{coachPreview.reason\}<\/p>/)
+ assert.match(cal,/<p>\{coachPreview.reason\}<\/p>/)
 })
 test('calendar omits repeat HRV, pulse and sleep blocks in every day header',()=>{
  const board=read('src/components/CalendarWeekBoard.tsx')
