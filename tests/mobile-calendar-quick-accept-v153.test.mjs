@@ -13,7 +13,7 @@ test('quick accept is only available for real open decisions; alternatives are r
 test('quick actions are real owner-confirmed writes; rest does not create a workout',()=>{
  const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
  const p=read('src/pages/CalendarPage.tsx'),b=read('src/components/CalendarWeekBoard.tsx')
- assert.match(b,/className="hwb-quick-accept"/)
+ assert.match(b,/className=\{'hwb-quick-accept hwb-quick-'\+item.choice\}/)
  assert.match(b,/onQuickAccept\(coach,item.choice\)/)
  assert.match(b,/Entwurf · 18:00/)
  assert.match(p,/action==='choose'\)\{onOpenCoach\(day.date\)/)

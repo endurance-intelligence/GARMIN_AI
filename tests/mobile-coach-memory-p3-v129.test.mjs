@@ -53,7 +53,8 @@ test('bounded private reason persists without changing exported workout or old c
 test('both Coach and calendar proposal paths persist the rationale',()=>{
  const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
  assert.match(read('src/components/CoachSevenDay.tsx'),/coachReason:boundedCoachReason\(day.reason\)/)
- assert.equal((read('src/pages/CalendarPage.tsx').match(/coachReason:boundedCoachReason\(day.reason\)/g)||[]).length,2)
+ assert.equal((read('src/pages/CalendarPage.tsx').match(/coachReason:boundedCoachReason\(day.reason\)/g)||[]).length,1)
+ assert.match(read('src/pages/CalendarPage.tsx'),/await acceptCoach\(day,true\)/)
  assert.match(read('src/components/CoachSevenDay.tsx'),/<CoachMemoryCard/)
  assert.equal(buildCoachMemory({today,snapshot:null}).status,'unavailable')
 })

@@ -157,10 +157,10 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
          <small>Details und Freigabe am ausgewählten Tag</small>
         </button>)}
         {coach&&<div key={'coach-'+day} className="hwb-coach-stack"><button type="button" onClick={()=>onSelect(day)}
-         className={'hwb-card is-coach'+(coach.kind==='race'?' is-race':coach.approvable?' is-coach-offer':' is-coach-info')}>
+         className={'hwb-card is-coach'+(coach.kind==='race'?' is-race':coach.approvable?' is-coach-offer':' is-coach-info')+(coach.decision==='declined'?' is-rejected':'')}>
          <span className="hwb-card-label">{coach.kind==='race'?
           '🏁 RENNTAG / HAUPTZIEL':coach.approvable?
-          '✦ COACH / VORSCHLAG':'✦ COACH / ANSAGE'}</span>
+          '✦ COACH / VORSCHLAG':coach.decision==='declined'?'✕ COACH / ABGELEHNT':'✦ COACH / ANSAGE'}</span>
          <strong>{coach.title}</strong>
          {coach.minutes!==null&&<span>{coach.minutes} Minuten{coach.decision?'':' · noch nicht eingetragen'}</span>}
          <small>{coach.decision==='accepted'?'Von dir angenommen · kein zusätzlicher Eintrag':
