@@ -13,7 +13,7 @@ export function CoachLongTermPlan({today,snapshot}:{
   today,goal:snapshot.goal,health:snapshot.health,life:snapshot.life,racePortfolio:snapshot.racePortfolio
  })
  const first=plan.weeks[0]
- return <details className="cltp-root" aria-label="Dein langfristiger Trainingsfahrplan">
+ return <details className="cltp-root" open aria-label="Dein langfristiger Trainingsfahrplan">
   <summary className="cltp-summary">
    <span className="cltp-symbol"><Icon name="calendar-range"/></span>
    <span className="cltp-summary-text">
@@ -27,7 +27,6 @@ export function CoachLongTermPlan({today,snapshot}:{
   </summary>
   <div className="cltp-body">
    <p className="cltp-intro">{plan.message}</p>
-   <p className="cltp-intro"><strong>Trainingsmethode: polarisiert.</strong> Viel locker, gezielt hart, kaum mittleres Dauertempo.</p>
    {plan.baselineKm!==null&&<p className="cltp-basis">
     Ausgangspunkt: deine letzten zwei Laufwochen mit ungefähr <strong>{plan.baselineKm} km/Woche</strong>.
     Die folgenden Umfänge sind Richtwerte, keine Trainingsfreigabe.

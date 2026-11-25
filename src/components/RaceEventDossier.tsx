@@ -6,13 +6,13 @@ import '../styles/race-event-dossier.css'
 
 type EventSummary={
  event_title:string;race_date:string;
- details?:{city?:string|null;courseType?:string|null;finishCity?:string|null}
+ details?:{city?:string|null;courseType?:string|null;finishCity?:string|null;startLatitude?:number|null;startLongitude?:number|null;venue?:string|null;venueAddress?:string|null}
 }
 type Goal={raceDate:string;raceName:string;raceLocation:string}
-export function RaceEventDossier({active,onEventCityChange,onCourseChange,children}:{
- active:boolean;
+export function RaceEventDossier({active,refreshKey=0,onEventCityChange,onCourseChange,children}:{
+ active:boolean;refreshKey?:number;
  onEventCityChange?:(city:string|null)=>void;
- onCourseChange?:(course:{courseType:string|null;finishCity:string|null}|null)=>void;
+ onCourseChange?:(course:{courseType:string|null;finishCity:string|null;startLatitude?:number|null;startLongitude?:number|null;startName?:string|null}|null)=>void;
  children:ReactNode
 }){
  const [saved,setSaved]=useState<EventSummary|null>(null)
@@ -40,12 +40,14 @@ export function RaceEventDossier({active,onEventCityChange,onCourseChange,childr
    onEventCityChange?.(typeof current?.details?.city==='string'?current.details.city:null)
    onCourseChange?.(current?{
     courseType:current.details?.courseType||null,
-    finishCity:current.details?.finishCity||null
+    finishCity:current.details?.finishCity||null,
+    startLatitude:current.details?.startLatitude??null,startLongitude:current.details?.startLongitude??null,
+    startName:current.details?.venueAddress||current.details?.venue||null
    }:null)
   })().catch(e=>{if(live&&e?.name!=='AbortError')
    setError(e instanceof Error?e.message:'Eventdaten derzeit nicht erreichbar.')})
   return ()=>{live=false;controller.abort()}
- },[active])
+ },[active,refreshKey])
  if(!active)return null
  const title=saved?.event_title||goal?.raceName||'Dein nächstes Rennen'
  const date=saved?.race_date||goal?.raceDate

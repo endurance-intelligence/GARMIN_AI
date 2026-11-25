@@ -34,7 +34,7 @@ const summary=(hours:WeatherHour[])=>{
  if(hours.some(x=>!x.isDay))changes.push('Dunkelheit')
  return {temp,feels,rain,gust,changes}
 }
-type CourseInfo={courseType:string|null;finishCity:string|null}
+type CourseInfo={courseType:string|null;finishCity:string|null;startLatitude?:number|null;startLongitude?:number|null;startName?:string|null}
 type RaceStage={label:string;fraction:number;km?:number;where:string;weather:WeatherHour}
 export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity,course,routePoints}:{
  active:boolean;refreshKey?:number;onForecast?:(report:Forecast|null)=>void;eventCity?:string|null;
@@ -52,7 +52,8 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity,co
  const loadedStage=useRef<{refreshKey:number;report:Forecast;race:Race;
   finishCity:string|null;routePoints:Point[]|null}|null>(null)
  useEffect(()=>{
-  const key=refreshKey+'|'+(eventCity||'')
+  const precise=typeof course?.startLatitude==='number'&&typeof course?.startLongitude==='number'&&Number.isFinite(course.startLatitude)&&Number.isFinite(course.startLongitude)&&Math.abs(course.startLatitude)<=90&&Math.abs(course.startLongitude)<=180
+  const key=refreshKey+'|'+(eventCity||'')+'|'+(precise?course!.startLatitude+':'+course!.startLongitude+':'+(course!.startName||''):'city')
   // A navigation change must not clear the previously fetched weather report.
   if(!active||loadedWeatherKey.current===key)return
   let cancelled=false
@@ -63,9 +64,9 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity,co
     if(cancelled)return
     setRace(goal)
     const location=(eventCity||goal?.race_location||'').trim()
-    if(!location)return
-    const choices=await findPlaces(location)
-    const exact=choices.find(x=>x.name.toLocaleLowerCase('de-DE')===location.toLocaleLowerCase('de-DE'))||choices[0]
+    if(!location&&!precise)return
+    const choices=precise?[]:await findPlaces(location)
+    const exact=precise?{name:course!.startName||location||'Startpunkt',latitude:course!.startLatitude!,longitude:course!.startLongitude!}:choices.find(x=>x.name.toLocaleLowerCase('de-DE')===location.toLocaleLowerCase('de-DE'))||choices[0]
     if(!exact)throw Error('Wetterort nicht gefunden.')
     const data=await getWeather(exact)
     if(cancelled)return
@@ -74,7 +75,7 @@ export function RaceForecastCompact({active,refreshKey=0,onForecast,eventCity,co
    finally{if(!cancelled)setLoading(false)}
   })()
   return ()=>{cancelled=true}
- },[active,refreshKey,eventCity])
+ },[active,refreshKey,eventCity,course?.startLatitude,course?.startLongitude,course?.startName])
  useEffect(()=>{
   if(!active||course?.courseType!=='point_to_point'||!report||!race)return
   const existing=loadedStage.current

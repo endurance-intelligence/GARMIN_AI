@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react'
 
 export type VenueSuggestion={
- name:string;city:string;address:string|null;subtitle:string;source:string;hasFullAddress:boolean
+ name:string;city:string;address:string|null;subtitle:string;source:string;hasFullAddress:boolean;latitude?:number;longitude?:number
 }
 export function VenueAutocomplete({value,city,disabled,onChange,onPick,request}:{
  value:string;city:string;disabled?:boolean;

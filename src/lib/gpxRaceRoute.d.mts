@@ -10,3 +10,5 @@ export function routeSvg(points:Point[],width?:number,height?:number):{
 export function windSegments(points:Point[],windFromDeg:number,windKmh:number,minimumKmh?:number):{
  fromKm:number;toKm:number;headwindKmh:number
 }[]
+
+export function inferCourseType(points:Point[]):'point_to_point'|'out_and_back'|'loop'|null

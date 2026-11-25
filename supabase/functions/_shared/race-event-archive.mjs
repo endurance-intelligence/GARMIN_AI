@@ -26,7 +26,7 @@ export function formatVenueSuggestions(features,cityHint=''){
   if(seen.has(id))continue;
   seen.add(id);
   out.push({name:name.slice(0,150),city:(city||cityHint).slice(0,100),address,
-   subtitle:shortAddress.slice(0,190),source,hasFullAddress:complete});
+   subtitle:shortAddress.slice(0,190),source,hasFullAddress:complete,latitude:coords[1],longitude:coords[0]});
   if(out.length===6)break;
  }
  return out;

@@ -73,7 +73,7 @@ test('race forecast location comes from saved event city, with goal as fallback'
  const scout=read('src/components/RaceEventResearch.tsx')
  const page=read('src/pages/RacePage.tsx')
  assert.match(viewer,/const location=\(eventCity\|\|goal\?\.race_location\|\|''\)/)
- assert.match(viewer,/\[active,refreshKey,eventCity\]/)
+ assert.match(viewer,/\[active,refreshKey,eventCity,course\?\.startLatitude,course\?\.startLongitude,course\?\.startName\]/)
  assert.match(scout,/onEventCityChange\?\.\(/)
  assert.match(page,/onEventCityChange=\{setEventCity\}/)
 })

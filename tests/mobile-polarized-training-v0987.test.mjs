@@ -132,7 +132,7 @@ test('long-range Coach offers maximum one hard quality option only outside taper
  assert.equal(thisRace.weeks[0].qualityOptions,0)
  assert.match(thisRace.weeks[0].polarization,/Keine harte Einheit/)
 })
-test('Goals owns a source-linked explanation and Coach shows only one compact method line',()=>{
+test('Method remains source-linked without a duplicate Goals card',()=>{
  const ui=read('src/components/PolarizedMethodCard.tsx')
  const goals=read('src/pages/GoalsPage.tsx')
  const coach=read('src/components/CoachSevenDay.tsx')
@@ -142,7 +142,7 @@ test('Goals owns a source-linked explanation and Coach shows only one compact me
  assert.match(ui,/POLARIZED_METHOD\.citation/)
  assert.match(ui,/Fußball/)
  assert.match(ui,/Wir erfinden keine Herzfrequenzgrenzen/)
- assert.match(goals,/<PolarizedMethodCard\/>/)
+ assert.doesNotMatch(goals,/<PolarizedMethodCard\/>/)
  assert.match(coach,/className="c7-polarized-method"/)
  assert.match(macro,/week\.qualityOptions>0/)
  assert.match(read('src/lib/coachSevenDay.mjs'),/applyPolarizedGuidance\(toleranceStep\.days,/)

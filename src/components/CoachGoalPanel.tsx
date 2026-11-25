@@ -160,7 +160,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
  </section>
  return <section className={'cg-root'+(compact?' cg-compact':'')} aria-label="Trainingsziel und Vorbereitungsphase">
   <div className="cg-head">
-   <span className="cg-kicker">COACH / MEIN ZIEL</span>
+   <span className="cg-kicker">MEIN HAUPTZIEL</span>
    <span className={'cg-state'+(goal?' is-active':'')}>{goalIsPast?'VERGANGENER WETTKAMPF':goal?'AKTIVES ZIEL':'NEUES ZIEL · NOCH NICHT GESPEICHERT'}</span>
   </div>
   {goal&&<div className="cg-summary">
@@ -169,7 +169,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
     <div className="cg-tags"><span>{distanceText} km</span>
      {current.target_hours&&<span>Ziel {Number(current.target_hours).toLocaleString('de-DE')} h</span>}
      <span>{phase.title}</span></div>
-    <p className="cg-guidance">{phase.guidance}</p>
+    {goalIsPast&&<p className="cg-guidance">{phase.guidance}</p>}
    </div>
    <div className="cg-countdown"><strong>{phase.daysUntil>0?days:phase.daysUntil===0?'GO':'–'}</strong>
     <small>{phase.daysUntil>0?'TAGE BIS START':phase.daysUntil===0?'HEUTE':'ZIELÜBERBLICK'}</small></div>
@@ -195,7 +195,7 @@ export function CoachGoalPanel({active,compact=false,onEdit,onSaved,logoUrl,onFo
      <small>{goal?'Korrekturen an diesem Rennen. Für ein neues Rennen bitte Neues Ziel verfolgen nutzen.':'Neues Wettkampfziel anlegen'}</small></div>
     <GoalLogoEditor value={logoDraft===undefined?eventLogo:logoDraft} onChange={setLogoDraft} disabled={saving} onPreparing={setLogoPreparing}/>
     <div className="cg-fields">
-     <label>Wettkampf<input value={draft.raceName} maxLength={100}
+     <label>Zielname<input value={draft.raceName} maxLength={100}
       onChange={e=>setDraft(d=>({...d,raceName:e.target.value}))} placeholder="Name des Wettkampfs"/></label>
      <label>Datum<input type="date" value={draft.raceDate}
       onChange={e=>setDraft(d=>({...d,raceDate:e.target.value}))}/></label>

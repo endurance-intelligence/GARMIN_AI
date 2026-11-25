@@ -89,3 +89,29 @@ export function windSegments(points,windFromDeg,windKmh,minimumKmh=10){
  }
  return buckets.sort((a,b)=>b.headwindKmh-a.headwindKmh).slice(0,3)
 }
+
+/** Route topology from GPS geometry; approximate, not a substitute for the athlete's choice.
+ * Compare equal-distance positions in reverse order to distinguish a loop from out-and-back.
+ */
+export function inferCourseType(points){
+ if(!Array.isArray(points)||points.length<3)return null
+ const model=routeSvg(points)
+ if(!model||model.totalM<300)return null
+ const gap=haversine(points[0],points[points.length-1])
+ const threshold=Math.max(50,Math.min(250,model.totalM*.015))
+ if(gap>threshold)return 'point_to_point'
+ const at=distance=>{
+  let i=1;while(i<model.cumulative.length-1&&model.cumulative[i]<distance)i++
+  const a=points[i-1],b=points[i],span=model.cumulative[i]-model.cumulative[i-1]
+  const f=span>0?(distance-model.cumulative[i-1])/span:0
+  return [a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f]
+ }
+ let matches=0
+ for(let i=1;i<=16;i++){
+  const d=model.totalM*i/34
+  if(haversine(at(d),at(model.totalM-d))<=Math.max(60,Math.min(180,model.totalM*.004)))matches++
+ }
+ if(matches>=14)return 'out_and_back'
+ if(matches<=5)return 'loop'
+ return null
+}

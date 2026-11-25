@@ -31,3 +31,42 @@
 .rgp-focus-list>summary{cursor:pointer;color:#dbe6fc;font-size:13px;padding:10px 0;min-height:40px}
 .rgp-focus-list>summary:focus-visible{outline:2px solid #b4dbff;outline-offset:2px}
 .goals-page .gpg-next{margin:12px 0 16px}
+
+/* v1.3.8: a single objective, crisp large type, no dashboard clutter. */
+.goals-page{--goal-ink:#f2f6fc;--goal-muted:#a8b8cc;--goal-accent:#a8e6c0}
+.goals-page .cg-root:not(.cg-compact){padding:clamp(18px,3vw,32px);border-radius:20px;background:radial-gradient(ellipse at top right,#243b42 0,transparent 52%),#151f2e;border-color:#344b50}
+.goals-page .cg-summary h2{font-size:clamp(26px,4vw,40px);letter-spacing:-.04em}
+.goals-page .cg-countdown{border:0;background:transparent;min-height:96px}
+.goals-page .cg-countdown strong{color:var(--goal-accent);font-size:clamp(40px,6vw,72px)}
+.goals-page .cg-tags span{background:#1e303c;border-color:#3b505c}
+.goals-page .cg-home-edit{min-height:40px;font-size:13px;text-decoration:none!important;border:1px solid #526777;padding:8px 14px;border-radius:9px}
+.challenge-setup{margin:14px 0 20px;padding:clamp(16px,2.4vw,24px);background:#151f2e;border:1px solid #344354;border-radius:18px;color:var(--goal-ink);min-width:0}
+.challenge-setup header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.challenge-kicker{font-size:10px;letter-spacing:.12em;font-weight:750;color:var(--goal-muted)}
+.challenge-setup h2{font-size:23px;margin:5px 0 10px;letter-spacing:-.025em}
+.challenge-mode{font-size:11px;color:var(--goal-accent);border:1px solid #47685a;border-radius:7px;padding:5px 9px}
+.challenge-actions{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 16px}
+.challenge-setup button,.goals-analysis-link{min-height:44px;padding:9px 14px;border-radius:9px;border:1px solid #506579;color:var(--goal-ink);background:#233344;cursor:pointer;font:inherit;font-size:13px;font-weight:700}
+.challenge-setup button:disabled{opacity:.5;cursor:default}
+.challenge-setup button:focus-visible,.challenge-setup input:focus-visible,.challenge-setup select:focus-visible{outline:2px solid var(--goal-accent);outline-offset:2px}
+.challenge-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.challenge-facts>div{display:grid;gap:5px;min-width:0;border-top:1px solid #344354;padding-top:12px}
+.challenge-facts small{font-size:10px;color:var(--goal-muted);letter-spacing:.06em}
+.challenge-facts strong{font-size:clamp(14px,2vw,20px);overflow-wrap:anywhere}
+.challenge-form,.challenge-coord-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.challenge-form label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:650;color:var(--goal-muted);min-width:0}
+.challenge-form input,.challenge-form select,.challenge-form textarea{width:100%;box-sizing:border-box;border:1px solid #42586b;border-radius:9px;background:#101926;color:var(--goal-ink);font:inherit;padding:10px;min-height:44px;min-width:0}
+.challenge-wide,.challenge-coords{grid-column:1/-1}
+.challenge-coords summary{cursor:pointer;color:var(--goal-muted);padding:10px 0;font-size:13px}
+.challenge-setup .challenge-save{background:#a8e6c0;color:#12251e;border:0;justify-self:start}
+.challenge-map{margin-top:16px;min-width:0}
+.challenge-map iframe{width:100%;height:380px;border:0;border-radius:12px;background:#e5e9eb}
+.challenge-map small,.challenge-coords small{font-size:11px;color:var(--goal-muted);line-height:1.5;display:block;margin-top:8px}
+.challenge-error{color:#ffb9b0}
+.goals-page .cltp-root{border-radius:18px}
+.goals-page .cltp-week{border-left:3px solid #597f8d}
+.goals-page .cltp-phase-recovery{border-left-color:#a8e6c0}
+.goals-page .cltp-phase-taper{border-left-color:#a8baff}
+.goals-page .cltp-phase-race{border-left-color:#d7b0ff}
+.goals-analysis-link{margin:12px 0;color:var(--goal-muted);background:transparent}
+@media(max-width:600px){.challenge-form,.challenge-coord-grid{grid-template-columns:1fr}.challenge-map iframe{height:300px}.challenge-facts{gap:8px}.goals-page .cg-countdown{flex-basis:80px}}
