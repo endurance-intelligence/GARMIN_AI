@@ -1,11 +1,13 @@
 import type {CoachDailyBrief as Brief} from '../lib/coachDailyBrief.mjs'
 import {Icon} from './Icon'
 import type {ReactNode} from 'react'
+import {CoachAvatar} from './CoachAvatar'
+import type {CoachMood} from '../lib/coachPersonality.mjs'
 import '../styles/coach-daily-brief.css'
 
 const dateLabel=(d:string)=>d.slice(8,10)+'.'+d.slice(5,7)+'.'+d.slice(0,4)
-export function CoachDailyBrief({brief,onDecision,onReportSymptoms,weather}:{
- brief:Brief;onDecision:()=>void;onReportSymptoms:()=>void;weather?:ReactNode
+export function CoachDailyBrief({brief,onDecision,onReportSymptoms,weather,mood='neutral'}:{
+ brief:Brief;onDecision:()=>void;onReportSymptoms:()=>void;weather?:ReactNode;mood?:CoachMood
 }){
  const cautious=['illness','recovery','blocked'].includes(brief.kind)||
   Boolean(brief.race?.daysSince!==undefined&&brief.race.daysSince<=5)
@@ -16,6 +18,7 @@ export function CoachDailyBrief({brief,onDecision,onReportSymptoms,weather}:{
    <time dateTime={brief.date}>{dateLabel(brief.date)}</time>
   </div>
   <div className="cdb-hero-main">
+   <CoachAvatar mood={mood}/>
    <div className="cdb-context">
     <span className="cdb-label">{brief.label}</span>
     <h2>{brief.title}</h2>

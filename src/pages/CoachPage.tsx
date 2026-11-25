@@ -9,6 +9,7 @@ import {berlinToday} from '../components/WeeklyTrainingOptions'
 import {CoachDailyBrief} from '../components/CoachDailyBrief'
 import {AskCoachCard} from '../components/AskCoachCard'
 import {buildSevenDayCoach} from '../lib/coachSevenDay.mjs'
+import {coachMood} from '../lib/coachPersonality.mjs'
 import {buildCoachDailyBrief} from '../lib/coachDailyBrief.mjs'
 import {garminSupabase} from '../lib/garminSupabase'
 import {loadCoachSnapshot} from '../lib/coachSnapshot'
@@ -105,7 +106,7 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
   
  </p>}
  {dailyBrief&&!snapshotLoading&&!snapshotError&&<CoachDailyBrief brief={dailyBrief}
-  onDecision={openCoachDecision}
+  mood={coachMood(dailyPlan,coachToday)} onDecision={openCoachDecision}
   onReportSymptoms={()=>setHealthOpenToken(n=>n+1)}
   weather={<CoachTodayWeather active={active} snapshot={sharedSnapshot!} plan={dailyPlan!} onReport={setWeatherAnswer}/>}/>}
 
@@ -120,7 +121,7 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
   </CoachGlance>}
  <div id="coach-ask" className="co-chat-space">
  {sharedSnapshot&&dailyPlan&&!snapshotLoading&&!snapshotError&&<AskCoachCard
-  today={coachToday} snapshot={sharedSnapshot} plan={dailyPlan} weather={weatherAnswer}
+  active={active} today={coachToday} snapshot={sharedSnapshot} plan={dailyPlan} weather={weatherAnswer} mood={coachMood(dailyPlan,coachToday)}
   onDecision={openCoachDecision} onProgress={openProgressHistory}
   onGoals={()=>onGo('goals')} onSymptoms={()=>setHealthOpenToken(n=>n+1)}/>}
  </div>
