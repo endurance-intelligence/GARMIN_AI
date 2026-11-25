@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import type {Forecast,WeatherHour} from '../lib/weatherIntelligence'
-import {parseGpxTrack,routeSvg,windSegments} from '../lib/gpxRaceRoute.mjs'
+import {parseGpxTrack,inferCourseType,routeSvg,windSegments} from '../lib/gpxRaceRoute.mjs'
 import {komootEmbedFromTour} from '../lib/komootEmbed.mjs'
 import type {Point} from '../lib/gpxRaceRoute.mjs'
 import '../styles/race-route-viewer.css'
@@ -69,6 +69,7 @@ export function RaceRouteViewer({active,refreshKey=0,forecast,onTrack}:{active:b
  const komoot=komootEmbedFromTour(loaded?.routeUrl||null)
  const points=draft?.points||loaded?.route?.coordinates||[]
  const model=routeSvg(points)
+ const inferred=inferCourseType(points)
  const selected=model?Math.round(position/100*(model.positions.length-1)):0
  const selectedPoint=model?.positions[selected]
  const altitudes=points.filter(p=>p.length===3).map(p=>p[2])
@@ -125,6 +126,7 @@ export function RaceRouteViewer({active,refreshKey=0,forecast,onTrack}:{active:b
     </svg>
     <small>Schematische GPS-Streckenansicht – für die vollständige Basiskarte „Originalkarte öffnen“ nutzen.</small>
    </div>
+   <p className="rrv-info">Streckentyp aus GPS-Geometrie: {inferred==='out_and_back'?'Hin und zurück':inferred==='loop'?'Rundkurs (Start und Ziel nahe beieinander)':inferred==='point_to_point'?'A nach B':'Nicht eindeutig erkennbar'} · Vorschlag, bitte prüfen.</p>
    <div className="rrv-info-grid">
     <span><b>{(model.totalM/1000).toLocaleString('de-DE',{maximumFractionDigits:2})} km</b> GPS-Distanz</span>
     <span><b>{Math.round(draft?.ascentM||loaded?.route?.ascent_m||0)} m</b> Anstieg (GPX)</span>

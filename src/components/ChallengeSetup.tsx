@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
+import {parseGpxTrack,inferCourseType} from '../lib/gpxRaceRoute.mjs'
 import {komootEmbedFromTour} from '../lib/komootEmbed.mjs'
 import {VenueAutocomplete} from './VenueAutocomplete'
 import type {VenueSuggestion} from './VenueAutocomplete'
@@ -40,6 +41,17 @@ export function ChallengeSetup({active,revision,onSaved,onEventScout}:{active:bo
   const data=await request({action:'suggest_venues',raceDate:goal?.raceDate,query,city})
   return Array.isArray(data.suggestions)?data.suggestions:[]
  },[goal?.raceDate])
+ async function inspectGpx(file:File|undefined){
+  if(!file||busy)return
+  setError('');setNotice('')
+  try{
+   if(file.size>4*1024*1024)throw Error('Bitte GPX-Datei bis 4 MB auswählen.')
+   const track=parseGpxTrack(await file.text()),inferred=inferCourseType(track.points),first=track.points[0]
+   const altitudeAvailable=track.points.every(p=>p.length===3)
+   setDraft(d=>({...d,course:inferred||d.course,lat:String(first[0]),lon:String(first[1]),ascent:altitudeAvailable?String(Math.round(track.ascentM)):d.ascent}))
+   setNotice('GPX ausgewertet: '+(track.distanceM/1000).toLocaleString('de-DE',{maximumFractionDigits:1})+' km. Startkoordinaten und erkannte Angaben bitte prüfen. Die Ziel-Distanz bleibt unverändert. GPS-Strecke bei Bedarf in Race Prep speichern.')
+  }catch(e){setError(e instanceof Error?e.message:'GPX nicht lesbar.')}
+ }
  const update=(key:keyof Draft,value:string)=>setDraft(d=>({...d,[key]:value}))
  const pick=(item:VenueSuggestion)=>setDraft(d=>({...d,start:item.address||item.name,venue:item.name,city:item.city,lat:item.latitude==null?'':String(item.latitude),lon:item.longitude==null?'':String(item.longitude)}))
  async function save(){
@@ -74,6 +86,7 @@ export function ChallengeSetup({active,revision,onSaved,onEventScout}:{active:bo
    </div>}
    {editing&&<div className="challenge-form">
     <label>Komoot-Tour<input type="url" value={draft.route} placeholder="https://www.komoot.com/de-de/tour/…" onChange={e=>update('route',e.target.value)}/></label>
+    <label>GPX analysieren (optional)<input type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" disabled={busy} onChange={e=>{void inspectGpx(e.target.files?.[0]);e.target.value=''}}/></label>
     <label>Streckentyp<select value={draft.course} onChange={e=>update('course',e.target.value)}>{courses.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
     <label>Stadt / Region<input value={draft.city} maxLength={100} onChange={e=>{setDraft(d=>({...d,city:e.target.value,lat:'',lon:''}))}}/></label>
     <div><label>Genauer Startpunkt</label><VenueAutocomplete value={draft.start} city={draft.city} disabled={busy} request={suggest} onPick={pick} onChange={v=>setDraft(d=>({...d,start:v,venue:'',lat:'',lon:''}))}/></div>
