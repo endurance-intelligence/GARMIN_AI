@@ -61,8 +61,8 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
  const alreadyDecided=day.decision==='declined'||day.decision==='accepted'
  return <section className="cdl-root" aria-label="Echte Coach-Entscheidung mit Begründung">
   <header className="cdl-head">
-   <div><span className="cdl-kicker"><Icon name="sparkles"/> COACH INTELLIGENCE · LIVE</span>
-    <h3>Deine nächste Entscheidung.</h3></div>
+   <div><span className="cdl-kicker"><Icon name="sparkles"/> DEIN TAG</span>
+    <h3>Deine nächste Entscheidung</h3></div>
    <span className="cdl-owner">Du entscheidest. Keine automatische Änderung.</span>
   </header>
   <div className="cdl-grid">
@@ -112,8 +112,7 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
        <button className="cdl-secondary cdl-custom" type="button" disabled={saving}
         onClick={()=>onCustom(day.date)}><Icon name="pencil"/> Eigener Vorschlag</button>
       </>}
-      <button className="cdl-secondary cdl-week-link" type="button" onClick={onPlan}>
-       Ganze Woche <Icon name="arrow-up-right"/></button>
+
      </div>
      <p className="cdl-smallprint">Keine automatische Änderung deines Trainingsplans.
       Deine Wahl wird gespeichert. Ein Workout bleibt ein Entwurf bis zur separaten Freigabe.</p>
@@ -122,7 +121,7 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
    <article className="cdl-why">
     <div className="cdl-why-head"><span className="cdl-overline">THE REASONING / ECHTE DATEN</span>
      <span className="cdl-star" aria-hidden="true">✦</span></div>
-    <h4>Warum dieser<br/>Vorschlag?</h4>
+    <h4>Warum dieser Vorschlag?</h4>
     <div className="cdl-specific"><strong>Für {dated(day.date)}:</strong> {x.reason}</div>
     {evidenceLoading&&<p className="cdl-evidence-loading">Prüfe die letzte Garmin-Einheit und Intervals.icu …</p>}
     <details className="cdl-why-detail">

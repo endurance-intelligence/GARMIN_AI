@@ -1,5 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
 import {createPortal} from 'react-dom'
+import {Icon} from '../components/Icon'
 import {SyncCenter} from '../components/SyncCenter'
 import {CoachTodayWeather} from '../components/CoachTodayWeather'
 import {CoachGlance} from '../components/CoachGlance'
@@ -19,6 +20,7 @@ import {garminSupabase} from '../lib/garminSupabase'
 import {loadCoachSnapshot} from '../lib/coachSnapshot'
 import type {CoachSnapshot} from '../lib/coachSnapshot'
 import '../styles/coach-glance.css'
+import '../styles/coach-roadmap.css'
 import type {Page} from '../navigation'
 
 export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,onOpenSession}: {
@@ -69,9 +71,10 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
   const openCoachDecision=()=>{
    const section=document.getElementById('c7-week-overview')
    section?.scrollIntoView({behavior:'smooth',block:'start'})
-   const current=section?.querySelector<HTMLButtonElement>('button[aria-selected="true"]')
-   current?.focus({preventScroll:true})
+   const current=section?.querySelector<HTMLButtonElement>('button[data-coach-date="'+coachToday+'"]')
+   if(current&&!current.disabled){current.click();current.focus({preventScroll:true})}
   }
+  const openAskCoach=()=>{const el=document.getElementById('coach-ask');if(el instanceof HTMLDetailsElement){el.open=true;el.scrollIntoView({behavior:'smooth',block:'start'});el.querySelector('input')?.focus({preventScroll:true})}}
   const openProgressHistory=()=>window.dispatchEvent(new Event('garmin-ai-open-long-term-progress'))
   const closeRef=useRef<HTMLButtonElement|null>(null)
   useEffect(()=>{
@@ -95,10 +98,11 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
  <header className="co-header">
   <div className="co-header-left">
    <span className="co-eyebrow">GARMIN_AI / COACH</span>
-   <h1>Dein Laufcoach. Jeden Tag.</h1>
-   <p>Deine Empfehlung, die Begründung und dein nächster Schritt.</p>
+   <h1>Dein Coach</h1>
+   <p>I fall. I rise. I show up. I improve.</p>
   </div>
   <div className="co-header-actions">
+   <button type="button" className="co-ask-action" disabled={!dailyPlan||snapshotLoading||snapshotError} onClick={openAskCoach}><Icon name="message-circle"/> Coach fragen</button>
    <CoachHealthStatus active={active} openToken={healthOpenToken} life={sharedSnapshot?.life}
     onChanged={()=>window.dispatchEvent(new Event('garmin-ai-coach-changed'))}/>
    <button type="button" className="co-weight-action" aria-haspopup="dialog"
@@ -116,22 +120,29 @@ export function CoachPage({active,focus,onGo,onOpenCalendar,onOpenRaceWeather,on
  {dailyBrief&&!snapshotLoading&&!snapshotError&&<CoachDailyBrief brief={dailyBrief}
   onDecision={openCoachDecision}
   onReportSymptoms={()=>setHealthOpenToken(n=>n+1)}/>}
- {sharedSnapshot&&dailyPlan&&!snapshotLoading&&!snapshotError&&<AskCoachCard
-  today={coachToday} snapshot={sharedSnapshot} plan={dailyPlan}
-  onDecision={openCoachDecision} onProgress={openProgressHistory}
-  onGoals={()=>onGo('goals')} onSymptoms={()=>setHealthOpenToken(n=>n+1)}/>}
+
 
  {snapshotLoading&&!sharedSnapshot&&!snapshotError&&<p className="co-data-note" role="status">
   Lade deine Garmin-, Kalender- und Coach-Daten gemeinsam …</p>}
  {snapshotError&&<p className="co-data-note" role="status">
   Gemeinsamer Coach-Snapshot nicht vollständig erreichbar. Die einzelnen Bereiche prüfen ihre Daten separat.</p>}
  {(!snapshotLoading||sharedSnapshot||snapshotError)&&<>
-  <CoachGlance active={active} onCalendar={()=>onOpenCalendar()} sharedSnapshot={sharedSnapshot}>
+  <CoachGlance active={active} onCalendar={()=>onOpenCalendar()} sharedSnapshot={sharedSnapshot} compactToday={!!dailyBrief&&!snapshotLoading&&!snapshotError}>
    <CoachTodayWeather active={active}/>
   </CoachGlance>
   <CoachSevenDay active={active} focus={focus} onCalendar={onOpenCalendar} sharedSnapshot={sharedSnapshot}
    onRacePrep={()=>onGo('race')}/>
  </>}
+ <details className="co-extra co-ask-details" id="coach-ask">
+  <summary><span><Icon name="message-circle"/> Frag deinen Coach</span></summary>
+  <div className="co-extra-content">
+ {sharedSnapshot&&dailyPlan&&!snapshotLoading&&!snapshotError&&<AskCoachCard
+  today={coachToday} snapshot={sharedSnapshot} plan={dailyPlan}
+  onDecision={openCoachDecision} onProgress={openProgressHistory}
+  onGoals={()=>onGo('goals')} onSymptoms={()=>setHealthOpenToken(n=>n+1)}/>}
+   {(!sharedSnapshot||!dailyPlan||snapshotLoading||snapshotError)&&<p className="co-data-note">Coach-Daten werden benötigt, um deine Fragen zu beantworten.</p>}
+  </div>
+ </details>
  <details className="co-extra co-focus-details" id="coach-goals-weather">
   <summary>Aktuelles Ziel</summary>
   <div className="co-extra-content">
