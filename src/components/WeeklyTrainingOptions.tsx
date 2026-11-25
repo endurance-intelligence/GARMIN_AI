@@ -11,6 +11,7 @@ import type {Forecast,WeatherPlace} from '../lib/weatherIntelligence'
 import '../styles/weekly-training-options.css'
 import {completedWeeklyOption} from '../lib/weeklyOptionCompletion'
 import type {EvidenceActivity} from '../lib/weeklyOptionCompletion'
+import type {CoachDay} from '../lib/coachSevenDay.mjs'
 
 type TrainingOption={
  code:string;weekday:number;start_time:string;timezone:string;
@@ -55,12 +56,13 @@ async function requestOptions(body?:Record<string,unknown>):Promise<Record<strin
 const dayLabels=['','Mo','Di','Mi','Do','Fr','Sa','So']
 const fullDate=(s:string)=>s.slice(8,10)+'.'+s.slice(5,7)+'.'
 const metric=(n:number)=>Number.isFinite(n)?Math.round(n).toLocaleString('de-DE'):'–'
-export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDate}:{
- active:boolean;weekStart:string;compact?:boolean;selectedDate?:string
+export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDate,coachDays=[],coachLoading=false,coachError=''}:{
+ active:boolean;weekStart:string;compact?:boolean;selectedDate?:string;coachDays?:CoachDay[];coachLoading?:boolean;coachError?:string
 }){
  const [items,setItems]=useState<TrainingOption[]>([])
  const [choices,setChoices]=useState<SavedChoice[]>([])
  const [actual,setActual]=useState<EvidenceActivity[]>([])
+ const [actualWeek,setActualWeek]=useState<string|null>(null)
  const [forecast,setForecast]=useState<Record<string,Forecast>>({})
  const [loading,setLoading]=useState(false)
  const [busy,setBusy]=useState<string|null>(null)
@@ -70,7 +72,7 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDa
  useEffect(()=>{
   if(!active)return
   let mounted=true
-  setLoading(true);setError('')
+  setLoading(true);setError('');setItems([]);setChoices([])
   void requestOptions().then(result=>{
    if(!mounted)return
    const data=result as unknown as OptionsResponse
@@ -83,6 +85,7 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDa
  useEffect(()=>{
   if(!active)return
   let mounted=true
+  setActual([]);setActualWeek(null)
   void (async()=>{
    if(!garminSupabase)return
    const {data:{session}}=await garminSupabase.auth.getSession()
@@ -91,7 +94,7 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDa
     cache:'no-store',headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey}})
    if(!response.ok)return
    const result=await response.json() as {activities?:EvidenceActivity[]}
-   if(mounted)setActual(Array.isArray(result.activities)?result.activities:[])
+   if(mounted&&Array.isArray(result.activities)){setActual(result.activities);setActualWeek(weekStart)}
   })().catch(()=>{if(mounted)setActual([])})
   return ()=>{mounted=false}
  },[active,weekStart])
@@ -110,14 +113,14 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDa
   })
   return ()=>{mounted=false}
  },[active,items])
- const rows=useMemo(()=>items.map(option=>{
+ const rows=useMemo(()=>items.filter(option=>option.enabled).sort((a,b)=>a.weekday-b.weekday||a.start_time.localeCompare(b.start_time)).map(option=>{
   const date=addDay(weekStart,option.weekday-1)
   const choice=choices.find(x=>x.option_code===option.code&&x.training_date===date)?.choice||'open'
   const report=forecast[option.location_lat+':'+option.location_lon]
   const hour=report?hourAt(report,date,Number(option.start_time.slice(0,2))):null
-  const completed=completedWeeklyOption(option,date,actual)!==null
+  const completed=actualWeek===weekStart&&completedWeeklyOption(option,date,actual)!==null
   return {option,date,choice,hour,completed}
- }),[items,weekStart,choices,forecast,actual])
+ }),[items,weekStart,choices,forecast,actual,actualWeek])
  async function setChoice(option:TrainingOption,date:string,choice:Choice){
   if(busy||date<today)return
   setBusy(option.code);setError('');setNotice('')
@@ -136,7 +139,10 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDa
   finally{setBusy(null)}
  }
  if(!active)return null
- const visibleRows=rows.filter(row=>row.date>=today&&(!selectedDate||row.date===selectedDate))
+ const visibleRows=rows.filter(row=>!selectedDate||row.date===selectedDate)
+ const upcoming=visibleRows.filter(row=>row.date>=today&&!row.completed)
+ const selectedCount=upcoming.filter(row=>row.choice==='selected').length
+ const skippedCount=upcoming.filter(row=>row.choice==='skipped').length
  // The Coach proposal now lives on the selected calendar day. An empty option
  // box only duplicates the "no training" explanation and wastes phone space.
  if(compact&&selectedDate&&!loading&&!error&&visibleRows.length===0)return null
@@ -149,9 +155,13 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDa
    <span className="wo-pill">{selectedDate?visibleRows.length+' Option'+(visibleRows.length===1?'':'en'):visibleRows.length+' Optionen'}</span>
   </header>
   {loading&&!items.length&&<p className="wo-info">Trainingsmöglichkeiten werden geladen …</p>}
+  {!loading&&!error&&visibleRows.length>0&&<div className="wo-summary"><div><strong>{selectedCount}</strong><small>Dabei</small></div><div><strong>{upcoming.length-selectedCount-skippedCount}</strong><small>Offen</small></div><div><strong>{skippedCount}</strong><small>Ausgelassen</small></div></div>}
   <div className="wo-grid">
    {visibleRows.map(({option,date,choice,hour,completed})=>{
     const old=date<today
+    const coachDay=coachDays.find(d=>d.date===date)
+    const advice=coachDay?.selectedGroup?.code===option.code?coachDay.selectedGroup.advice:null
+    const currentAdvice=!old&&!completed&&!coachLoading&&!coachError&&((choice==='selected'&&advice)||(choice==='skipped'&&!coachDay?.selectedGroup&&coachDay))
     const weather=hour?
      weatherLabel(hour.code)+' · '+metric(hour.temperature)+' °C · Regen '+metric(hour.rainProbability)+
       ' % · Böen '+metric(hour.gust)+' km/h':
@@ -163,24 +173,27 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDa
       <div className="wo-body">
        <strong>{option.title}</strong>
        <span>{option.start_time.slice(0,5)} Uhr · {option.location_label}</span>
-       <small className={'wo-weather'+(weatherRisk?' wo-risk':'')}>
+       {!old&&!completed&&choice!=='skipped'&&<small className={'wo-weather'+(weatherRisk?' wo-risk':'')}>
         {hour?'⛅ ':''}{weather}{weatherRisk?' · Wetterrisiko prüfen':''}
-       </small>
+       </small>}
       </div>
      </div>
      <div className="wo-action">
       <span className="wo-state">
-       {completed?'✓ Absolviert (Garmin)':old?'Vergangen':choice==='selected'?'✓ Dabei':choice==='skipped'?'Ausgelassen':'Noch offen'}
+       {completed?'✓ Absolviert (Garmin)':old?choice==='skipped'?'Vergangen · ausgelassen':choice==='selected'?'Vergangen · zugesagt':'Vergangen · offen':choice==='selected'?'✓ Dabei':choice==='skipped'?'Ausgelassen':'Noch offen'}
       </span>
-      {!old&&!completed&&<div className="wo-buttons" aria-label={option.title+' Teilnahme'}>
+      {!old&&!completed&&!loading&&<div className="wo-buttons" aria-label={option.title+' Teilnahme'}>
        <button type="button" aria-pressed={choice==='selected'} disabled={busy!==null}
         className={choice==='selected'?'picked':''} onClick={()=>void setChoice(option,date,'selected')}>Dabei</button>
        <button type="button" aria-pressed={choice==='skipped'} disabled={busy!==null}
         className={choice==='skipped'?'picked':''} onClick={()=>void setChoice(option,date,'skipped')}>{choice==='selected'?'Absagen':'Auslassen'}</button>
-       {choice!=='open'&&<button type="button" disabled={busy!==null}
-        onClick={()=>void setChoice(option,date,'open')}>Offen</button>}
+       <button type="button" aria-pressed={choice==='open'} className={choice==='open'?'picked':''} disabled={busy!==null}
+        onClick={()=>void setChoice(option,date,'open')}>Offen</button>
       </div>}
      </div>
+     {!old&&!completed&&choice!=='open'&&<div className={'wo-coach'+(advice==='skip'?' wo-coach-caution':'')}>
+      <strong>Coach</strong><span>{coachLoading?'Empfehlung wird aktualisiert …':coachError?'Empfehlung derzeit nicht verfügbar.':currentAdvice&&choice==='selected'?(advice==='skip'?'Rät von der Teilnahme ab.':advice==='easy'?'Verkürzt und sehr locker.':'Hinweise zur Teilnahme im Kalender.'):currentAdvice&&choice==='skipped'?coachDay?.title:'Empfehlung am Kalendertag prüfen.'}</span>
+     </div>}
     </article>
    })}
   </div>
@@ -190,9 +203,6 @@ export function WeeklyTrainingOptions({active,weekStart,compact=false,selectedDa
    {selectedDate?'Kein fester Gruppentermin. Der Coach kann hier einen eigenen Lauf, Stabi/Mobility oder Erholung vorschlagen.':
     'Keine wiederkehrenden Trainingsangebote in dieser Woche vorhanden.'}
   </p>}
-  <p className="wo-foot">Wetter: Open-Meteo zur tatsächlichen Startzeit am Ort ·
-   Daten nur innerhalb des Vorhersagezeitraums. Fußball, Bahnintervalle und Laufgruppe sind
-   Belastungsoptionen – keine automatischen Trainingsvorgaben. Der Coach berücksichtigt
-   deine Auswahl zusammen mit Erholung, aktueller Belastung und Wettkampfplanung.</p>
+  <p className="wo-foot">Deine Teilnahme ist keine Trainingsfreigabe. Bei Absagen bewertet der Coach den Tag neu, ohne automatisch Workouts anzulegen. Wetter: Open-Meteo zur Startstunde. Vergangene Termine sind schreibgeschützt.</p>
  </section>
 }

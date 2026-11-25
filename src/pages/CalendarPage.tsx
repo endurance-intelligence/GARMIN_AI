@@ -102,6 +102,9 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
  const [weekResult,setWeekResult]=useState('')
  const [showDayEvidence,setShowDayEvidence]=useState(false)
  const [showWeekOptions,setShowWeekOptions]=useState(false)
+ const groupDialog=useRef<HTMLDialogElement>(null)
+ const openGroupWeek=()=>{const el=groupDialog.current;if(el&&!el.open){setShowWeekOptions(true);el.showModal()}}
+ useEffect(()=>{if(!active){groupDialog.current?.close();setShowWeekOptions(false)}},[active])
  const [decisionOpen,setDecisionOpen]=useState(false)
  const decisionDialog=useRef<HTMLDialogElement>(null)
  const lastDecisionToken=useRef<number|null>(null)
@@ -115,11 +118,11 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
  // visible Monday-Sunday, so Saturday race day cannot fall off the edge.
  const planStart=week>0?start:today
  const horizonDay=moveDay(planStart,6)
- const coachPlan=useMemo(()=>coachSnapshot?buildSevenDayCoach({
+ const coachPlan=useMemo(()=>coachSnapshot&&!coachLoading&&!coachError?buildSevenDayCoach({
   today,startDate:planStart,health:coachSnapshot.health,boards:coachSnapshot.boards,
   options:coachSnapshot.options,plans:coachSnapshot.plans,
   goal:coachSnapshot.goal,life:coachSnapshot.life,racePortfolio:coachSnapshot.racePortfolio
- }):null,[coachSnapshot,today,planStart])
+ }):null,[coachSnapshot,today,planStart,coachLoading,coachError])
  const raceInWeek=coachPlan?.days.find(d=>d.kind==='race')||null
  const coachDay=coachPlan?.days.find(d=>d.date===selected)||null
  const coachPreview=coachDay&&(coachDay.selectedGroup||(!['existing','completed','chosen','option'].includes(coachDay.kind)&&
@@ -162,7 +165,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
 
  useEffect(()=>{
   if(!active)return
-  const changed=()=>setRefresh(n=>n+1)
+  const changed=()=>{setCoachSnapshot(null);setCoachLoading(true);setCoachReview(null);setRefresh(n=>n+1)}
   window.addEventListener('garmin-ai-weekly-choice-changed',changed)
   window.addEventListener('garmin-ai-coach-changed',changed)
   return ()=>{window.removeEventListener('garmin-ai-weekly-choice-changed',changed);window.removeEventListener('garmin-ai-coach-changed',changed)}
@@ -553,13 +556,13 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
  }
  return <section className={active?'page active':'page'} aria-label="Trainingskalender">
   <div className="hc-intro">
-   <div className="hc-eyebrow"><span className="hc-pulse"/> TRAININGSPLAN / HORIZON</div>
+   <div className="hc-eyebrow"><span className="hc-pulse"/> DEINE TRAININGSWOCHE</div>
    <h1>Trainingskalender</h1>
    <p>Deine Einheiten, Termine und nächsten Schritte.</p>
   </div>
   <div className="hc-overview">
    <div><small>WOCHE</small><strong>{monthTitle(start)}</strong><span>{countInWeek} gespeicherte Trainings · {suggestionsInWeek} Coach-Vorschläge</span></div>
-   <button type="button" className="hc-refresh" onClick={()=>{setShowWeekOptions(true);const el=document.getElementById('calendar-group-week');if(el instanceof HTMLDetailsElement){el.open=true;el.scrollIntoView({behavior:'smooth',block:'start'})}}}><Icon name="calendar-days"/> Gruppentermine planen</button>
+   <button type="button" className="hc-refresh hc-group-action" onClick={openGroupWeek}><Icon name="calendar-days"/> Gruppentermine planen</button>
    <button type="button" className="hc-refresh" onClick={()=>setRefresh(v=>v+1)} disabled={busy}>
     <Icon name="refresh-cw"/>{busy?'Prüfe …':'Aktualisieren'}
    </button>
@@ -626,7 +629,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
      <h4>{coachPreview.selectedGroup?.title||coachPreview.title}</h4>
      {coachPreview.selectedGroup&&<small>{[coachPreview.selectedGroup.startTime?coachPreview.selectedGroup.startTime+' Uhr':'',coachPreview.selectedGroup.location].filter(Boolean).join(' · ')}</small>}
      <p>{coachPreview.reason}</p>
-     {coachPreview.selectedGroup?<small>Deine Teilnahme änderst du bei den Gruppenterminen. Kein zusätzliches Workout wird angelegt.</small>:<small>Du kannst sie hier im Kalender annehmen, ablehnen oder ändern.</small>}
+     {coachPreview.selectedGroup?<small>Deine Teilnahme änderst du über „Gruppentermine planen“. Kein zusätzliches Workout wird angelegt.</small>:<small>Du kannst sie hier im Kalender annehmen, ablehnen oder ändern.</small>}
      {selected>=today&&selected<=moveDay(today,6)&&
       <button type="button" className="hc-coach-accept" onClick={()=>onOpenCoach(selected)}>
        <Icon name="arrow-up-right"/> {coachPreview.selectedGroup?'Coach-Hinweise ansehen':'Vorschlag prüfen'}
@@ -838,17 +841,16 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
      {showDayEvidence&&<CoachEvidenceSummary active={active&&showDayEvidence}
       mode="calendar" weekStart={start} selectedDate={selected}/>}
     </details>
-   <details className="hc-day-extra" id="calendar-group-week" onToggle={event=>setShowWeekOptions(event.currentTarget.open)}>
-    <summary><Icon name="calendar-days"/> Gruppentermine dieser Woche <small>Teilnahme planen oder absagen</small></summary>
-    {showWeekOptions&&<WeeklyTrainingOptions active={active&&showWeekOptions}
-     weekStart={start} compact/>}
-   </details>
    <details className="hc-day-extra" onToggle={event=>setShowWorkoutArchive(event.currentTarget.open)}>
     <summary><Icon name="folder-open"/> Workout-Bibliothek &amp; ORC-Import <small>Bei Bedarf</small></summary>
     {showWorkoutArchive&&<WorkoutArchivePanel active={active&&showWorkoutArchive} date={selected}
      onPlanned={()=>setRefresh(n=>n+1)}/>}
    </details>
   </div>
+  <dialog className="hc-group-dialog" ref={groupDialog} aria-labelledby="hc-group-title" onClose={()=>setShowWeekOptions(false)}>
+   <header><div><small>GRUPPENTERMINE</small><h2 id="hc-group-title">{monthTitle(start)}</h2></div><button type="button" aria-label="Gruppenplanung schließen" onClick={()=>groupDialog.current?.close()}><Icon name="x"/></button></header>
+   {showWeekOptions&&<WeeklyTrainingOptions active={active&&showWeekOptions} weekStart={start} compact coachDays={coachPlan?.days||[]} coachLoading={coachLoading} coachError={coachError}/>}
+  </dialog>
   <dialog className="coach-day-dialog" ref={decisionDialog} aria-label="Coach-Tagesentscheidung" onClose={()=>setDecisionOpen(false)}>
    <header><strong>Coach-Entscheidung</strong><button type="button" onClick={()=>decisionDialog.current?.close()} aria-label="Schließen"><Icon name="x"/></button></header>
    {decisionOpen&&(coachLoading||!coachSnapshot)&&<p role="status">{coachError||'Coach-Daten werden aktualisiert …'}</p>}
