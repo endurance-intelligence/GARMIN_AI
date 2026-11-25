@@ -23,7 +23,6 @@ type SessionResponse = {
   activity: Omit<Activity, 'detailStatus' | 'hrSamples' | 'laps'>
   details: { status: string; hrSampleCount: number; lapCount: number; samples: SessionSample[]; fetchedAt: string | null }
 }
-const formatNumber = (value: number, decimals=0) => value.toLocaleString('de-DE', { maximumFractionDigits: decimals, minimumFractionDigits: decimals })
 const runTypes: Record<string,string> = { running: 'Lauf', track_running: 'Bahn', treadmill_running: 'Laufband', ultra_run: 'Ultra' }
 
 function heartPath(samples: SessionSample[]): string {
