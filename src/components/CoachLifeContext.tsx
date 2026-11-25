@@ -21,7 +21,7 @@ export type CoachRun={
  activity_id:string;activity_name:string|null;start_time_local:string|null;
  distance_m:number|null;duration_s:number|null;average_heart_rate:number|null;rpe_raw:number|null
 }
-export type CoachContextPayload={context:CoachContext;runs:CoachRun[]}
+export type CoachContextPayload={context:CoachContext;runs:CoachRun[];equipmentProfile?:import('../lib/equipmentProfile.mjs').EquipmentProfile|null}
 type Action={action:string;[key:string]:string|boolean|null}
 type Props={life:CoachContextPayload|null;busy:boolean;onAction:(action:Action)=>Promise<void>}
 const short=(day:string)=>day.slice(8,10)+'.'+day.slice(5,7)+'.'+day.slice(0,4)

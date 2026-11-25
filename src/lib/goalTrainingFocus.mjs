@@ -2,6 +2,7 @@
  * Phase targets are coaching heuristics, not validated individual prescriptions.
  * Complementary sessions are optional alternatives, not extra training or automatic calendar writes.
  */
+import {hasEquipment,normalizeEquipmentProfile} from './equipmentProfile.mjs'
 const validDate=d=>typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&Number.isFinite(Date.parse(d+'T12:00:00Z'))&&new Date(d+'T12:00:00Z').toISOString().slice(0,10)===d
 const finite=n=>typeof n==='number'&&Number.isFinite(n)
 const add=(d,n)=>new Date(Date.parse(d+'T12:00:00Z')+n*86400000).toISOString().slice(0,10)
@@ -96,17 +97,18 @@ export function crossTrainingEvidence({today,boards}={}){
  const recentHard=seven.some(r=>r.date>=add(today,-1)&&(r.kind==='football'||(r.rpe!==null&&r.rpe>=8)))
  return {complete,strengthDays:count('strength'),rowingDays:count('rowing'),cyclingDays:count('cycling'),footballDays:count('football'),minutes:complete?Math.round(seven.reduce((s,r)=>s+r.minutes,0)):null,recentHard,rows}
 }
-export function buildGoalSupplement({today,profile,days,boards,protectedPhase,qualityDay}={}){
+export function buildGoalSupplement({today,profile,days,boards,protectedPhase,qualityDay,equipment}={}){
  const evidence=crossTrainingEvidence({today,boards})
  const none=(reason)=>({suggestion:null,evidence,reason})
  if(!validDate(today)||!profile||!Array.isArray(days)||profile.kind==='unknown')return none('Konkretes Ziel oder Trainingsniveau fehlt.')
  if(protectedPhase||profile.daysUntil!==null&&profile.daysUntil<=10||evidence.recentHard)return none('Erholung und bestehende Belastung haben Vorrang.')
  if(!evidence.complete)return none('Ergänzende Aktivitäten der letzten sieben Tage nicht vollständig geladen.')
+ if(!normalizeEquipmentProfile(equipment))return none('Ausrüstungsprofil noch nicht bestätigt. Unter Einstellungen verfügbare Trainingsmöglichkeiten auswählen.')
  const open=d=>d.date>=today&&d.date<=add(today,6)&&d.approvable&&!d.decision&&!d.selectedGroup&&finite(d.minutes)&&d.minutes>=15
  // Do not introduce new strength immediately before a possible hard day, or a confirmed/scheduled group.
  const nextDemanding=d=>days.some(x=>x.date===add(d.date,1)&&(x.date===qualityDay||x.kind==='race'||x.kind==='existing'||!!x.selectedGroup||x.intensityIntent==='hard-option'||x.kind==='long'))
  const slot=days.find(d=>open(d)&&d.kind==='mobility'&&!nextDemanding(d))
- if(evidence.strengthDays===0&&slot){
+ if(hasEquipment(equipment,'bodyweight')&&evidence.strengthDays===0&&slot){
   const emphasis=profile.hills?'Waden, Hüfte, Gesäß und einbeinige Stabilität':profile.kind==='short'?'Waden, Hüftstreckung und Rumpfstabilität':'Rumpf, Hüfte und Beinachsenstabilität'
   return {evidence,reason:'Noch kein Krafttraining in den geladenen letzten sieben Tagen.',suggestion:{date:slot.date,kind:'strength',title:'Gezieltes Stabi & Krafttraining',minutes:slot.minutes,intensity:'Leicht bis moderat, keine Ausbelastung',reason:emphasis+' passend zum Ziel. Bestehenden Stabi-/Mobility-Vorschlag nutzen, nicht zusätzlich trainieren.',mode:'existing-slot'}}
  }
@@ -114,7 +116,7 @@ export function buildGoalSupplement({today,profile,days,boards,protectedPhase,qu
  // at least three actual running days in the last seven days are evidenced,
  // and the currently proposed easy session is not adjacent to a demanding planned day.
  const begin=add(today,-6),runDays=new Set(evidence.rows.filter(r=>r.kind==='running'&&r.date>=begin).map(r=>r.date)).size
- const lowImpact=['rowing','cycling'].find(k=>evidence.rows.some(r=>r.kind===k&&r.minutes>=10)&&evidence[k==='rowing'?'rowingDays':'cyclingDays']===0)
+ const lowImpact=['rowing','cycling'].find(k=>hasEquipment(equipment,k)&&evidence.rows.some(r=>r.kind===k&&r.minutes>=10)&&evidence[k==='rowing'?'rowingDays':'cyclingDays']===0)
  const easy=days.find(d=>open(d)&&d.kind==='easy'&&d.intensityIntent==='low'&&!nextDemanding(d))
  if(lowImpact&&runDays>=3&&easy&&['base','build'].includes(profile.daysUntil===null||profile.daysUntil>98?'base':profile.daysUntil>56?'build':'specific')){
   return {evidence,reason:'Bekannte alternative Ausdauerform, mindestens drei beobachtete Lauftage.',suggestion:{date:easy.date,kind:lowImpact,title:lowImpact==='rowing'?'Lockeres Rudern als Alternative':'Lockeres Radfahren als Alternative',minutes:Math.min(30,easy.minutes),intensity:'Locker · Sprechtempo',reason:'Nur statt des offenen lockeren Laufs, um laufbedingte Stoßbelastung zu reduzieren. Kein Laufkilometer-Ersatz und keine neue Pflicht.',mode:'alternative'}}
