@@ -5,10 +5,11 @@ import {normalizeGarminRpe} from '../src/lib/garminPerception.mjs'
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
 test('calendar prioritizes week and day before optional controls, errors and race remain visible',()=>{
  const s=read('src/pages/CalendarPage.tsx')
- const positions=['<CalendarWeekBoard active={active}','className="hc-day-content"','<details className="hc-week-planner"','setShowDayEvidence(event.currentTarget.open)','className="hc-day-extra hc-source-details"']
+ const positions=['<CalendarWeekBoard active={active}','className="hc-day-content"','setShowDayEvidence(event.currentTarget.open)','setShowWorkoutArchive(event.currentTarget.open)']
  for(let i=1;i<positions.length;i++)assert.ok(s.indexOf(positions[i])>s.indexOf(positions[i-1]),positions[i])
  assert.ok(s.indexOf('{error&&<p className="hc-error"')<s.indexOf('<CalendarWeekBoard'))
- assert.ok(s.indexOf('{raceInWeek&&')<s.indexOf('<details className="hc-week-planner"'))
+ assert.ok(s.indexOf('{raceInWeek&&')<s.indexOf('<CalendarWeekBoard'))
+ assert.doesNotMatch(s,/hc-week-planner|hc-source-details/)
  assert.match(s,/<p>\{coachPreview.reason\}<\/p>/)
 })
 test('four completed weeks and race portfolio as in Coach, refresh updates board',()=>{

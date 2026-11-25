@@ -33,7 +33,7 @@ test('calendar distinguishes Garmin entries, drafts, pending and errors',()=>{
   assert.ok(cal.includes(label),label)
  }
  assert.doesNotMatch(cal,/Noch kein bestätigter Garmin-Abruf/)
- assert.match(cal,/Garmin-Kalendervorlagen werden ausgeblendet/)
+ assert.doesNotMatch(cal,/hc-source-details/)
 })
 
 test('iPhone week selection fits seven days and iPad two columns without overflow',()=>{
@@ -41,7 +41,7 @@ test('iPhone week selection fits seven days and iPad two columns without overflo
  assert.match(css,/grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/)
  assert.match(css,/@media\(max-width:760px\)/)
  assert.match(css,/@media\(max-width:365px\)/)
- assert.match(css,/\.hc-source-grid\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/)
+
  assert.match(css,/\.hc-weekpanel\{[^}]*min-width:0/s)
 })
 

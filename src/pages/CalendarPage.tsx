@@ -6,6 +6,8 @@ import {WorkoutArchivePanel} from '../components/WorkoutArchivePanel'
 import {WeeklyTrainingOptions} from '../components/WeeklyTrainingOptions'
 import {SupplementSessionDetails} from '../components/SupplementSessionDetails'
 import {trainingAlternativeForDate} from '../lib/goalTrainingFocus.mjs'
+import {quickCoachAction} from '../lib/calendarQuickAccept.mjs'
+import type {CoachContextPayload} from '../components/CoachLifeContext'
 import {CalendarWeekBoard} from '../components/CalendarWeekBoard'
 import {CoachSevenDay} from '../components/CoachSevenDay'
 import type {Page} from '../navigation'
@@ -98,10 +100,6 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
  const [coachLoading,setCoachLoading]=useState(false)
  const [coachReview,setCoachReview]=useState<string|null>(null)
  const [coachStartTime,setCoachStartTime]=useState('18:00')
- const [weekChosen,setWeekChosen]=useState<Record<string,boolean>>({})
- const [weekTimes,setWeekTimes]=useState<Record<string,string>>({})
- const [weekWorking,setWeekWorking]=useState<'approve'|'publish'|null>(null)
- const [weekResult,setWeekResult]=useState('')
  const [showDayEvidence,setShowDayEvidence]=useState(false)
  const [showWeekOptions,setShowWeekOptions]=useState(false)
  const groupDialog=useRef<HTMLDialogElement>(null)
@@ -113,13 +111,13 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
  useEffect(()=>{if(!active){decisionDialog.current?.close();setDecisionOpen(false);return}if(decisionFocus&&lastDecisionToken.current!==decisionFocus.token){lastDecisionToken.current=decisionFocus.token;setDecisionOpen(true);if(decisionDialog.current&&!decisionDialog.current.open)decisionDialog.current.showModal()}},[active,decisionFocus])
  const [showWorkoutArchive,setShowWorkoutArchive]=useState(false)
  const coachRequestIds=useRef<Record<string,string>>({})
+ const quickLock=useRef(false)
  const lastFocusToken=useRef<number|null>(null)
  const [refresh,setRefresh]=useState(0)
  const start=moveDay(monday(today),week*7)
  // Current week: forward-looking seven days. Following week: the full
  // visible Monday-Sunday, so Saturday race day cannot fall off the edge.
  const planStart=week>0?start:today
- const horizonDay=moveDay(planStart,6)
  const coachPlan=useMemo(()=>coachSnapshot&&!coachLoading&&!coachError?buildSevenDayCoach({
   today,startDate:planStart,health:coachSnapshot.health,boards:coachSnapshot.boards,
   options:coachSnapshot.options,plans:coachSnapshot.plans,
@@ -132,30 +130,6 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
  const coachPreview=coachDay&&(coachDay.selectedGroup||(!['existing','completed','chosen','option'].includes(coachDay.kind)&&
   !plans.some(p=>p.training_date===selected&&p.state!=='cancelled')))?coachDay:null
  const days=Array.from({length:7},(_,i)=>moveDay(start,i))
- const weekOffers=(coachPlan?.days||[]).filter(d=>d.approvable&&
-  d.date>=today&&d.date<=moveDay(today,13)&&
-  !plans.some(p=>p.training_date===d.date&&p.state!=='cancelled'))
- const weekSelected=weekOffers.filter(d=>weekChosen[d.date]!==false)
- const coachDrafts=plans.filter(p=>p.training_date>=today&&p.training_date>=planStart&&
-  p.training_date<=horizonDay&&p.state==='draft'&&
-  (p.notes||'').startsWith('Coach Intelligence ·'))
- const weekSelectedDrafts=coachDrafts.filter(p=>weekChosen[p.training_date]!==false)
- const weekApprovalCount=weekSelected.length+weekSelectedDrafts.length
- // Only Coach-authored running sessions, not archived/ORC sessions. Old or
- // already confirmed exports are never offered for resending.
- const coachConfirmed=plans.filter(p=>p.training_date>=today&&p.training_date>=planStart&&
-  p.training_date<=horizonDay&&
-  (p.notes||'').startsWith('Coach Intelligence ·')&&
-  p.intervals_sync_status==='confirmed'&&
-  p.intervals_published_revision===p.revision&&
-  Number(p.intervals_event_id)>0&&Number(p.intervals_export_version)>=2)
- const coachPending=plans.filter(p=>p.training_date>=today&&p.training_date>=planStart&&
-  p.training_date<=horizonDay&&p.state==='pending'&&
-  (p.notes||'').startsWith('Coach Intelligence ·')&&
-  eligiblePlanIds.includes(p.id)&&
-  !(p.intervals_sync_status==='confirmed'&&
-   p.intervals_published_revision===p.revision&&
-   Number(p.intervals_event_id)>0&&Number(p.intervals_export_version)>=2))
  const entries=useMemo<CalendarEntry[]>(()=>plans.filter(p=>p.state!=='cancelled').map(p=>({
   key:'p-'+p.id,date:p.training_date,title:p.title,
   sub:p.title.startsWith('ORC · ')?'ORC Bahntraining':eligiblePlanIds.includes(p.id)?'Strukturiertes Lauftraining · Intervals.icu bereit':p.session_type==='workout'?'Strukturiertes Training':'GARMIN_AI Planung',
@@ -234,141 +208,31 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
   return ()=>{mounted=false}
  },[active,refresh])
 
- async function approveCoachWeek(){
-  if(!garminSupabase||acting||weekWorking||coachLoading||!weekApprovalCount)return
-  setWeekWorking('approve');setWeekResult('');setError('');setNotice('')
-  let approved=0;const failed:string[]=[]
-  try{
-   const {data:{session}}=await garminSupabase.auth.getSession()
-   if(!session)throw Error('Bitte anmelden.')
-   // Existing saved drafts are eligible for the same user-approved batch.
-   // Individual approval remains possible from each calendar day.
-   for(const draft of weekSelectedDrafts){
-    try{
-     const confirmed=await ownerPost<{saved:boolean;id:string;revision:number;state:string}>(
-      session,'garmin-training-plan',{
-       action:'approve',id:draft.id,revision:draft.revision
-      })
-     if(!confirmed.saved||confirmed.state!=='pending')
-      throw Error('Entwurfsfreigabe nicht bestätigt')
-     setPlans(old=>old.map(p=>p.id===draft.id?{
-      ...p,state:'pending',revision:confirmed.revision}:p))
-     approved++
-    }catch(e){
-     failed.push(draft.training_date+': '+(e instanceof Error?e.message:'Freigabe fehlgeschlagen'))
-    }
-   }
-   for(const day of weekSelected){
-    try{
-     const structured=day.sport==='running'&&
-      ['easy','long','return_easy'].includes(day.kind)&&Number.isSafeInteger(day.minutes)
-     const chosenTime=weekTimes[day.date]||'18:00'
-     const key=['week',day.date,day.kind,day.minutes,structured?chosenTime:'event'].join(':')
-     const requestId=coachRequestIds.current[key]||
-      (coachRequestIds.current[key]=crypto.randomUUID())
-     const payload=structured?{
-      action:'create_coach_workout',clientRequestId:requestId,
-      date:day.date,title:day.title,kind:day.kind,minutes:day.minutes,
-      startTime:chosenTime,coachReason:boundedCoachReason(day.reason)
-     }:{
-      action:'create',clientRequestId:requestId,date:day.date,
-      title:day.title,sessionType:'event',
-      sport:day.kind==='mobility'?'strength':day.sport,
-      notes:'Coach Intelligence · '+day.minutes+' Minuten · freiwillig. Nur Kalendertermin.'
-     }
-     const created=await ownerPost<{saved:boolean;id:string;revision:number;state:string}>(
-      session,'garmin-training-plan',payload)
-     if(!created.saved||!created.id)throw Error('Entwurf nicht bestätigt')
-     let approvedEntry=created
-     if(created.state==='draft'){
-      approvedEntry=await ownerPost<{saved:boolean;id:string;revision:number;state:string}>(
-       session,'garmin-training-plan',{action:'approve',id:created.id,revision:created.revision})
-     }
-     if(!approvedEntry.saved||approvedEntry.state!=='pending')
-      throw Error('Kalenderfreigabe nicht bestätigt')
-     const plan:Plan={id:created.id,training_date:day.date,title:day.title,
-      state:'pending',session_type:'event',
-      sport:day.kind==='mobility'?'strength':day.sport,
-      garmin_workout_id:null,notes:'Coach Intelligence · '+day.minutes+
-       ' Minuten'+(structured?' · Start '+chosenTime:' · nur Kalender'),
-      revision:approvedEntry.revision,intervals_event_id:null,
-      intervals_published_revision:null,intervals_sync_status:'not_published',
-      intervals_export_version:null}
-     setPlans(old=>[...old.filter(p=>p.id!==plan.id),plan])
-     if(structured)setEligiblePlanIds(old=>old.includes(plan.id)?old:[...old,plan.id])
-     approved++
-    }catch(e){
-     failed.push(day.date+': '+(e instanceof Error?e.message:'Freigabe fehlgeschlagen'))
-    }
-   }
-   setWeekResult(approved+' Training'+(approved===1?'':'s')+
-    ' übernommen und freigegeben. '+(failed.length?
-     failed.length+' offen – bitte Kalenderstatus prüfen.':'Keine Übertragung an Intervals.icu ausgelöst.'))
-   if(failed.length)setError(failed.join(' · '))
-  }catch(e){setError(e instanceof Error?e.message:'Wochenfreigabe fehlgeschlagen')}
-  finally{setWeekWorking(null);setRefresh(n=>n+1)}
- }
- async function publishCoachWeek(){
-  if(!garminSupabase||acting||weekWorking||!intervalsConnected||!coachPending.length)return
-  setWeekWorking('publish');setWeekResult('');setError('');setNotice('')
-  let publishedCount=0;const failed:string[]=[]
-  try{
-   const {data:{session}}=await garminSupabase.auth.getSession()
-   if(!session)throw Error('Bitte anmelden.')
-   for(const plan of coachPending){
-    try{
-     const result=await ownerPost<{published:boolean;intervalsConfirmed:boolean;intervalsEventId:number}>(
-      session,'garmin-intervals',{action:'publish',planId:plan.id})
-     if(!result.published||!result.intervalsConfirmed)throw Error('Intervals-Bestätigung fehlt')
-     setPlans(old=>old.map(p=>p.id===plan.id?{
-      ...p,intervals_event_id:result.intervalsEventId,
-      intervals_published_revision:p.revision,intervals_sync_status:'confirmed',
-      intervals_export_version:2}:p))
-     publishedCount++
-    }catch(e){
-     // A POST can succeed while its browser response is lost. Never resend
-     // blindly: reconcile with the owner calendar before displaying failure.
-     try{
-      const remote=await ownerGet<{entries:Plan[]}>(session,'garmin-training-plan')
-      const confirmed=remote.entries?.find(p=>p.id===plan.id&&
-       p.revision===plan.revision&&p.intervals_sync_status==='confirmed'&&
-       p.intervals_published_revision===p.revision&&
-       Number(p.intervals_event_id)>0&&Number(p.intervals_export_version)>=2)
-      if(confirmed){
-       setPlans(old=>old.map(p=>p.id===plan.id?confirmed:p))
-       publishedCount++
-       continue
-      }
-      failed.push(plan.training_date+': '+(e instanceof Error?e.message:'Nicht bestätigt'))
-     }catch{
-      failed.push(plan.training_date+': Antwort unklar – zuerst Status aktualisieren, nicht erneut senden')
-     }
-    }
-   }
-   setWeekResult(publishedCount+' Workout'+(publishedCount===1?'':'s')+
-    ' bei Intervals.icu bestätigt. '+(failed.length?
-     failed.length+' Statusprüfungen offen.':'Bitte Garmin Connect und Uhr separat prüfen.'))
-   if(failed.length)setError(failed.join(' · '))
-  }catch(e){setError(e instanceof Error?e.message:'Wochenübertragung fehlgeschlagen')}
-  finally{setWeekWorking(null);setRefresh(n=>n+1)}
- }
- async function acceptCoach(day:CoachDay){
-  if(!garminSupabase||acting||!day.approvable||coachReview!==day.date||
+ async function acceptCoach(day:CoachDay,quick=false){
+  if(!garminSupabase||acting||quickLock.current||!day.approvable||day.decision||day.selectedGroup||(!quick&&coachReview!==day.date)||
    coachPlan?.days.find(d=>d.date===day.date)!==day)return
   if(plans.some(p=>p.training_date===day.date&&p.state!=='cancelled'))return
+  quickLock.current=true
   setActing('coach-'+day.date);setError('');setNotice('')
   try{
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)throw Error('Bitte anmelden.')
+   if(quick){
+    const fresh=await loadCoachSnapshot(session,today,undefined,start,4)
+    const next=buildSevenDayCoach({today,startDate:planStart,health:fresh.health,boards:fresh.boards,options:fresh.options,plans:fresh.plans,goal:fresh.goal,life:fresh.life,racePortfolio:fresh.racePortfolio,goalRoute:fresh.goalRoute})
+    const current=next.days.find(d=>d.date===day.date)
+    if(!current||JSON.stringify(current)!==JSON.stringify(day)||quickCoachAction(next,day.date,today)!=='draft'||fresh.plans.entries.some(p=>p.training_date===day.date&&p.state!=='cancelled')){setRefresh(n=>n+1);throw Error('Coach-Empfehlung hat sich geändert. Bitte den aktualisierten Tag prüfen.')}
+   }
+   const chosenTime=quick?'18:00':coachStartTime
    const structured=day.sport==='running'&&
     ['easy','long','return_easy'].includes(day.kind)&&Number.isSafeInteger(day.minutes)
-   const key=[day.date,day.kind,day.minutes,structured?coachStartTime:'event'].join(':')
+   const key=[day.date,day.kind,day.minutes,structured?chosenTime:'event'].join(':')
    const requestId=coachRequestIds.current[key]||
     (coachRequestIds.current[key]=crypto.randomUUID())
    const payload=structured?{
     action:'create_coach_workout',clientRequestId:requestId,
     date:day.date,title:day.title,kind:day.kind,minutes:day.minutes,
-    startTime:coachStartTime,coachReason:boundedCoachReason(day.reason)
+    startTime:chosenTime,coachReason:boundedCoachReason(day.reason)
    }:{
     action:'create',clientRequestId:requestId,date:day.date,
     title:day.title,sessionType:'event',
@@ -385,7 +249,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
     garmin_workout_id:null,revision:result.revision||1,
     intervals_event_id:null,intervals_published_revision:null,
     intervals_sync_status:'not_published',intervals_export_version:null,
-    notes:structured?'Coach-Workout · '+day.minutes+' Min. · Start '+coachStartTime+
+    notes:structured?'Coach-Workout · '+day.minutes+' Min. · Start '+chosenTime+
      ' · 3 Zeitabschnitte':'Coach-Kalenderentwurf'
    }
    setPlans(old=>old.some(p=>p.id===newPlan.id)?old:[...old,newPlan])
@@ -401,7 +265,30 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
     'Coach-Vorschlag als Kalendereintrag übernommen. Keine automatische Übertragung.')
   }catch(e){
    setError(e instanceof Error?e.message:'Vorschlag konnte nicht übernommen werden.')
-  }finally{setActing(null)}
+  }finally{quickLock.current=false;setActing(null)}
+ }
+ async function quickAccept(day:CoachDay){
+  if(!garminSupabase||acting||quickLock.current||coachLoading||coachError||!coachPlan||coachPlan.days.find(d=>d.date===day.date)!==day)return
+  const action=quickCoachAction(coachPlan,day.date,today)
+  if(!action)return
+  setSelected(day.date);setCoachReview(null)
+  if(action==='choose'){onOpenCoach(day.date);return}
+  if(action==='draft'){await acceptCoach(day,true);return}
+  quickLock.current=true;setActing('coach-'+day.date);setError('');setNotice('')
+  try{
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)throw Error('Bitte anmelden.')
+   const fresh=await loadCoachSnapshot(session,today,undefined,start,4)
+   const next=buildSevenDayCoach({today,startDate:planStart,health:fresh.health,boards:fresh.boards,options:fresh.options,plans:fresh.plans,goal:fresh.goal,life:fresh.life,racePortfolio:fresh.racePortfolio,goalRoute:fresh.goalRoute})
+   const current=next.days.find(d=>d.date===day.date)
+   if(!current||JSON.stringify(current)!==JSON.stringify(day)||quickCoachAction(next,day.date,today)!=='rest'||fresh.plans.entries.some(p=>p.training_date===day.date&&p.state!=='cancelled')){setRefresh(n=>n+1);throw Error('Coach-Empfehlung hat sich geändert. Bitte den aktualisierten Tag prüfen.')}
+   const result=await ownerPost<{saved:boolean;context:CoachContextPayload['context'];runs:CoachContextPayload['runs']}>(session,'garmin-coach-context',{action:'set_day_decision',date:day.date,choice:'accepted'})
+   if(result.saved!==true||!result.context||!Array.isArray(result.runs)||!result.context.day_decisions?.some(d=>d.date===day.date&&d.choice==='accepted'))throw Error('Erholungstag nicht bestätigt.')
+   setCoachSnapshot({...fresh,life:{...fresh.life,context:result.context,runs:result.runs}})
+   window.dispatchEvent(new Event('garmin-ai-coach-changed'))
+   setNotice('Erholungstag angenommen. Kein zusätzlicher Kalendereintrag und keine Übertragung.')
+  }catch(e){setError(e instanceof Error?e.message:'Erholungstag konnte nicht übernommen werden.')}
+  finally{quickLock.current=false;setActing(null)}
  }
  async function approvePlan(plan:Plan){
   if(acting||!garminSupabase)return
@@ -588,7 +475,6 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
   </div>}
   {error&&<p className="hc-error" role="alert">{error}</p>}
   {notice&&<p className="hc-notice" role="status">{notice}</p>}
-   {weekResult&&<p className="hc-week-planner-result" role="status">{weekResult}</p>}
    {raceInWeek&&<div className="hc-race-priority" role="status">
     <span className="hc-race-priority-label"><Icon name="flag-triangle-right"/> HAUPTZIEL / RENNTAG</span>
     <strong>{raceInWeek.title}</strong>
@@ -613,7 +499,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
    </div>
    <CalendarWeekBoard active={active} start={start} selected={selected}
     today={today} onSelect={day=>{setSelected(day);setCoachReview(null)}}
-    plans={plans} coachDays={coachPlan?.days||[]} refreshKey={refresh}/>
+    plans={plans} coachDays={coachPlan?.days||[]} refreshKey={refresh} quickAction={date=>quickCoachAction(coachPlan,date,today)} onQuickAccept={day=>void quickAccept(day)} quickBusy={acting!==null||coachLoading||!!coachError||busy}/>
    <div className="hc-day-content">
     <div className="hc-day-heading">
      <div><span>AUSGEWÄHLTER TAG</span><h3>{longDate(selected)}</h3></div>
@@ -643,7 +529,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
       {coachPreview.minutes} Minuten · {coachPreview.kind==='mobility'?'Stabi/Mobility':
        'Sprechtempo · ohne Pace- oder HF-Zwang'}
      </span>}
-     {coachPreview.approvable&&selected>=today&&
+     {coachPreview.approvable&&!alternative&&selected>=today&&
      <details className="hc-coach-manual">
       <summary>Alternative: direkt im Kalender als Entwurf übernehmen</summary>
       {coachReview===selected?
@@ -694,7 +580,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
         (Number(publication?.intervals_export_version)>=2))
        const sent=previouslyPublished&&!needsRepair
        const eligible=!!plan&&eligiblePlanIds.includes(plan.id)
-       const state=sent?{text:'Intervals.icu bestätigt · Garmin prüfen',type:'verified'}:readState(entry.status)
+       const state=sent?{text:'Intervals.icu bestätigt · Garmin prüfen',type:'verified'}:plan?.state==='pending'&&!eligible?{text:'Geplant · nur Kalender',type:'verified'}:readState(entry.status)
        return <article className={'hc-entry hc-entry-'+state.type} key={entry.key}>
         <div className="hc-entry-symbol"><Icon name="calendar-days"/></div>
         <div className="hc-entry-copy">
@@ -720,7 +606,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
              disabled={acting!==null} onClick={()=>{setDeleteArmed(plan.id);setRepairArmed(null)}}>
              <Icon name="trash-2"/> Training löschen</button>}
          </div>}
-         {plan&&eligible&&plan.state==='draft'&&deleteArmed!==plan.id&&<button type="button" className="hc-intervals-button"
+         {plan&&plan.state==='draft'&&deleteArmed!==plan.id&&<button type="button" className="hc-intervals-button"
            disabled={acting!==null} onClick={()=>void approvePlan(plan)}>
             {acting===plan.id?'Freigabe …':'Training freigeben'}</button>}
          {plan&&eligible&&plan.state==='pending'&&needsRepair&&deleteArmed!==plan.id&&<>
@@ -754,93 +640,6 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
        Freiwillige ORC-Angebote findest du in der Wochenübersicht.</span>
      </div>}
    </div>
-  <details className="hc-week-planner" aria-label="Freigaben, Sammelplanung und Intervals-Versand">
-   <summary className="hc-week-planner-summary">
-    <span><Icon name="check-circle"/> Freigaben &amp; Versand <small>Erweiterte Wochenplanung</small></span>
-    <span className="hc-week-planner-count">{coachDrafts.length} Entwürfe · {coachPending.length} zum Senden · {coachConfirmed.length} bestätigt</span>
-    <Icon name="chevron-down"/>
-   </summary>
-   <div className="hc-week-planner-heading">
-    <div>
-     <span className="hc-week-planner-kicker"><Icon name="sparkles"/> COACH / WOCHENPLANUNG</span>
-     <h2>Deine Woche. Eine Entscheidung.</h2>
-     <p>Coach-Zeitraum: {planStart} bis {horizonDay}.
-      Wähle deine Vorschläge, prüfe die Startzeiten und gib sie gesammelt frei.
-      Erst der zweite Klick sendet freigegebene Lauf-Workouts an Intervals.icu.</p>
-    </div>
-    <span className="hc-week-planner-count">{weekOffers.length} Vorschläge · {coachDrafts.length} Entwürfe · {coachPending.length} bereit · {coachConfirmed.length} bestätigt</span>
-   </div>
-   {coachLoading&&<p className="hc-coach-loading">Prüfe deinen Wochenvorschlag …</p>}
-   {coachError&&<p className="hc-coach-unavailable">Wochenvorschläge derzeit nicht vollständig verfügbar. Es werden keine Trainingstage erfunden.</p>}
-   {coachConfirmed.length>0&&<p className="hc-week-planner-confirmed" role="status">
-    <Icon name="check-circle"/> {coachConfirmed.length} Workout{coachConfirmed.length===1?' ist':'s sind'}
-    bereits bei Intervals.icu bestätigt. Kein erneuter Versand nötig.
-   </p>}
-   {!coachLoading&&!coachError&&(weekOffers.length>0||coachDrafts.length>0)&&<>
-    <div className="hc-week-planner-list">
-     {weekOffers.map(day=>{
-      const chosen=weekChosen[day.date]!==false
-      const structured=day.sport==='running'&&['easy','long','return_easy'].includes(day.kind)
-      return <div className={'hc-week-planner-row'+(chosen?' is-chosen':'')} key={day.date}>
-       <label className="hc-week-planner-choice">
-        <input type="checkbox" checked={chosen}
-         disabled={weekWorking!==null||acting!==null}
-         onChange={e=>setWeekChosen(old=>({...old,[day.date]:e.target.checked}))}/>
-        <span><strong>{longDate(day.date)}</strong><small>{day.title} · {day.minutes} Min.</small></span>
-       </label>
-       {chosen&&structured&&<label className="hc-week-planner-time">
-        <span>Start</span>
-        <select aria-label={'Startzeit '+longDate(day.date)}
-         value={weekTimes[day.date]||'18:00'}
-         disabled={weekWorking!==null||acting!==null}
-         onChange={e=>setWeekTimes(old=>({...old,[day.date]:e.target.value}))}>
-         {Array.from({length:31},(_,i)=>{
-          const time=String(6+Math.floor(i/2)).padStart(2,'0')+':'+(i%2?'30':'00')
-          return <option value={time} key={time}>{time}</option>
-         })}
-        </select>
-       </label>}
-       {chosen&&!structured&&<span className="hc-week-planner-note">Nur Kalender · kein Garmin-Workout</span>}
-      </div>
-     })}
-     {coachDrafts.map(draft=>{
-      const chosen=weekChosen[draft.training_date]!==false
-      return <div className={'hc-week-planner-row is-draft'+(chosen?' is-chosen':'')}
-       key={'draft-'+draft.id}>
-       <label className="hc-week-planner-choice">
-        <input type="checkbox" checked={chosen}
-         disabled={weekWorking!==null||acting!==null}
-         onChange={e=>setWeekChosen(old=>({...old,[draft.training_date]:e.target.checked}))}/>
-        <span><strong>{longDate(draft.training_date)}</strong>
-         <small>{draft.title} · gespeicherter Entwurf · noch nicht freigegeben</small></span>
-       </label>
-      </div>
-     })}
-    </div>
-    <button type="button" className="hc-week-plan-action"
-     onClick={()=>void approveCoachWeek()} disabled={!weekApprovalCount||acting!==null||weekWorking!==null}>
-     <Icon name="check"/> {weekWorking==='approve'?'Prüfe & gebe frei …':
-      weekApprovalCount+' ausgewählte Trainings übernehmen & freigeben'}
-    </button>
-   </>}
-   {!coachLoading&&!coachError&&!weekOffers.length&&!coachDrafts.length&&!coachPending.length&&
-    <p className="hc-week-planner-idle">Aktuell keine neuen freigabefähigen Coach-Vorschläge.
-     Gespeicherte oder bereits bestätigte Trainings bleiben unverändert;
-     ORC- und Fußballtermine bleiben freiwillig.</p>}
-   {coachPending.length>0&&<div className="hc-week-planner-publish">
-    <div><strong>{coachPending.length} freigegebene Lauf-Workouts bereit</strong>
-     <p>{coachPending.map(p=>p.training_date).join(' · ')} · noch nicht an Intervals.icu bestätigt.</p></div>
-    <button type="button" onClick={()=>void publishCoachWeek()}
-     disabled={acting!==null||weekWorking!==null||!intervalsConnected}>
-     <Icon name="send"/> {weekWorking==='publish'?'Prüfe Intervals.icu …':
-      'Alle '+coachPending.length+' Workouts an Intervals.icu senden'}
-    </button>
-    {!intervalsConnected&&<small>Intervals.icu unter Einstellungen verbinden. Ohne Verbindung wird nichts gesendet.</small>}
-   </div>}
-   <small className="hc-week-planner-disclaimer">Nur bestätigte Garmin-Daten und dein aktueller Coach-Status.
-    Echte Krankheiten, Urlaubstage und bereits belegte Tage sperren die Freigabe.
-    Keine automatische externe Veröffentlichung und keine direkten Garmin-Schreibzugriffe.</small>
-  </details>
     <details className="hc-day-extra" onToggle={event=>setShowDayEvidence(event.currentTarget.open)}>
      <summary><Icon name="activity"/> Analyse des ausgewählten Tages <small>Optional</small></summary>
      {showDayEvidence&&<CoachEvidenceSummary active={active&&showDayEvidence}
@@ -861,22 +660,6 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
    {decisionOpen&&(coachLoading||!coachSnapshot)&&<p role="status">{coachError||'Coach-Daten werden aktualisiert …'}</p>}
    <CoachSevenDay key={decisionFocus?.token||0} active={active&&decisionOpen&&!coachLoading&&!!coachSnapshot} focus={decisionFocus} onCalendar={date=>{decisionDialog.current?.close();if(date){setSelected(date);setCoachReview(null)}}} sharedSnapshot={coachSnapshot} onRacePrep={()=>{decisionDialog.current?.close();onGo('race')}} singleDay/>
   </dialog>
-  <details className="hc-day-extra hc-source-details"><summary>Datenquellen &amp; Hinweise</summary>
-  <div className="hc-source-grid">
-   <article><div className="hc-source-icon"><Icon name="check"/></div>
-    <div><strong>Garmin-Aktivitäten</strong>
-     <small>Nur tatsächlich absolvierte Einheiten – keine alten Garmin-Kalendervorlagen.</small>
-     <span className="hc-source-ok">Echte Daten aus der Garmin Personal API</span>
-    </div></article>
-   <article><div className="hc-source-icon"><Icon name="sparkles"/></div>
-    <div><strong>GARMIN_AI Coach</strong>
-     <small>{plans.filter(p=>p.state!=='cancelled').length} eigene Trainingspläne</small>
-     <span>Übertragung und Löschen nur nach deiner Freigabe</span>
-    </div></article>
-  </div>
-  <p className="hc-footnote">Coach-Vorschläge entscheidest du im Kalender – ohne automatische Speicherung.
-    Im Kalender kontrollierst du Entwürfe, gibst Workouts frei und sendest sie bei Bedarf an Intervals.icu.
-    Garmin-Aktivitäten bleiben unverändert. Garmin-Kalendervorlagen werden ausgeblendet.</p>
- </details>
+
  </section>
 }
