@@ -63,7 +63,7 @@ test('forecast follows actual start time at ORC location and weather is in both 
  assert.match(board,/latitude=\{option\.location_lat\} longitude=\{option\.location_lon\}/)
  assert.match(options,/selectedDate\?:string/)
  assert.match(options,/selectedDate\|\|row\.date===selectedDate/)
- assert.match(calendar,/weekStart=\{start\} compact\/>/)
+ assert.match(calendar,/weekStart=\{start\} compact coachDays=/)
  assert.doesNotMatch(calendar,/<WeatherPanel/)
 })
 test('Coach shows fixed 19:00 and 09:00 weather instead of a free best slot when booked',()=>{

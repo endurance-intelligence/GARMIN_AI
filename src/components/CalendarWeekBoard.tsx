@@ -16,7 +16,7 @@ type Daily={metric_date:string;hrv_ms:number|null;resting_heart_rate:number|null
  sleep_seconds:number|null;stress_avg:number|null;body_battery_max:number|null}
 type Manual={id:string;session_date:string;kind:string;duration_minutes:number;rowing_distance_m:number|null;rpe:number|null}
 type WeekResponse={start:string;endExclusive:string;activities:Activity[];health:Daily[];manual:Manual[]}
-type Opportunity={code:string;weekday:number;start_time:string;title:string;location_label:string;location_lat:number;location_lon:number}
+type Opportunity={code:string;weekday:number;start_time:string;title:string;location_label:string;location_lat:number;location_lon:number;enabled?:boolean}
 type Choice={option_code:string;training_date:string;choice:string}
 export type BoardPlan={id:string;training_date:string;title:string;state:string;session_type:string}
 type Props={active:boolean;start:string;selected:string;today:string;
@@ -91,7 +91,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
   const local=plans.filter(p=>p.training_date===day&&p.state!=='cancelled')
   const candidate=coachDays.find(x=>x.date===day)
   // The recorded race takes precedence over the regular Saturday club slot.
-  const slot=options.filter(x=>x.weekday===index+1&&day>=today&&
+  const slot=options.filter(x=>x.enabled!==false&&x.weekday===index+1&&day>=today&&
     candidate?.kind!=='race'&&!completedWeeklyOption(x,day,acts))
   // Even a conflicting local plan must never hide the real race goal.
   const coach=day>=today&&candidate&&
@@ -102,7 +102,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
  })
  return <section className="hwb-root" aria-label="Wochenübersicht mit echten Garmin-Aktivitäten und Gesundheitsdaten">
   <div className="hwb-title">
-   <div><span className="hwb-eyebrow">WOCHEN-RHYTHMUS / LIVE GARMIN</span>
+   <div><span className="hwb-eyebrow">DEIN TRAININGSRHYTHMUS</span>
     <h3>Deine Woche auf einen Blick.</h3></div>
    <span className="hwb-period">KW {weekNumber(start)} · {dayLabel(start)} – {dayLabel(days[6])}</span>
   </div>
@@ -125,7 +125,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
        aria-label={shortDay(day)+' '+dayLabel(day)}>
        <button type="button" className="hwb-day-header"
         aria-pressed={day===selected} onClick={()=>onSelect(day)}>
-        <span>{shortDay(day)} <b>{dayLabel(day)}</b></span>
+        <span className="hwb-date"><span>{shortDay(day)}</span><b>{day.slice(8,10)}<small>.{day.slice(5,7)}.</small></b></span>
         <span className="hwb-day-hint">{day===today?'Heute':day===selected?'Ausgewählt':''}</span>
        </button>
        <div className="hwb-day-cards">
@@ -165,7 +165,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
          {coach.minutes!==null&&<span>{coach.minutes} Minuten · noch nicht eingetragen</span>}
          <small>{coach.decision==='accepted'?'Von dir angenommen · noch kein Kalendereintrag':
           coach.decision==='declined'?'Von dir abgelehnt':
-          'Deine Empfehlung kannst du im Coach prüfen.'}</small>
+          'Empfehlung in den Tagesdetails prüfen.'}</small>
         </button>}
         {slot.map(option=>{
          const choice=groupAdvice?.code===option.code?'selected':choices.find(x=>x.training_date===day&&x.option_code===option.code)?.choice||'open'
@@ -175,13 +175,13 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
          return <button type="button" key={'o-'+option.code}
            onClick={()=>onSelect(day)} className={'hwb-card '+(selected?'is-confirmed-group':'is-option')+(choice==='skipped'?' is-muted':'')+
             (discouraged?' is-discouraged':'')}>
-          <span className="hwb-card-label">{selected?'✓ TEILNAHME BESTÄTIGT':discouraged?'◇ OPTION / COACH RÄT AB':choice==='skipped'?'◇ AUSLASSEN':'◇ OPTION / OFFEN'}</span>
+          <span className="hwb-card-label">{selected?'✓ TEILNAHME BESTÄTIGT':choice==='skipped'?'ABGESAGT / AUSGELASSEN':discouraged?'◇ OPTION / COACH RÄT AB':'◇ OPTION / OFFEN'}</span>
           <strong>{option.title}</strong>
           {selected&&guidance&&<small className="hwb-group-guidance">{guidance.advice==='skip'?'Coach rät ab · Hinweise ansehen':guidance.advice==='easy'?'Coach: verkürzt & sehr locker':'Coach-Hinweise ansehen'}</small>}
-          {discouraged&&!selected&&<small>Coach-Empfehlung oben hat Vorrang; keine automatische Trainingsfreigabe.</small>}
+          {discouraged&&!selected&&choice!=='skipped'&&<small>Coach-Empfehlung oben hat Vorrang; keine automatische Trainingsfreigabe.</small>}
           <span>{option.start_time.slice(0,5)} Uhr · {option.location_label}</span>
-          <FixedTrainingWeather active={active} compact date={day} time={option.start_time}
-           location={option.location_label} latitude={option.location_lat} longitude={option.location_lon}/>
+          {choice!=='skipped'&&<FixedTrainingWeather active={active} compact date={day} time={option.start_time}
+           location={option.location_label} latitude={option.location_lat} longitude={option.location_lon}/>}
          </button>
         })}
         {!acts.length&&!manual.length&&!local.length&&!slot.length&&!coach&&
