@@ -286,6 +286,7 @@ export function buildSevenDayCoach(input){
    // day or the first days, or on a day already assigned to something else.
    const coreDay=(ultraRecovery?[4,7,10,13]:[3,6,9,12]).includes(daysPostRace)
    if(coreDay&&day>=today&&gentleMovement&&stableRecovery&&
+    !dayDecisions.some(x=>x.date===day&&['accepted','declined'].includes(x.choice))&&
     (lowReported||unknownReported))
     return make(day,'mobility','Leichte Rumpfstabi / Mobility · 10 Min.',10,
      'Nur wenn du dich aktuell erholt und beschwerdefrei fühlst: sanfte Mobilität, '+
@@ -326,10 +327,11 @@ export function buildSevenDayCoach(input){
      autoRaceRecovery.signals.join(' · ')+'. '+
      'Weitere Erholung statt Laufvorschlag. Bestehende Termine selbst prüfen.')
    if(daysPostRace<=2||(ultraRecovery&&daysPostRace<=5))
-    return make(day,'recovery','Nach dem Rennen · ruhig regenerieren',null,
+    return {...make(day,'recovery','Nach dem Rennen · ruhig regenerieren',null,
      'Subjektiv schon frischer ('+reportedExhaustion+'/10), aber '+daysPostRace+
      ' Tage nach '+(ultraRecovery?'einem langen Ultra':'dem Rennen')+
-     ' noch keine Laufeinheit automatisch freigeben.'+movementNote)
+     ' noch keine Laufeinheit automatisch freigeben.'+movementNote),
+     ...(gentleMovement&&day>=today?{recoveryMobility:true}:{})}
    if(!dataReady||caution||dayFeedbackCaution)
     return make(day,'recovery','Erholung & Garmin-Daten prüfen',null,
      'Barometer '+reportedExhaustion+'/10, aber Garmin-Verlauf oder Erholungssignale '+
