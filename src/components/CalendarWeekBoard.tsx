@@ -184,7 +184,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
             (discouraged?' is-discouraged':'')}>
           <span className="hwb-card-label">{selected?'✓ TEILNAHME BESTÄTIGT':choice==='skipped'?'ABGESAGT / AUSGELASSEN':discouraged?'◇ OPTION / COACH RÄT AB':'◇ OPTION / OFFEN'}</span>
           <strong>{option.title}</strong>
-          {choice!=='skipped'&&!discouraged&&(dayIntent?.selectedGroup?.code===option.code||!dayIntent?.selectedGroup&&dayIntent?.title===option.title)&&<TrainingQualityMark compact intent={dayIntent?.qualityIntent} blocked={dayIntent?.qualityBlocked}/>}
+          {choice!=='skipped'&&!discouraged&&(dayIntent?.selectedGroup?.code===option.code||!dayIntent?.selectedGroup&&(dayIntent?.title===option.title||dayIntent?.title===option.title+' (optional)'))&&<TrainingQualityMark compact intent={dayIntent?.qualityIntent} blocked={dayIntent?.qualityBlocked}/>}
           {selected&&guidance&&<small className="hwb-group-guidance">{guidance.advice==='skip'?'Coach rät ab · Hinweise ansehen':guidance.advice==='easy'?'Coach: verkürzt & sehr locker':'Coach-Hinweise ansehen'}</small>}
           {discouraged&&!selected&&choice!=='skipped'&&<small>Coach-Empfehlung oben hat Vorrang; keine automatische Trainingsfreigabe.</small>}
           <span>{option.start_time.slice(0,5)} Uhr · {option.location_label}</span>
