@@ -32,9 +32,9 @@ async function week(db:DB,userId:string,start:string){
 }
 /** Private reader. Same read contracts as the existing owner-only API;
  * errors and truncated collections abort archive rather than fabricate goals. */
-export async function readArchiveCoachInput(db:DB,userId:string,today:string){
+export async function readArchiveCoachInput(db:DB,userId:string,today:string,visibleWeek?:string){
  const first=coachMonday(today),second=coachMonday(coachAddDays(today,6))
- const weeks=[...new Set([first,second,...Array.from({length:4},(_,i)=>coachAddDays(first,-7*(i+1)))])]
+ const weeks=[...new Set([coachAddDays(first,-7),first,second,visibleWeek||first,...Array.from({length:4},(_,i)=>coachAddDays(first,-7*(i+1)))])]
  const since=new Date(Date.now()-45*86400000).toISOString().slice(0,10)
  const [metrics,training,options,choices,entries,goal,context,others,equipment,rhythm,...boards]=await Promise.all([
   rows(db.from('garmin_daily_metrics').select(metricFields).gte('metric_date',utcDay(29)).order('metric_date',{ascending:true}).limit(31),'health'),
@@ -58,5 +58,6 @@ export async function readArchiveCoachInput(db:DB,userId:string,today:string){
  for(const k of ['day_decisions','race_recovery_checks','race_activity_links','post_workout_feedback'])c[k]=Array.isArray(c[k])?c[k]:[]
  const runs=c.illness_state==='returning'&&c.return_started_on?(await rows(db.from('garmin_activities').select(activityFields).gte('start_time_local',c.return_started_on).order('start_time_local',{ascending:true}).limit(150),'return runs',150)).filter(x=>/run|jog|trail|treadmill/i.test(x.sport_type||'')).slice(0,3):[]
  const research=goal?await rows(db.from('garmin_race_event_research').select('id,race_date,event_url,event_title,details,evidence,reviewed_at,checked_at').eq('user_id',userId).eq('race_date',goal.race_date).order('reviewed_at',{ascending:false}).limit(5),'race research'):[]
+ if(training.truncated)throw Error('Incomplete training evidence')
  return {health:{metrics,training},boards,options:{options,choices},plans:{entries,historyFrom:since},goal:{goal},life:{context:c,runs,equipmentProfile,trainingRhythm},goalRoute:exactGoalRoute(goal,research),racePortfolio:{primary:goal,others}}
 }
