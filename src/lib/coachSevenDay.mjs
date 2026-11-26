@@ -557,7 +557,7 @@ export function buildSevenDayCoach(input){
  const polarized=applyPolarizedGuidance(toleranceStep.days,{
   today,raceDate,ill,returning,postIllness,caution,
   feedbackCaution,trendReducing,observationLimited,
-  qualityLocked:hardCross||garminPerception.qualityCaution||fourWeekReview.qualityCaution||typeCaution||
+  qualityLocked:garminPerception.qualityCaution||fourWeekReview.qualityCaution||typeCaution||hardCross||
    (recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<0),
   boards:input.boards,feedback:life.post_workout_feedback
  })
