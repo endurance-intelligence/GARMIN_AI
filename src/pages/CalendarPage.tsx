@@ -514,7 +514,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
    <div className="hc-day-content">
     <div className="hc-day-heading">
      <div><span>AUSGEWÄHLTER TAG</span><h3>{longDate(selected)}</h3></div>
-     <span className="hc-day-count">{matching.length} {matching.length===1?'gespeicherter Termin':'gespeicherte Termine'}{coachPreview?' · 1 Coach-Hinweis':''}</span>
+     <span className="hc-day-count">{matching.length} {matching.length===1?'gespeicherter Termin':'gespeicherte Termine'}{completedActivities.length?' · '+completedActivities.length+' absolviert':''}{coachPreview?' · 1 Coach-Hinweis':''}</span>
     </div>
     {completedActivities.length>0&&<div className="hc-entries" aria-label="Absolvierte Garmin-Aktivitäten">{completedActivities.map(a=>{
      const isRun=/run|jog|trail|treadmill/i.test(a.sport_type)
