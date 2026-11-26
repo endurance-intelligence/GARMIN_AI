@@ -518,7 +518,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
     <span><i className="hc-key-option"/> ORC · optional</span>
    </div>
    {visibleBudget&&week>=0&&<WeeklyTrainingCard budget={visibleBudget}/>}
-   {archiveSnapshot&&week>=0&&<TrainingWeekArchive key={start} active={active} snapshot={archiveSnapshot} onHistory={()=>{onGo('training');window.dispatchEvent(new Event('garmin-ai-open-training-history'))}}/>}
+   {archiveSnapshot&&week===0&&<TrainingWeekArchive key={start} active={active} snapshot={archiveSnapshot} onHistory={()=>{onGo('training');window.dispatchEvent(new Event('garmin-ai-open-training-history'))}}/>}
    <CalendarWeekBoard active={active} start={start} selected={selected}
     today={today} onSelect={day=>{setSelected(day);setCoachReview(null)}}
     onActivities={setWeekActivities} plans={plans} coachDays={coachPlan?.days||[]} refreshKey={refresh} quickAction={date=>quickCoachAction(coachPlan,date,today)} quickDecision={date=>quickDecisionAvailable(coachPlan,date,today)} onQuickAccept={(day,choice)=>void quickAccept(day,choice)} quickBusy={acting!==null||coachLoading||!!coachError||busy}/>
