@@ -30,7 +30,7 @@ test('Seven-day Coach hints are VISIBLE in calendar but not silently scheduled',
  assert.match(calendar,/Coach-Empfehlung für diesen Kalendertag/)
  assert.match(calendar,/Noch nicht gespeichert · freiwillig/)
  assert.match(calendar,/Vorschlag prüfen/)
- assert.match(calendar,/!coachPreview&&!coachLoading&&<div className="hc-empty"/)
+ assert.match(calendar,/!coachPreview&&!coachLoading&&!completedActivities.length&&<div className="hc-empty"/)
 })
 test('single calendar day allows one explicit draft, then manual approval, then explicit Intervals publish',()=>{
  assert.match(calendar,/Vorschlag übernehmen/)
