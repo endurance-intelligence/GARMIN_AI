@@ -89,6 +89,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
  const calendarDays=days.map((day,index)=>{
   const acts=(visibleData?.activities||[]).filter(x=>x.start_time_local?.slice(0,10)===day)
   const manual=(visibleData?.manual||[]).filter(x=>x.session_date===day)
+    .filter(x=>!acts.some(a=>x.kind==='rowing'&&sportKind(a.sport_type)==='rowing'))
   const local=plans.filter(p=>p.training_date===day&&p.state!=='cancelled')
   const candidate=coachDays.find(x=>x.date===day)
   // The recorded race takes precedence over the regular Saturday club slot.
