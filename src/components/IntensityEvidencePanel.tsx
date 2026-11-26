@@ -6,7 +6,7 @@ import '../styles/intensity-evidence.css'
 
 const colors=['#7185a3','#78a7ff','#5fd3bc','#b4db7a','#efbc78','#ed879b','#9296ab']
 const pretty=(v:number)=>v.toLocaleString('de-DE',{maximumFractionDigits:1})
-function selectReference(data:HrProfileResult|null,activityDate:string|null):{profile:GarminRunningHrProfile|null;kind:'historical'|'current'|'missing';observedAt:string|null}{
+export function selectReference(data:HrProfileResult|null,activityDate:string|null):{profile:GarminRunningHrProfile|null;kind:'historical'|'current'|'missing';observedAt:string|null}{
   const t=activityDate?Date.parse(activityDate):NaN
   if(Number.isFinite(t)){
     const matching=(data?.history??[]).filter(s=>Number.isFinite(Date.parse(s.observedAt))&&Date.parse(s.observedAt)<=t)
