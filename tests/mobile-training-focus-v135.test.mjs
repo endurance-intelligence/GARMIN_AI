@@ -13,9 +13,10 @@ test('actual Garmin summary derives pace and normalizes RPE without inventing mi
 })
 test('run summary and coach conclusion precede optional technical details; stale run detail cannot leak',()=>{
  const s=read('src/components/LiveSessionAnalyst.tsx')
- assert.ok(s.indexOf('className="lsa-run-summary"')<s.indexOf('<CoachEvidenceSummary active='))
- assert.ok(s.indexOf('<CoachEvidenceSummary active=')<s.indexOf('<PlanActualReview match='))
+ assert.ok(s.indexOf('className="lsa-run-summary"')<s.indexOf('<SessionCoachContext key='))
+ assert.ok(s.indexOf('<SessionCoachContext key=')<s.indexOf('<PlanActualReview match='))
  assert.ok(s.indexOf('<PlanActualReview match=')<s.indexOf('<details className="lsa-deep-dive">'))
+ assert.match(s,/<CoachEvidenceSummary active=\{active\} mode="training" activityId=\{activity.id\} embedded\/>/)
  assert.match(s,/loadedDetails\?\.activity.id===selected\?loadedDetails:null/)
  assert.doesNotMatch(s,/Garmin-RPE Rohwert/)
 })

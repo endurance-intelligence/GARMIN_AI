@@ -56,7 +56,7 @@ async function historicalGroupWeather(activity:SessionResponse['activity'],list:
  if(typeof felt!=='number'||!Number.isFinite(felt)||typeof temperature!=='number'||!Number.isFinite(temperature))return null
  return {felt:Math.round(felt),temperature:Math.round(temperature),location:o.location_label,hour}
 }
-function SessionCoachContext({activity,list,terrain,session}:{activity:SessionResponse['activity'];list:Activity[];terrain:TerrainWindow[];session:Session}){
+function SessionCoachContext({activity,list,terrain,session,active}:{activity:SessionResponse['activity'];list:Activity[];terrain:TerrainWindow[];session:Session;active:boolean}){
  const [felt,setFelt]=useState('')
  const [weather,setWeather]=useState<HistoricalWeather|null>(null)
  const [weatherPending,setWeatherPending]=useState(true)
@@ -67,11 +67,11 @@ function SessionCoachContext({activity,list,terrain,session}:{activity:SessionRe
  },[activity,list,session])
  const number= felt.trim()!==''?Number(felt.replace(',','.')):NaN
  const context=buildSessionContext(activity,list,terrain,Number.isFinite(number)&&number>=-80&&number<=65?number:weather)
- return <article className="cr-card" aria-label="Persönliches Coach-Fazit">
-  <div style={{display:'flex',alignItems:'center',gap:16}}><CoachAvatar mood={context.mood} small/><div><div className="cr-label">DEIN COACH · EINORDNUNG</div><h3>{context.verdict}</h3></div></div>
-  <p>Das ist meine Einschätzung anhand der verfügbaren Messwerte, keine medizinische Trainingsfreigabe.</p>
+ return <article className={"cr-card lsa-coach-review lsa-coach-"+context.mode} aria-label="Persönliches Coach-Fazit">
+  <div className="lsa-coach-hero"><div className="lsa-coach-copy"><div className="cr-label">DEIN COACH · TRAININGSBEWERTUNG</div><span className="lsa-coach-mode">{context.modeLabel}</span><h3>{context.verdict}</h3>{context.recommendation&&<p>{context.recommendation}</p>}<small>Einordnung der verfügbaren Daten, keine medizinische Trainingsfreigabe.</small></div><CoachAvatar mood={context.mood}/></div>
   <div className="lsa-findings">{context.factors.map(f=><div className="lsa-signal info" key={f.label}><b>{f.label}</b><p>{f.text}</p></div>)}</div>
   {weatherPending?<small>Historisches Trainingswetter wird geprüft …</small>:!weather&&<label className="lsa-picker">Gefühlte Temperatur beim Lauf (optional, eigene Angabe, nur für diese Ansicht)<input type="number" min={-80} max={65} step="1" value={felt} placeholder="z. B. -6" onChange={e=>setFelt(e.target.value)}/></label>}
+  <details className="lsa-coach-evidence"><summary>FIT-Abschnitte und Hauptziel · ergänzende Messdaten</summary><CoachEvidenceSummary active={active} mode="training" activityId={activity.id} embedded/></details>
   <p className="cr-next"><strong>Was bedeutet das für dein nächstes Training?</strong> {context.next}</p>
  </article>
 }
@@ -224,8 +224,7 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
       </div>}
       {loading && <p className="lsa-note">Lese Garmin-Aktivität …</p>}
       {details && analysis && <>
-        <SessionCoachContext key={details.activity.id} activity={details.activity} list={list} terrain={details.details.terrainWindows||[]} session={session}/>
-        <CoachEvidenceSummary active={active} mode="training" activityId={details.activity.id}/>
+        <SessionCoachContext key={details.activity.id} activity={details.activity} list={list} terrain={details.details.terrainWindows||[]} session={session} active={active}/>
         <PlanActualReview match={planActual} loading={!plansLoaded&&!planError}
          error={planError}/>
         <SessionIntensityDetails key={details.activity.id} samples={details.details.samples}

@@ -58,7 +58,10 @@ test('actual Garmin coach summaries embed small Intervals context but remain the
  const src=read('src/components/CoachEvidenceSummary.tsx')
  assert.match(src,/mode="week" weekStart=\{start\}/)
  assert.match(src,/mode="activity" activityId=\{r\.activityId\}/)
- assert.equal((src.match(/<IntervalsCoachContext/g)||[]).length,2)
+ assert.equal((src.match(/<IntervalsCoachContext/g)||[]).length,3)
+ // Embedded training and standalone calendar/weekly paths are mutually exclusive.
+ assert.match(src,/if\(embedded&&mode==='training'\)return/)
+ assert.match(src,/if\(embedded&&mode==='training'\)return[\s\S]*?mode="activity"[\s\S]*?return <section/ )
  assert.match(src,/Für die nächste Woche:/)
  assert.match(src,/COACH \/ FAZIT/)
 })
