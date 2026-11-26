@@ -62,3 +62,7 @@ verify_jwt = false
 # Private history validates owner JWT and email inside the Edge Function.
 [functions.garmin-training-history]
 verify_jwt = false
+
+# Private scheduled worker verifies Vault-backed cron credential itself.
+[functions.garmin-coach-archive]
+verify_jwt = false
