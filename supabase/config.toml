@@ -58,3 +58,7 @@ verify_jwt = false
 # Read-only owner JWT verified inside the reference-route Edge Function.
 [functions.read-garmin-reference-routes]
 verify_jwt = false
+
+# Private history validates owner JWT and email inside the Edge Function.
+[functions.garmin-training-history]
+verify_jwt = false
