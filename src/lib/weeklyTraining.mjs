@@ -12,7 +12,7 @@ const down=n=>Math.floor(n*10+1e-8)/10
 const median=xs=>{const s=[...xs].sort((a,b)=>a-b),m=Math.floor(s.length/2);return s.length?(s.length%2?s[m]:(s[m-1]+s[m])/2):null}
 function actualRuns(boards,today){
  const map=new Map()
- for(const b of boards||[])for(const a of b?.activities||[]){
+ for(const b of boards||[])for(const a of Array.isArray(b?.activities)?b.activities:[]){
   if(!RUN.has(a?.sport_type)||!valid(dayOf(a))||dayOf(a)>today||a.activity_id==null||!String(a.activity_id))continue
   const id=String(a.activity_id),old=map.get(id)
   if(!old||(!finite(old.distance_m)&&finite(a.distance_m)))map.set(id,a)
@@ -78,7 +78,7 @@ export function buildWeeklyBudget({today,start,days=[],boards=[],plans=[],roadma
  const labels={paused:'Erholung / Belastung prüfen',recovery:'Regeneration',race:'Rennwoche',taper:'Tapering',unknown:'Planungsbasis fehlt'}
  return {start,end,current,phase,phaseLabel:labels[phase]||week?.phaseLabel||'Planungsbasis fehlt',target,actualKm,approvedKm,draftKm,suggestedKm,forecastKm:forecast,unknown,paceSeconds:pace,proposedParts,
   gapKm:target&&forecast!==null?round(Math.max(0,target.low-forecast)):null,
-  longRunMinutes:target?week?.longRunMinutes??null:null,longestActualMinutes:source?Math.round(Math.max(0,...actual.filter(a=>finite(a.duration_s)).map(a=>a.duration_s))/60):null,
+  longRunMinutes:target?week?.longRunMinutes??null:null,longestActualMinutes:source&&actual.every(a=>finite(a.duration_s)&&a.duration_s>=0)?Math.round(Math.max(0,...actual.map(a=>a.duration_s))/60):null,
   qualityOptions:target?week?.qualityOptions??0:0,
   rowingDays:source?distinctDays('rowing'):null,strengthDays:source?distinctDays('strength'):null,
   rowingTarget:rhythm?.rowing?.days?.length??null,strengthTarget:rhythm?.strength?.days?.length??null,
