@@ -12,7 +12,7 @@ const duration=(x:number|null)=>x===null?'–':Math.floor(x/60)+'h '+String(x%60
 const short=(d:string)=>d.slice(8,10)+'.'+d.slice(5,7)+'.'
 const shiftMonth=(m:string,n:number)=>new Date(Date.UTC(Number(m.slice(0,4)),Number(m.slice(5,7))-1+n,1,12)).toISOString().slice(0,7)
 function SummaryRows({actual,planned,original}:{actual:HistorySummary;planned:HistorySummary|null;original:HistorySummary|null}){
- const showOriginal=!!original&&!!planned&&SPORTS.some((k,i)=>original.rows[i].count!==planned.rows[i].count)
+ const showOriginal=!!original&&!!planned&&SPORTS.some((_,i)=>original.rows[i].count!==planned.rows[i].count)
  return <div className="th-rows">
   <div className={'th-row th-row-head'+(showOriginal?' has-original':'')}><span>TRAININGSART</span>{showOriginal&&<span>URSPR.</span>}<span>GEPLANT</span><span>GEMACHT</span></div>
   {SPORTS.map((kind,i)=>{
