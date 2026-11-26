@@ -7,7 +7,7 @@ export function quickCoachAction(plan,date,today){
  const d=plan.days.find(x=>x.date===date)
  if(!d||d.decision||d.selectedGroup)return null
  if(d.kind==='recovery')return 'rest'
- if(!d.approvable||!['easy','long','return_easy','mobility'].includes(d.kind))return null
+ if(!d.approvable||!['easy','long','return_easy','mobility','rowing'].includes(d.kind))return null
  return trainingAlternativeForDate(plan,date)?'choose':'draft'
 }
 
@@ -18,5 +18,5 @@ export function quickDecisionAvailable(plan,date,today){
  const offset=(Date.parse(date+'T12:00:00Z')-Date.parse(today+'T12:00:00Z'))/86400000
  if(!Number.isInteger(offset)||offset<0||offset>13)return false
  const d=plan?.days?.find(x=>x.date===date)
- return !!d&&!d.selectedGroup&&['accepted','declined'].includes(d.decision)&&['recovery','easy','long','return_easy','mobility'].includes(d.kind)
+ return !!d&&!d.selectedGroup&&['accepted','declined'].includes(d.decision)&&['recovery','easy','long','return_easy','mobility','rowing'].includes(d.kind)
 }
