@@ -1,3 +1,4 @@
+import {TrainingHistory} from '../components/TrainingHistory'
 import {LiveSessionAnalyst} from '../components/LiveSessionAnalyst'
 import {TrainingDevelopment} from '../components/TrainingDevelopment'
 import type {Page} from '../navigation'
@@ -13,6 +14,7 @@ export function TrainingPage({active,focus,onGo,onOpenSession,onOpenCalendar}:{a
      erkennt den Trainingstyp automatisch und berücksichtigt dein Hauptziel.</p>
    </div>
   </div>
+  <TrainingHistory active={active} onCalendar={onOpenCalendar}/>
   <TrainingDevelopment active={active} focusToken={focus?.token} onGoals={()=>onGo('goals')} onRacePrep={()=>onGo('race')} onOpenSession={onOpenSession} onOpenCalendar={onOpenCalendar} onStrength={()=>onGo('strength')}/>
   <LiveSessionAnalyst active={active} focus={focus}/>
   <p className="page-disclaimer">Nur echte Garmin-Daten. Keine künstlichen Trainingsnoten,
