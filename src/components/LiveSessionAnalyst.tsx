@@ -189,7 +189,7 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
   useEffect(() => {
     if (!active || !session || !selected) return
     let mounted = true
-    setLoading(true); setError(''); setDetails(null)
+    setLoading(true); setError(''); setDetails(null); setZoneSummary(null)
     void readPrivate<SessionResponse>(session, `?id=${encodeURIComponent(selected)}`).then(result => {
       if (mounted) setDetails(result)
     }).catch(err => { if (mounted) setError(err instanceof Error ? err.message : 'Detaildaten nicht verfügbar') })
