@@ -25,7 +25,7 @@ test('current week archives from both active pages, no approval or dispatch',()=
  assert.doesNotMatch(a,/approvePlan|publishPlan|garmin-training-plan/)
  assert.match(read('src/pages/CalendarPage.tsx'),/archiveSnapshot&&week===0&&/)
  assert.match(read('src/pages/CoachPage.tsx'),/archiveSnapshot&&!snapshotLoading&&!snapshotError&&/)
- const sql=read('supabase/migrations/20261126141000_planning_consolidation_rhythm_archive.sql')
+ const sql=read('supabase/migrations/20261126131338_planning_consolidation_rhythm_archive.sql')
  assert.match(sql,/pg_advisory_xact_lock/)
  assert.match(sql,/prior.snapshot=p_snapshot/)
  assert.match(sql,/\(e->>'date'\)::date<d/)
