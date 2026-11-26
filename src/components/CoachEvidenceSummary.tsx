@@ -52,7 +52,7 @@ export function CoachEvidenceSummary({active,mode,weekStart,selectedDate,activit
  },[active,activityId,start])
  if(!active)return null
  const reviews=(result?.reviews||[]).filter(r=>mode==='training'?r.activityId===activityId:mode==='calendar'?r.date===selectedDate:false)
- const showWeek=mode==='weekly'||mode==='calendar'
+ const showWeek=mode==='weekly'
  if(!garminSupabase||!loggedIn)return null
  if(embedded&&mode==='training')return <div className="lsa-fit-evidence">
   {busy&&<small role="status">FIT-Abschnitte werden ausgewertet …</small>}
