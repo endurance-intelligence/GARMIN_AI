@@ -540,6 +540,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
      <h4>{coachPreview.selectedGroup?.title||coachPreview.title}</h4>
      {coachPreview.selectedGroup&&<small>{[coachPreview.selectedGroup.startTime?coachPreview.selectedGroup.startTime+' Uhr':'',coachPreview.selectedGroup.location].filter(Boolean).join(' · ')}</small>}
      <p>{coachPreview.reason}</p>
+     {coachPreview.recoveryMobility&&<div className="cdb-supplement"><small>OPTIONALE REGENERATION</small><strong>5–10 Min. sanfte Mobility</strong><p>Schmerzfreie Beweglichkeit, ohne Widerstand und ohne Ermüdung. Kein zusätzliches Krafttraining; bei Beschwerden auslassen.</p></div>}
      {daySupplement&&<div className="cdb-supplement"><small>{alternative?'ODER · AEROBE ALTERNATIVE':'ZIELGERICHTETER SCHWERPUNKT'}</small><strong>{daySupplement.title} · {daySupplement.minutes} Min.</strong><p>{daySupplement.reason}</p><SupplementSessionDetails suggestion={daySupplement}/><small>{daySupplement.intensity} · {alternative?'Über „Vorschlag prüfen“ eine Variante auswählen.':'Keine zweite Einheit.'}</small></div>}
      {coachPreview.selectedGroup?<small>Deine Teilnahme änderst du über „Gruppentermine planen“. Kein zusätzliches Workout wird angelegt.</small>:<small>Du kannst sie hier im Kalender annehmen, ablehnen oder ändern.</small>}
      {selected>=today&&selected<=moveDay(today,6)&&
