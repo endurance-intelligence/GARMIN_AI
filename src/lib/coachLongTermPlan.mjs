@@ -52,7 +52,7 @@ export function buildLongTermCoachPlan({today,goal,health,life,racePortfolio,his
   !training?.truncated&&training.historyStatus==='complete'?
    Math.round((training.runKm7+
     (number(training.previousRunKm7,5,180)?training.previousRunKm7:training.runKm7))/2):null
- const raceDates=[raceDate,...(racePortfolio?.others||[]).map(g=>g.race_date),...(life?.context?.race_recovery_checks||[]).map(c=>c.raceDate)].filter(Boolean)
+ const raceDates=[raceDate,...(Array.isArray(racePortfolio?.others)?racePortfolio.others:[]).map(g=>g?.race_date),...(Array.isArray(life?.context?.race_recovery_checks)?life.context.race_recovery_checks:[]).map(c=>c?.raceDate)].filter(Boolean)
  const baseKm=history===undefined?rollingBase:recentRecovery||training?.truncated||training?.historyStatus!=='complete'?null:trainingWeekBaseline(history,raceDates)
  const feedback=analyzeWorkoutFeedbackTrend(life?.context?.post_workout_feedback,today)
  const sick=life?.context?.illness_state==='sick'
