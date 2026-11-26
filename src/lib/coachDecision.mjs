@@ -21,7 +21,8 @@ export function selectCoachDecision(plan,context={}){
   race:'Heute zählt das Rennen.',existing:'Bereits eingeplant.',
   completed:'Bereits absolviert.',option:'Deine freie Entscheidung.',chosen:'Teilnahme ausgewählt.',
   declined:'Du hast abgelehnt.',acknowledged:'Deine Entscheidung zählt.',
-  mobility:'Stabil bleiben.'
+  mobility:'Stabil bleiben.',
+  rowing:'Ausdauer ohne zusätzliche Laufkilometer.'
  }
  const headline=labels[candidate.kind]||'Deine nächste Entscheidung.'
  const actionable=!candidate.selectedGroup&&!candidate.decision&&(candidate.approvable===true||candidate.kind==='option')

@@ -1,4 +1,5 @@
-import {buildGoalProfile,buildGoalSupplement,buildDailyTrainingAlternatives} from './goalTrainingFocus.mjs'
+import {applyTrainingRhythm} from './trainingRhythm.mjs'
+import {crossTrainingEvidence,buildGoalProfile,buildGoalSupplement,buildDailyTrainingAlternatives} from './goalTrainingFocus.mjs'
 import {latestWorkoutFeedback,evaluateWorkoutFeedback} from './postWorkoutFeedback.mjs'
 import {analyzeWorkoutFeedbackTrend} from './feedbackTrend.mjs'
 import {summarizeLastCompletedWeek} from './completedWeekReview.mjs'
@@ -151,10 +152,12 @@ export function buildSevenDayCoach(input){
   (raceOffset===null||raceOffset>10)
  const last7=activities.filter(a=>String(a.start_time_local||'').slice(0,10)>=coachAddDays(today,-6)&&
    String(a.start_time_local||'').slice(0,10)<=today)
+ const crossEvidence=crossTrainingEvidence({today,boards:input.boards})
+ const hardCross=!!input.life?.trainingRhythm&&crossEvidence.rows.some(r=>r.date>=coachAddDays(today,-1)&&r.date<=today&&['rowing','strength'].includes(r.kind)&&r.rpe!==null&&r.rpe>=7)
  const soccer7=last7.filter(a=>/soccer|football/i.test(String(a.sport_type||''))).length
  const mobility7=last7.filter(a=>/mobility|strength|pilates|weight/i.test(String(a.sport_type||''))).length
  const crossNote='Ergänzend in 7 Tagen: '+soccer7+' × Fußball, '+mobility7+
-  ' × Kraft/Mobility. Ohne Umrechnung in Laufkilometer.'
+  ' × Kraft/Mobility, '+(crossEvidence.rowingDays===null?'unbekannt':crossEvidence.rowingDays)+' Rudertage. Ohne Umrechnung in Laufkilometer.'
  const flags=[
   training?'Garmin: '+quant(training.runKm7,' km Laufumfang in 7 Tagen')+'; Vorwoche '+quant(training.previousRunKm7,' km'):'Trainingsumfang nicht verfügbar',
   latest?'Erholung: letzter Messwert '+latest+(age>2?' (veraltet)':''):'Erholungsdaten fehlen',
@@ -167,6 +170,7 @@ export function buildSevenDayCoach(input){
    raceDate?'Vergangener Wettkampf: '+goal.race_name+' · neues Ziel oder Trainingsniveau wählen':'Kein Wettkampfziel verfügbar',
   crossNote
  ]
+ if(hardCross)flags.push('Intensives Rudern/Krafttraining in den letzten zwei Tagen: keine weitere harte Einheit erzwingen.')
  if(activeRaceRecovery)flags.push(
   'Wettkampfnachbereitung: '+(autoRaceRecovery.status==='matched'?
    'Eindeutig passende Garmin-Aufzeichnung zugeordnet. ':
@@ -343,6 +347,7 @@ export function buildSevenDayCoach(input){
   }
   const option=options.find(o=>o.enabled&&o.weekday===weekday(day))
   const choice=option?choices.find(c=>c.training_date===day&&c.option_code===option.code)?.choice:null
+  if(hardCross&&day>=today&&day<=coachAddDays(today,1)&&(untilRace===null||untilRace>10))return make(day,'recovery','Erholung nach Ergänzungstraining',null,'Zuletzt intensive Ruder- oder Krafteinheit (RPE ≥ 7). Zusätzliche Intensität vermeiden; keine Nachholeinheit.')
   if(postIllness){
    if(option&&choice==='selected')return make(day,'option',option.title+' · nach Krankheit prüfen',null,
     'Bereits ausgewählter Termin: noch keine harte Belastung. Teilnahme und Intensität bewusst selbst prüfen.')
@@ -432,7 +437,7 @@ export function buildSevenDayCoach(input){
   if([2,4,7].includes(weekday(day)))
    return make(day,'easy','Lockerer Lauf · 35–50 Min.',40,
     'Aerober Grundlagenreiz; Sprechtest und Herzfrequenz wichtiger als Pace.')
-  if(weekday(day)===5)return make(day,'mobility','Stabi / Mobility · 20 Min.',20,
+  if(weekday(day)===5&&!input.life?.trainingRhythm)return make(day,'mobility','Stabi / Mobility · 20 Min.',20,
    'Leichte Kräftigung und Beweglichkeit; keine zusätzliche harte Einheit.','strength')
   return make(day,'recovery','Erholung / freier Tag',null,
    'Abstand zwischen Belastungen erhalten, optionale Vereinstrainings bleiben freiwillig.')
@@ -446,7 +451,7 @@ export function buildSevenDayCoach(input){
    Date.parse(recoveryRaceDate+'T12:00:00Z'))/ONE_DAY):null
   const recovering=daysAfter!==null&&daysAfter>0&&daysAfter<=14
   const hardSafety=['illness','blocked'].includes(item.kind)
-  const cautionDay=caution||feedbackCaution||trendReducing||trendShortening||observationLimited||
+  const cautionDay=hardCross||caution||feedbackCaution||trendReducing||trendShortening||observationLimited||
    returning||postIllness||fourWeekReview.qualityCaution
   const restAdvice=item.kind==='recovery'||(recovering&&item.kind==='mobility')||hardSafety||item.kind==='completed'||
    (item.kind==='existing')||((recovering||cautionDay)&&group.sport==='football')
@@ -552,7 +557,7 @@ export function buildSevenDayCoach(input){
  const polarized=applyPolarizedGuidance(toleranceStep.days,{
   today,raceDate,ill,returning,postIllness,caution,
   feedbackCaution,trendReducing,observationLimited,
-  qualityLocked:garminPerception.qualityCaution||fourWeekReview.qualityCaution||typeCaution||
+  qualityLocked:garminPerception.qualityCaution||fourWeekReview.qualityCaution||typeCaution||hardCross||
    (recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<0),
   boards:input.boards,feedback:life.post_workout_feedback
  })
@@ -561,9 +566,10 @@ export function buildSevenDayCoach(input){
  const goalProfile=buildGoalProfile({today,goal:input.goal,route:input.goalRoute})
  const supplementInput={today,profile:goalProfile,days:polarized.days,boards:input.boards,equipment:input.life?.equipmentProfile,
   protectedPhase:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||observationLimited||allowWeekAdjustment||adapted.impact.effect==='shortened'||fourWeekReview.qualityCaution||typeCaution||(recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<=0)||(raceOffset!==null&&raceOffset>=-14&&raceOffset<=10),qualityDay:polarized.qualityDay}
- const supplement=buildGoalSupplement(supplementInput)
- const alternatives=buildDailyTrainingAlternatives(supplementInput)
- return {today,days:polarized.days,signals,flags,goalProfile,supplement,alternatives,
+ const rhythmDays=applyTrainingRhythm(polarized.days,input.life?.trainingRhythm,{today,protectedPhase:supplementInput.protectedPhase||hardCross,qualityDay:polarized.qualityDay,evidence:crossEvidence.rows,equipment:input.life?.equipmentProfile,options,choices})
+ const supplement=buildGoalSupplement({...supplementInput,days:rhythmDays})
+ const alternatives=buildDailyTrainingAlternatives({...supplementInput,days:rhythmDays})
+ return {today,days:rhythmDays,signals,flags,goalProfile,supplement,alternatives,
   trainingMethod:{id:'polarized',qualityDay:polarized.qualityDay,
    status:polarized.status,plannedEasy:polarized.easyCount,
    message:polarized.message},

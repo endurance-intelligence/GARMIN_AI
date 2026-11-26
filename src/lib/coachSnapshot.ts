@@ -8,6 +8,7 @@ import type {CoachContextPayload} from '../components/CoachLifeContext'
 import {exactGoalRoute} from './goalTrainingFocus.mjs'
 import type {GoalRouteEvidence} from './goalTrainingFocus.mjs'
 import {normalizeEquipmentProfile} from './equipmentProfile.mjs'
+import {readRhythm} from './trainingRhythm.mjs'
 export type CoachSnapshot={
  health:Record<string,unknown>;boards:Record<string,unknown>[];
  options:Record<string,unknown>;plans:{entries:Array<Record<string,unknown>>;historyFrom?:string};
@@ -56,7 +57,7 @@ export async function loadCoachSnapshot(session:Session,today:string,signal?:Abo
   throw Error('Einige Coach-/Kalenderdaten sind unvollständig; keine Vorschläge eingeblendet.')
  return {health,options,plans:{entries:plans.entries as Array<Record<string,unknown>>,
    historyFrom:typeof plans.historyFrom==='string'?plans.historyFrom:undefined},
-  goal,boards,life:{...life as CoachContextPayload,equipmentProfile:normalizeEquipmentProfile(equipment.profile)},goalRoute:exactGoalRoute(goal.goal,raceResearch.saved),
+  goal,boards,life:{...life as CoachContextPayload,equipmentProfile:normalizeEquipmentProfile(equipment.profile),trainingRhythm:readRhythm()},goalRoute:exactGoalRoute(goal.goal,raceResearch.saved),
   racePortfolio:{primary:racePortfolio.primary as Record<string,unknown>|null|undefined,
    others:Array.isArray(racePortfolio.others)?racePortfolio.others as Array<Record<string,unknown>>:[]}}
 }
