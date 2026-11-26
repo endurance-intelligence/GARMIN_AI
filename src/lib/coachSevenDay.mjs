@@ -1,3 +1,5 @@
+import {buildLongTermCoachPlan} from './coachLongTermPlan.mjs'
+import {buildWeeklyBudget,replacementImpact,protectRhythmReplacements} from './weeklyTraining.mjs'
 import {applyTrainingRhythm} from './trainingRhythm.mjs'
 import {crossTrainingEvidence,buildGoalProfile,buildGoalSupplement,buildDailyTrainingAlternatives} from './goalTrainingFocus.mjs'
 import {latestWorkoutFeedback,evaluateWorkoutFeedback} from './postWorkoutFeedback.mjs'
@@ -566,10 +568,22 @@ export function buildSevenDayCoach(input){
  const goalProfile=buildGoalProfile({today,goal:input.goal,route:input.goalRoute})
  const supplementInput={today,profile:goalProfile,days:polarized.days,boards:input.boards,equipment:input.life?.equipmentProfile,
   protectedPhase:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||observationLimited||allowWeekAdjustment||adapted.impact.effect==='shortened'||fourWeekReview.qualityCaution||typeCaution||(recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<=0)||(raceOffset!==null&&raceOffset>=-14&&raceOffset<=10),qualityDay:polarized.qualityDay}
- const rhythmDays=applyTrainingRhythm(polarized.days,input.life?.trainingRhythm,{today,protectedPhase:supplementInput.protectedPhase||hardCross,qualityDay:polarized.qualityDay,evidence:crossEvidence.rows,equipment:input.life?.equipmentProfile,options,choices})
- const supplement=buildGoalSupplement({...supplementInput,days:rhythmDays})
- const alternatives=buildDailyTrainingAlternatives({...supplementInput,days:rhythmDays})
- return {today,days:rhythmDays,signals,flags,goalProfile,supplement,alternatives,
+ const roadmap=buildLongTermCoachPlan({today,goal:input.goal,health,life:input.life,racePortfolio:input.racePortfolio,history:fourWeekReview})
+ const raceDates=[raceDate,recoveryRaceDate,...history.map(g=>g.race_date)].filter(Boolean)
+ const budgetFor=(weekDays,date)=>buildWeeklyBudget({today,start:coachMonday(date),days:weekDays,boards:input.boards,plans,roadmap:roadmap.weeks,protectedPhase:supplementInput.protectedPhase||hardCross,raceDates,rhythm:input.life?.trainingRhythm})
+ const rhythmProposed=applyTrainingRhythm(polarized.days,input.life?.trainingRhythm,{today,protectedPhase:supplementInput.protectedPhase||hardCross,qualityDay:polarized.qualityDay,evidence:crossEvidence.rows,equipment:input.life?.equipmentProfile,options,choices})
+ const rhythmDays=protectRhythmReplacements(polarized.days,rhythmProposed,budgetFor)
+ const weeklyBudgets=[...new Set([coachMonday(today),...rhythmDays.map(d=>coachMonday(d.date))])].map(start=>budgetFor(rhythmDays,start))
+ const unfilteredAlternatives=buildDailyTrainingAlternatives({...supplementInput,days:rhythmDays})
+ const alternatives=unfilteredAlternatives.flatMap(a=>{
+  const impact=replacementImpact(budgetFor(rhythmDays,a.date),a.date)
+  return impact.allowed?[{...a,reason:a.reason+' '+impact.reason}]:[]
+ })
+ const rawSupplement=buildGoalSupplement({...supplementInput,days:rhythmDays})
+ const supplement=rawSupplement.suggestion?.mode==='alternative'&&!alternatives.some(a=>a.date===rawSupplement.suggestion.date)?{...rawSupplement,suggestion:null,reason:'Laufspezifischer Wochenumfang hat Vorrang.'}:rawSupplement
+ const currentBudget=weeklyBudgets.find(w=>w?.current)
+ if(currentBudget?.target)flags.push('Laufumfang dieser ISO-Woche: Richtwert '+currentBudget.target.low+'–'+currentBudget.target.high+' km; '+(currentBudget.forecastKm===null?'Prognose noch offen.':currentBudget.forecastKm+' km aus bekannten Messungen und Vorschlägen. Keine fehlenden Kilometer nachholen.'))
+ return {today,days:rhythmDays,signals,flags,goalProfile,supplement,alternatives,weeklyBudgets,
   trainingMethod:{id:'polarized',qualityDay:polarized.qualityDay,
    status:polarized.status,plannedEasy:polarized.easyCount,
    message:polarized.message},
