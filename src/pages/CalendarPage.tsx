@@ -3,6 +3,7 @@ import type {Session} from '@supabase/supabase-js'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {Icon} from '../components/Icon'
 import {WorkoutArchivePanel} from '../components/WorkoutArchivePanel'
+import {TrainingRhythmSettings} from '../components/TrainingRhythmSettings'
 import {WeeklyTrainingOptions} from '../components/WeeklyTrainingOptions'
 import {SupplementSessionDetails} from '../components/SupplementSessionDetails'
 import {trainingAlternativeForDate} from '../lib/goalTrainingFocus.mjs'
@@ -243,7 +244,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
     title:day.title,sessionType:'event',
     sport:day.kind==='mobility'?'strength':day.sport,
     notes:'Coach Intelligence · '+day.minutes+
-     ' Minuten. Nur Kalendereintrag, kein strukturiertes Lauftraining.'+(day.kind==='mobility'?' '+boundedCoachReason(day.reason):'')
+     ' Minuten. Nur Kalendereintrag, kein strukturiertes Lauftraining.'+(['mobility','rowing'].includes(day.kind)?' '+boundedCoachReason(day.reason):'')
    }
    const result=await ownerPost<{saved:boolean;id:string;revision:number;state:string}>(
     session,'garmin-training-plan',payload)
@@ -493,6 +494,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
     <small>Der Wettkampf ist bereits als Coach-Ziel hinterlegt. Keine zusätzliche Freigabe oder
      ORC-Einheit am Renntag. Die vorgeschlagenen Trainingstage sind auf den Start ausgerichtet.</small>
    </div>}
+  <TrainingRhythmSettings onSaved={()=>setRefresh(n=>n+1)}/>
   <div className="hc-weekpanel">
    <div className="hc-toolbar">
     <div><small>DEIN TRAININGSKALENDER</small><h2>Wochenansicht</h2></div>
@@ -526,6 +528,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
        {isRun&&<button type="button" className="hc-coach-accept" onClick={()=>onOpenSession(String(a.activity_id))}><Icon name="arrow-up-right"/> Lauf analysieren</button>}
       </div></article>
     })}</div>}
+    {coachDay?.rhythm?.filter(e=>e.status!=='suggested').map(e=><div key={e.kind} className="hc-rhythm-note"><strong>{e.title} · {e.minutes} Min. · {e.status==='done'?'Erledigt':'Wunschtag pausiert'}</strong>{e.reason}</div>)}
     {coachLoading&&<p className="hc-coach-loading" role="status">Lade Coach-Empfehlungen …</p>}
     {coachError&&<p className="hc-coach-unavailable" role="status">
      Coach-Empfehlungen derzeit nicht erreichbar. Keine Trainingsvorgaben geschätzt.
@@ -543,12 +546,12 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
      {coachPreview.recoveryMobility&&<div className="cdb-supplement"><small>OPTIONALE REGENERATION</small><strong>5–10 Min. sanfte Mobility</strong><p>Schmerzfreie Beweglichkeit, ohne Widerstand und ohne Ermüdung. Kein zusätzliches Krafttraining; bei Beschwerden auslassen.</p></div>}
      {daySupplement&&<div className="cdb-supplement"><small>{alternative?'ODER · AEROBE ALTERNATIVE':'ZIELGERICHTETER SCHWERPUNKT'}</small><strong>{daySupplement.title} · {daySupplement.minutes} Min.</strong><p>{daySupplement.reason}</p><SupplementSessionDetails suggestion={daySupplement}/><small>{daySupplement.intensity} · {alternative?'Über „Vorschlag prüfen“ eine Variante auswählen.':'Keine zweite Einheit.'}</small></div>}
      {coachPreview.selectedGroup?<small>Deine Teilnahme änderst du über „Gruppentermine planen“. Kein zusätzliches Workout wird angelegt.</small>:<small>Du kannst sie hier im Kalender annehmen, ablehnen oder ändern.</small>}
-     {selected>=today&&selected<=moveDay(today,6)&&
+     {(coachPreview.selectedGroup||coachPreview.approvable&&!coachPreview.decision)&&selected>=today&&selected<=moveDay(today,6)&&
       <button type="button" className="hc-coach-accept" onClick={()=>onOpenCoach(selected)}>
        <Icon name="arrow-up-right"/> {coachPreview.selectedGroup?'Coach-Hinweise ansehen':'Vorschlag prüfen'}
       </button>}
      {coachPreview.minutes!==null&&!coachPreview.selectedGroup&&<span className="hc-coach-minutes">
-      {coachPreview.minutes} Minuten · {coachPreview.kind==='mobility'?'Stabi/Mobility':
+      {coachPreview.minutes} Minuten · {coachPreview.kind==='mobility'?'Stabi/Mobility':coachPreview.kind==='rowing'?'Rudern · locker':
        'Sprechtempo · ohne Pace- oder HF-Zwang'}
      </span>}
      {coachPreview.approvable&&!alternative&&selected>=today&&
@@ -558,7 +561,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
        <div className="hc-coach-confirm">
         <strong>Vorschlag als GARMIN_AI-Entwurf übernehmen?</strong>
         <p>Erst nach deiner Freigabe im Kalender lässt sich das Workout an Intervals.icu senden.</p>
-        {coachPreview.kind!=='mobility'&&<label>Startzeit des Workouts
+        {coachPreview.sport==='running'&&<label>Startzeit des Workouts
          <select value={coachStartTime} onChange={e=>setCoachStartTime(e.target.value)}
           disabled={acting!==null}>
           {Array.from({length:31},(_,i)=>{
