@@ -9,7 +9,7 @@ type Review={activityId:string;date:string;name:string;type:string;headline:stri
 type Week={weekStart:string;endExclusive:string;runCount:number;distanceKm:number;previousKm:number;
  intervalCount:number;footballCount:number;observation:string;effort:string;next:string}
 type Result={source:string;week:Week;reviews:Review[];updatedAt:string}
-type Props={active:boolean;mode:'calendar'|'training'|'weekly';weekStart?:string;selectedDate?:string;activityId?:string}
+type Props={active:boolean;mode:'calendar'|'training'|'weekly';weekStart?:string;selectedDate?:string;activityId?:string;embedded?:boolean}
 function monday(day:string){
  const date=new Date(day+'T12:00:00Z'),delta=(date.getUTCDay()+6)%7
  date.setUTCDate(date.getUTCDate()-delta)
@@ -20,7 +20,7 @@ function todayBerlin(){
  const value=(key:string)=>parts.find(x=>x.type===key)?.value||''
  return value('year')+'-'+value('month')+'-'+value('day')
 }
-export function CoachEvidenceSummary({active,mode,weekStart,selectedDate,activityId}:Props){
+export function CoachEvidenceSummary({active,mode,weekStart,selectedDate,activityId,embedded=false}:Props){
  const start=weekStart||monday(todayBerlin())
  const lastCompletedWeek=mode==='weekly'&&start<monday(todayBerlin())
  const [result,setResult]=useState<Result|null>(null)
@@ -54,6 +54,18 @@ export function CoachEvidenceSummary({active,mode,weekStart,selectedDate,activit
  const reviews=(result?.reviews||[]).filter(r=>mode==='training'?r.activityId===activityId:mode==='calendar'?r.date===selectedDate:false)
  const showWeek=mode==='weekly'||mode==='calendar'
  if(!garminSupabase||!loggedIn)return null
+ if(embedded&&mode==='training')return <div className="cr-embedded" aria-label="FIT-Auswertung und Zielkontext">
+  {busy&&<small role="status">FIT-Auswertung wird geladen …</small>}
+  {error&&<small role="status">{error}</small>}
+  {reviews.map(r=><div key={r.activityId}>
+   <p className="cr-goal"><strong>Hauptziel:</strong> {r.goal}</p>
+   <details className="lsa-coach-evidence"><summary>FIT-Details · {r.type==='intervals'?'Intervalle':'Tempo- und Pulsverlauf'}</summary>
+    <strong>{r.headline}</strong><p>{r.positive}</p><p className="cr-attention">{r.attention}</p>
+    {r.quality==='limited'&&<small>Bewertung eingeschränkt: fehlende Abschnittsdaten werden nicht geschätzt.</small>}
+    <IntervalsCoachContext active={active} mode="activity" activityId={r.activityId} averageHr={r.averageHr} kilometerHrs={r.kilometerHrs} kind={r.type}/>
+   </details>
+  </div>)}
+ </div>
  return <section className={'cr-wrap cr-mode-'+mode} aria-label="Coach-Fazits aus Garmin-Daten">
   {busy&&<div className="cr-meta" role="status">Coach wertet absolvierte Einheiten aus …</div>}
   {error&&<p className="cr-error" role="status">{error}</p>}
