@@ -3,6 +3,7 @@ export type CoachDay={
  sport:string;approvable:boolean;decision?:'accepted'|'declined';
  selectedGroup?:{code:string;title:string;startTime:string|null;location:string|null;advice:'skip'|'easy'|'review';reason:string};
  recoveryMobility?:boolean;
+ rhythm?:import('./trainingRhythm.mjs').RhythmEntry[];
  intensityIntent?:'low'|'low-option'|'hard-option'
 }
 export type SevenDayPlan={
