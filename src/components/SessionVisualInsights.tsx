@@ -144,7 +144,7 @@ export function SessionVisualInsights({active,activityId,samples,activityDate,av
       <small>min/km</small>
       <span className="sv-split-hr">♥ {compactHr(s.avgHr)}</span>
       {zoneIndexForHr(s.avgHr,zones?.hrZones)!==null&&
-       <small className="sv-split-zone">Ø-HF in Z{zoneIndexForHr(s.avgHr,zones?.hrZones)}</small>}
+       <small className="sv-split-zone">Ø-HF in Z{zoneIndexForHr(s.avgHr,zones?.hrZones)} · Intervals</small>}
      </div>)}
    </div>
    <p className="sv-explainer">{isIntervals?
@@ -180,6 +180,7 @@ export function SessionVisualInsights({active,activityId,samples,activityDate,av
       <p className="sv-note">{garminBands.validSamples.toLocaleString('de-DE')} gültige HF-Messpunkte · {garminRef.kind==='historical'?'Historisch gespeichertes Garmin-Profil':'Aktuell gespeichertes Garmin-Profil, nicht rückwirkend bestätigt'}{garminRef.observedAt?' · Stand '+new Date(garminRef.observedAt).toLocaleDateString('de-DE'):''}.</p>
      </div>:!garminLoading&&<p className="sv-note">{garminBands.status==='insufficient'?'Mindestens 80 gültige HF-Messpunkte und 75 % HF-Abdeckung erforderlich.':'Eindeutige Garmin-Zonengrenzen fehlen. Keine Ersatz-Zonen geschätzt.'}</p>}
     </>}
+    {(source==='intervals'?hrBands:garminBands.status==='sufficient')&&<p className="sv-zone-insight"><strong>Coach-Einordnung:</strong> {source==='intervals'?'Ein Anteil von '+pct(lowShare!)+' % in den ersten beiden konfigurierten Zonen beschreibt die gemessene Verteilung, nicht die physiologische Intensität.':'Garmin verwendet andere Grenzwerte. Die Einordnung kann deshalb deutlich abweichen, obwohl die HF-Messpunkte identisch sind.'}</p>}
     <p className="sv-note"><strong>Messpunktanteile, keine exakte Zeit in den Zonen.</strong> Unterschiedliche Zonengrenzen verändern die Einordnung, nicht die gemessene Herzfrequenz. Keine Aussage über LT1 oder Trainingsfreigabe.</p>
    </>}
    {tab==='pace'&&<>
@@ -210,7 +211,7 @@ export function SessionVisualInsights({active,activityId,samples,activityDate,av
     {zones?.thresholdPace!=null&&zones.thresholdPace>0&&<div className="sv-below-kpi"><span>Intervals.icu Schwellentempo</span><strong>{paceLabel(1000/zones.thresholdPace)} min/km</strong></div>}
    </div>}
   </article>
-  <p className="sv-footer">Garmin liefert die gemessenen Werte, Intervals.icu die konfigurierten Zonen.
+  <p className="sv-footer">Garmin liefert die gemessenen Werte; die Zonengrenzen stammen aus dem jeweils gewählten Referenzsystem.
    Ein Ø-HF-Wert einer Wiederholung ist keine exakt gemessene Zonenzeit. Keine nachträgliche Zieltempo-Behauptung.</p>
  </section>
 }
