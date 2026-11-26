@@ -3,6 +3,7 @@ import type {SevenDayPlan} from '../lib/coachSevenDay.mjs'
 import type {CoachSnapshot} from '../lib/coachSnapshot'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {selectCoachDecision} from '../lib/coachDecision.mjs'
+import {replacementImpact} from '../lib/weeklyTraining.mjs'
 import {trainingAlternativeForDate} from '../lib/goalTrainingFocus.mjs'
 import {Icon} from './Icon'
 import '../styles/coach-decision-live.css'
@@ -58,6 +59,8 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
  if(!x)return null
  const {day}=x
  const alternative=trainingAlternativeForDate(plan,day.date)
+ const budget=plan.weeklyBudgets?.find(w=>day.date>=w.start&&day.date<=w.end)
+ const impact=alternative?replacementImpact(budget,day.date):null
  const reviewIsOpen=reviewDate===day.date
  const canChoose=!day.selectedGroup&&!['illness','blocked','race','existing','completed'].includes(day.kind)
  const alreadyDecided=day.decision==='declined'||day.decision==='accepted'
@@ -85,7 +88,7 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
       <span>COACH-UMFANG</span><strong>{day.minutes} Min.</strong>
       <small>Vorschlag, noch kein freigegebenes Workout</small>
      </div>}
-     {alternative&&<div className="cdl-context-line"><span>ODER · AEROBE ALTERNATIVE</span><strong>{alternative.title} · {alternative.minutes} Min.</strong><small>Eine Variante auswählen, nicht beide trainieren.</small></div>}
+     {alternative&&<div className="cdl-context-line"><span>ODER · AEROBE ALTERNATIVE</span><strong>{alternative.title} · {alternative.minutes} Min.</strong><small>Eine Variante auswählen, nicht beide trainieren.</small>{impact?.allowed&&<p className="wti-alternative-impact">Wochenprognose: {impact.afterKm?.toLocaleString('de-DE')} km statt {budget?.forecastKm?.toLocaleString('de-DE')} km.</p>}</div>}
      {x.current!=='Kein Training eingetragen'&&<div className="cdl-context-line">
       <span>{x.state==='calendar'?'IM KALENDER':'DEIN GRUPPENTERMIN'}</span>
       <strong>{x.current}</strong>
