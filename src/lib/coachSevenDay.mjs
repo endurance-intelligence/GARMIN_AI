@@ -437,7 +437,7 @@ export function buildSevenDayCoach(input){
   if([2,4,7].includes(weekday(day)))
    return make(day,'easy','Lockerer Lauf · 35–50 Min.',40,
     'Aerober Grundlagenreiz; Sprechtest und Herzfrequenz wichtiger als Pace.')
-  if(weekday(day)===5)return make(day,'mobility','Stabi / Mobility · 20 Min.',20,
+  if(weekday(day)===5&&!input.life?.trainingRhythm)return make(day,'mobility','Stabi / Mobility · 20 Min.',20,
    'Leichte Kräftigung und Beweglichkeit; keine zusätzliche harte Einheit.','strength')
   return make(day,'recovery','Erholung / freier Tag',null,
    'Abstand zwischen Belastungen erhalten, optionale Vereinstrainings bleiben freiwillig.')
@@ -451,7 +451,7 @@ export function buildSevenDayCoach(input){
    Date.parse(recoveryRaceDate+'T12:00:00Z'))/ONE_DAY):null
   const recovering=daysAfter!==null&&daysAfter>0&&daysAfter<=14
   const hardSafety=['illness','blocked'].includes(item.kind)
-  const cautionDay=caution||feedbackCaution||trendReducing||trendShortening||observationLimited||
+  const cautionDay=hardCross||caution||feedbackCaution||trendReducing||trendShortening||observationLimited||
    returning||postIllness||fourWeekReview.qualityCaution
   const restAdvice=item.kind==='recovery'||(recovering&&item.kind==='mobility')||hardSafety||item.kind==='completed'||
    (item.kind==='existing')||((recovering||cautionDay)&&group.sport==='football')
