@@ -6,6 +6,9 @@ import {normalizeGarminRpe} from '../lib/garminPerception.mjs'
 import {summarizeRunMetrics} from '../lib/runMetrics.mjs'
 import {SessionIntensityDetails} from './SessionIntensityDetails'
 import {CoachEvidenceSummary} from './CoachEvidenceSummary'
+import {CoachAvatar} from './CoachAvatar'
+import {buildSessionContext} from '../lib/sessionContext.mjs'
+import type {TerrainWindow} from '../lib/sessionContext.mjs'
 import { SessionGearEditor } from './SessionGearEditor'
 import {PlanActualReview} from './PlanActualReview'
 import {assessPlanActual} from '../lib/planActual.mjs'
@@ -21,9 +24,22 @@ type Activity = {
 type ActivityListResponse = { source: string; activities: Activity[] }
 type SessionResponse = {
   activity: Omit<Activity, 'detailStatus' | 'hrSamples' | 'laps'>
-  details: { status: string; hrSampleCount: number; lapCount: number; samples: SessionSample[]; fetchedAt: string | null }
+  details: { status: string; hrSampleCount: number; lapCount: number; samples: SessionSample[]; terrainWindows?:TerrainWindow[]; fetchedAt: string | null }
 }
 const runTypes: Record<string,string> = { running: 'Lauf', track_running: 'Bahn', treadmill_running: 'Laufband', ultra_run: 'Ultra' }
+
+function SessionCoachContext({activity,list,terrain}:{activity:SessionResponse['activity'];list:Activity[];terrain:TerrainWindow[]}){
+ const [felt,setFelt]=useState('')
+ const number= felt.trim()!==''?Number(felt.replace(',','.')):NaN
+ const context=buildSessionContext(activity,list,terrain,Number.isFinite(number)&&number>=-80&&number<=65?number:null)
+ return <article className="cr-card" aria-label="Persönliches Coach-Fazit">
+  <div style={{display:'flex',alignItems:'center',gap:16}}><CoachAvatar mood={context.mood} small/><div><div className="cr-label">DEIN COACH · EINORDNUNG</div><h3>{context.verdict}</h3></div></div>
+  <p>Das ist meine Einschätzung anhand der verfügbaren Messwerte, keine medizinische Trainingsfreigabe.</p>
+  <div className="lsa-findings">{context.factors.map(f=><div className="lsa-signal info" key={f.label}><b>{f.label}</b><p>{f.text}</p></div>)}</div>
+  <label className="lsa-picker">Gefühlte Temperatur beim Lauf (optional, eigene Angabe, nur für diese Ansicht)<input type="number" min={-80} max={65} step="1" value={felt} placeholder="z. B. -6" onChange={e=>setFelt(e.target.value)}/></label>
+  <p className="cr-next"><strong>Was bedeutet das für dein nächstes Training?</strong> {context.next}</p>
+ </article>
+}
 
 function heartPath(samples: SessionSample[]): string {
   const valid = samples.filter(p => typeof p.hr === 'number' && p.hr>=35 && p.hr<=220)
@@ -171,6 +187,7 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
       </div>}
       {loading && <p className="lsa-note">Lese Garmin-Aktivität …</p>}
       {details && analysis && <>
+        <SessionCoachContext key={details.activity.id} activity={details.activity} list={list} terrain={details.details.terrainWindows||[]}/>
         <CoachEvidenceSummary active={active} mode="training" activityId={details.activity.id}/>
         <PlanActualReview match={planActual} loading={!plansLoaded&&!planError}
          error={planError}/>
