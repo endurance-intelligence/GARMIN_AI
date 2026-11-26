@@ -7,6 +7,8 @@ import {summarizeRunMetrics} from '../lib/runMetrics.mjs'
 import {SessionIntensityDetails} from './SessionIntensityDetails'
 import {CoachEvidenceSummary} from './CoachEvidenceSummary'
 import {CoachAvatar} from './CoachAvatar'
+import {Icon} from './Icon'
+import type {SessionZoneSummary} from './SessionVisualInsights'
 import {completedWeeklyOption} from '../lib/weeklyOptionCompletion'
 import {buildSessionContext} from '../lib/sessionContext.mjs'
 import type {TerrainWindow} from '../lib/sessionContext.mjs'
@@ -56,7 +58,7 @@ async function historicalGroupWeather(activity:SessionResponse['activity'],list:
  if(typeof felt!=='number'||!Number.isFinite(felt)||typeof temperature!=='number'||!Number.isFinite(temperature))return null
  return {felt:Math.round(felt),temperature:Math.round(temperature),location:o.location_label,hour}
 }
-function SessionCoachContext({activity,list,terrain,session,active}:{activity:SessionResponse['activity'];list:Activity[];terrain:TerrainWindow[];session:Session;active:boolean}){
+function SessionCoachContext({activity,list,terrain,session,active,zoneSummary}:{activity:SessionResponse['activity'];list:Activity[];terrain:TerrainWindow[];session:Session;active:boolean;zoneSummary:SessionZoneSummary|null}){
  const [felt,setFelt]=useState('')
  const [weather,setWeather]=useState<HistoricalWeather|null>(null)
  const [weatherPending,setWeatherPending]=useState(true)
@@ -69,10 +71,17 @@ function SessionCoachContext({activity,list,terrain,session,active}:{activity:Se
  const context=buildSessionContext(activity,list,terrain,Number.isFinite(number)&&number>=-80&&number<=65?number:weather)
  return <article className={"cr-card lsa-coach-review lsa-coach-"+context.mode} aria-label="Persönliches Coach-Fazit">
   <div className="lsa-coach-hero"><div className="lsa-coach-copy"><div className="cr-label">DEIN COACH · TRAININGSBEWERTUNG</div><span className="lsa-coach-mode">{context.modeLabel}</span><h3>{context.verdict}</h3>{context.recommendation&&<p>{context.recommendation}</p>}<small>Einordnung der verfügbaren Daten, keine medizinische Trainingsfreigabe.</small></div><CoachAvatar mood={context.mood}/></div>
-  <div className="lsa-findings">{context.factors.map(f=><div className="lsa-signal info" key={f.label}><b>{f.label}</b><p>{f.text}</p></div>)}</div>
+  <div className="lsa-evidence-head"><div><div className="cr-label">BEWERTUNGSGRUNDLAGEN</div><h4>Was meine Bewertung beeinflusst</h4></div><Icon name="layout-dashboard"/></div>
+  <div className="lsa-evidence-grid">{context.cards.map(f=><div className={'lsa-evidence-card tone-'+f.tone} key={f.key}>
+   <div className="lsa-evidence-label"><Icon name={f.icon}/><span>{f.label}</span></div>
+   <div className="lsa-evidence-value">{f.value} <small>{f.unit}</small></div>
+   <strong>{f.key==='hr'&&zoneSummary?zoneSummary.lowShare.toLocaleString('de-DE',{maximumFractionDigits:1})+' % in Intervals Z1 + Z2':f.status}</strong>
+   <p>{f.key==='hr'&&zoneSummary?'Anteil von '+zoneSummary.valid.toLocaleString('de-DE')+' gültigen HF-Messpunkten nach den aktuell verfügbaren Intervals-Grenzen. Kein Nachweis für LT1 oder vollständige Erholung.':f.detail}</p>
+  </div>)}</div>
+  <div className="lsa-evidence-pace"><Icon name="activity"/><span>Durchschnittspace</span><strong>{context.paceText} {context.paceText!=='–'?'min/km':''}</strong></div>
   {weatherPending?<small>Historisches Trainingswetter wird geprüft …</small>:!weather&&<label className="lsa-picker">Gefühlte Temperatur beim Lauf (optional, eigene Angabe, nur für diese Ansicht)<input type="number" min={-80} max={65} step="1" value={felt} placeholder="z. B. -6" onChange={e=>setFelt(e.target.value)}/></label>}
   <details className="lsa-coach-evidence"><summary>FIT-Abschnitte und Hauptziel · ergänzende Messdaten</summary><CoachEvidenceSummary active={active} mode="training" activityId={activity.id} embedded/></details>
-  <p className="cr-next"><strong>Was bedeutet das für dein nächstes Training?</strong> {context.next}</p>
+  <div className="lsa-next-step"><Icon name="arrow-up-right"/><div><div className="cr-label">DEIN NÄCHSTER SCHRITT</div><h4>{context.mode==='caution'?'Regeneration und Belastung bewusst steuern':'So geht es weiter'}</h4><p>{context.next}</p></div></div>
  </article>
 }
 
@@ -115,6 +124,7 @@ async function readPrivate<T>(session: Session, params = ''): Promise<T> {
 
 export function LiveSessionAnalyst({ active, focus }: { active: boolean;
  focus?:{activityId:string;token:number}|null }) {
+  const [zoneSummary,setZoneSummary]=useState<SessionZoneSummary|null>(null)
   const sectionRef=useRef<HTMLElement>(null)
   useEffect(()=>{if(active&&focus?.activityId)sectionRef.current?.scrollIntoView({block:'start',behavior:'instant'})},[active,focus?.token,focus?.activityId])
   const [session,setSession] = useState<Session | null>(null)
@@ -179,7 +189,7 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
   useEffect(() => {
     if (!active || !session || !selected) return
     let mounted = true
-    setLoading(true); setError(''); setDetails(null)
+    setLoading(true); setError(''); setDetails(null); setZoneSummary(null)
     void readPrivate<SessionResponse>(session, `?id=${encodeURIComponent(selected)}`).then(result => {
       if (mounted) setDetails(result)
     }).catch(err => { if (mounted) setError(err instanceof Error ? err.message : 'Detaildaten nicht verfügbar') })
@@ -224,11 +234,11 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
       </div>}
       {loading && <p className="lsa-note">Lese Garmin-Aktivität …</p>}
       {details && analysis && <>
-        <SessionCoachContext key={details.activity.id} activity={details.activity} list={list} terrain={details.details.terrainWindows||[]} session={session} active={active}/>
+        <SessionCoachContext key={details.activity.id} activity={details.activity} list={list} terrain={details.details.terrainWindows||[]} session={session} active={active} zoneSummary={zoneSummary?.activityId===details.activity.id?zoneSummary:null}/>
         <PlanActualReview match={planActual} loading={!plansLoaded&&!planError}
          error={planError}/>
         <SessionIntensityDetails key={details.activity.id} samples={details.details.samples}
-          activityDate={details.activity.date} activityId={details.activity.id} active={active}/>
+          activityDate={details.activity.date} activityId={details.activity.id} active={active} avgHr={details.activity.avgHr} averagePace={summarizeRunMetrics(details.activity).find(m=>m.key==='pace')?.value} onZoneSummary={setZoneSummary}/>
         <details className="lsa-deep-dive">
           <summary>HF-Verlauf, Messwerte und technische Beobachtungen <span>Optional ansehen</span></summary>
           <div className="lsa-deep-dive-content">

@@ -22,8 +22,10 @@ test('live session shows exactly one automatic coach verdict and optional HR det
  assert.doesNotMatch(view,/separat und nur nach deiner Zuordnung bewertet|Runden nicht übermittelt/)
  assert.match(view,/<details className="lsa-deep-dive">/)
  assert.match(view,/<SessionIntensityDetails key=\{details\.activity\.id\}/)
- assert.match(zones,/useGarminHrProfile\(open&&garminOpen&&active\)/)
- assert.match(zones,/<IntensityEvidencePanel/)
+ const visual=read('src/components/SessionVisualInsights.tsx')
+ assert.match(visual,/useGarminHrProfile\(active&&garminOpen\)/)
+ assert.match(visual,/assessIntensity\(samples,garminRef.profile\)/)
+ assert.doesNotMatch(zones,/<IntensityEvidencePanel/)
  assert.doesNotMatch(zones,/<SessionGoalReview|coachFinding\(/)
 })
 test('training page focuses solely on the run coach; deep-dive code remains available separately',()=>{
