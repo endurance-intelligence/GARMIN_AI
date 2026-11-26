@@ -13,7 +13,7 @@ import type {TerrainWindow} from '../lib/sessionContext.mjs'
 import { SessionGearEditor } from './SessionGearEditor'
 import {PlanActualReview} from './PlanActualReview'
 import {assessPlanActual} from '../lib/planActual.mjs'
-import type {PlanActualPlan} from '../lib/planActual.mjs'
+import type {PlanActualPlan,PlanActualMatch} from '../lib/planActual.mjs'
 import type { SessionSample } from '../lib/sessionAnalysis'
 import '../styles/session-live.css'
 
@@ -56,7 +56,7 @@ async function historicalGroupWeather(activity:SessionResponse['activity'],list:
  if(typeof felt!=='number'||!Number.isFinite(felt)||typeof temperature!=='number'||!Number.isFinite(temperature))return null
  return {felt:Math.round(felt),temperature:Math.round(temperature),location:o.location_label,hour}
 }
-function SessionCoachContext({activity,list,terrain,session}:{activity:SessionResponse['activity'];list:Activity[];terrain:TerrainWindow[];session:Session}){
+function SessionCoachContext({activity,list,terrain,session,active,planActual}:{activity:SessionResponse['activity'];list:Activity[];terrain:TerrainWindow[];session:Session;active:boolean;planActual:PlanActualMatch|null}){
  const [felt,setFelt]=useState('')
  const [weather,setWeather]=useState<HistoricalWeather|null>(null)
  const [weatherPending,setWeatherPending]=useState(true)
@@ -66,13 +66,14 @@ function SessionCoachContext({activity,list,terrain,session}:{activity:SessionRe
   return ()=>{mounted=false;clearTimeout(timeout);controller.abort()}
  },[activity,list,session])
  const number= felt.trim()!==''?Number(felt.replace(',','.')):NaN
- const context=buildSessionContext(activity,list,terrain,Number.isFinite(number)&&number>=-80&&number<=65?number:weather)
- return <article className="cr-card" aria-label="Persönliches Coach-Fazit">
-  <div style={{display:'flex',alignItems:'center',gap:16}}><CoachAvatar mood={context.mood} small/><div><div className="cr-label">DEIN COACH · EINORDNUNG</div><h3>{context.verdict}</h3></div></div>
-  <p>Das ist meine Einschätzung anhand der verfügbaren Messwerte, keine medizinische Trainingsfreigabe.</p>
+ const context=buildSessionContext(activity,list,terrain,Number.isFinite(number)&&number>=-80&&number<=65?number:weather,planActual)
+ return <article className={"cr-card lsa-coach-review mood-"+context.mood} aria-label="Persönliches Coach-Fazit">
+  <div className="lsa-coach-hero"><div className="lsa-coach-hero-copy"><div className="cr-label">DEIN COACH · TRAININGSBEWERTUNG</div><span className="lsa-coach-assessment">{context.assessment}</span><h3>{context.verdict}</h3><p>{context.message}</p>{context.planNote&&<small className="lsa-coach-plan-note">{context.planNote}</small>}</div><CoachAvatar mood={context.mood}/></div>
   <div className="lsa-findings">{context.factors.map(f=><div className="lsa-signal info" key={f.label}><b>{f.label}</b><p>{f.text}</p></div>)}</div>
   {weatherPending?<small>Historisches Trainingswetter wird geprüft …</small>:!weather&&<label className="lsa-picker">Gefühlte Temperatur beim Lauf (optional, eigene Angabe, nur für diese Ansicht)<input type="number" min={-80} max={65} step="1" value={felt} placeholder="z. B. -6" onChange={e=>setFelt(e.target.value)}/></label>}
+  <CoachEvidenceSummary active={active} mode="training" activityId={activity.id} embedded/>
   <p className="cr-next"><strong>Was bedeutet das für dein nächstes Training?</strong> {context.next}</p>
+  <small>Bewertung anhand verfügbarer Messwerte, keine medizinische Trainingsfreigabe.</small>
  </article>
 }
 
@@ -224,8 +225,7 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
       </div>}
       {loading && <p className="lsa-note">Lese Garmin-Aktivität …</p>}
       {details && analysis && <>
-        <SessionCoachContext key={details.activity.id} activity={details.activity} list={list} terrain={details.details.terrainWindows||[]} session={session}/>
-        <CoachEvidenceSummary active={active} mode="training" activityId={details.activity.id}/>
+        <SessionCoachContext key={details.activity.id} activity={details.activity} list={list} terrain={details.details.terrainWindows||[]} session={session} active={active} planActual={planActual}/>
         <PlanActualReview match={planActual} loading={!plansLoaded&&!planError}
          error={planError}/>
         <SessionIntensityDetails key={details.activity.id} samples={details.details.samples}
