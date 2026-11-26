@@ -3,6 +3,7 @@ import { GarminAuthSettings } from '../components/GarminAuthSettings'
 import { HeartRateZonesSettings } from '../components/HeartRateZonesSettings'
 import { SyncCenter } from '../components/SyncCenter'
 import { IntervalsConnection } from '../components/IntervalsConnection'
+import {TrainingRhythmSettings} from '../components/TrainingRhythmSettings'
 import { EquipmentProfileSettings } from '../components/EquipmentProfileSettings'
 
 export function SettingsPage({ active }: { active: boolean; onGo: (page: Page) => void }) {
@@ -13,17 +14,19 @@ export function SettingsPage({ active }: { active: boolean; onGo: (page: Page) =
       <button type="button" onClick={() => document.getElementById('settings-intervals')?.scrollIntoView({behavior:'smooth'})}>Intervals.icu</button>
       <button type="button" onClick={() => document.getElementById('settings-account')?.scrollIntoView({behavior:'smooth'})}>Konto</button>
       <button type="button" onClick={() => document.getElementById('settings-equipment')?.scrollIntoView({behavior:'smooth'})}>Ausrüstung</button>
+      <button type="button" onClick={() => document.getElementById('settings-rhythm')?.scrollIntoView({behavior:'smooth'})}>Trainingsrhythmus</button>
       <button type="button" onClick={() => document.getElementById('settings-zones')?.scrollIntoView({behavior:'smooth'})}>HF-Zonen</button>
     </nav>
     <div className="sub-grid">
       <article><small>CONNECTIONS</small><h3>Garmin Personal API</h3><p>Garmin-Aktivitäten und Health-Werte werden serverseitig nach Supabase synchronisiert. Der persönliche Lesezugriff ist separat geschützt.</p><div className="empty-line">Datenquelle: Garmin / Supabase · Automatische Synchronisierung eingerichtet</div></article>
       <article><small>COACH MODE</small><h3>Aktiver Coach mit Freigabe</h3><p>Der Coach nutzt echte Garmin-Daten und erstellt Vorschläge. Nur du kannst Entwürfe freigeben und Workouts an Intervals.icu senden. Langfristige automatische Plananpassungen sind noch nicht umgesetzt.</p><label className="toggle"><input type="checkbox" checked disabled/> Coach-Änderungen immer bestätigen</label></article>
     </div>
+    <div className="settings-anchor" id="settings-rhythm"><h2 className="settings-section-title">Trainingsrhythmus</h2><TrainingRhythmSettings active={active} onSaved={()=>{}}/></div>
     <div id="settings-equipment" className="settings-anchor"><h2 className="settings-section-title">Ausrüstungsprofil</h2><EquipmentProfileSettings active={active}/></div>
     <div id="settings-sync" className="settings-anchor">
       <h2 className="settings-section-title">Synchronisierung</h2>
       <SyncCenter active={active} mode="status"/>
-      <IntervalsConnection active={active}/>
+      <div id="settings-intervals"><IntervalsConnection active={active}/></div>
     </div>
     <div id="settings-account" className="settings-anchor">
       <h2 className="settings-section-title">Konto und Anmeldung</h2>
