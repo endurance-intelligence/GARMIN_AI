@@ -1,10 +1,11 @@
-import {coachAddDays,coachMonday} from './coachSevenDay.mjs'
+import {trainingWeekBaseline,weekStart as coachMonday} from './weeklyTraining.mjs'
 import {analyzeWorkoutFeedbackTrend} from './feedbackTrend.mjs'
 import {POLARIZED_METHOD} from './polarizedTraining.mjs'
 import {getTrainingGoalMode} from './trainingGoalMode.mjs'
 import {recentGoalRecovery} from './recentGoalRecovery.mjs'
 
 const DAY=86400000
+const coachAddDays=(d,n)=>new Date(Date.parse(d+'T12:00:00Z')+n*DAY).toISOString().slice(0,10)
 const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&
  !Number.isNaN(Date.parse(s+'T12:00:00Z'))&&
  new Date(Date.parse(s+'T12:00:00Z')).toISOString().slice(0,10)===s
@@ -35,7 +36,7 @@ const brief={
  paused:'Gesundheit und Verfügbarkeit haben Vorrang.'
 }
 const startOfWeek=day=>coachMonday(day)
-export function buildLongTermCoachPlan({today,goal,health,life,racePortfolio}){
+export function buildLongTermCoachPlan({today,goal,health,life,racePortfolio,history}){
  if(!validDate(today))throw Error('Ungültiges Coach-Datum')
  const target=goal?.goal||null
  const trainingMode=getTrainingGoalMode(target,today)
@@ -47,10 +48,12 @@ export function buildLongTermCoachPlan({today,goal,health,life,racePortfolio}){
  const training=health?.training||null
  const recentRecovery=recentGoalRecovery({today,racePortfolio})
  // Two rolling weeks can include the race itself, not a sustainable training base.
- const baseKm=!recentRecovery&&number(training?.runKm7,5,180)&&
+ const rollingBase=!recentRecovery&&number(training?.runKm7,5,180)&&
   !training?.truncated&&training.historyStatus==='complete'?
    Math.round((training.runKm7+
     (number(training.previousRunKm7,5,180)?training.previousRunKm7:training.runKm7))/2):null
+ const raceDates=[raceDate,...(racePortfolio?.others||[]).map(g=>g.race_date),...(life?.context?.race_recovery_checks||[]).map(c=>c.raceDate)].filter(Boolean)
+ const baseKm=history===undefined?rollingBase:recentRecovery||training?.truncated||training?.historyStatus!=='complete'?null:trainingWeekBaseline(history,raceDates)
  const feedback=analyzeWorkoutFeedbackTrend(life?.context?.post_workout_feedback,today)
  const sick=life?.context?.illness_state==='sick'
  const returning=life?.context?.illness_state==='returning'
