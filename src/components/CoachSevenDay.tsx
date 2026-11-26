@@ -2,6 +2,7 @@ import {useEffect,useMemo,useRef,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {berlinDateToday} from '../lib/coachGoal'
 import {buildSevenDayCoach} from '../lib/coachSevenDay.mjs'
+import {WeeklyTrainingCard} from './WeeklyTrainingCard'
 import {loadCoachSnapshot} from '../lib/coachSnapshot'
 import type {CoachSnapshot} from '../lib/coachSnapshot'
 import type {CoachDay} from '../lib/coachSevenDay.mjs'
@@ -289,6 +290,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
      Vergangene Entwürfe im Kalender prüfen <Icon name="arrow-up-right"/></button>
    </p>}
   {plan&&<>
+   <WeeklyTrainingCard budget={plan.weeklyBudgets?.find(w=>w.current)}/>
    <div className="c7-day-nav" id="c7-week-overview" role="tablist" hidden={singleDay}
     aria-label="Wähle einen Tag für deine persönliche Coach-Entscheidung">
     {plan.days.map(day=><button type="button" key={day.date} role="tab"
