@@ -88,8 +88,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
  const dayLabel=(day:string)=>day.slice(8,10)+'.'+day.slice(5,7)+'.'
  const calendarDays=days.map((day,index)=>{
   const acts=(visibleData?.activities||[]).filter(x=>x.start_time_local?.slice(0,10)===day)
-    .filter(x=>sportKind(x.sport_type)!=='rowing')
-  const manual=(visibleData?.manual||[]).filter(x=>x.session_date===day&&x.kind!=='rowing')
+  const manual=(visibleData?.manual||[]).filter(x=>x.session_date===day)
   const local=plans.filter(p=>p.training_date===day&&p.state!=='cancelled')
   const candidate=coachDays.find(x=>x.date===day)
   // The recorded race takes precedence over the regular Saturday club slot.
@@ -99,7 +98,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
   const coach=day>=today&&candidate&&
    (candidate.kind==='race'||(!candidate.selectedGroup&&!local.length&&!acts.length&&!manual.length&&
     !['existing','completed','chosen','option'].includes(candidate.kind)))?candidate:null
-  return {day,index,acts,manual,local,slot,coach,groupAdvice:candidate?.selectedGroup}
+  return {day,index,acts,manual,local,slot,coach,groupAdvice:candidate?.selectedGroup,rhythm:candidate?.rhythm||[]}
  })
  return <section className="hwb-root" aria-label="Wochenübersicht mit echten Garmin-Aktivitäten und Gesundheitsdaten">
   <div className="hwb-title">
@@ -121,7 +120,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
    </aside>
    <div className="hwb-scroll" role="region" aria-label="Sieben Wochentage, horizontal scrollbar" tabIndex={0}>
     <div className="hwb-days">
-     {calendarDays.map(({day,acts,manual,local,slot,coach,groupAdvice})=>
+     {calendarDays.map(({day,acts,manual,local,slot,coach,groupAdvice,rhythm})=>
       <section key={day} className={'hwb-day'+(day===selected?' is-selected':'')+(day===today?' is-today':'')}
        aria-label={shortDay(day)+' '+dayLabel(day)}>
        <button type="button" className="hwb-day-header"
@@ -148,7 +147,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
         {manual.map(m=><button type="button" className="hwb-card is-manual"
          onClick={()=>onSelect(day)} key={'m-'+m.id}>
           <span className="hwb-card-label">● ERFASST</span>
-          <strong>{m.kind==='strength'?'Stabi & Mobility':'Mobility'}</strong>
+          <strong>{m.kind==='rowing'?'Rudern':m.kind==='strength'?'Stabi & Mobility':'Mobility'}</strong>
           <span>{m.duration_minutes} Minuten</span>
          </button>)}
         {local.map(plan=><button type="button" className="hwb-card is-planned"
@@ -170,6 +169,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
         </button>{quickDecision?.(day)&&onQuickAccept&&<div className="hwb-quick-segment" role="group" aria-label={'Entscheidung '+dayLabel(day)}>
          {([{choice:'accepted',symbol:'✓',label:quickAction?.(day)==='choose'?'Variante wählen':'Annehmen'},{choice:'open',symbol:'50:50',label:'Vielleicht'},{choice:'declined',symbol:'✕',label:'Ablehnen'}] as const).map(item=><button key={item.choice} type="button" className={'hwb-quick-accept hwb-quick-'+item.choice} aria-label={item.label+' · '+coach.title+' · '+dayLabel(day)} title={item.label} aria-pressed={(coach.decision||'open')===item.choice} disabled={quickBusy||loading||!visibleData} onClick={()=>onQuickAccept(coach,item.choice)}>{item.symbol}</button>)}
         </div>}{quickDecision?.(day)&&quickAction?.(day)==='draft'&&coach.sport==='running'&&<small className="hwb-quick-note">✓ Entwurf · 18:00</small>}{quickDecision?.(day)&&quickAction?.(day)==='choose'&&<small className="hwb-quick-note">✓ Variante wählen</small>}</div>}
+        {rhythm.filter(e=>e.status==='paused').map(e=><button type="button" className="hwb-card is-rhythm is-paused" key={'rhythm-'+e.kind} onClick={()=>onSelect(day)}><span className="hwb-card-label">WUNSCHTAG · PAUSIERT</span><strong>{e.title}</strong><small>{e.minutes} Min. · {e.reason}</small></button>)}
         {slot.map(option=>{
          const choice=groupAdvice?.code===option.code?'selected':choices.find(x=>x.training_date===day&&x.option_code===option.code)?.choice||'open'
          const selected=choice==='selected'
@@ -187,7 +187,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
            location={option.location_label} latitude={option.location_lat} longitude={option.location_lon}/>}
          </button>
         })}
-        {!acts.length&&!manual.length&&!local.length&&!slot.length&&!coach&&
+        {!acts.length&&!manual.length&&!local.length&&!slot.length&&!coach&&!rhythm.length&&
          <span className="hwb-empty">{loading?"Lade …":!visibleData?"Daten fehlen":"Noch nichts eingetragen"}</span>}
        </div>
       </section>
