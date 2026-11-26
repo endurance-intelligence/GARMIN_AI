@@ -297,13 +297,14 @@ export function buildSevenDayCoach(input){
    const crossNote=stableRecovery&&lowReported&&daysPostRace>=(ultraRecovery?7:5)?
     ' Wenn bereits leichte Bewegung gut vertragen wurde: statt Laufen eventuell sehr lockeres Radfahren oder Rudern ohne Widerstandsspitzen; keine zusätzliche Einheit.':''
    if(!raceCheck||!checkedRecently)
-    return make(day,'recovery','Regeneration nach dem Wettkampf',null,
+    return {...make(day,'recovery','Regeneration nach dem Wettkampf',null,
      day>today?
       'Nach dem Wettkampf ist Erholung vorgesehen. Keine zusätzliche Einheit einplanen.':
       (activeRaceRecovery&&autoRaceRecovery.status==='matched'?
        'Die Garmin-Aufzeichnung ist erkannt. '+autoRaceRecovery.next+' ':
        'Keine eindeutige Garmin-Rennaufzeichnung verfügbar. Regeneration vor weiteren Laufvorschlägen. ')+
-      'Das Renn-Barometer ist freiwillig; fehlende Angaben gelten niemals als gute Erholung.'+movementNote)
+      'Das Renn-Barometer ist freiwillig; fehlende Angaben gelten niemals als gute Erholung.'+movementNote),
+     ...(gentleMovement&&day>=today?{recoveryMobility:true}:{})}
    if(raceCheck.warning)
     return make(day,'illness','Warnzeichen · Belastung abklären',null,
      'Du hast Warnzeichen gemeldet. Kein Laufvorschlag. Bei Brustschmerzen, Atemnot, '+
