@@ -1,6 +1,7 @@
 import {useState} from 'react'
 import {buildGoalProfile,goalPhaseFocus} from '../lib/goalTrainingFocus.mjs'
 import {hasEquipment} from '../lib/equipmentProfile.mjs'
+import {analyzeCoachFourWeeks} from '../lib/coachFourWeeks.mjs'
 import {buildLongTermCoachPlan} from '../lib/coachLongTermPlan.mjs'
 import type {LongTermWeek} from '../lib/coachLongTermPlan.mjs'
 import type {CoachSnapshot} from '../lib/coachSnapshot'
@@ -14,7 +15,7 @@ export function CoachLongTermPlan({today,snapshot}:{
  today:string;snapshot:CoachSnapshot
 }){
  const plan=buildLongTermCoachPlan({
-  today,goal:snapshot.goal,health:snapshot.health,life:snapshot.life,racePortfolio:snapshot.racePortfolio
+  today,goal:snapshot.goal,health:snapshot.health,life:snapshot.life,racePortfolio:snapshot.racePortfolio,history:analyzeCoachFourWeeks({today,boards:snapshot.boards,plans:snapshot.plans,life:snapshot.life})
  })
  const identity=JSON.stringify([plan.raceName,plan.raceDate,plan.hasGoal])
  const [selection,setSelection]=useState<{identity:string;start:string}|null>(null)
@@ -64,7 +65,7 @@ export function CoachLongTermPlan({today,snapshot}:{
    <summary>Wie dein Coach plant <Icon name="chevron-down"/></summary>
    <div className="cltp-explanation-body">
     <p>{plan.message}</p>
-    {plan.baselineKm!==null&&<p>Ausgangspunkt: ungefähr <strong>{plan.baselineKm} km/Woche</strong> aus deinen letzten zwei Laufwochen. Laufumfang grob, keine Trainingsfreigabe.</p>}
+    {plan.baselineKm!==null&&<p>Ausgangspunkt: ungefähr <strong>{plan.baselineKm} km/Woche</strong> aus mindestens drei vollständig gemessenen abgeschlossenen Wochen ohne bekannte Rennwoche. Laufumfang grob, keine Trainingsfreigabe.</p>}
     {week&&<p>{week.polarization}</p>}
     {plan.notes.length>0&&<div className="cltp-notes">{plan.notes.map((note,i)=><p key={i}><Icon name="info"/> {note}</p>)}</div>}
     <p className="cltp-disclaimer">Nur Planungsrahmen. Keine automatischen Kalenderänderungen. Tagesform, tatsächliches Training und deine Freigabe bestimmen die nächsten Einheiten.</p>
