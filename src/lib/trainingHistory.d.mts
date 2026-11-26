@@ -1,0 +1,13 @@
+export type SportGroup='running'|'rowing'|'strength'|'cycling'|'football'|'hiking'|'other'
+export type HistoryEntry={date:string;kind:SportGroup;title:string;minutes:number|null;km:number|null;source:string}
+export type PlanSnapshot={schema:1;weekStart:string;phase:string;goalName:string|null;target:{low:number;high:number}|null;entries:HistoryEntry[];partial:boolean}
+export type HistoryRevision={id:string;week_start:string;created_at:string;snapshot:PlanSnapshot}
+export type HistorySummary={rows:{kind:SportGroup;count:number;minutes:number|null;km:number|null}[];total:number;minutes:number|null;runKm:number|null}
+export type HistoryMonth={bounds:{start:string;end:string;weeks:string[];rangeStart:string;rangeEnd:string};weeks:{start:string;end:string;first:HistoryRevision|null;last:HistoryRevision|null;versions:number;actual:HistorySummary;original:HistorySummary|null;planned:HistorySummary|null}[];actual:HistorySummary;original:HistorySummary;planned:HistorySummary;savedWeeks:number}
+export const SPORTS:SportGroup[]
+export function sportGroup(s:unknown,title?:unknown):SportGroup
+export function monthBounds(month:string):HistoryMonth['bounds']|null
+export function makePlanSnapshot(input:any):PlanSnapshot|null
+export function collectActual(activities:any[],manual:any[],today:string):HistoryEntry[]
+export function summarizeEntries(entries:HistoryEntry[],start:string,end:string):HistorySummary
+export function historyModel(input:any):HistoryMonth|null
