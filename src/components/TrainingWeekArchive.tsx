@@ -3,6 +3,7 @@ import type {PlanSnapshot,HistoryRevision} from '../lib/trainingHistory.mjs'
 import {readTrainingMonth,saveTrainingWeek} from '../lib/trainingHistoryApi'
 import {Icon} from './Icon'
 import '../styles/training-history.css'
+const stable=(value:unknown):string=>JSON.stringify(value,(_key,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v)
 export function TrainingWeekArchive({active,snapshot,onHistory}:{active:boolean;snapshot:PlanSnapshot;onHistory:()=>void}){
  const [revisions,setRevisions]=useState<HistoryRevision[]|null>(null)
  const [busy,setBusy]=useState(false)
@@ -19,11 +20,11 @@ export function TrainingWeekArchive({active,snapshot,onHistory}:{active:boolean;
   return ()=>controller.abort()
  },[active,week])
  const latest=revisions?.at(-1)
- const unchanged=latest&&JSON.stringify(latest.snapshot)===JSON.stringify(snapshot)
+ const unchanged=latest&&stable(latest.snapshot)===stable(snapshot)
  const save=async()=>{
   if(lock.current||!revisions||unchanged)return
   lock.current=true;setBusy(true);setError('');setNotice('')
-  const key=JSON.stringify(snapshot)
+  const key=stable(snapshot)
   if(request.current?.key!==key)request.current={key,id:crypto.randomUUID()}
   try{
    const result=await saveTrainingWeek(snapshot,request.current!.id)
