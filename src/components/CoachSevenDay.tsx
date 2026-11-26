@@ -2,6 +2,7 @@ import {useEffect,useMemo,useRef,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {berlinDateToday} from '../lib/coachGoal'
 import {buildSevenDayCoach} from '../lib/coachSevenDay.mjs'
+import {TrainingQualityMark} from './TrainingQualityMark'
 import {WeeklyTrainingCard} from './WeeklyTrainingCard'
 import {loadCoachSnapshot} from '../lib/coachSnapshot'
 import type {CoachSnapshot} from '../lib/coachSnapshot'
@@ -302,6 +303,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
      <span className="c7-road-date"><span>{day.date===today?'HEUTE':new Intl.DateTimeFormat('de-DE',{timeZone:'UTC',weekday:'short'}).format(new Date(day.date+'T12:00:00Z')).replace('.','')}</span><strong>{day.date.slice(8,10)}</strong></span>
      <span className="c7-road-icon"><Icon name={day.kind==='race'?'flag':day.selectedGroup?'check-circle':['recovery','illness','blocked'].includes(day.kind)?'heart-pulse':'footprints'}/></span>
      {day.selectedGroup?<strong title={day.selectedGroup.title}>{day.selectedGroup.title}</strong>:<strong title={day.title}>{day.title}</strong>}
+     <TrainingQualityMark compact intent={day.qualityIntent} blocked={day.qualityBlocked}/>
      {day.selectedGroup&&<small className="c7-group-label">{day.selectedGroup.advice==='skip'?'Coach rät ab':day.selectedGroup.advice==='easy'?'Locker & verkürzt':'Bestätigt'}</small>}
      {day.decision&&<small className="c7-day-choice">
       {day.decision==='accepted'?'✓ Angenommen':'× Abgelehnt'}</small>}
