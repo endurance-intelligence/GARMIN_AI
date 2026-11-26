@@ -80,6 +80,7 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
      <span className="cdl-plan-kicker"><Icon name="activity"/> DEIN PLAN FÜR DIESEN TAG</span>
      {day.selectedGroup?<h4>{day.selectedGroup.title}</h4>:<h4>{day.title}</h4>}
      <p className="cdl-decision-note">{x.summary}</p>
+     {day.rhythm?.filter(e=>e.status==='paused').map(e=><div key={e.kind} className="cdl-context-line"><span>WUNSCHTAG · PAUSIERT</span><strong>{e.title} · {e.minutes} Min.</strong><small>{e.reason}</small></div>)}
      {day.minutes!==null&&!day.selectedGroup&&<div className="cdl-duration">
       <span>COACH-UMFANG</span><strong>{day.minutes} Min.</strong>
       <small>Vorschlag, noch kein freigegebenes Workout</small>
