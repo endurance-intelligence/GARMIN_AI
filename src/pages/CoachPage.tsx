@@ -6,6 +6,8 @@ import {CoachTodayWeather} from '../components/CoachTodayWeather'
 import {CoachGlance} from '../components/CoachGlance'
 import {CoachHealthStatus} from '../components/CoachHealthStatus'
 import {berlinToday} from '../components/WeeklyTrainingOptions'
+import {TrainingWeekArchive} from '../components/TrainingWeekArchive'
+import {makePlanSnapshot} from '../lib/trainingHistory.mjs'
 import {CoachDailyBrief} from '../components/CoachDailyBrief'
 import {trainingAlternativeForDate} from '../lib/goalTrainingFocus.mjs'
 import {AskCoachCard} from '../components/AskCoachCard'
@@ -59,6 +61,8 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
    boards:sharedSnapshot.boards,plans:sharedSnapshot.plans,goal:sharedSnapshot.goal,
    life:sharedSnapshot.life,racePortfolio:sharedSnapshot.racePortfolio,goalRoute:sharedSnapshot.goalRoute
   }):null,[sharedSnapshot,coachToday])
+  const currentBudget=dailyPlan?.weeklyBudgets?.find(w=>w.current)
+  const archiveSnapshot=currentBudget&&dailyPlan&&sharedSnapshot?makePlanSnapshot({budget:currentBudget,days:dailyPlan.days,plans:sharedSnapshot.plans.entries,options:sharedSnapshot.options.options,choices:sharedSnapshot.options.choices,today:coachToday,goalName:dailyPlan.goalProfile?.name??null}):null
   const dailyBrief=useMemo(()=>dailyPlan&&sharedSnapshot?
    buildCoachDailyBrief({today:coachToday,plan:dailyPlan,health:sharedSnapshot.health}):null,
    [dailyPlan,sharedSnapshot,coachToday])
@@ -112,6 +116,7 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
   weather={<CoachTodayWeather active={active} snapshot={sharedSnapshot!} plan={dailyPlan!} onReport={setWeatherAnswer}/>}/>}
 
 
+ {archiveSnapshot&&!snapshotLoading&&!snapshotError&&<TrainingWeekArchive key={archiveSnapshot.weekStart} active={active} snapshot={archiveSnapshot} compact onHistory={()=>{onGo('training');window.dispatchEvent(new Event('garmin-ai-open-training-history'))}}/>}
  {snapshotLoading&&!sharedSnapshot&&!snapshotError&&<p className="co-data-note" role="status">
   Lade deine Garmin-, Kalender- und Coach-Daten gemeinsam …</p>}
  {snapshotError&&<p className="co-data-note" role="status">
