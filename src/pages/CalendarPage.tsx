@@ -3,6 +3,8 @@ import type {Session} from '@supabase/supabase-js'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {Icon} from '../components/Icon'
 import {WorkoutArchivePanel} from '../components/WorkoutArchivePanel'
+import {TrainingWeekArchive} from '../components/TrainingWeekArchive'
+import {makePlanSnapshot} from '../lib/trainingHistory.mjs'
 import {WeeklyTrainingCard} from '../components/WeeklyTrainingCard'
 import {replacementImpact} from '../lib/weeklyTraining.mjs'
 import {TrainingRhythmSettings} from '../components/TrainingRhythmSettings'
@@ -134,6 +136,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
  const coachDay=coachPlan?.days.find(d=>d.date===selected)||null
  const alternative=trainingAlternativeForDate(coachPlan,selected)
  const visibleBudget=coachPlan?.weeklyBudgets?.find(w=>w.start===start)
+ const archiveSnapshot=visibleBudget&&coachPlan&&coachSnapshot?makePlanSnapshot({budget:visibleBudget,days:coachPlan.days,plans:coachSnapshot.plans.entries,options:coachSnapshot.options.options,choices:coachSnapshot.options.choices,today,goalName:coachPlan.goalProfile?.name??null}):null
  const alternativeImpact=alternative?replacementImpact(visibleBudget,selected):null
  const daySupplement=alternative||(coachPlan?.supplement?.suggestion?.date===selected&&coachPlan.supplement.suggestion.mode==='existing-slot'?coachPlan.supplement.suggestion:null)
  const coachPreview=coachDay&&(coachDay.selectedGroup||(!['existing','completed','chosen','option'].includes(coachDay.kind)&&
@@ -515,6 +518,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
     <span><i className="hc-key-option"/> ORC · optional</span>
    </div>
    {visibleBudget&&week>=0&&<WeeklyTrainingCard budget={visibleBudget}/>}
+   {archiveSnapshot&&week>=0&&<TrainingWeekArchive key={start} active={active} snapshot={archiveSnapshot} onHistory={()=>{onGo('training');window.dispatchEvent(new Event('garmin-ai-open-training-history'))}}/>}
    <CalendarWeekBoard active={active} start={start} selected={selected}
     today={today} onSelect={day=>{setSelected(day);setCoachReview(null)}}
     onActivities={setWeekActivities} plans={plans} coachDays={coachPlan?.days||[]} refreshKey={refresh} quickAction={date=>quickCoachAction(coachPlan,date,today)} quickDecision={date=>quickDecisionAvailable(coachPlan,date,today)} onQuickAccept={(day,choice)=>void quickAccept(day,choice)} quickBusy={acting!==null||coachLoading||!!coachError||busy}/>
