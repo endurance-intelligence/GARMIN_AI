@@ -45,9 +45,9 @@ export function makePlanSnapshot({budget,days=[],plans=[],options=[],choices=[],
   entries.push({date:p.training_date,kind,title:String(p.title||kind).slice(0,160),minutes,km:kind==='running'&&minutes!==null&&budget.paceSeconds?Math.floor(minutes*60/budget.paceSeconds*10)/10:null,source:p.state==='draft'?'draft':'approved'})
   occupied.add(p.training_date)
  }
- for(const c of choices){
+ for(const c of Array.isArray(choices)?choices:[]){
   if(c.choice!=='selected'||!inWeek(c.training_date)||occupied.has(c.training_date))continue
-  const o=options.find(x=>x.code===c.option_code)
+  const o=(Array.isArray(options)?options:[]).find(x=>x.code===c.option_code)
   if(!o)continue
   const kind=sportGroup(o.sport,o.title)
   entries.push({date:c.training_date,kind,title:String(o.title||kind).slice(0,160),minutes:null,km:null,source:'selected'})
