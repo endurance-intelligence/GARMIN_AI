@@ -12,16 +12,16 @@ const duration=(x:number|null)=>x===null?'–':Math.floor(x/60)+'h '+String(x%60
 const short=(d:string)=>d.slice(8,10)+'.'+d.slice(5,7)+'.'
 const shiftMonth=(m:string,n:number)=>new Date(Date.UTC(Number(m.slice(0,4)),Number(m.slice(5,7))-1+n,1,12)).toISOString().slice(0,7)
 function SummaryRows({actual,planned,original}:{actual:HistorySummary;planned:HistorySummary|null;original:HistorySummary|null}){
- const showOriginal=!!original&&!!planned&&SPORTS.some((_,i)=>original.rows[i].count!==planned.rows[i].count)
+ const showOriginal=!!original&&!!planned&&SPORTS.some((_,i)=>original.rows[i].count!==planned.rows[i].count||original.rows[i].minutes!==planned.rows[i].minutes||original.rows[i].km!==planned.rows[i].km)
  return <div className="th-rows">
   <div className={'th-row th-row-head'+(showOriginal?' has-original':'')}><span>TRAININGSART</span>{showOriginal&&<span>URSPR.</span>}<span>GEPLANT</span><span>GEMACHT</span></div>
   {SPORTS.map((kind,i)=>{
    const a=actual.rows[i],p=planned?.rows[i],o=original?.rows[i]
-   if(!a.count&&!p?.count&&!o?.count&&!['running','rowing','strength','cycling'].includes(kind))return null
+   if(!a.count&&!p?.count&&!o?.count)return null
    return <div className={'th-row'+(showOriginal?' has-original':'')} key={kind}>
     <span className="th-sport"><Icon name={icons[kind]}/><span><strong>{names[kind]}</strong><small>{kind==='running'?f(a.km)+' km':duration(a.minutes)}</small></span></span>
-    {showOriginal&&<span>{o?.count??'–'}</span>}
-    <span>{p?p.count+'×':'–'}</span><strong className={p&&p.count>0&&a.count>=p.count?'th-positive':''}>{a.count}×</strong>
+    {showOriginal&&<span>{o?o.count+'×':'–'}{o&&o.count>0&&<small style={{display:'block'}}>{kind==='running'?f(o.km)+' km':duration(o.minutes)}</small>}</span>}
+    <span>{p?p.count+'×':'–'}{p&&p.count>0&&<small style={{display:'block'}}>{kind==='running'?f(p.km)+' km':duration(p.minutes)}</small>}</span><strong className={p&&p.count>0&&a.count>=p.count?'th-positive':''}>{a.count}×</strong>
    </div>
   })}
  </div>
@@ -72,7 +72,7 @@ export function TrainingHistory({active,onCalendar}:{active:boolean;onCalendar:(
      </div></details>)}</div>}
     <p className="th-note">Garmin-Archiv und manuelle Ergänzungseinheiten. Plausible doppelte manuelle Einträge (gleicher Sport, Tag und Dauer ±5 Min.) werden einmal gezählt. Nicht synchronisierte Aktivitäten können fehlen.</p>
    </>}
-   <button type="button" className="th-secondary" onClick={onCalendar}>Zum Kalender · Wochenplan festhalten</button>
+   <button type="button" className="th-secondary" onClick={onCalendar}>Zum Kalender</button>
   </div>}
  </details>
 }

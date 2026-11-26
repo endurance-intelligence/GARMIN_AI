@@ -38,10 +38,12 @@ export function makePlanSnapshot({budget,days=[],plans=[],options=[],choices=[],
  for(const p of plans){
   if(!inWeek(p.training_date)||!['draft','pending','confirmed'].includes(p.state))continue
   const kind=sportGroup(p.sport,p.title)
-  if(p.sport==='other'&&kind==='other')continue
+  
   const snap=p.archive_snapshot,steps=snap?.group?.steps
   const sec=snap?.sourceKind==='coach'&&Array.isArray(steps)&&steps.length&&steps.every(x=>x.endMode==='time'&&num(x.durationSeconds))&&num(snap.warmup?.durationSeconds)&&num(snap.cooldown?.durationSeconds)?snap.warmup.durationSeconds+snap.cooldown.durationSeconds+steps.reduce((n,x)=>n+x.durationSeconds,0):null
-  const minutes=sec!==null?Math.round(sec/60):null
+  // Only explicit durations in our generated event metadata; never guess from title alone.
+  const stated=/^(?:Coach Intelligence|Coach-Alternative|Eigener Vorschlag) · (\d{1,3}) Min\./.exec(String(p.notes||''))
+  const minutes=sec!==null?Math.round(sec/60):stated&&Number(stated[1])>0?Number(stated[1]):null
   entries.push({date:p.training_date,kind,title:String(p.title||kind).slice(0,160),minutes,km:kind==='running'&&minutes!==null&&budget.paceSeconds?Math.floor(minutes*60/budget.paceSeconds*10)/10:null,source:p.state==='draft'?'draft':'approved'})
   occupied.add(p.training_date)
  }

@@ -8,7 +8,6 @@ import {makePlanSnapshot} from '../lib/trainingHistory.mjs'
 import {TrainingQualityMark} from '../components/TrainingQualityMark'
 import {WeeklyTrainingCard} from '../components/WeeklyTrainingCard'
 import {replacementImpact} from '../lib/weeklyTraining.mjs'
-import {TrainingRhythmSettings} from '../components/TrainingRhythmSettings'
 import {WeeklyTrainingOptions} from '../components/WeeklyTrainingOptions'
 import {SupplementSessionDetails} from '../components/SupplementSessionDetails'
 import {trainingAlternativeForDate} from '../lib/goalTrainingFocus.mjs'
@@ -502,7 +501,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
     <small>Der Wettkampf ist bereits als Coach-Ziel hinterlegt. Keine zusätzliche Freigabe oder
      ORC-Einheit am Renntag. Die vorgeschlagenen Trainingstage sind auf den Start ausgerichtet.</small>
    </div>}
-  <TrainingRhythmSettings onSaved={()=>setRefresh(n=>n+1)}/>
+  <button type="button" className="hc-refresh" onClick={()=>onGo('settings')}><Icon name="settings"/> Trainingsrhythmus in Einstellungen</button>
   <div className="hc-weekpanel">
    <div className="hc-toolbar">
     <div><small>DEIN TRAININGSKALENDER</small><h2>Wochenansicht</h2></div>
@@ -519,7 +518,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
     <span><i className="hc-key-option"/> ORC · optional</span>
    </div>
    {visibleBudget&&week>=0&&<WeeklyTrainingCard budget={visibleBudget}/>}
-   {archiveSnapshot&&week>=0&&<TrainingWeekArchive key={start} active={active} snapshot={archiveSnapshot} onHistory={()=>{onGo('training');window.dispatchEvent(new Event('garmin-ai-open-training-history'))}}/>}
+   {archiveSnapshot&&week===0&&<TrainingWeekArchive key={start} active={active} snapshot={archiveSnapshot} onHistory={()=>{onGo('training');window.dispatchEvent(new Event('garmin-ai-open-training-history'))}}/>}
    <CalendarWeekBoard active={active} start={start} selected={selected}
     today={today} onSelect={day=>{setSelected(day);setCoachReview(null)}}
     onActivities={setWeekActivities} plans={plans} coachDays={coachPlan?.days||[]} refreshKey={refresh} quickAction={date=>quickCoachAction(coachPlan,date,today)} quickDecision={date=>quickDecisionAvailable(coachPlan,date,today)} onQuickAccept={(day,choice)=>void quickAccept(day,choice)} quickBusy={acting!==null||coachLoading||!!coachError||busy}/>
