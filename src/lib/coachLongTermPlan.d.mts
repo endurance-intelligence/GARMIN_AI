@@ -13,5 +13,5 @@ export type LongTermPlan={
  period:string;source:string;trainingMethod:'polarized'
 }
 export function buildLongTermCoachPlan(input:{
- today:string;goal?:any;health?:any;life?:any;racePortfolio?:{others?:any[]}
+ today:string;goal?:any;health?:any;life?:any;racePortfolio?:{others?:any[]};history?:import('./coachFourWeeks.mjs').CoachFourWeeks
 }):LongTermPlan
