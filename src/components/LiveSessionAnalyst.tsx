@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { garminPublishableKey, garminSupabase, garminSupabaseReady, garminSupabaseUrl } from '../lib/garminSupabase'
 import { analyzeSession } from '../lib/sessionAnalysis'
@@ -60,10 +60,10 @@ function SessionCoachContext({activity,list,terrain,session}:{activity:SessionRe
  const [felt,setFelt]=useState('')
  const [weather,setWeather]=useState<HistoricalWeather|null>(null)
  const [weatherPending,setWeatherPending]=useState(true)
- useEffect(()=>{const controller=new AbortController();setWeather(null);setWeatherPending(true)
+ useEffect(()=>{let mounted=true;const controller=new AbortController();setWeather(null);setWeatherPending(true)
   const timeout=setTimeout(()=>controller.abort(),12000)
-  void historicalGroupWeather(activity,list,session,controller.signal).then(w=>{if(!controller.signal.aborted)setWeather(w)}).catch(()=>{}).finally(()=>{clearTimeout(timeout);if(!controller.signal.aborted||!controller.signal.reason||controller.signal.reason.name==='AbortError')setWeatherPending(false)})
-  return ()=>{clearTimeout(timeout);controller.abort()}
+  void historicalGroupWeather(activity,list,session,controller.signal).then(w=>{if(mounted&&!controller.signal.aborted)setWeather(w)}).catch(()=>{}).finally(()=>{clearTimeout(timeout);if(mounted)setWeatherPending(false)})
+  return ()=>{mounted=false;clearTimeout(timeout);controller.abort()}
  },[activity,list,session])
  const number= felt.trim()!==''?Number(felt.replace(',','.')):NaN
  const context=buildSessionContext(activity,list,terrain,Number.isFinite(number)&&number>=-80&&number<=65?number:weather)
@@ -115,6 +115,8 @@ async function readPrivate<T>(session: Session, params = ''): Promise<T> {
 
 export function LiveSessionAnalyst({ active, focus }: { active: boolean;
  focus?:{activityId:string;token:number}|null }) {
+  const sectionRef=useRef<HTMLElement>(null)
+  useEffect(()=>{if(active&&focus?.activityId)sectionRef.current?.scrollIntoView({block:'start',behavior:'instant'})},[active,focus?.token,focus?.activityId])
   const [session,setSession] = useState<Session | null>(null)
   const [authReady,setAuthReady] = useState(false)
   const [list,setList] = useState<Activity[]>([])
@@ -195,7 +197,7 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
   const analysis = useMemo(() => details ? analyzeSession(details.details.samples) : null, [details])
   const path = useMemo(() => details ? heartPath(details.details.samples) : '', [details])
   if (!active) return null
-  return <section className="lsa-wrap" aria-label="Echter Garmin Session Analyst">
+  return <section ref={sectionRef} className="lsa-wrap" aria-label="Echter Garmin Session Analyst">
     <div className="lsa-head">
       <div><span className="micro-label">GARMIN / SESSION INTELLIGENCE · LIVE</span>
         <h2>Mein Lauf</h2>
