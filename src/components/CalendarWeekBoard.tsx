@@ -162,7 +162,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
          <span className="hwb-card-label">{coach.kind==='race'?
           '🏁 RENNTAG / HAUPTZIEL':coach.approvable?
           '✦ COACH / VORSCHLAG':coach.decision==='declined'?'✕ COACH / ABGELEHNT':'✦ COACH / ANSAGE'}</span>
-         <strong>{coach.title}</strong>
+         <strong>{coach.title}</strong>{coach.recoveryMobility&&<small>Optional: 5–10 Min. sanfte Mobility</small>}
          {coach.minutes!==null&&<span>{coach.minutes} Minuten{coach.decision?'':' · noch nicht eingetragen'}</span>}
          <small>{coach.decision==='accepted'?'Von dir angenommen · kein zusätzlicher Eintrag':
           coach.decision==='declined'?'Von dir abgelehnt':
