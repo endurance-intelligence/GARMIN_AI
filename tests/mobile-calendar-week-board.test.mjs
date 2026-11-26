@@ -37,7 +37,9 @@ test('actual, planned and optional activities remain distinct',()=>{
  assert.match(board,/is-manual/)
  assert.match(board,/Garmin-Aktivitäten und Tageswerte/)
  assert.doesNotMatch(board,/GARMIN-KALENDER/)
- assert.match(board,/sportKind\(x\.sport_type\)!=='rowing'/)
+ assert.doesNotMatch(board,/sportKind\(x\.sport_type\)!=='rowing'/)
+ assert.match(board,/m.kind==='rowing'\?'Rudern'/)
+ assert.match(board,/WUNSCHTAG · PAUSIERT/)
  assert.match(board,/completedWeeklyOption/)
 })
 test('no invented TSS, readiness or score appears in calendar week summary',()=>{
