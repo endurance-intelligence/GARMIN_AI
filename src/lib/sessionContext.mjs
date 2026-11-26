@@ -25,7 +25,11 @@ export function buildSessionContext(activity,list=[],terrain=[],felt=null){
  const verdict=hard?'Hohe subjektive Belastung – genauer hinschauen':longReturn?
   (low?'Gutes Belastungsgefühl, Wiedereinstieg aber eher lang':'Wiedereinstieg mit zusätzlichem Erholungsbedarf'):
   low?'Subjektiv locker – ein positives Signal':rpe===null?'Bewertung noch eingeschränkt':'Belastung anhand deiner Rückmeldung einordnen'
- const mood=hard||longReturn?'reflective':low?'supportive':'focused'
+ const earlyReturn=!!ultra&&days>=1&&days<=5
+ const mode=earlyReturn?'caution':hard?'caution':longReturn?'review':low?'positive':'review'
+ const mood=earlyReturn?'firm':hard||longReturn?'reflective':low?'supportive':'focused'
+ const modeLabel=earlyReturn?'Coach rät zur Zurückhaltung':hard?'Belastung zu prüfen':longReturn?'Mit Einschränkung':low?'Positives Belastungssignal':'Bewertung offen'
+ const recommendation=earlyReturn?'Rückblick nach der Erholungsregel: '+days+' Tage nach '+(ultra.distanceM/1000).toLocaleString('de-DE',{maximumFractionDigits:1})+' km wäre Regeneration statt eines Lauftrainings die konservative Empfehlung gewesen. '+(low?'Dein niedriges RPE ist erfreulich, hebt diese Vorsicht aber nicht auf.':'Die tatsächliche Einheit ändert die damalige Erholungsphase nicht.')+' Eine gespeicherte damalige Coach-Ansage liegt dieser Ableitung nicht zugrunde.':null
  const weather=typeof felt==='object'&&felt!==null?felt:null
  const apparent=weather?.felt??felt
  const factors=[
@@ -38,5 +42,5 @@ export function buildSessionContext(activity,list=[],terrain=[],felt=null){
   {label:'Wetter / gefühlte Temperatur',text:num(apparent)?(weather?'Open-Meteo · historisches Wettermodell am zugeordneten Gruppentermin '+weather.location+' · '+weather.hour+' Uhr: '+weather.temperature+' °C, gefühlt ':'Deine Angabe: ')+apparent.toLocaleString('de-DE')+' °C'+(weather?'':' gefühlt')+'. '+(apparent<=0?'Kälte als Kontext berücksichtigen; keine pauschale Pace- oder Pulskorrektur.':'Keine pauschale Pace- oder Pulskorrektur.'):'Keine verifizierten historischen Wetterdaten für Ort und Laufzeit; Wetter nicht bewertet.'}
  ]
  const next=ultra?'Morgen auf Fußbeschwerden, Muskelgefühl und ungewöhnliche Müdigkeit achten. Kein Nachholen oder hartes Training; nur schmerzfreie leichte Bewegung nach Wohlbefinden.':hard?'Erholung priorisieren und vor dem nächsten intensiven Training die Verträglichkeit prüfen.':'Training nach Wohlbefinden und tatsächlichem Plan fortsetzen; bei Beschwerden Belastung reduzieren.'
- return {verdict,mood,factors,next}
+ return {verdict,mood,mode,modeLabel,recommendation,factors,next}
 }
