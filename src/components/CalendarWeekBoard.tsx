@@ -10,18 +10,18 @@ import type {CoachDay} from '../lib/coachSevenDay.mjs'
 import type {QuickCoachAction,QuickDecisionChoice} from '../lib/calendarQuickAccept.mjs'
 import {normalizeGarminRpe} from '../lib/garminPerception.mjs'
 
-type Activity={activity_id:string;activity_name:string|null;start_time_local:string;
+export type CalendarActivity={activity_id:string;activity_name:string|null;start_time_local:string;
  sport_type:string;distance_m:number|null;duration_s:number|null;
  average_heart_rate:number|null;rpe_raw:number|null}
 type Daily={metric_date:string;hrv_ms:number|null;resting_heart_rate:number|null;
  sleep_seconds:number|null;stress_avg:number|null;body_battery_max:number|null}
 type Manual={id:string;session_date:string;kind:string;duration_minutes:number;rowing_distance_m:number|null;rpe:number|null}
-type WeekResponse={start:string;endExclusive:string;activities:Activity[];health:Daily[];manual:Manual[]}
+type WeekResponse={start:string;endExclusive:string;activities:CalendarActivity[];health:Daily[];manual:Manual[]}
 type Opportunity={code:string;weekday:number;start_time:string;title:string;location_label:string;location_lat:number;location_lon:number;enabled?:boolean}
 type Choice={option_code:string;training_date:string;choice:string}
 export type BoardPlan={id:string;training_date:string;title:string;state:string;session_type:string}
 type Props={active:boolean;start:string;selected:string;today:string;
- onSelect:(day:string)=>void;plans:BoardPlan[];coachDays?:CoachDay[];refreshKey?:number;quickAction?:(date:string)=>QuickCoachAction;quickDecision?:(date:string)=>boolean;onQuickAccept?:(day:CoachDay,choice:QuickDecisionChoice)=>void;quickBusy?:boolean}
+ onSelect:(day:string)=>void;plans:BoardPlan[];coachDays?:CoachDay[];refreshKey?:number;quickAction?:(date:string)=>QuickCoachAction;quickDecision?:(date:string)=>boolean;onQuickAccept?:(day:CoachDay,choice:QuickDecisionChoice)=>void;quickBusy?:boolean;onActivities?:(value:{start:string;activities:CalendarActivity[]}|null)=>void}
 const plusDay=(date:string,n:number)=>
  new Date(Date.parse(date+'T12:00:00Z')+n*86400000).toISOString().slice(0,10)
 function weekNumber(date:string){
@@ -47,7 +47,7 @@ async function read(endpoint:string){
  if(!response.ok)throw Error('Kalenderdaten derzeit nicht erreichbar ('+response.status+')')
  return await response.json() as Record<string,unknown>
 }
-export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,coachDays=[],refreshKey=0,quickAction,quickDecision,onQuickAccept,quickBusy=false}:Props){
+export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,coachDays=[],refreshKey=0,quickAction,quickDecision,onQuickAccept,quickBusy=false,onActivities}:Props){
  const [data,setData]=useState<WeekResponse|null>(null)
  const [options,setOptions]=useState<Opportunity[]>([])
  const [choices,setChoices]=useState<Choice[]>([])
@@ -74,6 +74,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
  },[active,start,refreshKey])
  // Never show another week's activity totals during loading.
  const visibleData=data?.start===start?data:null
+ useEffect(()=>{onActivities?.(visibleData?{start:visibleData.start,activities:visibleData.activities}:null)},[visibleData,onActivities])
  const days=useMemo(()=>Array.from({length:7},(_,i)=>plusDay(start,i)),[start])
  const stats=useMemo(()=>{
   const activeRows=(visibleData?.activities||[]).filter(a=>minutes(a.duration_s)>0)
@@ -161,7 +162,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
          <span className="hwb-card-label">{coach.kind==='race'?
           '🏁 RENNTAG / HAUPTZIEL':coach.approvable?
           '✦ COACH / VORSCHLAG':coach.decision==='declined'?'✕ COACH / ABGELEHNT':'✦ COACH / ANSAGE'}</span>
-         <strong>{coach.title}</strong>
+         <strong>{coach.title}</strong>{coach.recoveryMobility&&<small>Optional: 5–10 Min. sanfte Mobility</small>}
          {coach.minutes!==null&&<span>{coach.minutes} Minuten{coach.decision?'':' · noch nicht eingetragen'}</span>}
          <small>{coach.decision==='accepted'?'Von dir angenommen · kein zusätzlicher Eintrag':
           coach.decision==='declined'?'Von dir abgelehnt':

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { garminPublishableKey, garminSupabase, garminSupabaseReady, garminSupabaseUrl } from '../lib/garminSupabase'
 import { analyzeSession } from '../lib/sessionAnalysis'
@@ -6,6 +6,10 @@ import {normalizeGarminRpe} from '../lib/garminPerception.mjs'
 import {summarizeRunMetrics} from '../lib/runMetrics.mjs'
 import {SessionIntensityDetails} from './SessionIntensityDetails'
 import {CoachEvidenceSummary} from './CoachEvidenceSummary'
+import {CoachAvatar} from './CoachAvatar'
+import {completedWeeklyOption} from '../lib/weeklyOptionCompletion'
+import {buildSessionContext} from '../lib/sessionContext.mjs'
+import type {TerrainWindow} from '../lib/sessionContext.mjs'
 import { SessionGearEditor } from './SessionGearEditor'
 import {PlanActualReview} from './PlanActualReview'
 import {assessPlanActual} from '../lib/planActual.mjs'
@@ -21,9 +25,56 @@ type Activity = {
 type ActivityListResponse = { source: string; activities: Activity[] }
 type SessionResponse = {
   activity: Omit<Activity, 'detailStatus' | 'hrSamples' | 'laps'>
-  details: { status: string; hrSampleCount: number; lapCount: number; samples: SessionSample[]; fetchedAt: string | null }
+  details: { status: string; hrSampleCount: number; lapCount: number; samples: SessionSample[]; terrainWindows?:TerrainWindow[]; fetchedAt: string | null }
 }
 const runTypes: Record<string,string> = { running: 'Lauf', track_running: 'Bahn', treadmill_running: 'Laufband', ultra_run: 'Ultra' }
+
+type HistoricalWeather={felt:number;temperature:number;location:string;hour:string}
+type WeatherSlot={code:string;weekday:number;start_time:string;sport?:string;enabled?:boolean;location_label:string;location_lat:number;location_lon:number}
+async function historicalGroupWeather(activity:SessionResponse['activity'],list:Activity[],session:Session,signal:AbortSignal):Promise<HistoricalWeather|null>{
+ if(!activity.name||!/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(activity.date)||/treadmill/i.test(activity.sport))return null
+ const day=activity.date.slice(0,10),hour=activity.date.slice(11,13)+':00'
+ const response=await fetch(garminSupabaseUrl+'/functions/v1/garmin-weekly-options',{signal,cache:'no-store',headers:{authorization:'Bearer '+session.access_token,apikey:garminPublishableKey}})
+ if(!response.ok)return null
+ const data=await response.json() as {options?:WeatherSlot[];choices?:{training_date:string;option_code:string;choice:string}[]}
+ const candidates=(data.options||[]).filter(o=>{
+  const loc=String(o.location_label||'').split(',')[0].trim()
+  return o.enabled!==false&&loc.length>=3&&activity.name.toLocaleLowerCase('de').includes(loc.toLocaleLowerCase('de'))&&
+   Number.isFinite(o.location_lat)&&Math.abs(o.location_lat)<=90&&Number.isFinite(o.location_lon)&&Math.abs(o.location_lon)<=180&&
+   data.choices?.some(c=>c.training_date===day&&c.option_code===o.code&&c.choice==='selected')&&
+   completedWeeklyOption(o,day,[{start_time_local:activity.date,sport_type:activity.sport,duration_s:activity.durationS}])&&
+   list.filter(a=>completedWeeklyOption(o,day,[{start_time_local:a.date,sport_type:a.sport,duration_s:a.durationS}])).length===1
+ })
+ if(candidates.length!==1)return null
+ const o=candidates[0],url=new URL('https://historical-forecast-api.open-meteo.com/v1/forecast')
+ url.search=new URLSearchParams({latitude:String(o.location_lat),longitude:String(o.location_lon),start_date:day,end_date:day,timezone:'Europe/Berlin',hourly:'temperature_2m,apparent_temperature'}).toString()
+ const weatherResponse=await fetch(url,{signal,cache:'no-store'})
+ if(!weatherResponse.ok)return null
+ const weather=await weatherResponse.json() as {hourly?:{time?:string[];temperature_2m?:number[];apparent_temperature?:number[]}}
+ const index=weather.hourly?.time?.indexOf(day+'T'+hour)??-1
+ const felt=weather.hourly?.apparent_temperature?.[index],temperature=weather.hourly?.temperature_2m?.[index]
+ if(typeof felt!=='number'||!Number.isFinite(felt)||typeof temperature!=='number'||!Number.isFinite(temperature))return null
+ return {felt:Math.round(felt),temperature:Math.round(temperature),location:o.location_label,hour}
+}
+function SessionCoachContext({activity,list,terrain,session}:{activity:SessionResponse['activity'];list:Activity[];terrain:TerrainWindow[];session:Session}){
+ const [felt,setFelt]=useState('')
+ const [weather,setWeather]=useState<HistoricalWeather|null>(null)
+ const [weatherPending,setWeatherPending]=useState(true)
+ useEffect(()=>{let mounted=true;const controller=new AbortController();setWeather(null);setWeatherPending(true)
+  const timeout=setTimeout(()=>controller.abort(),12000)
+  void historicalGroupWeather(activity,list,session,controller.signal).then(w=>{if(mounted&&!controller.signal.aborted)setWeather(w)}).catch(()=>{}).finally(()=>{clearTimeout(timeout);if(mounted)setWeatherPending(false)})
+  return ()=>{mounted=false;clearTimeout(timeout);controller.abort()}
+ },[activity,list,session])
+ const number= felt.trim()!==''?Number(felt.replace(',','.')):NaN
+ const context=buildSessionContext(activity,list,terrain,Number.isFinite(number)&&number>=-80&&number<=65?number:weather)
+ return <article className="cr-card" aria-label="Persönliches Coach-Fazit">
+  <div style={{display:'flex',alignItems:'center',gap:16}}><CoachAvatar mood={context.mood} small/><div><div className="cr-label">DEIN COACH · EINORDNUNG</div><h3>{context.verdict}</h3></div></div>
+  <p>Das ist meine Einschätzung anhand der verfügbaren Messwerte, keine medizinische Trainingsfreigabe.</p>
+  <div className="lsa-findings">{context.factors.map(f=><div className="lsa-signal info" key={f.label}><b>{f.label}</b><p>{f.text}</p></div>)}</div>
+  {weatherPending?<small>Historisches Trainingswetter wird geprüft …</small>:!weather&&<label className="lsa-picker">Gefühlte Temperatur beim Lauf (optional, eigene Angabe, nur für diese Ansicht)<input type="number" min={-80} max={65} step="1" value={felt} placeholder="z. B. -6" onChange={e=>setFelt(e.target.value)}/></label>}
+  <p className="cr-next"><strong>Was bedeutet das für dein nächstes Training?</strong> {context.next}</p>
+ </article>
+}
 
 function heartPath(samples: SessionSample[]): string {
   const valid = samples.filter(p => typeof p.hr === 'number' && p.hr>=35 && p.hr<=220)
@@ -64,6 +115,8 @@ async function readPrivate<T>(session: Session, params = ''): Promise<T> {
 
 export function LiveSessionAnalyst({ active, focus }: { active: boolean;
  focus?:{activityId:string;token:number}|null }) {
+  const sectionRef=useRef<HTMLElement>(null)
+  useEffect(()=>{if(active&&focus?.activityId)sectionRef.current?.scrollIntoView({block:'start',behavior:'instant'})},[active,focus?.token,focus?.activityId])
   const [session,setSession] = useState<Session | null>(null)
   const [authReady,setAuthReady] = useState(false)
   const [list,setList] = useState<Activity[]>([])
@@ -144,7 +197,7 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
   const analysis = useMemo(() => details ? analyzeSession(details.details.samples) : null, [details])
   const path = useMemo(() => details ? heartPath(details.details.samples) : '', [details])
   if (!active) return null
-  return <section className="lsa-wrap" aria-label="Echter Garmin Session Analyst">
+  return <section ref={sectionRef} className="lsa-wrap" aria-label="Echter Garmin Session Analyst">
     <div className="lsa-head">
       <div><span className="micro-label">GARMIN / SESSION INTELLIGENCE · LIVE</span>
         <h2>Mein Lauf</h2>
@@ -171,6 +224,7 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
       </div>}
       {loading && <p className="lsa-note">Lese Garmin-Aktivität …</p>}
       {details && analysis && <>
+        <SessionCoachContext key={details.activity.id} activity={details.activity} list={list} terrain={details.details.terrainWindows||[]} session={session}/>
         <CoachEvidenceSummary active={active} mode="training" activityId={details.activity.id}/>
         <PlanActualReview match={planActual} loading={!plansLoaded&&!planError}
          error={planError}/>

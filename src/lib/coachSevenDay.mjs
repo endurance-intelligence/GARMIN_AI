@@ -286,6 +286,7 @@ export function buildSevenDayCoach(input){
    // day or the first days, or on a day already assigned to something else.
    const coreDay=(ultraRecovery?[4,7,10,13]:[3,6,9,12]).includes(daysPostRace)
    if(coreDay&&day>=today&&gentleMovement&&stableRecovery&&
+    !dayDecisions.some(x=>x.date===day&&['accepted','declined'].includes(x.choice))&&
     (lowReported||unknownReported))
     return make(day,'mobility','Leichte Rumpfstabi / Mobility · 10 Min.',10,
      'Nur wenn du dich aktuell erholt und beschwerdefrei fühlst: sanfte Mobilität, '+
@@ -297,13 +298,14 @@ export function buildSevenDayCoach(input){
    const crossNote=stableRecovery&&lowReported&&daysPostRace>=(ultraRecovery?7:5)?
     ' Wenn bereits leichte Bewegung gut vertragen wurde: statt Laufen eventuell sehr lockeres Radfahren oder Rudern ohne Widerstandsspitzen; keine zusätzliche Einheit.':''
    if(!raceCheck||!checkedRecently)
-    return make(day,'recovery','Regeneration nach dem Wettkampf',null,
+    return {...make(day,'recovery','Regeneration nach dem Wettkampf',null,
      day>today?
       'Nach dem Wettkampf ist Erholung vorgesehen. Keine zusätzliche Einheit einplanen.':
       (activeRaceRecovery&&autoRaceRecovery.status==='matched'?
        'Die Garmin-Aufzeichnung ist erkannt. '+autoRaceRecovery.next+' ':
        'Keine eindeutige Garmin-Rennaufzeichnung verfügbar. Regeneration vor weiteren Laufvorschlägen. ')+
-      'Das Renn-Barometer ist freiwillig; fehlende Angaben gelten niemals als gute Erholung.'+movementNote)
+      'Das Renn-Barometer ist freiwillig; fehlende Angaben gelten niemals als gute Erholung.'+movementNote),
+     ...(gentleMovement&&day>=today?{recoveryMobility:true}:{})}
    if(raceCheck.warning)
     return make(day,'illness','Warnzeichen · Belastung abklären',null,
      'Du hast Warnzeichen gemeldet. Kein Laufvorschlag. Bei Brustschmerzen, Atemnot, '+
@@ -325,10 +327,11 @@ export function buildSevenDayCoach(input){
      autoRaceRecovery.signals.join(' · ')+'. '+
      'Weitere Erholung statt Laufvorschlag. Bestehende Termine selbst prüfen.')
    if(daysPostRace<=2||(ultraRecovery&&daysPostRace<=5))
-    return make(day,'recovery','Nach dem Rennen · ruhig regenerieren',null,
+    return {...make(day,'recovery','Nach dem Rennen · ruhig regenerieren',null,
      'Subjektiv schon frischer ('+reportedExhaustion+'/10), aber '+daysPostRace+
      ' Tage nach '+(ultraRecovery?'einem langen Ultra':'dem Rennen')+
-     ' noch keine Laufeinheit automatisch freigeben.'+movementNote)
+     ' noch keine Laufeinheit automatisch freigeben.'+movementNote),
+     ...(gentleMovement&&day>=today?{recoveryMobility:true}:{})}
    if(!dataReady||caution||dayFeedbackCaution)
     return make(day,'recovery','Erholung & Garmin-Daten prüfen',null,
      'Barometer '+reportedExhaustion+'/10, aber Garmin-Verlauf oder Erholungssignale '+

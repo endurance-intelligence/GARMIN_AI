@@ -10,6 +10,8 @@ import {quickCoachAction,quickDecisionAvailable} from '../lib/calendarQuickAccep
 import type {QuickDecisionChoice} from '../lib/calendarQuickAccept.mjs'
 import type {CoachContextPayload} from '../components/CoachLifeContext'
 import {CalendarWeekBoard} from '../components/CalendarWeekBoard'
+import type {CalendarActivity} from '../components/CalendarWeekBoard'
+import {normalizeGarminRpe} from '../lib/garminPerception.mjs'
 import {CoachSevenDay} from '../components/CoachSevenDay'
 import type {Page} from '../navigation'
 import {CoachEvidenceSummary} from '../components/CoachEvidenceSummary'
@@ -79,11 +81,12 @@ async function ownerGet<T>(session:Session,endpoint:string):Promise<T>{
  return await res.json() as T
 }
 
-export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
- active:boolean;focus:{date:string;token:number}|null;onOpenCoach:(date?:string)=>void;decisionFocus?:{date:string;token:number}|null;onGo:(page:Page)=>void
+export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpenSession}:{
+ active:boolean;focus:{date:string;token:number}|null;onOpenCoach:(date?:string)=>void;decisionFocus?:{date:string;token:number}|null;onGo:(page:Page)=>void;onOpenSession:(id:string)=>void
 }){
  const today=useMemo(todayBerlin,[])
  const [selected,setSelected]=useState(today)
+ const [weekActivities,setWeekActivities]=useState<{start:string;activities:CalendarActivity[]}|null>(null)
  const [week,setWeek]=useState(0)
  const [plans,setPlans]=useState<Plan[]>([])
  const [intervalsConnected,setIntervalsConnected]=useState(false)
@@ -137,6 +140,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
   note:p.notes||'',source:'plan' as const,status:p.state
  })),[plans,eligiblePlanIds])
  const matching=entries.filter(e=>e.date===selected)
+ const completedActivities=weekActivities?.start===start?weekActivities.activities.filter(a=>a.start_time_local?.slice(0,10)===selected):[]
  const cleanupPending=plans.filter(p=>p.state==='cancelled'&&p.intervals_event_id&&p.intervals_sync_status==='needs_review')
  const countInWeek=entries.filter(e=>e.date>=start&&e.date<=days[6]).length
  const suggestionsInWeek=coachPlan?.days.filter(d=>d.date>=start&&d.date<=days[6]&&
@@ -506,12 +510,22 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
    </div>
    <CalendarWeekBoard active={active} start={start} selected={selected}
     today={today} onSelect={day=>{setSelected(day);setCoachReview(null)}}
-    plans={plans} coachDays={coachPlan?.days||[]} refreshKey={refresh} quickAction={date=>quickCoachAction(coachPlan,date,today)} quickDecision={date=>quickDecisionAvailable(coachPlan,date,today)} onQuickAccept={(day,choice)=>void quickAccept(day,choice)} quickBusy={acting!==null||coachLoading||!!coachError||busy}/>
+    onActivities={setWeekActivities} plans={plans} coachDays={coachPlan?.days||[]} refreshKey={refresh} quickAction={date=>quickCoachAction(coachPlan,date,today)} quickDecision={date=>quickDecisionAvailable(coachPlan,date,today)} onQuickAccept={(day,choice)=>void quickAccept(day,choice)} quickBusy={acting!==null||coachLoading||!!coachError||busy}/>
    <div className="hc-day-content">
     <div className="hc-day-heading">
      <div><span>AUSGEWÄHLTER TAG</span><h3>{longDate(selected)}</h3></div>
-     <span className="hc-day-count">{matching.length} {matching.length===1?'gespeicherter Termin':'gespeicherte Termine'}{coachPreview?' · 1 Coach-Hinweis':''}</span>
+     <span className="hc-day-count">{matching.length} {matching.length===1?'gespeicherter Termin':'gespeicherte Termine'}{completedActivities.length?' · '+completedActivities.length+' absolviert':''}{coachPreview?' · 1 Coach-Hinweis':''}</span>
     </div>
+    {completedActivities.length>0&&<div className="hc-entries" aria-label="Absolvierte Garmin-Aktivitäten">{completedActivities.map(a=>{
+     const isRun=/run|jog|trail|treadmill/i.test(a.sport_type)
+     const rpe=normalizeGarminRpe(a.rpe_raw)
+     return <article className="hc-entry hc-entry-verified" key={String(a.activity_id)}>
+      <div className="hc-entry-symbol"><Icon name="activity"/></div><div className="hc-entry-copy">
+       <span className="hc-entry-state verified">Absolviert · Garmin</span><strong>{a.activity_name||a.sport_type}</strong>
+       <small>{[a.duration_s!=null?Math.round(a.duration_s/60)+' Min.':null,a.distance_m!=null?(a.distance_m/1000).toLocaleString('de-DE',{maximumFractionDigits:1})+' km':null,a.average_heart_rate!=null?'Ø HF '+Math.round(a.average_heart_rate)+' bpm':null,rpe!==null?'RPE '+rpe+'/10':null].filter(Boolean).join(' · ')}</small>
+       {isRun&&<button type="button" className="hc-coach-accept" onClick={()=>onOpenSession(String(a.activity_id))}><Icon name="arrow-up-right"/> Lauf analysieren</button>}
+      </div></article>
+    })}</div>}
     {coachLoading&&<p className="hc-coach-loading" role="status">Lade Coach-Empfehlungen …</p>}
     {coachError&&<p className="hc-coach-unavailable" role="status">
      Coach-Empfehlungen derzeit nicht erreichbar. Keine Trainingsvorgaben geschätzt.
@@ -526,6 +540,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
      <h4>{coachPreview.selectedGroup?.title||coachPreview.title}</h4>
      {coachPreview.selectedGroup&&<small>{[coachPreview.selectedGroup.startTime?coachPreview.selectedGroup.startTime+' Uhr':'',coachPreview.selectedGroup.location].filter(Boolean).join(' · ')}</small>}
      <p>{coachPreview.reason}</p>
+     {coachPreview.recoveryMobility&&<div className="cdb-supplement"><small>OPTIONALE REGENERATION</small><strong>5–10 Min. sanfte Mobility</strong><p>Schmerzfreie Beweglichkeit, ohne Widerstand und ohne Ermüdung. Kein zusätzliches Krafttraining; bei Beschwerden auslassen.</p></div>}
      {daySupplement&&<div className="cdb-supplement"><small>{alternative?'ODER · AEROBE ALTERNATIVE':'ZIELGERICHTETER SCHWERPUNKT'}</small><strong>{daySupplement.title} · {daySupplement.minutes} Min.</strong><p>{daySupplement.reason}</p><SupplementSessionDetails suggestion={daySupplement}/><small>{daySupplement.intensity} · {alternative?'Über „Vorschlag prüfen“ eine Variante auswählen.':'Keine zweite Einheit.'}</small></div>}
      {coachPreview.selectedGroup?<small>Deine Teilnahme änderst du über „Gruppentermine planen“. Kein zusätzliches Workout wird angelegt.</small>:<small>Du kannst sie hier im Kalender annehmen, ablehnen oder ändern.</small>}
      {selected>=today&&selected<=moveDay(today,6)&&
@@ -640,7 +655,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo}:{
        </article>
       })}
      </div>:
-     !coachPreview&&!coachLoading&&<div className="hc-empty">
+     !coachPreview&&!coachLoading&&!completedActivities.length&&<div className="hc-empty">
       <div className="hc-empty-icon"><Icon name="calendar-days"/></div>
       <strong>Noch kein eigener Trainingsplan.</strong>
       <span>Kein eigener Termin oder Coach-Vorschlag für diesen Tag.
