@@ -43,6 +43,16 @@ function snapshotValid(s:unknown,today:string){
  const start=s.weekStart,end=plusDays(start,6)
  return Array.isArray(s.entries)&&s.entries.length<=40&&s.entries.every(e=>object(e)&&typeof e.date==='string'&&validDate(e.date)&&e.date>=start&&e.date<=end&&sports.includes(String(e.kind))&&typeof e.title==='string'&&e.title.length<=160&&['draft','approved','selected','coach'].includes(String(e.source))&&(e.minutes===null||finite(e.minutes,1440))&&(e.km===null||finite(e.km,500)))
 }
+function normalizeRhythm(value:unknown){
+ if(!object(value))return null
+ const result:Record<string,{days:number[];minutes:number}>={}
+ for(const kind of ['rowing','strength']){
+  const p=value[kind]
+  if(!object(p)||!Array.isArray(p.days)||p.days.some(d=>typeof d!=='number'||!Number.isInteger(d)||d<1||d>7)||new Set(p.days).size!==p.days.length||typeof p.minutes!=='number'||![15,20,30,45,60].includes(p.minutes))return null
+  result[kind]={days:[...p.days].sort((a,b)=>a-b),minutes:p.minutes}
+ }
+ return result
+}
 Deno.serve(async req=>{
  const origin=req.headers.get('origin'),h=headers(origin)
  if(origin&&!h['Access-Control-Allow-Origin'])return reply(403,{error:'Origin not allowed'},h)
@@ -57,6 +67,27 @@ Deno.serve(async req=>{
   if(error||!user)return reply(401,{error:'Invalid session'},h)
   if(!user.email_confirmed_at||user.email?.trim().toLowerCase()!==owner)return reply(403,{error:'Not authorized'},h)
   const db=createClient(project,key('secret'),{auth:{persistSession:false,autoRefreshToken:false}}),today=berlinToday()
+  const rhythmMode=new URL(req.url).searchParams.get('rhythm')==='1'
+  if(rhythmMode){
+   if(req.method==='GET'){
+    const {data,error}=await db.from('garmin_training_rhythm').select('rhythm').eq('user_id',user.id).maybeSingle()
+    if(error)return reply(503,{error:'Trainingsrhythmus nicht erreichbar'},h)
+    const rhythm=data?normalizeRhythm(data.rhythm):null
+    if(data&&!rhythm)return reply(503,{error:'Gespeicherter Trainingsrhythmus ungültig'},h)
+    return reply(200,{rhythm},h)
+   }
+   const raw=await req.text()
+   if(raw.length>2000)return reply(413,{error:'Anfrage zu groß'},h)
+   let body:unknown;try{body=JSON.parse(raw)}catch{return reply(422,{error:'Ungültiges JSON'},h)}
+   if(!object(body)||!['save','migrate'].includes(String(body.action)))return reply(422,{error:'Ungültige Aktion'},h)
+   const rhythm=normalizeRhythm(body.rhythm)
+   if(!rhythm)return reply(422,{error:'Ungültiger Trainingsrhythmus'},h)
+   const {error}=await db.from('garmin_training_rhythm').upsert({user_id:user.id,rhythm,updated_at:new Date().toISOString()},{onConflict:'user_id',ignoreDuplicates:body.action==='migrate'})
+   if(error)return reply(503,{error:'Trainingsrhythmus nicht gespeichert'},h)
+   const {data,error:readError}=await db.from('garmin_training_rhythm').select('rhythm').eq('user_id',user.id).single()
+   if(readError||!data)return reply(503,{error:'Speicherung nicht bestätigt'},h)
+   return reply(200,{rhythm:normalizeRhythm(data.rhythm)},h)
+  }
   if(req.method==='POST'){
    const raw=await req.text()
    if(raw.length>30000)return reply(413,{error:'Snapshot too large'},h)
@@ -65,15 +96,10 @@ Deno.serve(async req=>{
    if(!object(body)||!validId(body.requestId)||!snapshotValid(body.snapshot,today))return reply(422,{error:'Invalid current or future week snapshot'},h)
    const s=body.snapshot as Record<string,unknown>
    // The first and all later explicit plan versions are immutable. Idempotent retry.
-   const row={user_id:user.id,week_start:s.weekStart,request_id:body.requestId,snapshot:{schema:1,weekStart:s.weekStart,phase:s.phase,goalName:s.goalName,target:s.target,entries:s.entries,partial:String(s.weekStart)<today}}
-   const saved=await db.from('garmin_weekly_plan_history').insert(row).select('id,week_start,created_at,snapshot').single()
-   if(saved.error?.code==='23505'){
-    const previous=await db.from('garmin_weekly_plan_history').select('id,week_start,created_at,snapshot').eq('user_id',user.id).eq('request_id',body.requestId).single()
-    if(previous.error||!previous.data||previous.data.week_start!==s.weekStart)return reply(409,{error:'Request conflict'},h)
-    return reply(200,{revision:previous.data},h)
-   }
-   if(saved.error)return reply(503,{error:'Plan version could not be saved'},h)
-   return reply(201,{revision:saved.data},h)
+   const snapshot={schema:1,weekStart:s.weekStart,phase:s.phase,goalName:s.goalName,target:s.target,entries:s.entries,partial:String(s.weekStart)<today}
+   const saved=await db.rpc('garmin_archive_week_revision',{p_user:user.id,p_request:body.requestId,p_snapshot:snapshot})
+   if(saved.error||!saved.data)return reply(503,{error:'Plan version could not be saved'},h)
+   return reply(200,{revision:saved.data},h)
   }
   const month=new URL(req.url).searchParams.get('month')||''
   if(!/^\d{4}-\d{2}$/.test(month)||!validDate(month+'-01')||month<'2000-01'||month>plusDays(today,70).slice(0,7))return reply(422,{error:'Invalid month'},h)
