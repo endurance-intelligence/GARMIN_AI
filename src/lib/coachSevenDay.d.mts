@@ -4,7 +4,9 @@ export type CoachDay={
  selectedGroup?:{code:string;title:string;startTime:string|null;location:string|null;advice:'skip'|'easy'|'review';reason:string};
  recoveryMobility?:boolean;
  rhythm?:import('./trainingRhythm.mjs').RhythmEntry[];
- intensityIntent?:'low'|'low-option'|'hard-option'
+ qualityIntent?:import('./trainingIntent.mjs').QualityIntent;
+ qualityBlocked?:boolean;
+ intensityIntent?:'low'|'low-option'|'hard-option'|'quality'
 }
 export type SevenDayPlan={
  today:string;days:CoachDay[];signals:string[];flags:string[];

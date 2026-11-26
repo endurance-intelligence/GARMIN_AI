@@ -8,6 +8,8 @@ import {completedWeeklyOption} from '../lib/weeklyOptionCompletion'
 import {FixedTrainingWeather} from './FixedTrainingWeather'
 import type {CoachDay} from '../lib/coachSevenDay.mjs'
 import type {QuickCoachAction,QuickDecisionChoice} from '../lib/calendarQuickAccept.mjs'
+import {TrainingQualityMark} from './TrainingQualityMark'
+import {savedQualityIntent} from '../lib/trainingIntent.mjs'
 import {normalizeGarminRpe} from '../lib/garminPerception.mjs'
 
 export type CalendarActivity={activity_id:string;activity_name:string|null;start_time_local:string;
@@ -19,7 +21,7 @@ type Manual={id:string;session_date:string;kind:string;duration_minutes:number;r
 type WeekResponse={start:string;endExclusive:string;activities:CalendarActivity[];health:Daily[];manual:Manual[]}
 type Opportunity={code:string;weekday:number;start_time:string;title:string;location_label:string;location_lat:number;location_lon:number;enabled?:boolean}
 type Choice={option_code:string;training_date:string;choice:string}
-export type BoardPlan={id:string;training_date:string;title:string;state:string;session_type:string}
+export type BoardPlan={id:string;training_date:string;title:string;state:string;session_type:string;archive_snapshot?:unknown}
 type Props={active:boolean;start:string;selected:string;today:string;
  onSelect:(day:string)=>void;plans:BoardPlan[];coachDays?:CoachDay[];refreshKey?:number;quickAction?:(date:string)=>QuickCoachAction;quickDecision?:(date:string)=>boolean;onQuickAccept?:(day:CoachDay,choice:QuickDecisionChoice)=>void;quickBusy?:boolean;onActivities?:(value:{start:string;activities:CalendarActivity[]}|null)=>void}
 const plusDay=(date:string,n:number)=>
@@ -99,7 +101,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
   const coach=day>=today&&candidate&&
    (candidate.kind==='race'||(!candidate.selectedGroup&&!local.length&&!acts.length&&!manual.length&&
     !['existing','completed','chosen','option'].includes(candidate.kind)))?candidate:null
-  return {day,index,acts,manual,local,slot,coach,groupAdvice:candidate?.selectedGroup,rhythm:candidate?.rhythm||[]}
+  return {day,index,acts,manual,local,slot,coach,groupAdvice:candidate?.selectedGroup,dayIntent:candidate,rhythm:candidate?.rhythm||[]}
  })
  return <section className="hwb-root" aria-label="Wochenübersicht mit echten Garmin-Aktivitäten und Gesundheitsdaten">
   <div className="hwb-title">
@@ -121,7 +123,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
    </aside>
    <div className="hwb-scroll" role="region" aria-label="Sieben Wochentage, horizontal scrollbar" tabIndex={0}>
     <div className="hwb-days">
-     {calendarDays.map(({day,acts,manual,local,slot,coach,groupAdvice,rhythm})=>
+     {calendarDays.map(({day,acts,manual,local,slot,coach,groupAdvice,dayIntent,rhythm})=>
       <section key={day} className={'hwb-day'+(day===selected?' is-selected':'')+(day===today?' is-today':'')}
        aria-label={shortDay(day)+' '+dayLabel(day)}>
        <button type="button" className="hwb-day-header"
@@ -155,6 +157,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
           key={'p-'+plan.id} onClick={()=>onSelect(day)}>
          <span className="hwb-card-label">◌ GARMIN_AI / {plan.state==='draft'?'ENTWURF':'GEPLANT'}</span>
          <strong>{plan.title}</strong>
+         {day>=today&&<TrainingQualityMark compact intent={savedQualityIntent(plan)} blocked={dayIntent?.qualityBlocked}/>}
          <small>Details und Freigabe am ausgewählten Tag</small>
         </button>)}
         {coach&&<div key={'coach-'+day} className="hwb-coach-stack"><button type="button" onClick={()=>onSelect(day)}
@@ -162,7 +165,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
          <span className="hwb-card-label">{coach.kind==='race'?
           '🏁 RENNTAG / HAUPTZIEL':coach.approvable?
           '✦ COACH / VORSCHLAG':coach.decision==='declined'?'✕ COACH / ABGELEHNT':'✦ COACH / ANSAGE'}</span>
-         <strong>{coach.title}</strong>{coach.recoveryMobility&&<small>Optional: 5–10 Min. sanfte Mobility</small>}
+         <strong>{coach.title}</strong>{coach.kind!=='option'&&<TrainingQualityMark compact intent={coach.qualityIntent} blocked={coach.qualityBlocked}/>}{coach.recoveryMobility&&<small>Optional: 5–10 Min. sanfte Mobility</small>}
          {coach.minutes!==null&&<span>{coach.minutes} Minuten{coach.decision?'':' · noch nicht eingetragen'}</span>}
          <small>{coach.decision==='accepted'?'Von dir angenommen · kein zusätzlicher Eintrag':
           coach.decision==='declined'?'Von dir abgelehnt':
@@ -181,6 +184,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
             (discouraged?' is-discouraged':'')}>
           <span className="hwb-card-label">{selected?'✓ TEILNAHME BESTÄTIGT':choice==='skipped'?'ABGESAGT / AUSGELASSEN':discouraged?'◇ OPTION / COACH RÄT AB':'◇ OPTION / OFFEN'}</span>
           <strong>{option.title}</strong>
+          {choice!=='skipped'&&!discouraged&&(dayIntent?.selectedGroup?.code===option.code||!dayIntent?.selectedGroup&&(dayIntent?.title===option.title||dayIntent?.title===option.title+' (optional)'))&&<TrainingQualityMark compact intent={dayIntent?.qualityIntent} blocked={dayIntent?.qualityBlocked}/>}
           {selected&&guidance&&<small className="hwb-group-guidance">{guidance.advice==='skip'?'Coach rät ab · Hinweise ansehen':guidance.advice==='easy'?'Coach: verkürzt & sehr locker':'Coach-Hinweise ansehen'}</small>}
           {discouraged&&!selected&&choice!=='skipped'&&<small>Coach-Empfehlung oben hat Vorrang; keine automatische Trainingsfreigabe.</small>}
           <span>{option.start_time.slice(0,5)} Uhr · {option.location_label}</span>

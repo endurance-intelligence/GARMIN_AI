@@ -1,5 +1,6 @@
 /** ISO-week mileage accounting. Only actual runs count as completed km.
  * Forecasts are conditional estimates, never a prescription or a catch-up target. */
+import {plannedSupplementDays,savedQualityIntent} from './trainingIntent.mjs'
 import {normalizeGarminRpe} from './garminPerception.mjs'
 const RUN=new Set(['running','track_running','treadmill_running','ultra_run','trail_running','virtual_running'])
 const finite=x=>typeof x==='number'&&Number.isFinite(x)
@@ -81,7 +82,9 @@ export function buildWeeklyBudget({today,start,days=[],boards=[],plans=[],roadma
   longRunMinutes:target?week?.longRunMinutes??null:null,longestActualMinutes:source&&actual.every(a=>finite(a.duration_s)&&a.duration_s>=0)?Math.round(Math.max(0,...actual.map(a=>a.duration_s))/60):null,
   qualityOptions:target?week?.qualityOptions??0:0,
   rowingDays:source?distinctDays('rowing'):null,strengthDays:source?distinctDays('strength'):null,
-  rowingTarget:rhythm?.rowing?.days?.length??null,strengthTarget:rhythm?.strength?.days?.length??null,
+  ...plannedSupplementDays({days,plans,start,end,today,occupied}),
+  qualityPlanned:new Set(plans.filter(p=>p.training_date>=start&&p.training_date<=end&&savedQualityIntent(p)==='planned').map(p=>p.training_date).concat(days.filter(d=>d.date>=start&&d.date<=end&&d.qualityIntent==='planned').map(d=>d.date))).size,
+  qualityCandidates:new Set(plans.filter(p=>p.training_date>=start&&p.training_date<=end&&savedQualityIntent(p)==='candidate').map(p=>p.training_date).concat(days.filter(d=>d.date>=start&&d.date<=end&&d.qualityIntent==='candidate'&&!d.qualityBlocked).map(d=>d.date))).size,
   focus:target?week?.focus||'Laufspezifischen Umfang bewusst sichern.':'Erholung oder fehlende Planungsdaten haben Vorrang. Kein Kilometerziel erzwingen.'}
 }
 export function replacementImpact(budget,date){

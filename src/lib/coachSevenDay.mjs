@@ -1,5 +1,6 @@
 import {buildLongTermCoachPlan} from './coachLongTermPlan.mjs'
 import {buildWeeklyBudget,replacementImpact,protectRhythmReplacements} from './weeklyTraining.mjs'
+import {qualityIntent,savedQualityIntent} from './trainingIntent.mjs'
 import {applyTrainingRhythm} from './trainingRhythm.mjs'
 import {crossTrainingEvidence,buildGoalProfile,buildGoalSupplement,buildDailyTrainingAlternatives} from './goalTrainingFocus.mjs'
 import {latestWorkoutFeedback,evaluateWorkoutFeedback} from './postWorkoutFeedback.mjs'
@@ -572,7 +573,12 @@ export function buildSevenDayCoach(input){
  const raceDates=[raceDate,recoveryRaceDate,...history.map(g=>g.race_date)].filter(Boolean)
  const budgetFor=(weekDays,date)=>buildWeeklyBudget({today,start:coachMonday(date),days:weekDays,boards:input.boards,plans,roadmap:roadmap.weeks,protectedPhase:supplementInput.protectedPhase||hardCross,raceDates,rhythm:input.life?.trainingRhythm})
  const rhythmProposed=applyTrainingRhythm(polarized.days,input.life?.trainingRhythm,{today,protectedPhase:supplementInput.protectedPhase||hardCross,qualityDay:polarized.qualityDay,evidence:crossEvidence.rows,equipment:input.life?.equipmentProfile,options,choices})
- const rhythmDays=protectRhythmReplacements(polarized.days,rhythmProposed,budgetFor)
+ const rhythmDays=protectRhythmReplacements(polarized.days,rhythmProposed,budgetFor).map(day=>{
+  if(day.date<today)return day
+  const saved=plans.filter(p=>p.training_date===day.date)
+  const intent=day.kind==='existing'&&saved.length===1?savedQualityIntent(saved[0]):qualityIntent(day,{qualityDay:polarized.qualityDay,protectedPhase:supplementInput.protectedPhase||hardCross||polarized.status==='protected'||polarized.status==='recover'})
+  return intent?{...day,qualityIntent:intent,qualityBlocked:day.kind==='existing'&&(supplementInput.protectedPhase||hardCross||polarized.status==='protected'||polarized.status==='recover')}:day
+ })
  const weeklyBudgets=[...new Set([coachMonday(today),...rhythmDays.map(d=>coachMonday(d.date))])].map(start=>budgetFor(rhythmDays,start))
  const unfilteredAlternatives=buildDailyTrainingAlternatives({...supplementInput,days:rhythmDays})
  const alternatives=unfilteredAlternatives.flatMap(a=>{

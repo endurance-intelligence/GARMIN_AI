@@ -5,6 +5,7 @@ import {Icon} from '../components/Icon'
 import {WorkoutArchivePanel} from '../components/WorkoutArchivePanel'
 import {TrainingWeekArchive} from '../components/TrainingWeekArchive'
 import {makePlanSnapshot} from '../lib/trainingHistory.mjs'
+import {TrainingQualityMark} from '../components/TrainingQualityMark'
 import {WeeklyTrainingCard} from '../components/WeeklyTrainingCard'
 import {replacementImpact} from '../lib/weeklyTraining.mjs'
 import {TrainingRhythmSettings} from '../components/TrainingRhythmSettings'
@@ -29,7 +30,7 @@ import '../styles/horizon-calendar.css'
 
 type Plan={
  id:string;training_date:string;title:string;state:string;session_type:string;
- sport:string;garmin_workout_id:number|null;notes:string;revision:number;
+ sport:string;archive_snapshot?:unknown;garmin_workout_id:number|null;notes:string;revision:number;
  intervals_event_id:number|null;intervals_published_revision:number|null;intervals_sync_status:string;intervals_export_version:number|null
 }
 type CalendarEntry={key:string;date:string;title:string;sub:string;note:string;source:'plan';status:string}
@@ -542,6 +543,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
     {coachError&&<p className="hc-coach-unavailable" role="status">
      Coach-Empfehlungen derzeit nicht erreichbar. Keine Trainingsvorgaben geschätzt.
     </p>}
+    {!coachPreview&&coachDay?.qualityIntent&&<TrainingQualityMark intent={coachDay.qualityIntent} blocked={coachDay.qualityBlocked} today={selected===today}/>}
     {coachPreview&&<article className={'hc-coach-proposal'+(coachPreview.approvable?' is-actionable':' is-rest')}
       aria-label="Coach-Empfehlung für diesen Kalendertag">
      <div className="hc-coach-proposal-top">
@@ -550,6 +552,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
        'Nur Orientierung · keine automatische Planung'}</small>
      </div>
      <h4>{coachPreview.selectedGroup?.title||coachPreview.title}</h4>
+     <TrainingQualityMark intent={coachPreview.qualityIntent} blocked={coachPreview.qualityBlocked} today={selected===today}/>
      {coachPreview.selectedGroup&&<small>{[coachPreview.selectedGroup.startTime?coachPreview.selectedGroup.startTime+' Uhr':'',coachPreview.selectedGroup.location].filter(Boolean).join(' · ')}</small>}
      <p>{coachPreview.reason}</p>
      {coachPreview.recoveryMobility&&<div className="cdb-supplement"><small>OPTIONALE REGENERATION</small><strong>5–10 Min. sanfte Mobility</strong><p>Schmerzfreie Beweglichkeit, ohne Widerstand und ohne Ermüdung. Kein zusätzliches Krafttraining; bei Beschwerden auslassen.</p></div>}

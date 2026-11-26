@@ -5,6 +5,7 @@ import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garm
 import {selectCoachDecision} from '../lib/coachDecision.mjs'
 import {replacementImpact} from '../lib/weeklyTraining.mjs'
 import {trainingAlternativeForDate} from '../lib/goalTrainingFocus.mjs'
+import {TrainingQualityMark} from './TrainingQualityMark'
 import {Icon} from './Icon'
 import '../styles/coach-decision-live.css'
 
@@ -82,6 +83,7 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
     <div className="cdl-choice-body">
      <span className="cdl-plan-kicker"><Icon name="activity"/> DEIN PLAN FÜR DIESEN TAG</span>
      {day.selectedGroup?<h4>{day.selectedGroup.title}</h4>:<h4>{day.title}</h4>}
+     <TrainingQualityMark intent={day.qualityIntent} blocked={day.qualityBlocked} today={day.date===plan.today}/>
      <p className="cdl-decision-note">{x.summary}</p>
      {day.rhythm?.filter(e=>e.status==='paused').map(e=><div key={e.kind} className="cdl-context-line"><span>WUNSCHTAG · PAUSIERT</span><strong>{e.title} · {e.minutes} Min.</strong><small>{e.reason}</small></div>)}
      {day.minutes!==null&&!day.selectedGroup&&<div className="cdl-duration">
