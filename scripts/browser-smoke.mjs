@@ -37,6 +37,12 @@ async function context(mode,width,height,flow=null){
    const name=u.pathname.split('/').at(-1)
    const body=req.method()==='POST'?req.postDataJSON():null
    if(name==='garmin-training-history'&&req.method()==='GET')return send(200,{rhythm:flow.snapshot.life.trainingRhythm})
+   if(name==='garmin-training-history'&&req.method()==='POST'&&body?.snapshot&&body?.requestId){
+    // Automatic immutable evidence archiving is not a training-plan mutation.
+    assert.ok(Array.isArray(body.snapshot.entries))
+    assert.ok(body.snapshot.weekStart)
+    return send(200,{revision:{id:body.requestId,week_start:body.snapshot.weekStart,created_at:flow.snapshot.today+'T11:00:00Z',snapshot:body.snapshot}})
+   }
    if(name==='garmin-coach-archive'&&req.method()==='GET')return send(200,{...flow.snapshot,plans:{entries:flow.plan?[flow.plan]:[]}})
    if(name==='garmin-week-board'&&req.method()==='GET')return send(200,{start:u.searchParams.get('start'),endExclusive:coachAddDays(u.searchParams.get('start'),7),activities:[],manual:[],health:[]})
    if(name==='garmin-weekly-options'&&req.method()==='GET')return send(200,flow.snapshot.options)
