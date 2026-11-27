@@ -1,5 +1,6 @@
 /** ISO-week mileage accounting. Only actual runs count as completed km.
  * Forecasts are conditional estimates, never a prescription or a catch-up target. */
+import {archiveSnapshotMeters} from './clubQuality.mjs'
 import {plannedSupplementDays,savedQualityIntent} from './trainingIntent.mjs'
 import {normalizeGarminRpe} from './garminPerception.mjs'
 const RUN=new Set(['running','track_running','treadmill_running','ultra_run','trail_running','virtual_running'])
@@ -37,6 +38,8 @@ function easyPace(runs,today,raceDates){
 }
 function plannedKm(plan,pace){
  const a=plan?.archive_snapshot
+ const archiveMeters=archiveSnapshotMeters(a)
+ if(archiveMeters!==null)return down(archiveMeters/1000)
  if(!a||a.sourceKind!=='coach'||!['easy','long','return_easy'].includes(a.coachKind)||!pace)return null
  const steps=a.group?.steps
  if(!Array.isArray(steps)||!steps.length||!steps.every(s=>s.endMode==='time'&&finite(s.durationSeconds)&&s.durationSeconds>0)||!finite(a.warmup?.durationSeconds)||!finite(a.cooldown?.durationSeconds)||a.warmup.durationSeconds<0||a.cooldown.durationSeconds<0)return null
@@ -65,13 +68,13 @@ export function buildWeeklyBudget({today,start,days=[],boards=[],plans=[],roadma
  // Multiple records on one date cannot safely be added to this one-slot forecast.
  const savedKnown=savedParts.filter(p=>p.km!==null&&savedRuns.filter(s=>s.training_date===p.date).length===1)
  const proposed=days.filter(d=>future(d.date)&&!savedDates.has(d.date)&&eligibleRun(d))
- const proposedParts=proposed.map(d=>({date:d.date,km:pace?down(d.minutes*60/pace):null,minutes:d.minutes}))
+ const proposedParts=proposed.map(d=>({date:d.date,km:pace?down(d.minutes*60/pace):null,minutes:d.minutes})).concat(days.filter(d=>future(d.date)&&!savedDates.has(d.date)&&d.kind==='intervals'&&d.approvable&&!d.decision&&finite(d.qualityArchive?.totalMeters)).map(d=>({date:d.date,km:down(d.qualityArchive.totalMeters/1000),minutes:null})))
  const approvedKm=down(savedKnown.filter(p=>p.state!=='draft').reduce((n,p)=>n+p.km,0))
  const draftKm=down(savedKnown.filter(p=>p.state==='draft').reduce((n,p)=>n+p.km,0))
  const suggestedKm=down(proposedParts.reduce((n,p)=>n+(p.km??0),0))
  const unknownGroup=days.filter(d=>future(d.date)&&!savedDates.has(d.date)&&(d.selectedGroup||['option','chosen'].includes(d.kind))&&/run|track|lauf|bahn|intervall/i.test(d.selectedGroup?.title||d.title||'')).length
  const missingDays=Array.from({length:7},(_,i)=>add(start,i)).filter(d=>future(d)&&!savedDates.has(d)&&!days.some(x=>x.date===d)).length
- const unknownQuality=days.filter(d=>future(d.date)&&!savedDates.has(d.date)&&d.kind==='intervals'&&d.approvable&&!d.decision).length
+ const unknownQuality=days.filter(d=>future(d.date)&&!savedDates.has(d.date)&&d.kind==='intervals'&&d.approvable&&!d.decision&&!finite(d.qualityArchive?.totalMeters)).length
  const unknown=unknownQuality+savedRuns.length-savedKnown.length+proposedParts.filter(p=>p.km===null).length+unknownGroup+missingDays
  const forecast=exactActual===null?null:down(exactActual+approvedKm+draftKm+suggestedKm)
  const manual=source?.manual||[],weekActivities=(source?.activities||[]).filter(a=>dayOf(a)>=start&&dayOf(a)<=end&&dayOf(a)<=today)

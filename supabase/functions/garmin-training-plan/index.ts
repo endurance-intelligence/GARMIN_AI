@@ -4,7 +4,8 @@
  * No Garmin OAuth tokens or Garmin API calls exist in this Edge function.
  */
 import {createClient} from 'npm:@supabase/supabase-js@2'
-import {qualityStillAllowed} from '../_shared/quality-guard.ts'
+import {buildArchiveQualitySnapshot} from '../../../src/lib/clubQuality.mjs'
+import {currentQualityCandidate,qualityStillAllowed} from '../_shared/quality-guard.ts'
 import {buildCoachStructuredSnapshot,coachWorkoutAllowed} from '../_shared/coach-structured-workout.mjs'
 
 const project='https://eurgupsebxypjqvyizci.supabase.co'
@@ -75,8 +76,10 @@ Deno.serve(async req=>{
   if(input.action==='create_coach_workout'){
     if(!uuid(input.clientRequestId)||!date(input.date))
       return response(422,{error:'Invalid coach workout request'},h)
-    const snapshot=buildCoachStructuredSnapshot(input)
-    if(!snapshot)return response(422,{error:'Unsupported duration, start time or workout type'},h)
+    const fromArchive=input.kind==='intervals'&&input.archiveTemplateId!==undefined
+    if(fromArchive&&(!uuid(input.archiveTemplateId)||typeof input.archiveGroup!=='string'||input.archiveGroup.length<1||input.archiveGroup.length>50))return response(422,{error:'Invalid archive quality reference'},h)
+    let snapshot=fromArchive?null:buildCoachStructuredSnapshot(input)
+    if(!fromArchive&&!snapshot)return response(422,{error:'Unsupported duration, start time or workout type'},h)
     const parts=new Intl.DateTimeFormat('en-GB',{
       timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'
     }).formatToParts(new Date())
@@ -90,12 +93,20 @@ Deno.serve(async req=>{
       .eq('user_id',user.id).maybeSingle()
     if(contextError||!coachWorkoutAllowed(context,input.kind,input.date))
       return response(409,{error:'Training aktuell wegen Krankheit, Wiedereinstieg oder Verfügbarkeit nicht freigabefähig'},h)
+    if(fromArchive){
+      const candidate=await currentQualityCandidate(db,user.id,input.date)
+      const spec=candidate?.qualityArchive
+      if(!spec||spec.templateId!==input.archiveTemplateId||spec.group!==input.archiveGroup)return response(409,{error:'Archiv-Ersatz nicht mehr passend. Coach aktualisieren.'},h)
+      snapshot=buildArchiveQualitySnapshot(spec,input.startTime)
+    }
+    if(!snapshot)return response(422,{error:'Invalid quality structure or start time'},h)
     const row={
       client_request_id:input.clientRequestId,training_date:input.date,
       title:snapshot.title,session_type:'event',sport:'running',
-      notes:'Coach Intelligence · '+input.minutes+' Min. ab '+input.startTime+
+      notes:fromArchive?'Coach-Qualität · geprüfte Archivgruppe. Distanzgesteuert; Freigabe und Intervals-Versand separat.':'Coach Intelligence · '+input.minutes+' Min. ab '+input.startTime+
        (input.kind==='intervals'?'. 4 × 2 Min. kontrolliert, 3 Trabpausen. Kein Sprint.':'. 3 zeitgesteuerte Abschnitte.')+' Kein Pace-/HF-Ziel. Freigabe und Intervals-Versand separat.',
-      state:'draft',archive_group:snapshot.group.name,archive_snapshot:snapshot
+      state:'draft',archive_group:snapshot.group.name,archive_snapshot:snapshot,
+      ...(fromArchive?{archive_workout_id:input.archiveTemplateId}:{})
     }
     const {data:existing,error:existingError}=await db.from('garmin_training_plan')
       .select('id,training_date,title,archive_snapshot,state,revision')
@@ -108,13 +119,12 @@ Deno.serve(async req=>{
       const wasCoach=existing.archive_snapshot?.sourceKind==='coach'
       const compatible=wasCoach&&existing.training_date===row.training_date&&existing.title===row.title&&existing.archive_snapshot?.coachKind===input.kind&&
        existing.archive_snapshot?.startTime===input.startTime&&
-       existing.archive_snapshot?.group?.steps?.[0]?.durationSeconds===
-        row.archive_snapshot.group.steps[0].durationSeconds
+       (fromArchive?existing.archive_snapshot?.templateId===input.archiveTemplateId&&existing.archive_snapshot?.group?.name===input.archiveGroup:existing.archive_snapshot?.qualitySource!=='archive'&&existing.archive_snapshot?.group?.steps?.[0]?.durationSeconds===row.archive_snapshot.group.steps[0].durationSeconds)
       if(!same&&!compatible)return response(409,{error:'Request ID already used for a different workout'},h)
       return response(200,{saved:true,created:false,id:existing.id,
         revision:existing.revision,state:existing.state,structured:true,garminUpdated:false},h)
     }
-    if(input.kind==='intervals'&&!await qualityStillAllowed(db,user.id,input.date))return response(409,{error:'Qualitätseinheit aktuell nicht vom Coach empfohlen. Bitte Tagesentscheidung aktualisieren.'},h)
+    if(input.kind==='intervals'&&!await qualityStillAllowed(db,user.id,input.date,undefined,snapshot))return response(409,{error:'Qualitätseinheit aktuell nicht vom Coach empfohlen. Bitte Tagesentscheidung aktualisieren.'},h)
     const {data:other,error:otherError}=await db.from('garmin_training_plan')
       .select('id').eq('training_date',input.date).neq('state','cancelled').limit(1)
     if(otherError)return response(503,{error:'Coach day availability unknown'},h)
@@ -182,7 +192,7 @@ Deno.serve(async req=>{
           .eq('user_id',user.id).maybeSingle()
         if(contextError||!coachWorkoutAllowed(context,source.coachKind,current.training_date))
           return response(409,{error:'Coach-Freigabe wegen aktueller Erkrankung oder Sperrtag gestoppt'},h)
-        if(source.coachKind==='intervals'&&!await qualityStillAllowed(db,user.id,current.training_date,input.id))return response(409,{error:'Qualitätsfreigabe aktuell nicht möglich. Coach-Empfehlung prüfen.'},h)
+        if(source.coachKind==='intervals'&&!await qualityStillAllowed(db,user.id,current.training_date,input.id,source))return response(409,{error:'Qualitätsfreigabe aktuell nicht möglich. Coach-Empfehlung prüfen.'},h)
       }
     }
     const changes=approving?

@@ -1,5 +1,6 @@
 import {buildLongTermCoachPlan} from './coachLongTermPlan.mjs'
 import {buildWeeklyBudget,replacementImpact,protectRhythmReplacements,allocateWeeklyRunning} from './weeklyTraining.mjs'
+import {clubQualityWeek,applyClubQuality,proposeClubReplacement} from './clubQuality.mjs'
 import {proposeStandaloneQuality} from './qualityWorkout.mjs'
 import {qualityIntent,savedQualityIntent,protectQualitySlots} from './trainingIntent.mjs'
 import {applyTrainingRhythm} from './trainingRhythm.mjs'
@@ -568,26 +569,28 @@ export function buildSevenDayCoach(input){
  const goalProfile=buildGoalProfile({today,goal:input.goal,route:input.goalRoute})
  const supplementInput={today,profile:goalProfile,days:polarized.days,boards:input.boards,equipment:input.life?.equipmentProfile,
   protectedPhase:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||observationLimited||allowWeekAdjustment||adapted.impact.effect==='shortened'||fourWeekReview.qualityCaution||typeCaution||(recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<=0)||(raceOffset!==null&&raceOffset>=-14&&raceOffset<=10),qualityDay:polarized.qualityDay}
- const roadmap=buildLongTermCoachPlan({today,goal:input.goal,health,life:input.life,racePortfolio:input.racePortfolio,history:fourWeekReview})
+ const roadmap=buildLongTermCoachPlan({today,goal:input.goal,health,life:input.life,racePortfolio:input.racePortfolio,history:fourWeekReview,options})
  const raceDates=[raceDate,recoveryRaceDate,...history.map(g=>g.race_date)].filter(Boolean)
  const budgetFor=(weekDays,date)=>buildWeeklyBudget({today,start:coachMonday(date),days:weekDays,boards:input.boards,plans,roadmap:roadmap.weeks,protectedPhase:supplementInput.protectedPhase||hardCross,raceDates,rhythm:input.life?.trainingRhythm})
  const rhythmProposed=applyTrainingRhythm(polarized.days,input.life?.trainingRhythm,{today,protectedPhase:supplementInput.protectedPhase||hardCross,qualityDay:polarized.qualityDay,evidence:crossEvidence.rows,equipment:input.life?.equipmentProfile,options,choices})
  const rhythmAdjusted=protectRhythmReplacements(polarized.days,rhythmProposed,budgetFor)
  const allocation=allocateWeeklyRunning(rhythmAdjusted,budgetFor,{today,protectedPhase:supplementInput.protectedPhase||hardCross,volumeStatus:effectiveVolume.status,alreadyAdjusted:!!volumeStep.appliedDate||!!toleranceStep.appliedDate})
- const standalone=proposeStandaloneQuality(allocation.days,{today,boards:input.boards,plans,roadmap:roadmap.weeks,budget:budgetFor(allocation.days,today),polarized,protectedPhase:supplementInput.protectedPhase||hardCross||!!volumeStep.appliedDate||!!toleranceStep.appliedDate||allocation.changes.length>0,volumeStatus:effectiveVolume.status})
+ const clubWeeks=[...new Set([coachMonday(today),...allocation.days.map(d=>coachMonday(d.date))])].map(start=>clubQualityWeek({today,start,options,choices,days:allocation.days,boards:input.boards,plans})).filter(Boolean)
+ const clubWeek=clubWeeks.find(w=>w.start===coachMonday(today))
+ const standalone=clubWeek?proposeClubReplacement(allocation.days,{today,week:clubWeek,boards:input.boards,plans,archive:input.life?.workoutArchive,roadmap:roadmap.weeks,budget:budgetFor(allocation.days,today),protectedPhase:supplementInput.protectedPhase||hardCross||!!volumeStep.appliedDate||!!toleranceStep.appliedDate||allocation.changes.length>0,volumeStatus:effectiveVolume.status}):proposeStandaloneQuality(allocation.days,{today,boards:input.boards,plans,roadmap:roadmap.weeks,budget:budgetFor(allocation.days,today),polarized,protectedPhase:supplementInput.protectedPhase||hardCross||!!volumeStep.appliedDate||!!toleranceStep.appliedDate||allocation.changes.length>0,volumeStatus:effectiveVolume.status})
  const candidateDate=standalone.date||polarized.qualityDay
- const qualityDays=protectQualitySlots(standalone.days,plans,roadmap.weeks,{today,qualityDay:candidateDate})
+ const qualityDays=clubWeek?applyClubQuality(standalone.days,{today,weeks:clubWeeks,roadmap:roadmap.weeks,protectedPhase:supplementInput.protectedPhase||hardCross,boards:input.boards}):protectQualitySlots(standalone.days,plans,roadmap.weeks,{today,qualityDay:candidateDate})
  const qualitySuppressed=qualityDays.some(d=>d.date===candidateDate&&d.qualitySlotBlocked)
- const effectiveQualityDay=qualitySuppressed?null:candidateDate
- const methodMessage=qualitySuppressed?'Kein weiterer harter Reiz: vorhandene Qualitätseinheit oder Wochenphase hat Vorrang.':standalone.date?'Kontrollierte Einzelintervalle statt eines lockeren Laufs; Freigabe erforderlich.':polarized.message
- flags.push('Trainingsmethode: polarisiert (ca. vier locker / eine hart; mittlere Intensität möglichst wenig). '+methodMessage)
+ const effectiveQualityDay=clubWeek?(standalone.date||qualityDays.find(d=>d.date>=today&&d.clubQualitySlot&&d.qualityIntent&&!d.qualityBlocked)?.date||null):qualitySuppressed?null:candidateDate
+ const methodMessage=clubWeek?(standalone.date?'Beide ORC-Track-Termine entfallen: Ersatzqualität zur Freigabe.':clubWeek.bothSkipped?'Beide ORC-Track-Termine entfallen. Aktuell kein sicherer Ersatzslot belegt.':'ORC Track Dienstag und Samstag als reguläre Qualitätsreize berücksichtigen; keine zusätzlichen Intervalle bei offenen oder bestätigten Terminen.'):qualitySuppressed?'Kein weiterer harter Reiz: vorhandene Qualitätseinheit oder Wochenphase hat Vorrang.':standalone.date?'Kontrollierte Einzelintervalle statt eines lockeren Laufs; Freigabe erforderlich.':polarized.message
+ flags.push('Trainingsmethode: polarisiert (überwiegend locker; harte Reize gezielt, keine starre Quote). '+methodMessage)
  const rhythmDays=qualityDays.map(day=>{
-  if(day.date<today)return day
+  if(day.date<today||day.clubQualitySlot)return day
   const saved=plans.filter(p=>p.training_date===day.date)
-  const intent=day.kind==='existing'&&saved.length===1?savedQualityIntent(saved[0]):qualityIntent(day,{qualityDay:polarized.qualityDay,protectedPhase:day.qualitySlotBlocked||supplementInput.protectedPhase||hardCross||polarized.status==='protected'||polarized.status==='recover'})
+  const intent=day.kind==='existing'&&saved.length===1?savedQualityIntent(saved[0]):qualityIntent(day,{qualityDay:polarized.qualityDay,protectedPhase:day.qualitySlotBlocked||supplementInput.protectedPhase||hardCross||polarized.status==='protected'||(!clubWeek&&polarized.status==='recover')})
   return intent?{...day,qualityIntent:intent,qualityBlocked:day.kind==='existing'&&(supplementInput.protectedPhase||hardCross||polarized.status==='protected'||polarized.status==='recover')}:day
  })
- const weeklyBudgets=[...new Set([coachMonday(today),...rhythmDays.map(d=>coachMonday(d.date))])].map(start=>budgetFor(rhythmDays,start))
+ const weeklyBudgets=[...new Set([coachMonday(today),...rhythmDays.map(d=>coachMonday(d.date))])].map(start=>{const b=budgetFor(rhythmDays,start),w=clubWeeks.find(x=>x.start===start);if(!b||!w)return b;const active=d=>d>=today&&d>=w.start&&d<=w.end&&!w.actualDates.includes(d);const planned=new Set([...plans.filter(p=>active(p.training_date)&&savedQualityIntent(p)==='planned').map(p=>p.training_date),...rhythmDays.filter(d=>active(d.date)&&d.qualityIntent==='planned').map(d=>d.date)]);const candidates=new Set([...plans.filter(p=>active(p.training_date)&&savedQualityIntent(p)==='candidate').map(p=>p.training_date),...rhythmDays.filter(d=>active(d.date)&&d.qualityIntent==='candidate'&&!d.qualityBlocked).map(d=>d.date)]);return {...b,qualityActual:w.actual,qualityPlanned:planned.size,qualityCandidates:candidates.size,trackSlots:w.slots}})
  const unfilteredAlternatives=buildDailyTrainingAlternatives({...supplementInput,days:rhythmDays})
  const alternatives=unfilteredAlternatives.flatMap(a=>{
   const original=rhythmDays.find(d=>d.date===a.date)
@@ -603,7 +606,7 @@ export function buildSevenDayCoach(input){
  if(allocation.changes.length)flags.push('Wochenplanung: '+allocation.changes.map(c=>c.date+' '+c.from+' → '+c.to+' Min.').join('; ')+' · nur offene Vorschläge.')
  return {today,days:rhythmDays,signals,flags,goalProfile,supplement,alternatives,weeklyBudgets,weeklyAllocation:allocation.changes,
   trainingMethod:{id:'polarized',qualityDay:effectiveQualityDay,
-   status:qualitySuppressed?'protected':standalone.date?'optional-hard':polarized.status,plannedEasy:polarized.easyCount,
+   status:clubWeek?(standalone.date?'optional-hard':supplementInput.protectedPhase||hardCross?'protected':effectiveQualityDay?'optional-hard':'easy-first'):qualitySuppressed?'protected':standalone.date?'optional-hard':polarized.status,plannedEasy:polarized.easyCount,
    message:methodMessage},
   attention:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||allowWeekAdjustment||
   adapted.impact.effect==='shortened'||fourWeekReview.qualityCaution||typeCaution||observationLimited,

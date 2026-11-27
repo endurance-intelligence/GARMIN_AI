@@ -15,7 +15,7 @@ export function CoachLongTermPlan({today,snapshot}:{
  today:string;snapshot:CoachSnapshot
 }){
  const plan=buildLongTermCoachPlan({
-  today,goal:snapshot.goal,health:snapshot.health,life:snapshot.life,racePortfolio:snapshot.racePortfolio,history:analyzeCoachFourWeeks({today,boards:snapshot.boards,plans:snapshot.plans,life:snapshot.life})
+  today,goal:snapshot.goal,health:snapshot.health,life:snapshot.life,racePortfolio:snapshot.racePortfolio,options:Array.isArray(snapshot.options.options)?snapshot.options.options:[],history:analyzeCoachFourWeeks({today,boards:snapshot.boards,plans:snapshot.plans,life:snapshot.life})
  })
  const identity=JSON.stringify([plan.raceName,plan.raceDate,plan.hasGoal])
  const [selection,setSelection]=useState<{identity:string;start:string}|null>(null)
@@ -52,7 +52,7 @@ export function CoachLongTermPlan({today,snapshot}:{
     <div className="cltp-focus-metrics">
      <div><small>LAUFUMFANG</small><strong>{week.targetKm!==null?week.targetKm.low+'–'+week.targetKm.high:'—'}{week.targetKm!==null&&<em> km</em>}</strong><span>{week.targetKm!==null?'Grobe Orientierung':week.isRaceWeek?'Keine normale Laufwoche':week.phase==='recovery'?'Erholung hat Vorrang':'Noch keine feste Vorgabe'}</span></div>
      <div><small>LANGER LAUF</small><strong>{week.longRunMinutes!==null?week.longRunMinutes:'—'}{week.longRunMinutes!==null&&<em> min</em>}</strong><span>{week.longRunMinutes!==null?'Ungefähr':'Nicht vorgegeben'}</span></div>
-     <div><small>INTENSITÄT</small><strong>{week.qualityOptions>0?'Max. 1':'0'}</strong><span>{week.qualityOptions>0?'Harte Option · sonst locker':'Harte Einheiten empfohlen'}</span></div>
+     <div><small>INTENSITÄT</small><strong>{week.qualityOptions>0?'Bis '+week.qualityOptions:'0'}</strong><span>{week.qualityOptions>0?'Harte Option · sonst locker':'Harte Einheiten empfohlen'}</span></div>
     </div>
     {phaseFocus&&<div className="cltp-goal-focus"><div><small>DEIN ZIELPROFIL</small><strong>{profile.label}{profile.ascentM!==null?' · '+profile.ascentM.toLocaleString('de-DE')+' hm':''}</strong><p>{profile.requirements.join(' · ')}</p></div><div><small>TRAININGSREIZ DIESER WOCHE</small><strong>{phaseFocus.title}</strong><p>{phaseFocus.focus}</p><p className="cltp-complement">{phaseFocus.complement}</p>{profile.hills&&week.targetKm!==null&&['base','build','specific'].includes(week.phase)&&week.index%4!==0&&hasEquipment(snapshot.life.equipmentProfile,'treadmill')&&<p>Dein Laufband kann als kontrollierte Bergauf-Alternative dienen. Konkrete Einheit erst nach aktueller Erholungsprüfung im Coach.</p>}</div><small className="cltp-terrain-note">{profile.terrainNote}</small></div>}
     {week.isRaceWeek&&<p className="cltp-race-note"><Icon name="flag"/> Zielwoche: {plan.raceName}. Der Start ist ein eigener Meilenstein, kein normales Wochenkilometerziel.</p>}

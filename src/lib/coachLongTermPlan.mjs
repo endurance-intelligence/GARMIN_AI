@@ -1,3 +1,4 @@
+import {isOrcTrack} from './clubQuality.mjs'
 import {trainingWeekBaseline,weekStart as coachMonday} from './weeklyTraining.mjs'
 import {analyzeWorkoutFeedbackTrend} from './feedbackTrend.mjs'
 import {POLARIZED_METHOD} from './polarizedTraining.mjs'
@@ -36,8 +37,9 @@ const brief={
  paused:'Gesundheit und Verfügbarkeit haben Vorrang.'
 }
 const startOfWeek=day=>coachMonday(day)
-export function buildLongTermCoachPlan({today,goal,health,life,racePortfolio,history}){
+export function buildLongTermCoachPlan({today,goal,health,life,racePortfolio,history,options=[]}){
  if(!validDate(today))throw Error('Ungültiges Coach-Datum')
+ const clubSlots=Array.isArray(options)?options.filter(isOrcTrack).length:0
  const target=goal?.goal||null
  const trainingMode=getTrainingGoalMode(target,today)
  const raceDate=validDate(target?.race_date)?target.race_date:null
@@ -75,7 +77,7 @@ export function buildLongTermCoachPlan({today,goal,health,life,racePortfolio,his
    const cap=reliable?Math.min(km,baseKm):null
    const low=cap===null?null:Math.round(cap*(i===3?.7:.85)),high=cap===null?null:Math.round(cap*(i===3?.85:1))
    weeks.push({index:i+1,start,end,phase:hold?'paused':'base',phaseLabel:hold?'Pause':'Fitness erhalten',
-    trainingMethod:'polarized',qualityOptions:0,polarization:'Überwiegend locker, Intensität individuell prüfen.',
+    trainingMethod:'polarized',qualityOptions:clubSlots&&reliable&&i!==3?clubSlots:0,polarization:'Überwiegend locker, reguläre ORC-Qualitätsreize nur bei ausreichender Erholung.',
     focus:hold?'Erholung hat Vorrang.':'Regelmäßige lockere Läufe, Stabilität und Erholung. Keine Kilometer nachholen.',
     key:'Fit halten · '+km+' km/Woche als gewünschter Richtwert',targetKm:low===null?null:{low,high},longRunMinutes:null,
     kind:'Fitness erhalten',isCurrent:i===0,isRaceWeek:false,status:hold?'caution':'draft'})
@@ -151,12 +153,12 @@ export function buildLongTermCoachPlan({today,goal,health,life,racePortfolio,his
   }
   const controlledQuality=baseKm!==null&&!hold&&
    !['taper','race','recovery','paused'].includes(phase)&&i%4!==3
-  const polarization=controlledQuality?
+  const polarization=controlledQuality?(clubSlots===2?'Polarisiert: bis zu zwei reguläre ORC-Qualitätstermine, übrige Läufe locker; Fußball und Erholung mit einbeziehen. Keine Ersatzpflicht.':
    'Polarisiert: alle anderen Lauftage im Sprechtempo, maximal ein harter Intervalltag '+
-   'nur bei guter Erholung und genügend lockeren Einheiten. Mittlere Intensität möglichst wenig.':
+   'nur bei guter Erholung und genügend lockeren Einheiten. Mittlere Intensität möglichst wenig.'):
    'Polarisiert: lockere Ausdauer und Erholung. Keine harte Einheit nur für eine 80/20-Quote.'
   weeks.push({index:i+1,start,end,phase,phaseLabel:phaseName[phase],
-   trainingMethod:'polarized',qualityOptions:controlledQuality?1:0,polarization,
+   trainingMethod:'polarized',qualityOptions:controlledQuality?Math.max(1,clubSlots):0,polarization,
    focus,key,targetKm,longRunMinutes,kind,
    isCurrent:i===0,isRaceWeek:raceWeek,
    status:hold?'caution':raceWeek?'race':'draft'})

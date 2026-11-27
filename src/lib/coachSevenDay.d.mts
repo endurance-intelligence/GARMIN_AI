@@ -6,6 +6,8 @@ export type CoachDay={
  rhythm?:import('./trainingRhythm.mjs').RhythmEntry[];
  qualityIntent?:import('./trainingIntent.mjs').QualityIntent;
  qualityBlocked?:boolean;
+ clubQualitySlot?:boolean;
+ qualityArchive?:{templateId:string;group:string;title:string;totalMeters:number;effortMeters:number;efforts:number;recoveryMeters:number;warmupMeters:number;cooldownMeters:number;steps:Array<{kind:string;distanceMeters:number;paceSecondsPerKm:number|null;endMode:string}>};
  weeklyAdjustment?:{from:number;to:number};
  intensityIntent?:'low'|'low-option'|'hard-option'|'quality'
 }

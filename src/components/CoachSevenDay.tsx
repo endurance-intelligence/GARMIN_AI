@@ -133,10 +133,11 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
    if(!session)throw Error('Bitte erneut anmelden.')
    const requestId=ids.current[day.date]||(ids.current[day.date]=crypto.randomUUID())
    const structured=day.sport==='running'&&
-    ['easy','long','return_easy','intervals'].includes(day.kind)&&Number.isSafeInteger(day.minutes)
+    ['easy','long','return_easy','intervals'].includes(day.kind)&&(Number.isSafeInteger(day.minutes)||!!day.qualityArchive)
    const payload=structured?{
     action:'create_coach_workout',clientRequestId:requestId,date:day.date,
     title:day.title,kind:day.kind,minutes:day.minutes,startTime,
+    ...(day.qualityArchive?{archiveTemplateId:day.qualityArchive.templateId,archiveGroup:day.qualityArchive.group}:{}),
     coachReason:boundedCoachReason(day.reason)
    }:{
     action:'create',clientRequestId:requestId,date:day.date,
@@ -157,7 +158,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
      id:json.id,training_date:day.date,title:day.title,
      sport:day.kind==='mobility'?'strength':day.sport,
      state:'draft',session_type:'event',revision:json.revision||1,
-     notes:structured?'Coach · '+day.minutes+' Min. ab '+startTime+
+     notes:day.qualityArchive?'Coach-Archiv · '+(day.qualityArchive.totalMeters/1000).toLocaleString('de-DE')+' km':structured?'Coach · '+day.minutes+' Min. ab '+startTime+
       (day.kind==='intervals'?' · 4 × 2 Min. kontrolliert · 3 Trabpausen':' · 3 zeitgesteuerte Abschnitte · ohne Pace/HF-Ziel'):'Nur Kalendereintrag'
     }]}
    }:prev)
@@ -165,7 +166,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
    setCustomDate(null)
    setSavedDay(day.date)
    window.dispatchEvent(new Event('garmin-ai-coach-changed'))
-   setNotice((structured?
+   setNotice((day.qualityArchive?'Geprüfte Archivgruppe als distanzgesteuerten Entwurf gespeichert. Im Kalender freigeben und bewusst senden.':structured?
     'Zeitgesteuertes Lauf-Workout ('+day.minutes+' Min., Start '+startTime+
     ') als Entwurf gespeichert. Nächster Schritt: im Kalender freigeben und danach bewusst an Intervals.icu senden.':
     'Kalendereintrag als Entwurf gespeichert; keine strukturierte Garmin-Übertragung.')+
@@ -341,7 +342,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
        {alternative&&<fieldset className="c7-variants"><legend>Deine Trainingsvarianten</legend><label className={variant==='original'?'is-selected':''}><input type="radio" name="coach-variant" checked={variant==='original'} disabled={saving!==null} onChange={()=>setVariant('original')}/><span><strong>{day.title}</strong><small>{day.minutes} Min. · {day.sport==='running'?'Laufspezifischer Reiz':'Ursprünglicher Trainingsreiz'}</small></span></label><label className={variant==='alternative'?'is-selected':''}><input type="radio" name="coach-variant" checked={variant==='alternative'} disabled={saving!==null} onChange={()=>setVariant('alternative')}/><span><strong>{alternative.title} · {alternative.minutes} Min.</strong><small>{alternative.intensity}</small></span></label>{variant==='alternative'&&<div className="cdb-supplement"><p>{alternative.reason}</p><SupplementSessionDetails suggestion={alternative}/><small>Nur Kalendereintrag; keine automatische Steuerung deines Geräts.</small></div>}</fieldset>}
        {variant==='original'&&day.sport==='running'&&['easy','long','return_easy','intervals'].includes(day.kind)&&
         <div className="c7-structured-preview">
-         <span>{day.kind==='intervals'?'Garmin-Workout: 12 Min. einlaufen · 4 × 2 Min. kontrolliert zügig, 3 × 2 Min. traben · 10 Min. auslaufen. Kein Sprint, keine Ausbelastung.':'Garmin-Workout: '+day.minutes+' Min. · Einlaufen, lockerer Lauf, Auslaufen.'} Automatisch zeitgesteuert, ohne Pace- oder HF-Ziel.</span>
+         <span>{day.qualityArchive?'Archiv-Workout: '+day.qualityArchive.title+' · '+day.qualityArchive.group+' · '+(day.qualityArchive.totalMeters/1000).toLocaleString('de-DE')+' km. '+(day.qualityArchive.warmupMeters/1000).toLocaleString('de-DE')+' km einlaufen, '+day.qualityArchive.efforts+' Intervalle, '+(day.qualityArchive.recoveryMeters/1000).toLocaleString('de-DE')+' km Trabpausen, '+(day.qualityArchive.cooldownMeters/1000).toLocaleString('de-DE')+' km auslaufen. Distanzgesteuert; nur vorhandene Pace-Vorgaben.':day.kind==='intervals'?'Garmin-Workout: 12 Min. einlaufen · 4 × 2 Min. kontrolliert zügig, 3 × 2 Min. traben · 10 Min. auslaufen. Kein Sprint, keine Ausbelastung.':'Garmin-Workout: '+day.minutes+' Min. · Einlaufen, lockerer Lauf, Auslaufen.'}{!day.qualityArchive&&' Automatisch zeitgesteuert, ohne Pace- oder HF-Ziel.'}</span>
          <label>Startzeit in Intervals.icu
           <select value={startTime} onChange={e=>setStartTime(e.target.value)}
            disabled={saving!==null}>

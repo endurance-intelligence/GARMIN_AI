@@ -44,7 +44,7 @@ export function makePlanSnapshot({budget,days=[],plans=[],options=[],choices=[],
   // Only explicit durations in our generated event metadata; never guess from title alone.
   const stated=/^(?:Coach Intelligence|Coach-Alternative|Eigener Vorschlag) · (\d{1,3}) Min\./.exec(String(p.notes||''))
   const minutes=sec!==null?Math.round(sec/60):stated&&Number(stated[1])>0?Number(stated[1]):null
-  entries.push({date:p.training_date,kind,title:String(p.title||kind).slice(0,160),minutes,km:kind==='running'&&snap?.coachKind!=='intervals'&&minutes!==null&&budget.paceSeconds?Math.floor(minutes*60/budget.paceSeconds*10)/10:null,source:p.state==='draft'?'draft':'approved'})
+  entries.push({date:p.training_date,kind,title:String(p.title||kind).slice(0,160),minutes,km:snap?.qualitySource==='archive'&&Array.isArray(snap.group?.steps)&&[snap.warmup,...snap.group.steps,snap.cooldown].every(x=>num(x?.distanceMeters)&&x.endMode==='distance')?Math.round([snap.warmup,...snap.group.steps,snap.cooldown].reduce((n,x)=>n+x.distanceMeters,0)/100)/10:kind==='running'&&snap?.coachKind!=='intervals'&&minutes!==null&&budget.paceSeconds?Math.floor(minutes*60/budget.paceSeconds*10)/10:null,source:p.state==='draft'?'draft':'approved'})
   occupied.add(p.training_date)
  }
  for(const c of Array.isArray(choices)?choices:[]){
