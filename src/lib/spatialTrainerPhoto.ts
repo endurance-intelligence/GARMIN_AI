@@ -113,8 +113,9 @@ export function spatialPhotoReviewIssues(workout:TrainerWorkout):string[]{
   const runs=group.steps.filter(s=>s.kind==='run')
   if(runs.length===0||runs.some(s=>s.distanceMeters===null&&s.durationSeconds===null))
    return [group.name+': Belastungsdistanz oder Dauer fehlt']
-  if(runs.some(s=>s.paceSecondsPerKm===null&&s.notes.startsWith('OCR:')))
-   return [group.name+': Zielpace nicht vollständig erkannt – im Editor prüfen']
+  const missing=runs.flatMap((s,i)=>s.paceSecondsPerKm===null&&s.notes.startsWith('OCR:')?[i+1]:[])
+  if(missing.length)
+   return [group.name+': Zielpace fehlt bei Belastung '+missing.join(', ')+' – im Editor prüfen']
   return []
  })
 }
