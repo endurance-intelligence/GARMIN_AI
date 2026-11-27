@@ -130,17 +130,31 @@ export function buildGoalSupplement({today,profile,days,boards,protectedPhase,qu
  return none('Keine passende zusätzliche Option ohne Konflikt mit dem bestehenden Plan. Kein Training erzwingen.')
 }
 
-/** At most one eligible aerobic alternative per open easy day. An existing
- * strength focus remains independent; the alternatives are not additive workouts. */
+/** One mutually exclusive replacement for an eligible open training slot.
+ * Protect race, recovery, hard and long-run purposes; no additional training. */
 export function buildDailyTrainingAlternatives(input){
  if(!Array.isArray(input?.days))return []
- return input.days.filter(d=>d.kind==='easy'&&d.approvable&&!d.decision&&!d.selectedGroup).flatMap(day=>{
-  const result=buildGoalSupplement({...input,candidateDate:day.date})
-  return result.suggestion?.mode==='alternative'?[result.suggestion]:[]
+ const {today,profile,equipment,protectedPhase,qualityDay}=input
+ const evidence=crossTrainingEvidence(input)
+ if(!validDate(today)||!profile||profile.kind==='unknown'||protectedPhase||profile.daysUntil!==null&&profile.daysUntil<=10||!evidence.complete||evidence.recentHard||!normalizeEquipmentProfile(equipment))return []
+ return input.days.filter(d=>['easy','rowing','mobility','cycling'].includes(d.kind)&&d.approvable&&!d.decision&&!d.selectedGroup&&d.date>=today&&d.date<=add(today,6)&&d.date!==qualityDay&&!d.recoveryMobility&&!d.qualityIntent&&finite(d.minutes)&&d.minutes>=15).flatMap(day=>{
+  if(day.kind==='easy'){
+   const result=buildGoalSupplement({...input,candidateDate:day.date})
+   return result.suggestion?.mode==='alternative'?[result.suggestion]:[]
+  }
+  const demanding=input.days.some(d=>d.date===add(day.date,1)&&(d.date===qualityDay||d.kind==='race'||d.kind==='existing'||d.kind==='long'||d.intensityIntent==='hard-option'||!!d.selectedGroup))
+  if(demanding)return []
+  if(day.kind==='mobility'){
+   const result=buildGoalSupplement({...input,candidateDate:day.date})
+   return result.suggestion?.kind==='strength'&&result.suggestion.mode==='existing-slot'?[{...result.suggestion,mode:'alternative',reason:result.suggestion.reason+' Wähle entweder die ursprüngliche Mobility-Einheit oder gezielte leichte Kraftarbeit.'}]:[]
+  }
+  const kind=day.kind==='rowing'?'cycling':'rowing'
+  if(!hasEquipment(equipment,kind)||!evidence.rows.some(r=>r.kind===kind&&r.minutes>=10))return []
+  return [{date:day.date,kind,title:kind==='cycling'?'Lockeres Radfahren als Alternative':'Lockeres Rudern als Alternative',minutes:Math.min(30,day.minutes),intensity:'Locker · Sprechtempo',reason:'Gleichartiger lockerer aerober Reiz mit einer bereits genutzten Sportart. Nur statt der ursprünglich geplanten Einheit; kein zusätzlicher Trainingsreiz oder Laufkilometer-Ersatz.',mode:'alternative'}]
  })
 }
 export function trainingAlternativeForDate(plan,date){
  const day=plan?.days?.find(d=>d.date===date)
- if(!day||day.kind!=='easy'||!day.approvable||day.decision||day.selectedGroup)return null
+ if(!day||!['easy','rowing','mobility','cycling'].includes(day.kind)||!day.approvable||day.decision||day.selectedGroup||day.recoveryMobility||day.qualityIntent)return null
  return plan.alternatives?.find(s=>s.date===date&&s.mode==='alternative')||null
 }
