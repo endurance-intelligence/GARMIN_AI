@@ -9,10 +9,10 @@ export function split200Text(step:TrainerStep):string{
 }
 export function withSplitNote(step:TrainerStep):TrainerStep{
  const split=split200Text(step)
- if(!split)return step
- // Keep handwritten notes, including an existing handwritten split chain.
- const note=step.notes.trim()
- if(/\d+(?::\d{2})?\s*[–—-]\s*\d+:\d{2}/.test(note)||note.includes('200-m-Splits:'))return step
+ // Replace only our own previously generated suffix; preserve manual text.
+ const note=step.notes.replace(/(?:\s*\|\s*|^)200-m-Splits: [0-9: –]+(?: \(erste 1000 m\))?$/,'').trim()
+ if(!split)return note===step.notes?step:{...step,notes:note}
+ if(/\d+(?::\d{2})?\s*[–—-]\s*\d+:\d{2}\s*[–—-]\s*\d+:\d{2}/.test(note))return step
  const next=[note,split].filter(Boolean).join(' | ')
- return next.length<=180?{...step,notes:next}:step
+ return next.length<=180?{...step,notes:next}:{...step,notes:note}
 }

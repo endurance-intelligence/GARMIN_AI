@@ -134,6 +134,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
     text.toLocaleLowerCase('de-DE').includes(needle))
  })
 
+ function canStartNew(){return !savedDraft||window.confirm('Den gesicherten Entwurf durch ein neues Training ersetzen?')}
  async function localImageSelected(file:File|null){
   if(!file)return
   if(!['image/jpeg','image/png','image/webp'].includes(file.type)||
@@ -141,6 +142,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    setError('Bitte JPG, PNG oder WebP unter 8 MB auswählen.')
    return
   }
+  if(!canStartNew())return
   setReviewOpen(true);setPreviewRecord(null)
   setLocalBusy(true);setOcrProgress('Lokale Texterkennung startet …')
   setOcrRaw('');setOcrWarnings([]);setReferenceConfirmed(false);setError('');setSuccess('')
@@ -238,6 +240,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    setError('Bitte JPG, PNG oder WebP bis 2,7 MB auswählen.')
    return
   }
+  if(!canStartNew())return
   setReviewOpen(true);setPreviewRecord(null)
   setBusy(true);setError('');setSuccess('')
   try{
@@ -329,12 +332,12 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
        e.currentTarget.value='';void localImageSelected(file)}}/>
     </label>
     <button type="button" disabled={busy||localBusy}
-     onClick={()=>begin(blankTrainerWorkout(),'manual')}>Manuell erfassen</button>
+     onClick={()=>{if(canStartNew())begin(blankTrainerWorkout(),'manual')}}>Manuell erfassen</button>
     <button type="button" disabled={busy||localBusy}
-     onClick={()=>begin(previousOrcFlyer(),'orc_reference')}>
+     onClick={()=>{if(canStartNew())begin(previousOrcFlyer(),'orc_reference')}}>
      Schwelle im Wechsel · alle 5 Gruppen
     </button>
-    <button type="button" disabled={busy||localBusy} onClick={()=>{if(savedDraft&&!window.confirm('Den vorhandenen Entwurf durch die geprüfte Originalgrafik ersetzen?'))return;begin(extensiveSaturdayFlyer(),'orc_reference')}}>Extensiv &amp; zügig · 1000 m + 200 m · alle 5 Gruppen</button>
+    <button type="button" disabled={busy||localBusy} onClick={()=>{if(!canStartNew())return;begin(extensiveSaturdayFlyer(),'orc_reference')}}>Extensiv &amp; zügig · 1000 m + 200 m · alle 5 Gruppen</button>
    </div>
    {localBusy&&<p className="wa-ocr-progress" role="status">{ocrProgress}</p>}
    <p className="wa-hint">Kostenlose Texterkennung auf deinem Gerät – ohne API-Guthaben.
@@ -384,7 +387,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
       </div>
       <div className="wa-record-actions">
        <button type="button" onClick={()=>viewRecord(record,group)}>Training ansehen</button>
-       <button type="button" onClick={()=>begin(structuredClone(record.workout),'manual')} disabled={busy}>
+       <button type="button" onClick={()=>{if(canStartNew())begin(structuredClone(record.workout),'manual')}} disabled={busy}>
         Als neue Version bearbeiten</button>
        <button type="button" className="wa-plan-button" disabled={busy||date<todayBerlin()||!selected}
         onClick={()=>void plan(record,group)}>Für {date.split('-').reverse().join('.')} vormerken</button>
@@ -408,7 +411,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
   onChange={change} onChangeGroup={changeGroup} onChangeStep={changeStep}
   onSave={()=>void save()}
   onCopy={()=>{
-   if(!previewRecord)return
+   if(!previewRecord||!canStartNew())return
    begin(structuredClone(previewRecord.workout),'manual')
   }}
   onPlan={()=>{

@@ -9,6 +9,7 @@ test('200m cumulative splits are deterministic and preserve handwritten comments
  assert.match(withSplitNote(step).notes,/^I7 \| 200-m-Splits/)
  const manual={...step,notes:'I7 || 55 – 1:50 – 2:45 – 3:40 – 4:35'}
  assert.deepEqual(withSplitNote(manual),manual)
+ assert.match(withSplitNote({...withSplitNote(step),paceSecondsPerKm:295}).notes,/59 – 1:58 – 2:57 – 3:56 – 4:55/)
  assert.equal(split200Text({...step,paceSecondsPerKm:null}),'')
 })
 test('explicit extensive Saturday reference preserves all five source groups and drink break',()=>{

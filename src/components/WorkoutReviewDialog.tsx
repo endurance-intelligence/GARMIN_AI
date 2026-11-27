@@ -41,7 +41,7 @@ export function WorkoutReviewDialog(props:Props){
  const [rawShown,setRawShown]=useState(false)
  const [approved,setApproved]=useState(false)
  const [groupPace,setGroupPace]=useState('')
- useEffect(()=>{setGroupPace('')},[groupIndex])
+ useEffect(()=>{const values=[...new Set((editing?.groups[groupIndex]?.steps||[]).filter(s=>s.kind==='run'&&s.paceSecondsPerKm!==null).map(s=>s.paceSecondsPerKm))];setGroupPace(values.length===1?formatPace(values[0]):'')},[groupIndex,open])
  const closeButton=useRef<HTMLButtonElement>(null)
  const dialog=useRef<HTMLDivElement>(null)
  const closeAction=useRef(onClose)

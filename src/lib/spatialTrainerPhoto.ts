@@ -36,13 +36,13 @@ function rowPaces(text:string){
  return best
 }
 function getRecovery(text:string){
- const m=text.match(/(\d{2,4})\s*m\s*(?:trab(?:pause|en)?|pause)/i)||
+ const m=text.match(/(\d{2,4})\s*m\s*(?:zügige?n?\s+|lockere?n?\s+)?(?:trab(?:pause|en)?|pause)/i)||
   text.match(/(?:trab(?:pause|en)?|pause)\s*:?\s*(\d{2,4})\s*m/i)
  const v=Number(m?.[1]||0)
  return v>=20&&v<=2000?v:null
 }
 function getWarmup(text:string){
- const m=text.match(/(\d+(?:[.,]\d+)?)\s*km.{0,85}?(?:einlaufen|warm\s*up)/i)||
+ const m=text.match(/(\d+(?:[.,]\d+)?)\s*km[\s\S]{0,85}?(?:einlaufen|warm\s*up)/i)||
   text.match(/(?:einlaufen|warm\s*up).{0,85}?(\d+(?:[.,]\d+)?)\s*km/i)
  if(!m)return null
  const metres=Math.round(Number(m[1].replace(',','.'))*1000)
@@ -70,6 +70,10 @@ export function interpretSpatialTrainerPhoto(result:SpatialOcrResult):SpatialWor
   }
   const blocks=parseBlocks(card.leftText,reps.count)
   const paces=rowPaces(card.rightText)
+  const jog=card.leftText.match(/(?:Pause|Trabpause)\s*:\s*(\d{1,2}:[0-5]\d)\s*[-–—]\s*((?:\d{1,2}:)?[0-5]\d)\s*\/\s*km/i)
+  const jogLow=jog?parsePace(jog[1]):null
+  const jogHigh=jog?parsePace(jog[2].includes(':')?jog[2]:jog[1].split(':')[0]+':'+jog[2]):null
+  const jogPace=jogLow!==null&&jogHigh!==null&&jogHigh>=jogLow&&jogHigh-jogLow<=30?Math.round((jogLow+jogHigh)/2):null
   if(reps.uncertain)warnings.push(name+': '+reps.count+' × '+reps.meters+
    ' m aus unscharfer Schrift gelesen – bitte prüfen.')
   if(!blocks)warnings.push(name+': Satzaufteilung nicht eindeutig erkannt.')
@@ -84,8 +88,8 @@ export function interpretSpatialTrainerPhoto(result:SpatialOcrResult):SpatialWor
    steps.push({kind:'run',distanceMeters:reps.meters,durationSeconds:null,
     paceSecondsPerKm:paces[i]??null,notes:'OCR: Tempo mit Trainer-Grafik vergleichen'})
    if(i<reps.count-1)steps.push({kind:'recovery',distanceMeters:recovery,
-    durationSeconds:null,paceSecondsPerKm:null,notes:recovery===null?
-     'Trabpause und Distanz im Bild kontrollieren':'Trabpause: '+recovery+' m; Serienpause prüfen'})
+    durationSeconds:null,paceSecondsPerKm:jogPace,notes:recovery===null?
+     'Trabpause und Distanz im Bild kontrollieren':'Trabpause: '+recovery+' m'+(jogPace!==null&&jog?'; Zielbereich '+jog[1]+'–'+jog[2]+'/km':'')+'; Serienpause prüfen'})
   }
   groups.push({name,notes:blocks?'Blöcke laut Bild: '+blocks.join(' + '):
    'Satzaufteilung aus der Grafik prüfen',steps})
@@ -93,7 +97,7 @@ export function interpretSpatialTrainerPhoto(result:SpatialOcrResult):SpatialWor
  if(groups.length===0)return {workout:null,warnings:['Keine Gruppe sicher erkannt.'],
   recognizedText,detectedGroups:0,incompleteGroups:[]}
  const workout=blankTrainerWorkout()
- workout.title=recognizedText.match(/schwelle\s+im\s+wechsel/i)?.[0]||
+ workout.title=recognizedText.match(/schwelle\s+im\s+wechsel|extensiv\s*&\s*zügig/i)?.[0]||
   'Trainingsgrafik – Titel prüfen'
  workout.trainer=/oerlinghausen|örlinghausen|runcrew|\borc\b/i.test(recognizedText)?
   'ORC Runcrew':''
