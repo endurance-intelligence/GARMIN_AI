@@ -17,12 +17,12 @@ export function clubQualityWeek({today,start=monday(today),options=[],choices=[]
  const sessions=slots.map(o=>{
   const d=shift(start,o.weekday-1),choice=choices.find(c=>c.option_code===o.code&&c.training_date===d)?.choice
   const recommendation=days.find(x=>x.date===d)
-  const status=actualDates.has(d)?'completed':savedDates.has(d)?'saved':d<today?(choice==='skipped'?'skipped':'past-unknown'):choice==='skipped'?'skipped':choice==='selected'?'selected':'open'
+  const status=actualDates.has(d)?'completed':savedDates.has(d)?'saved':d<today?(choice==='skipped'?'skipped':'past-unknown'):choice==='skipped'?'skipped':recommendation?.kind==='blocked'?'unavailable':choice==='selected'?'selected':'open'
   return {date:d,code:o.code,status,protected:!!recommendation&&['illness','blocked','race','recovery'].includes(recommendation.kind)}
  })
  const reserved=new Set([...actualDates,...savedDates,...sessions.filter(s=>['open','selected','past-unknown'].includes(s.status)).map(s=>s.date)])
  return {start,end,slots:sessions,actual:actualDates.size,saved:savedDates.size,reserved:reserved.size,
-  bothSkipped:sessions.length===2&&sessions.every(s=>s.status==='skipped')&&actualDates.size===0&&savedDates.size===0}
+  bothSkipped:sessions.length===2&&sessions.every(s=>['skipped','unavailable'].includes(s.status))&&actualDates.size===0&&savedDates.size===0}
 }
 /** Count original trainer distance only, never an inferred drill/cooldown.
  * Keep the archive unchanged; exact distance-controlled derivative is separate. */
@@ -62,4 +62,33 @@ export function selectArchiveQuality({today,archive=[],plans=[],boards=[],budget
   return known?[s]:[]
  })||[])
  return candidates.sort((a,b)=>b.effortMeters-a.effortMeters||a.totalMeters-b.totalMeters||String(a.templateId).localeCompare(String(b.templateId)))[0]||null
+}
+
+/** Personal replacement: only when both recurring track opportunities are
+ * explicitly unavailable, not simply because a choice hasn't been made. */
+export function proposeClubReplacement(days,{today,week,boards=[],plans=[],archive=[],roadmap=[],budget,protectedPhase=false,volumeStatus}={}){
+ if(!week?.bothSkipped||protectedPhase||!['maintain','progress'].includes(volumeStatus)||!budget?.target||!finite(budget.paceSeconds)||!finite(budget.forecastKm)||budget.forecastKm>budget.target.high||roadmap.find(w=>w.start===week.start)?.qualityOptions<1)return {days,date:null}
+ const actual=boards.flatMap(b=>b.activities||[]).filter(a=>date(a)<=today&&date(a)>=shift(today,-6))
+ const easyActual=new Set(actual.filter(a=>/run|trail/i.test(a.sport_type||'')&&a.duration_s>=1200&&normalizeGarminRpe(a.rpe_raw)!==null&&normalizeGarminRpe(a.rpe_raw)<=4&&!isTrackActivity(a)).map(date))
+ const easy=d=>d.kind==='easy'&&d.sport==='running'&&d.approvable&&!d.decision&&!d.selectedGroup&&d.intensityIntent==='low'
+ const candidate=days.filter(d=>easy(d)&&d.date>=today&&d.date<=week.end&&d.minutes>=36&&
+   new Set([...easyActual,...days.filter(x=>x.date!==d.date&&x.date>=today&&x.date<=week.end&&easy(x)).map(x=>x.date)]).size>=3&&
+   !actual.some(a=>date(a)>=shift(d.date,-1)&&date(a)<=d.date&&(/football|soccer/i.test(a.sport_type)||normalizeGarminRpe(a.rpe_raw)>=7||isTrackActivity(a)))&&
+   !days.some(x=>Math.abs(Date.parse(x.date+'T12:00:00Z')-Date.parse(d.date+'T12:00:00Z'))===86400000&&
+    (['long','race','existing'].includes(x.kind)||x.selectedGroup||x.kind==='option'&&/track|intervall|bahn|football|fußball/i.test(x.title))))
+  .sort((a,b)=>Number(week.slots.some(s=>s.date===b.date))-Number(week.slots.some(s=>s.date===a.date))||a.date.localeCompare(b.date))[0]
+ if(!candidate)return {days,date:null}
+ const spec=selectArchiveQuality({today,archive,plans,boards,budget,replaceDate:candidate.date})
+ const title=spec?'Archiv · '+spec.title+' · '+spec.group:'Qualität · 4 × 2 Min. kontrollierte Intervalle'
+ const reason=spec?'Beide ORC-Track-Termine entfallen. Passende geprüfte Vorlage aus deiner Trainingsbibliothek mit belegter Gruppenverträglichkeit: '+spec.warmupMeters/1000+' km einlaufen, '+spec.efforts+' Intervalle ('+spec.effortMeters/1000+' km), '+spec.recoveryMeters/1000+' km Trabpausen, '+spec.cooldownMeters/1000+' km auslaufen. Gesamt '+spec.totalMeters/1000+' km.':'Beide ORC-Track-Termine entfallen. Noch keine passende vollständig belegte Archivgruppe; konservativer Ersatz: 12 Min. einlaufen, 4 × 2 Min. kontrolliert zügig, 3 × 2 Min. traben, 10 Min. auslaufen.'
+ return {date:candidate.date,days:days.map(d=>d===candidate?{...d,kind:'intervals',title,minutes:spec?null:36,intensityIntent:'hard-option',...(spec?{qualityArchive:spec}:{}),reason:reason+' Nur gut erholt und beschwerdefrei, kein zusätzlicher Lauf; deine Freigabe bleibt erforderlich.'}:d)}
+}
+export function buildArchiveQualitySnapshot(spec,startTime){
+ if(!spec||!Array.isArray(spec.steps)||! /^(0[5-9]|1[0-9]|2[0-2]):(00|15|30|45)$/.test(startTime))return null
+ return {schemaVersion:1,sourceKind:'coach',coachKind:'intervals',qualitySource:'archive',templateId:spec.templateId,title:('Archiv · '+spec.title+' · '+spec.group).slice(0,120),coachName:spec.coachName,sourceLabel:spec.sourceLabel,startTime,group:{name:spec.group,notes:'Geprüfte Archivvorlage · kontrollierte Belastung',steps:spec.steps.slice(1,-1)},warmup:spec.steps[0],cooldown:spec.steps.at(-1)}
+}
+export function archiveSnapshotMeters(s){
+ if(s?.qualitySource!=='archive'||s.sourceKind!=='coach'||s.coachKind!=='intervals'||!Array.isArray(s.group?.steps))return null
+ const steps=[s.warmup,...s.group.steps,s.cooldown]
+ return steps.length<=50&&steps.every(x=>x?.endMode==='distance'&&Number.isSafeInteger(x.distanceMeters)&&x.distanceMeters>0)?steps.reduce((n,x)=>n+x.distanceMeters,0):null
 }
