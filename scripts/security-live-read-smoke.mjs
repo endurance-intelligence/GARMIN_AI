@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import {isPublicConfig} from './validate-public-config.mjs'
 const url=process.env.VITE_GARMIN_SUPABASE_URL
 const key=process.env.VITE_GARMIN_SUPABASE_PUBLISHABLE_KEY
-assert.ok(isPublicConfig(url,key),'publishable-only configuration required')
+assert.ok(isPublicConfig(url,key,process.env.VITE_GARMIN_INSTANCE||'primary'),'publishable-only configuration required')
 const origin='https://endurance-intelligence.github.io'
 const endpoints=['garmin-app-access','read-garmin-health','read-garmin-session','garmin-coach-archive','garmin-training-plan','garmin-sync-center','garmin-intervals','garmin-training-history']
 async function check(path,headers,acceptable){
