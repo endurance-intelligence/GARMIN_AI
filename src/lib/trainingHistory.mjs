@@ -44,7 +44,7 @@ export function makePlanSnapshot({budget,days=[],plans=[],options=[],choices=[],
   // Only explicit durations in our generated event metadata; never guess from title alone.
   const stated=/^(?:Coach Intelligence|Coach-Alternative|Eigener Vorschlag) · (\d{1,3}) Min\./.exec(String(p.notes||''))
   const minutes=sec!==null?Math.round(sec/60):stated&&Number(stated[1])>0?Number(stated[1]):null
-  entries.push({date:p.training_date,kind,title:String(p.title||kind).slice(0,160),minutes,km:kind==='running'&&minutes!==null&&budget.paceSeconds?Math.floor(minutes*60/budget.paceSeconds*10)/10:null,source:p.state==='draft'?'draft':'approved'})
+  entries.push({date:p.training_date,kind,title:String(p.title||kind).slice(0,160),minutes,km:kind==='running'&&snap?.coachKind!=='intervals'&&minutes!==null&&budget.paceSeconds?Math.floor(minutes*60/budget.paceSeconds*10)/10:null,source:p.state==='draft'?'draft':'approved'})
   occupied.add(p.training_date)
  }
  for(const c of Array.isArray(choices)?choices:[]){
@@ -57,7 +57,7 @@ export function makePlanSnapshot({budget,days=[],plans=[],options=[],choices=[],
  }
  for(const d of days){
   if(!inWeek(d.date)||d.date<today||occupied.has(d.date)||d.decision==='declined'||d.selectedGroup||(!d.approvable&&d.kind!=='race'))continue
-  if(!['easy','long','return_easy','mobility','rowing','cycling','race'].includes(d.kind))continue
+  if(!['easy','long','return_easy','mobility','rowing','cycling','race','intervals'].includes(d.kind))continue
   const kind=d.kind==='race'?'running':sportGroup(d.sport,d.title)
   entries.push({date:d.date,kind,title:String(d.title||kind).slice(0,160),minutes:num(d.minutes)?d.minutes:null,km:kind==='running'?budget.proposedParts.find(p=>p.date===d.date)?.km??null:null,source:'coach'})
   occupied.add(d.date)

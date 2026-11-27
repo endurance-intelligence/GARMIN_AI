@@ -23,6 +23,7 @@ const messages={
   'Coach-Vorschlag prüfen; nur bei Beschwerdefreiheit und nach deiner Freigabe.'],
  easy:['LOCKER TRAINIEREN','Heute bewusst locker.',
   'Coach-Vorschlag und die begründete Belastung prüfen.'],
+ intervals:['QUALITÄTSEINHEIT · OPTION','Kontrollierte Intervalle statt eines lockeren Laufs.','Nur gut erholt und beschwerdefrei: Belastung und Trabpausen prüfen. Kein Sprint.'],
  long:['GRUNDLAGEN-AUSDAUER','Ausdauer mit Maß aufbauen.',
   'Langen Lauf und aktuelle Erholung prüfen; nur bewusst übernehmen.'],
  option:['FREIWILLIGER TERMIN','Du entscheidest über den Gruppentermin.',

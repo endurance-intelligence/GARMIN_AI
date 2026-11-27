@@ -71,7 +71,8 @@ export function buildWeeklyBudget({today,start,days=[],boards=[],plans=[],roadma
  const suggestedKm=down(proposedParts.reduce((n,p)=>n+(p.km??0),0))
  const unknownGroup=days.filter(d=>future(d.date)&&!savedDates.has(d.date)&&(d.selectedGroup||['option','chosen'].includes(d.kind))&&/run|track|lauf|bahn|intervall/i.test(d.selectedGroup?.title||d.title||'')).length
  const missingDays=Array.from({length:7},(_,i)=>add(start,i)).filter(d=>future(d)&&!savedDates.has(d)&&!days.some(x=>x.date===d)).length
- const unknown=savedRuns.length-savedKnown.length+proposedParts.filter(p=>p.km===null).length+unknownGroup+missingDays
+ const unknownQuality=days.filter(d=>future(d.date)&&!savedDates.has(d.date)&&d.kind==='intervals'&&d.approvable&&!d.decision).length
+ const unknown=unknownQuality+savedRuns.length-savedKnown.length+proposedParts.filter(p=>p.km===null).length+unknownGroup+missingDays
  const forecast=exactActual===null?null:down(exactActual+approvedKm+draftKm+suggestedKm)
  const manual=source?.manual||[],weekActivities=(source?.activities||[]).filter(a=>dayOf(a)>=start&&dayOf(a)<=end&&dayOf(a)<=today)
  const distinctDays=kind=>new Set([...weekActivities.filter(a=>kind==='rowing'?/rowing/i.test(a.sport_type):/strength|weight|mobility|pilates|yoga/i.test(a.sport_type)).map(dayOf),...manual.filter(a=>a.session_date>=start&&a.session_date<=end&&a.session_date<=today&&(kind==='rowing'?a.kind==='rowing':/strength|mobility/i.test(a.kind))).map(a=>a.session_date)]).size

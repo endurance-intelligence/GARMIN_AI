@@ -6,6 +6,7 @@
  */
 import {createClient} from 'npm:@supabase/supabase-js@2'
 import {buildIntervalsEvent,validateStoredIntervalsWorkout} from '../_shared/intervals-workout.mjs'
+import {qualityStillAllowed} from '../_shared/quality-guard.ts'
 import {coachWorkoutAllowed,coachWorkoutDuration} from '../_shared/coach-structured-workout.mjs'
 import {confirmedAbsentOnDate} from '../_shared/intervals-cleanup-reconcile.mjs'
 
@@ -233,6 +234,7 @@ Deno.serve(async req=>{
    if(contextError||!coachWorkoutAllowed(context,
      plan.archive_snapshot.coachKind,plan.training_date))
     return reply(409,{error:'Coach-Workout wegen Krankheit, Wiedereinstieg oder Urlaub aktuell gesperrt'},h)
+   if(plan.archive_snapshot.coachKind==='intervals'&&!await qualityStillAllowed(db,user.id,plan.training_date,plan.id))return reply(409,{error:'Qualitätsversand aktuell nicht möglich. Coach-Empfehlung prüfen.'},h)
   }
   const repairing=input.action==='repair'
   if(!repairing&&plan.training_date<today())return reply(409,{error:'Vergangene Trainings können nicht veröffentlicht werden.'},h)

@@ -562,10 +562,10 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
        <Icon name="arrow-up-right"/> {coachPreview.selectedGroup?'Coach-Hinweise ansehen':'Vorschlag prüfen'}
       </button>}
      {coachPreview.minutes!==null&&!coachPreview.selectedGroup&&<span className="hc-coach-minutes">
-      {coachPreview.minutes} Minuten · {coachPreview.kind==='mobility'?'Stabi/Mobility':coachPreview.kind==='rowing'?'Rudern · locker':
+      {coachPreview.minutes} Minuten · {coachPreview.kind==='mobility'?'Stabi/Mobility':coachPreview.kind==='rowing'?'Rudern · locker':coachPreview.kind==='intervals'?'4 × 2 Min. kontrolliert · Trabpausen':
        'Sprechtempo · ohne Pace- oder HF-Zwang'}
      </span>}
-     {coachPreview.approvable&&!alternative&&selected>=today&&
+     {coachPreview.approvable&&coachPreview.kind!=='intervals'&&!alternative&&selected>=today&&
      <details className="hc-coach-manual">
       <summary>Alternative: direkt im Kalender als Entwurf übernehmen</summary>
       {coachReview===selected?
