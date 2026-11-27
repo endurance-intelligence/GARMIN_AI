@@ -7,10 +7,7 @@ Keep one database/owner/credential set per instance. No athlete records, account
 The checked-in `scripts/build-instance-edge-bundle.mjs` prepares owner-only Edge bundles from the canonical source tree. Usage: `node scripts/build-instance-edge-bundle.mjs ENDPOINT SECONDARY_PROJECT_URL OUTPUT_JSON`. Deploy only to the explicit matching project, with its existing internal owner verification retained. The script only prepares source and never deploys or obtains credentials. Validate all source dependencies, deploy versions and unauthorized access before enabling a release. Worker/OIDC/AI routes require separate review; do not copy the primary worker authorization or AI API keys.
 
 ## Secondary browser release
-Use repository Actions variables, not code or committed .env files:
-- GARMIN_SECONDARY_SUPABASE_URL
-- GARMIN_SECONDARY_SUPABASE_PUBLISHABLE_KEY
-- GARMIN_SECONDARY_ENABLED=true (only after backend access checks and owner setup)
+The reviewed Pages workflow pins the secondary project's public URL and modern publishable key, avoiding manual repository variable setup. Never commit administrative keys, owner identities or credentials. The opt-in activation is the reviewed configuration PR itself: merge only after backend access checks and owner setup. An optional Actions variable GARMIN_SECONDARY_ENABLED=false disables the secondary build in an emergency.
 
 The primary build uses its existing URL/key. The secondary release is opt-in. CI always tests the secondary source with a synthetic project and isolated request fixtures, including independent authentication storage and a scoped application cache; when enabled, the real secondary build additionally passes live anonymous/invalid-session denial checks. One Pages artifact contains both builds.
 

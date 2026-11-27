@@ -94,11 +94,13 @@ jobs:
           done
           node scripts/browser-smoke.mjs
       - name: Build and verify explicitly enabled secondary production app
-        if: vars.GARMIN_SECONDARY_ENABLED == 'true'
+        # Explicitly selected public client configuration. Owner authorization remains server-side.
+        # An optional repository variable can disable the release in an emergency.
+        if: vars.GARMIN_SECONDARY_ENABLED != 'false'
         env:
           VITE_GARMIN_INSTANCE: secondary
-          VITE_GARMIN_SUPABASE_URL: ${{ vars.GARMIN_SECONDARY_SUPABASE_URL }}
-          VITE_GARMIN_SUPABASE_PUBLISHABLE_KEY: ${{ vars.GARMIN_SECONDARY_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_GARMIN_SUPABASE_URL: https://yinlaorrgfeodsnwxhah.supabase.co
+          VITE_GARMIN_SUPABASE_PUBLISHABLE_KEY: sb_publishable_qml7K0TeTBUfwE1VLqksVg_uoQPckSe
         run: |
           node scripts/validate-public-config.mjs
           npm run build -- --outDir "$RUNNER_TEMP/garmin-secondary-production"
