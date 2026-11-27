@@ -6,6 +6,7 @@
  */
 import {createClient} from 'npm:@supabase/supabase-js@2'
 import {buildIntervalsEvent,validateStoredIntervalsWorkout} from '../_shared/intervals-workout.mjs'
+import {archiveSnapshotMeters} from '../../../src/lib/clubQuality.mjs'
 import {qualityStillAllowed} from '../_shared/quality-guard.ts'
 import {coachWorkoutAllowed,coachWorkoutDuration} from '../_shared/coach-structured-workout.mjs'
 import {confirmedAbsentOnDate} from '../_shared/intervals-cleanup-reconcile.mjs'
@@ -226,7 +227,7 @@ Deno.serve(async req=>{
   if(plan.state!=='pending'||!plan.approved_at||!plan.archive_snapshot)
    return reply(409,{error:'Trainingsgruppe zuerst im GARMIN_AI Kalender freigeben.'},h)
   if(plan.archive_snapshot.sourceKind==='coach'){
-   if(coachWorkoutDuration(plan.archive_snapshot)===null)
+   if(plan.archive_snapshot.qualitySource==='archive'?archiveSnapshotMeters(plan.archive_snapshot)===null:coachWorkoutDuration(plan.archive_snapshot)===null)
     return reply(422,{error:'Coach workout structure was not verified'},h)
    const {data:context,error:contextError}=await db.from('garmin_coach_context')
      .select('illness_state,return_started_on,blocked_periods')
@@ -234,7 +235,7 @@ Deno.serve(async req=>{
    if(contextError||!coachWorkoutAllowed(context,
      plan.archive_snapshot.coachKind,plan.training_date))
     return reply(409,{error:'Coach-Workout wegen Krankheit, Wiedereinstieg oder Urlaub aktuell gesperrt'},h)
-   if(plan.archive_snapshot.coachKind==='intervals'&&!await qualityStillAllowed(db,user.id,plan.training_date,plan.id))return reply(409,{error:'Qualitätsversand aktuell nicht möglich. Coach-Empfehlung prüfen.'},h)
+   if(plan.archive_snapshot.coachKind==='intervals'&&!await qualityStillAllowed(db,user.id,plan.training_date,plan.id,plan.archive_snapshot))return reply(409,{error:'Qualitätsversand aktuell nicht möglich. Coach-Empfehlung prüfen.'},h)
   }
   const repairing=input.action==='repair'
   if(!repairing&&plan.training_date<today())return reply(409,{error:'Vergangene Trainings können nicht veröffentlicht werden.'},h)
