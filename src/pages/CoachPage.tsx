@@ -69,7 +69,7 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
    [dailyPlan,sharedSnapshot,coachToday])
   const openCoachDecision=()=>onOpenDecision(coachToday)
   const openAskCoach=()=>{const el=document.getElementById('coach-ask');el?.scrollIntoView({behavior:'smooth',block:'start'});el?.querySelector('input')?.focus({preventScroll:true})}
-  const openProgressHistory=()=>onGo('training')
+  const openProgressHistory=()=>{onGo('training');window.dispatchEvent(new Event('garmin-ai-open-training-development'))}
   const closeRef=useRef<HTMLButtonElement|null>(null)
   useEffect(()=>{
     if(!weightOpen)return
