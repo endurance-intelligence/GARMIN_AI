@@ -259,6 +259,15 @@ Deno.serve(async req=>{
   if(secretError||typeof secret!=='string'||!secret)
    return reply(409,{error:'Intervals.icu erst unter Einstellungen verbinden.'},h)
   const externalId=String(event.external_id)
+  // Atomically mark a first export as uncertain BEFORE any remote request.
+  // A concurrent calendar move can only update the same revision while it
+  // is not_published; whichever operation wins prevents the other.
+  if(!repairing&&plan.intervals_sync_status==='not_published'){
+   const {data:claimed,error:claimError}=await db.from('garmin_training_plan')
+    .update({intervals_sync_status:'needs_review'}).eq('id',plan.id).eq('revision',plan.revision)
+    .eq('state','pending').eq('intervals_sync_status','not_published').select('id').maybeSingle()
+   if(claimError||!claimed)return reply(409,{error:'Trainingsdatum oder Übertragungsstatus hat sich geändert. Bitte aktualisieren.'},h)
+  }
   try{
    // Repair may only update the exact pre-existing event ID and external_id.
    let oldEvent:Record<string,unknown>|null=null
