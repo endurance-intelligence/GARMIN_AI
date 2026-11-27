@@ -1,6 +1,6 @@
 /** Personal ORC rhythm: actual, saved, selected and open commitments are
  * distinct. Never assume attendance from a weekday or unknown Garmin run. */
-import {normalizeGarminRpe} from './garminPerception.mjs'
+import {normalizeGarminRpe,normalizeGarminFeeling} from './garminPerception.mjs'
 import {savedQualityIntent} from './trainingIntent.mjs'
 const shift=(d,n)=>new Date(Date.parse(d+'T12:00:00Z')+n*86400000).toISOString().slice(0,10)
 const monday=d=>shift(d,-((new Date(d+'T12:00:00Z').getUTCDay()+6)%7))
@@ -21,7 +21,7 @@ export function clubQualityWeek({today,start=monday(today),options=[],choices=[]
   return {date:d,code:o.code,status,protected:!!recommendation&&['illness','blocked','race','recovery'].includes(recommendation.kind)}
  })
  const reserved=new Set([...actualDates,...savedDates,...sessions.filter(s=>['open','selected','past-unknown'].includes(s.status)).map(s=>s.date)])
- return {start,end,slots:sessions,actual:actualDates.size,saved:savedDates.size,reserved:reserved.size,occupiedDates:[...new Set([...actualDates,...savedDates])],
+ return {start,end,slots:sessions,actual:actualDates.size,saved:savedDates.size,actualDates:[...actualDates],savedDates:[...savedDates],reserved:reserved.size,occupiedDates:[...new Set([...actualDates,...savedDates])],
   bothSkipped:sessions.length===2&&sessions.every(s=>['skipped','unavailable'].includes(s.status))&&actualDates.size===0&&savedDates.size===0}
 }
 /** Count original trainer distance only, never an inferred drill/cooldown.
@@ -44,7 +44,7 @@ export function archiveGroupSpec(template,groupName){
  * tell us which pace group the athlete belongs to. */
 export function selectArchiveQuality({today,archive=[],plans=[],boards=[],budget,replaceDate,freeSlot=false}){
  if(!Array.isArray(archive)||!budget?.target||!finite(budget.forecastKm)||!finite(budget.paceSeconds))return null
- const actual=boards.flatMap(b=>b.activities||[]).filter(a=>isTrackActivity(a)&&date(a)<today&&date(a)>=shift(today,-28)&&finite(a.distance_m)&&normalizeGarminRpe(a.rpe_raw)!==null&&normalizeGarminRpe(a.rpe_raw)<=7)
+ const actual=boards.flatMap(b=>b.activities||[]).filter(a=>isTrackActivity(a)&&date(a)<today&&date(a)>=shift(today,-28)&&finite(a.distance_m)&&normalizeGarminRpe(a.rpe_raw)!==null&&normalizeGarminRpe(a.rpe_raw)<=7&&(normalizeGarminFeeling(a.feeling_raw)===null||normalizeGarminFeeling(a.feeling_raw)>=50))
  const prior=plans.flatMap(p=>{
   if(!['pending','confirmed'].includes(p.state)||p.training_date>=today||!p.archive_workout_id||!p.archive_group)return []
   const source=archive.find(a=>a.id===p.archive_workout_id),spec=archiveGroupSpec(source,p.archive_group)
@@ -71,10 +71,10 @@ export function selectArchiveQuality({today,archive=[],plans=[],boards=[],budget
  const candidates=archive.flatMap(t=>t.workout?.groups?.flatMap(g=>{
   const s=archiveGroupSpec(t,g.name)
   if(!s||budget.forecastKm-removed+s.totalMeters/1000>budget.target.high)return []
-  const known=prior.find(({spec,match})=>spec.group===s.group&&s.totalMeters<=Math.min(spec.totalMeters,match.distance_m)&&s.effortMeters<=spec.effortMeters&&s.steps.filter(x=>x.kind==='run').every(x=>x.paceSecondsPerKm==null||spec.steps.filter(y=>y.kind==='run').every(y=>y.paceSecondsPerKm!=null&&x.paceSecondsPerKm>=y.paceSecondsPerKm)))
+  const known=prior.find(({spec,match})=>spec.group===s.group&&s.totalMeters<=Math.min(spec.totalMeters,match.distance_m)&&s.effortMeters<=spec.effortMeters&&Math.max(...s.steps.filter(x=>x.kind==='run').map(x=>x.distanceMeters))<=Math.max(...spec.steps.filter(x=>x.kind==='run').map(x=>x.distanceMeters))&&s.recoveryMeters/s.effortMeters>=spec.recoveryMeters/spec.effortMeters*.9&&s.steps.filter(x=>x.kind==='run').every(x=>x.paceSecondsPerKm==null||spec.steps.filter(y=>y.kind==='run').every(y=>y.paceSecondsPerKm!=null&&x.paceSecondsPerKm>=y.paceSecondsPerKm)))
   return known?[s]:[]
  })||[])
- return candidates.sort((a,b)=>b.effortMeters-a.effortMeters||a.totalMeters-b.totalMeters||String(a.templateId).localeCompare(String(b.templateId)))[0]||null
+ return candidates.sort((a,b)=>a.effortMeters-b.effortMeters||a.totalMeters-b.totalMeters||String(a.templateId).localeCompare(String(b.templateId)))[0]||null
 }
 
 /** Personal replacement: only when both recurring track opportunities are
