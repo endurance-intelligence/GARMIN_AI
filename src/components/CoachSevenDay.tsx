@@ -189,7 +189,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
     setSnapshot(fresh);setReview(null);throw Error('Die Trainingslage hat sich geändert. Bitte die aktuelle Empfehlung erneut prüfen.')
    }
    const title=choice.title.replace(/ als Alternative$/,'')+' · '+choice.minutes+' Min.'
-   const sport=choice.kind==='treadmill-run'?'running':choice.kind==='cycling'?'cycling':'other'
+   const sport=choice.kind==='treadmill-run'?'running':choice.kind==='cycling'?'cycling':choice.kind==='strength'?'strength':'other'
    const segments=choice.segments?.map(s=>s.minutes+' Min. '+s.label+' ('+s.incline+' %)').join(' / ')||''
    const notes=('Coach-Alternative · '+choice.minutes+' Min. · '+choice.intensity+'. '+segments+' '+choice.reason+' Nur Kalendereintrag, kein strukturiertes Workout.').slice(0,500)
    const requestId=ids.current[day.date]||(ids.current[day.date]=crypto.randomUUID())
@@ -199,7 +199,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
    setSnapshot({...fresh,plans:{...fresh.plans,entries:[...fresh.plans.entries,{id:result.id,training_date:day.date,title,sport,state:'draft',session_type:'event',revision:result.revision||1,notes}]}})
    setReview(null);setCustomDate(null);setSavedDay(day.date)
    window.dispatchEvent(new Event('garmin-ai-coach-changed'))
-   setNotice('Gewählte Alternative als Entwurf gespeichert. Der ursprüngliche Lauf wurde nicht eingeplant. Keine strukturierte Garmin-Übertragung.')
+   setNotice('Gewählte Alternative als Entwurf gespeichert. Die ursprüngliche Einheit wurde nicht zusätzlich eingeplant. Keine strukturierte Garmin-Übertragung.')
   }catch(e){setError(e instanceof Error?e.message:'Alternative konnte nicht gespeichert werden.')}
   finally{variantLock.current=false;setSaving(null)}
  }
@@ -338,7 +338,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
      {review===day.date&&(day.approvable||day.kind==='option')&&!contextBusy&&<div className="c7-actions">
       {review===day.date?<div className="c7-confirm">
        <span>{alternative?'Wähle einen Trainingsreiz. Nur die ausgewählte Variante wird als Entwurf gespeichert.':'Nur diesen Vorschlag als Entwurf speichern?'}</span>
-       {alternative&&<fieldset className="c7-variants"><legend>Deine Trainingsvarianten</legend><label className={variant==='original'?'is-selected':''}><input type="radio" name="coach-variant" checked={variant==='original'} disabled={saving!==null} onChange={()=>setVariant('original')}/><span><strong>{day.title}</strong><small>{day.minutes} Min. · Laufspezifischer Reiz</small></span></label><label className={variant==='alternative'?'is-selected':''}><input type="radio" name="coach-variant" checked={variant==='alternative'} disabled={saving!==null} onChange={()=>setVariant('alternative')}/><span><strong>{alternative.title} · {alternative.minutes} Min.</strong><small>{alternative.intensity}</small></span></label>{variant==='alternative'&&<div className="cdb-supplement"><p>{alternative.reason}</p><SupplementSessionDetails suggestion={alternative}/><small>Nur Kalendereintrag; keine automatische Steuerung deines Geräts.</small></div>}</fieldset>}
+       {alternative&&<fieldset className="c7-variants"><legend>Deine Trainingsvarianten</legend><label className={variant==='original'?'is-selected':''}><input type="radio" name="coach-variant" checked={variant==='original'} disabled={saving!==null} onChange={()=>setVariant('original')}/><span><strong>{day.title}</strong><small>{day.minutes} Min. · {day.sport==='running'?'Laufspezifischer Reiz':'Ursprünglicher Trainingsreiz'}</small></span></label><label className={variant==='alternative'?'is-selected':''}><input type="radio" name="coach-variant" checked={variant==='alternative'} disabled={saving!==null} onChange={()=>setVariant('alternative')}/><span><strong>{alternative.title} · {alternative.minutes} Min.</strong><small>{alternative.intensity}</small></span></label>{variant==='alternative'&&<div className="cdb-supplement"><p>{alternative.reason}</p><SupplementSessionDetails suggestion={alternative}/><small>Nur Kalendereintrag; keine automatische Steuerung deines Geräts.</small></div>}</fieldset>}
        {variant==='original'&&day.sport==='running'&&['easy','long','return_easy'].includes(day.kind)&&
         <div className="c7-structured-preview">
          <span>Garmin-Workout: {day.minutes} Min. · Einlaufen, lockerer Lauf, Auslaufen.
