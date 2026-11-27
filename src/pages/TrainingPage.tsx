@@ -32,9 +32,9 @@ export function TrainingPage({active,focus,onGo,onOpenSession,onOpenCalendar}:{a
  },[])
  return <section className={active?'page active':'page'}>
   <div className="page-intro introduction-v3">
-   <div><div className="eyebrow">TRAINING / ECHTE GARMIN-DATEN</div>
+   <div><div className="eyebrow">SESSION INTELLIGENCE / ECHTE GARMIN-DATEN</div>
     <h1>Dein Training</h1>
-    <p>Analysiere deinen Lauf, verfolge deine Entwicklung oder vergleiche geplantes und absolviertes Training.</p>
+    <p>Analysiere deinen Lauf, verfolge deine Entwicklung oder vergleiche geplantes und absolviertes Training. Dein Coach erkennt den Trainingstyp automatisch.</p>
    </div>
   </div>
   <nav className="training-view-nav" aria-label="Trainingsanalyse auswählen">
