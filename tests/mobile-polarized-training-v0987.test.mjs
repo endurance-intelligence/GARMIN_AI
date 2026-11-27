@@ -145,6 +145,7 @@ test('Method remains source-linked without a duplicate Goals card',()=>{
  assert.doesNotMatch(goals,/<PolarizedMethodCard\/>/)
  assert.match(coach,/className="c7-polarized-method"/)
  assert.match(macro,/week\.qualityOptions>0/)
- assert.match(read('src/lib/coachSevenDay.mjs'),/applyPolarizedGuidance\(toleranceStep\.days,/)
+ assert.match(read('src/lib/coachSevenDay.mjs'),/applyArchivedWeekLearning\(toleranceStep\.days,archivedLearning/)
+ assert.match(read('src/lib/coachSevenDay.mjs'),/applyPolarizedGuidance\(learned\.days,/)
  assert.doesNotMatch(read('src/lib/polarizedTraining.mjs'),/\.upsert\(|\.insert\(|publishWorkout\(|sendToGarmin\(/)
 })
