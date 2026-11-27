@@ -65,7 +65,7 @@ test('no legacy demo branding while keeping truthful limitations and explicit pu
  const settings=read('src/pages/SettingsPage.tsx')
  assert.doesNotMatch(app,/COACH DEMO|COACH TEILWEISE DEMO|DESIGN CONCEPT/)
  assert.doesNotMatch(settings,/Trainingsempfehlungen sind derzeit eine Demo/)
- assert.match(settings,/Langfristige automatische Plananpassungen sind noch nicht umgesetzt/)
+ assert.match(settings,/ohne bestätigte Einheiten eigenmächtig zu überschreiben/)
  assert.match(app,/DATEN LIVE · FREIGABE DURCH DICH/)
  const coach=read('src/components/CoachSevenDay.tsx')
  assert.doesNotMatch(coach,/className="c7-evidence"/)

@@ -11,7 +11,8 @@ test('same authenticated owner is reverified without unmounting the entire UI',(
  assert.match(gate,/if\(inFlight\?\.userId===userId&&inFlight\.token===session\.access_token\)return/)
  assert.match(gate,/void verify\(session\)\.then\(next=>/)
  assert.match(gate,/setStatus\(next\)/)
- assert.match(gate,/if\(status==='authorized'\)return <>{children}<\/>/)
+ assert.match(gate,/if\(status==='authorized'\)return import\.meta\.env\.VITE_GARMIN_INSTANCE==='secondary'/)
+ assert.match(gate,/<SecondaryOnboarding key=\{authorizedUserId\.current\} userId=\{authorizedUserId\.current\}>\{children\}<\/SecondaryOnboarding>:<>\{children\}<\/>/)
 })
 test('logout and account switch never bypass server-side owner verification',()=>{
  const gate=read('src/components/OnlineAccessGate.tsx')
