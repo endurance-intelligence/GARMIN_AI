@@ -86,6 +86,7 @@ export function CoachDecisionLive({plan,snapshot,reviewDate,saving,onReview,onCa
      <TrainingQualityMark intent={day.qualityIntent} blocked={day.qualityBlocked} today={day.date===plan.today}/>
      <p className="cdl-decision-note">{x.summary}</p>
      {day.rhythm?.filter(e=>e.status==='paused').map(e=><div key={e.kind} className="cdl-context-line"><span>WUNSCHTAG · PAUSIERT</span><strong>{e.title} · {e.minutes} Min.</strong><small>{e.reason}</small></div>)}
+     {day.qualityArchive&&<div className="cdl-duration"><span>ARCHIV · {day.qualityArchive.group}</span><strong>{(day.qualityArchive.totalMeters/1000).toLocaleString('de-DE')} km</strong><small>{day.qualityArchive.efforts} Intervalle · {(day.qualityArchive.effortMeters/1000).toLocaleString('de-DE')} km Belastungsdistanz · geprüfte Vorlage</small></div>}
      {day.minutes!==null&&!day.selectedGroup&&<div className="cdl-duration">
       <span>COACH-UMFANG</span><strong>{day.minutes} Min.</strong>
       <small>Vorschlag, noch kein freigegebenes Workout</small>
