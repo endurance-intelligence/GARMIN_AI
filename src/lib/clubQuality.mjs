@@ -21,7 +21,7 @@ export function clubQualityWeek({today,start=monday(today),options=[],choices=[]
   return {date:d,code:o.code,status,protected:!!recommendation&&['illness','blocked','race','recovery'].includes(recommendation.kind)}
  })
  const reserved=new Set([...actualDates,...savedDates,...sessions.filter(s=>['open','selected','past-unknown'].includes(s.status)).map(s=>s.date)])
- return {start,end,slots:sessions,actual:actualDates.size,saved:savedDates.size,reserved:reserved.size,
+ return {start,end,slots:sessions,actual:actualDates.size,saved:savedDates.size,reserved:reserved.size,occupiedDates:[...new Set([...actualDates,...savedDates])],
   bothSkipped:sessions.length===2&&sessions.every(s=>['skipped','unavailable'].includes(s.status))&&actualDates.size===0&&savedDates.size===0}
 }
 /** Count original trainer distance only, never an inferred drill/cooldown.
@@ -67,7 +67,7 @@ export function selectArchiveQuality({today,archive=[],plans=[],boards=[],budget
 /** Personal replacement: only when both recurring track opportunities are
  * explicitly unavailable, not simply because a choice hasn't been made. */
 export function proposeClubReplacement(days,{today,week,boards=[],plans=[],archive=[],roadmap=[],budget,protectedPhase=false,volumeStatus}={}){
- if(!week?.bothSkipped||protectedPhase||!['maintain','progress'].includes(volumeStatus)||!budget?.target||!finite(budget.paceSeconds)||!finite(budget.forecastKm)||budget.forecastKm>budget.target.high||roadmap.find(w=>w.start===week.start)?.qualityOptions<1)return {days,date:null}
+ if(!week?.bothSkipped||protectedPhase||!['maintain','progress'].includes(volumeStatus)||!budget?.target||!finite(budget.paceSeconds)||!finite(budget.forecastKm)||budget.forecastKm>budget.target.high||!(roadmap.find(w=>w.start===week.start)?.qualityOptions>=1))return {days,date:null}
  const actual=boards.flatMap(b=>b.activities||[]).filter(a=>date(a)<=today&&date(a)>=shift(today,-6))
  const easyActual=new Set(actual.filter(a=>/run|trail/i.test(a.sport_type||'')&&a.duration_s>=1200&&normalizeGarminRpe(a.rpe_raw)!==null&&normalizeGarminRpe(a.rpe_raw)<=4&&!isTrackActivity(a)).map(date))
  const easy=d=>d.kind==='easy'&&d.sport==='running'&&d.approvable&&!d.decision&&!d.selectedGroup&&d.intensityIntent==='low'
@@ -91,4 +91,30 @@ export function archiveSnapshotMeters(s){
  if(s?.qualitySource!=='archive'||s.sourceKind!=='coach'||s.coachKind!=='intervals'||!Array.isArray(s.group?.steps))return null
  const steps=[s.warmup,...s.group.steps,s.cooldown]
  return steps.length<=50&&steps.every(x=>x?.endMode==='distance'&&Number.isSafeInteger(x.distanceMeters)&&x.distanceMeters>0)?steps.reduce((n,x)=>n+x.distanceMeters,0):null
+}
+
+/** A selected ORC track is an explicit intended interval day, not proof
+ * of execution. Capacity is per ISO week and can fall to zero in protection. */
+export function applyClubQuality(days,{today,weeks=[],roadmap=[],protectedPhase=false,boards=[]}={}){
+ const recent=boards.flatMap(b=>b.activities||[]).filter(a=>date(a)<=today)
+ const result=[...days]
+ for(const w of weeks.filter(Boolean)){
+  const limit=protectedPhase?0:roadmap.find(x=>x.start===w.start)?.qualityOptions??0
+  const occupied=new Set(w.occupiedDates)
+  const candidates=w.slots.filter(s=>s.date>=today&&['selected','open'].includes(s.status)).sort((a,b)=>Number(b.status==='selected')-Number(a.status==='selected')||a.date.localeCompare(b.date))
+  for(const slot of candidates){
+   const i=result.findIndex(d=>d.date===slot.date)
+   if(i<0)continue
+   const d=result[i],selected=slot.status==='selected'
+   // The existing recovery/health advice takes priority; do not erase it.
+   const group=d.selectedGroup
+   const previousHard=recent.some(a=>date(a)===shift(slot.date,-1)&&(normalizeGarminRpe(a.rpe_raw)>=8||isTrackActivity(a)))
+   const blocked=protectedPhase||occupied.size>=limit||slot.protected||previousHard||d.decision==='declined'||(selected&&group?.advice!=='review')||!selected&&d.kind!=='option'
+   if(!blocked)occupied.add(slot.date)
+   const reason=blocked?'ORC Track ist ein vorgesehener Qualitätsreiz. Heute spricht die Erholungs-/Wochenplanung gegen zusätzliche Intensität.':'Regulärer ORC-Qualitätstermin: '+(selected?'Teilnahme bestätigt.':'Teilnahme noch offen.')+' Die Originalvorgaben des Trainers zählen als Intervalle; keine zusätzlichen Intervalle einplanen. Intensität nach Tagesform, Fußballbelastung und Verträglichkeit prüfen.'
+   const amendedGroup=group&&blocked&&group.advice==='review'?{...group,advice:'easy',reason:reason+' Nur locker teilnehmen oder auslassen.'}:group
+   result[i]={...d,clubQualitySlot:true,intensityIntent:blocked?'low-option':'hard-option',...(selected?{qualityIntent:'planned',qualityBlocked:blocked}:blocked?{qualityIntent:undefined}:{qualityIntent:'candidate',qualityBlocked:false}),...(amendedGroup?{selectedGroup:amendedGroup}:{}),reason:blocked?d.reason+' '+reason:reason}
+  }
+ }
+ return result
 }
