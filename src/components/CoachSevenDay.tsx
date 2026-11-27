@@ -261,11 +261,12 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
   finally{setSaving(null)}
  }
  if(!active)return null
+ if(singleDay&&focus&&!plan?.days.some(day=>day.date===focus.date))return <p role="status">Die Empfehlung für diesen Tag wird geprüft …</p>
  return <section className="c7-root" aria-label="Coach Intelligence mit sieben Tagen Trainingsvorschlägen">
   <div className="c7-top">
    <div><span className="c7-eyebrow"><Icon name="sparkles"/> DEIN TRAININGSPLAN</span>
     <h2>{singleDay?'Deine Tagesentscheidung':'Deine nächsten 7 Tage'}</h2>
-    <p>Wähle einen Tag und entscheide gemeinsam mit deinem Coach.</p>
+    <p>{singleDay?'Prüfe die Empfehlung für diesen Kalendertag.':'Wähle einen Tag und entscheide gemeinsam mit deinem Coach.'}</p>
    </div>
    <button type="button" className="c7-refresh" disabled={loading||saving!==null}
     onClick={()=>{setReload(x=>x+1);window.dispatchEvent(new Event('garmin-ai-coach-changed'));setReview(null);setSavedDay(null)}}><Icon name="refresh-cw"/> Aktualisieren</button>
