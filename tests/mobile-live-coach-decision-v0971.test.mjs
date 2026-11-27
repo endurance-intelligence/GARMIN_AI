@@ -105,7 +105,8 @@ test('premium cards use owner-only existing Coach snapshot, not simulated data o
  assert.match(css,/\.cdl-grid/)
  assert.match(css,/\.cdl-art/)
  assert.match(css,/@media\(max-width:600px\)/)
- for(const source of ['read-garmin-health','garmin-training-plan','garmin-coach-goal',
-  'garmin-coach-context','garmin-week-board'])assert.ok(snapshot.includes(source))
+ assert.match(snapshot,/garmin-coach-archive\?week=/)
+ const reader=read('supabase/functions/_shared/coach-archive-reader.ts')
+ for(const source of ['garmin_daily_metrics','garmin_training_plan','garmin_coach_goals','garmin_coach_context','garmin_activities'])assert.ok(reader.includes(source))
  assert.doesNotMatch(component,/DEMO-SIGNAL|In Demo angenommen|78%/)
 })

@@ -155,11 +155,14 @@ test('switching the main Goal preserves Heartbeat recovery via the existing race
  assert.equal(r.days[0].kind,'recovery')
  assert.equal(r.days[0].approvable,false)
 })
-test('Coach snapshot fetches the archived race optionally without compromising the primary data fetch',()=>{
+test('Coach snapshot includes the owner-scoped race portfolio and fails closed on incomplete evidence',()=>{
  const snapshot=read('src/lib/coachSnapshot.ts')
  const ui=read('src/components/CoachSevenDay.tsx')
- assert.match(snapshot,/get\('garmin-race-goals'\)\.catch\(\(\)=>\(\{\} as Record/)
- assert.match(snapshot,/racePortfolio:/)
+ const reader=read('supabase/functions/_shared/coach-archive-reader.ts')
+ assert.match(snapshot,/garmin-coach-archive\?week=/)
+ assert.match(reader,/garmin_coach_secondary_goals/)
+ assert.match(reader,/racePortfolio:\{primary:goal,others\}/)
+ assert.match(reader,/if\(error\|\|!Array.isArray\(data\)/)
  assert.match(ui,/racePortfolio:snapshot.racePortfolio/)
 })
 test('read-only frontend shows race matching, Garmin feedback and optional personal check',()=>{

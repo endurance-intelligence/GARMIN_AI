@@ -42,9 +42,10 @@ test('cross-training evidence counts manual and Garmin once, excludes future and
  assert.equal(e.strengthDays,1);assert.equal(e.minutes,80);assert.equal(e.recentHard,true)
  assert.equal(buildGoalSupplement({today,profile:profile(),days:[day],boards:b}).suggestion,null)
 })
-test('roadmap and today consume same profile; route read optional and no publication',()=>{
+test('roadmap and today consume same profile; route evidence matches the goal and no publication',()=>{
  const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
- assert.match(read('src/lib/coachSnapshot.ts'),/exactGoalRoute\(goal.goal,raceResearch.saved\)/)
+ assert.match(read('supabase/functions/_shared/coach-archive-reader.ts'),/exactGoalRoute\(goal,research\)/)
+ assert.match(read('supabase/functions/_shared/coach-archive-reader.ts'),/eq\('race_date',goal.race_date\)/)
  assert.match(read('src/lib/coachSevenDay.mjs'),/buildGoalSupplement/)
  assert.match(read('src/components/CoachLongTermPlan.tsx'),/goalPhaseFocus\(profile,week.phase/)
  assert.match(read('src/pages/CoachPage.tsx'),/goalRoute:sharedSnapshot.goalRoute/)
