@@ -1,6 +1,6 @@
 import {buildLongTermCoachPlan} from './coachLongTermPlan.mjs'
-import {buildWeeklyBudget,replacementImpact,protectRhythmReplacements} from './weeklyTraining.mjs'
-import {qualityIntent,savedQualityIntent} from './trainingIntent.mjs'
+import {buildWeeklyBudget,replacementImpact,protectRhythmReplacements,allocateWeeklyRunning} from './weeklyTraining.mjs'
+import {qualityIntent,savedQualityIntent,protectQualitySlots} from './trainingIntent.mjs'
 import {applyTrainingRhythm} from './trainingRhythm.mjs'
 import {crossTrainingEvidence,buildGoalProfile,buildGoalSupplement,buildDailyTrainingAlternatives} from './goalTrainingFocus.mjs'
 import {latestWorkoutFeedback,evaluateWorkoutFeedback} from './postWorkoutFeedback.mjs'
@@ -573,10 +573,13 @@ export function buildSevenDayCoach(input){
  const raceDates=[raceDate,recoveryRaceDate,...history.map(g=>g.race_date)].filter(Boolean)
  const budgetFor=(weekDays,date)=>buildWeeklyBudget({today,start:coachMonday(date),days:weekDays,boards:input.boards,plans,roadmap:roadmap.weeks,protectedPhase:supplementInput.protectedPhase||hardCross,raceDates,rhythm:input.life?.trainingRhythm})
  const rhythmProposed=applyTrainingRhythm(polarized.days,input.life?.trainingRhythm,{today,protectedPhase:supplementInput.protectedPhase||hardCross,qualityDay:polarized.qualityDay,evidence:crossEvidence.rows,equipment:input.life?.equipmentProfile,options,choices})
- const rhythmDays=protectRhythmReplacements(polarized.days,rhythmProposed,budgetFor).map(day=>{
+ const rhythmAdjusted=protectRhythmReplacements(polarized.days,rhythmProposed,budgetFor)
+ const allocation=allocateWeeklyRunning(rhythmAdjusted,budgetFor,{today,protectedPhase:supplementInput.protectedPhase||hardCross,volumeStatus:effectiveVolume.status,alreadyAdjusted:!!volumeStep.appliedDate||!!toleranceStep.appliedDate})
+ const qualityDays=protectQualitySlots(allocation.days,plans,roadmap.weeks,{today,qualityDay:polarized.qualityDay})
+ const rhythmDays=qualityDays.map(day=>{
   if(day.date<today)return day
   const saved=plans.filter(p=>p.training_date===day.date)
-  const intent=day.kind==='existing'&&saved.length===1?savedQualityIntent(saved[0]):qualityIntent(day,{qualityDay:polarized.qualityDay,protectedPhase:supplementInput.protectedPhase||hardCross||polarized.status==='protected'||polarized.status==='recover'})
+  const intent=day.kind==='existing'&&saved.length===1?savedQualityIntent(saved[0]):qualityIntent(day,{qualityDay:polarized.qualityDay,protectedPhase:day.qualitySlotBlocked||supplementInput.protectedPhase||hardCross||polarized.status==='protected'||polarized.status==='recover'})
   return intent?{...day,qualityIntent:intent,qualityBlocked:day.kind==='existing'&&(supplementInput.protectedPhase||hardCross||polarized.status==='protected'||polarized.status==='recover')}:day
  })
  const weeklyBudgets=[...new Set([coachMonday(today),...rhythmDays.map(d=>coachMonday(d.date))])].map(start=>budgetFor(rhythmDays,start))
@@ -592,7 +595,8 @@ export function buildSevenDayCoach(input){
  const supplement=rawSupplement.suggestion?.mode==='alternative'&&!alternatives.some(a=>a.date===rawSupplement.suggestion.date)?{...rawSupplement,suggestion:null,reason:'Laufspezifischer Wochenumfang hat Vorrang.'}:rawSupplement
  const currentBudget=weeklyBudgets.find(w=>w?.current)
  if(currentBudget?.target)flags.push('Laufumfang dieser ISO-Woche: Richtwert '+currentBudget.target.low+'–'+currentBudget.target.high+' km; '+(currentBudget.forecastKm===null?'Prognose noch offen.':currentBudget.forecastKm+' km aus bekannten Messungen und Vorschlägen. Keine fehlenden Kilometer nachholen.'))
- return {today,days:rhythmDays,signals,flags,goalProfile,supplement,alternatives,weeklyBudgets,
+ if(allocation.changes.length)flags.push('Wochenplanung: '+allocation.changes.map(c=>c.date+' '+c.from+' → '+c.to+' Min.').join('; ')+' · nur offene Vorschläge.')
+ return {today,days:rhythmDays,signals,flags,goalProfile,supplement,alternatives,weeklyBudgets,weeklyAllocation:allocation.changes,
   trainingMethod:{id:'polarized',qualityDay:polarized.qualityDay,
    status:polarized.status,plannedEasy:polarized.easyCount,
    message:polarized.message},
