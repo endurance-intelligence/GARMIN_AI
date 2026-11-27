@@ -225,7 +225,9 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
     </div>
     <div className="co-recovery-context">
       <span><span className="co-mini-marker"/> Linie: letzte 7 Tage · gestrichelt: dein üblicher Wert</span>
-      <span>Smileys: persönlicher Vergleich, kein allgemeiner Gesundheitswert. Werte allein sind keine Trainingsfreigabe.</span>
+      <span className="co-metric-reference">Smileys: Vergleich mit deinen eigenen Werten der vorherigen 14 Tage. Kein allgemeiner Gesundheitswert.</span>
+      {longRecovery.persistentLow&&<span>HRV zusätzlich: letzte 7 Tage im Vergleich zu früheren eigenen Werten (Tag 14–89).</span>}
+      <span>Werte allein sind keine Trainingsfreigabe.</span>
     </div>
     {(!view?.healthOk||!health)&&<p className="co-data-note">Garmin-Gesundheitsdaten sind momentan nicht verfügbar.</p>}
     {error&&<p className="co-data-note" role="alert">Einige Datenquellen sind gerade nicht erreichbar.</p>}

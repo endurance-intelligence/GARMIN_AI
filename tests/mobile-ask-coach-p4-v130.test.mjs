@@ -11,10 +11,12 @@ test('all supported questions resolve and safety wording takes priority',()=>{
  assert.equal(resolveCoachQuestion('Heute laufen trotz Brustschmerzen?'),'symptoms')
  assert.equal(resolveCoachQuestion('Was ist die Hauptstadt von Frankreich?'),null)
 })
-test('today reuses exact recommendation, reason and missing-data warning',()=>{
+test('today speaks plainly and retains exact recommendation and reason as expandable evidence',()=>{
  const x=ask('today')
  assert.equal(x.title,'Erholung')
- assert.ok(x.body.includes('Original Coach-Begründung'))
+ assert.ok(x.details.includes('Original Coach-Begründung'))
+ assert.ok(!x.body.includes('Original Coach-Begründung'))
+ assert.match(x.body.join(' '),/Erholung dein Training/)
  assert.match(x.body.join(' '),/nicht verfügbar/)
  assert.equal(x.action,'decision')
 })

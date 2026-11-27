@@ -21,7 +21,7 @@ export const COACH_QUESTIONS=[
 ]
 const number=n=>typeof n==='number'&&Number.isFinite(n)
 const format=n=>n.toLocaleString('de-DE',{maximumFractionDigits:1})
-const answer=(title,body,source,action=null)=>({title,body:body.filter(Boolean),source,action})
+const answer=(title,body,source,action=null,details=[])=>({title,body:body.filter(Boolean),source,action,details:details.filter(Boolean)})
 export function resolveCoachQuestion(raw){
  const q=String(raw||'').toLowerCase().trim()
  if(!q)return null
@@ -141,12 +141,19 @@ export function answerCoachQuestion({topic,today,snapshot,plan,weather,query,pre
   ],'Bestehende Garmin-Belastungs- und Coach-Logik','decision')
  }
  const brief=buildCoachDailyBrief({today,plan,health:snapshot.health})
- if(topic==='today')return brief?answer(brief.title,[
-  brief.reason,brief.next,brief.dataNote,brief.symptomNote
- ],brief.source,'decision'):answer('Tagesempfehlung fehlt.',[],'Coach')
+ if(topic==='today'){
+  if(!brief)return answer('Tagesempfehlung fehlt.',[],'Coach')
+  const r=coachRecoveryAdvice({today,history:Array.isArray(snapshot.health?.longRecoveryMetrics)?snapshot.health.longRecoveryMetrics:snapshot.health?.metrics,plan,context:snapshot.life?.context,training:snapshot.health?.training})
+  const day=plan.days.find(d=>d.date===today)
+  const easyRest=brief.kind==='recovery'||brief.kind==='rest'
+  const raceRest=easyRest&&!!brief.race
+  const opening=raceRest?'Du bist noch in der Erholung nach deinem Wettkampf. Heute geht es darum, Kraft zu sammeln, nicht um zusätzliche Kilometer.':easyRest?'Heute ist Erholung dein Training. Gib deinem Körper Zeit, die letzte Belastung zu verarbeiten.':brief.guidance
+  const next=easyRest&&!day?.selectedGroup?'Keine zusätzliche Laufeinheit.':brief.next
+  return answer(brief.title,[opening,r.level==='balanced'?'':r.advice,next,r.level==='balanced'?'':r.tip,brief.dataNote],brief.source,'decision',[brief.reason,r.evidence,brief.symptomNote,r.bodyCheck])
+ }
  if(topic==='recovery'){
   const r=coachRecoveryAdvice({today,history:Array.isArray(snapshot.health?.longRecoveryMetrics)?snapshot.health.longRecoveryMetrics:snapshot.health?.metrics,plan,context:snapshot.life?.context,training:snapshot.health?.training})
-  return answer(r.title,[r.advice,r.evidence,r.tip,r.planText,r.bodyCheck],'Gemeinsamer Coach-Kontext · Garmin-Erholungswerte, Verlauf und Belastung','decision')
+  return answer(r.title,[r.advice,r.tip,r.bodyCheck],'Garmin-Erholungswerte, Verlauf und Belastung','decision',[r.evidence,r.planText])
  }
  if(topic==='progress'){
   const progress=buildCoachProgressStory({today,snapshot})
