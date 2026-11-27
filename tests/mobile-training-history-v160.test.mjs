@@ -43,6 +43,6 @@ test('private append-only endpoint and automatic archive do not approve workouts
  assert.doesNotMatch(edge,/from\('garmin_weekly_plan_history'\)\.(?:upsert|update|delete)\(/)
  assert.match(edge,/\.eq\('user_id',user.id\)/)
  assert.match(read('src/pages/CalendarPage.tsx'),/<TrainingWeekArchive/)
- assert.match(read('src/pages/TrainingPage.tsx'),/<TrainingHistory active=\{active\}/)
+ assert.match(read('src/pages/TrainingPage.tsx'),/<TrainingHistory active=\{active&&view==='history'\}/)
  assert.match(read('src/components/TrainingWeekArchive.tsx'),/void archive\(JSON.parse\(key\)/)
 })
