@@ -121,7 +121,7 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
     </div>
     <small>Erfasste Aktivitäten inkl. Ergänzungstraining. Keine künstlichen Belastungs-/Fitness-Scores.</small>
    </aside>
-   <div className="hwb-scroll" role="region" aria-label="Sieben Wochentage, horizontal scrollbar" tabIndex={0}>
+   <div className="hwb-scroll" role="region" aria-label="Sieben Wochentage" tabIndex={0}>
     <div className="hwb-days">
      {calendarDays.map(({day,acts,manual,local,slot,coach,groupAdvice,dayIntent,rhythm})=>
       <section key={day} className={'hwb-day'+(day===selected?' is-selected':'')+(day===today?' is-today':'')}

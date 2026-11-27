@@ -295,7 +295,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
   if(!garminSupabase||acting||quickLock.current||coachLoading||coachError||!coachPlan||coachPlan.days.find(d=>d.date===day.date)!==day)return
   const action=quickCoachAction(coachPlan,day.date,today)
   if(!quickDecisionAvailable(coachPlan,day.date,today))return
-  setSelected(day.date);setCoachReview(null)
+  selectCalendarDay(day.date)
   if((day.decision||'open')===choice)return
   if(choice==='accepted'&&action==='choose'){onOpenCoach(day.date);return}
   if(choice==='accepted'&&action==='draft'){await acceptCoach(day,true);return}
