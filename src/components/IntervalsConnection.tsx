@@ -65,7 +65,7 @@ export function IntervalsConnection({active}:{active:boolean}){
    {connected?'● Verbunden':loaded?'○ Nicht verbunden':'Prüfe …'}</span></div>
   {connected?
    <div className="gi-connected">
-    <p>Du kannst freigegebene Trainings aus dem Kalender an Intervals.icu senden. Danach synchronisierst du deine Forerunner 965.</p>
+    <p>Du kannst freigegebene Trainings aus dem Kalender an Intervals.icu senden. Danach synchronisierst du deine Garmin-Uhr.</p>
     <button type="button" disabled={busy} className="secondary" onClick={()=>void disconnect()}>
      {confirmDisconnect?'Trennung bestätigen':'Verbindung trennen'}</button>
     {confirmDisconnect&&<button type="button" className="secondary" onClick={()=>setConfirmDisconnect(false)}>Abbrechen</button>}

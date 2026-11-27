@@ -7,7 +7,10 @@ import type {CoachSnapshot} from '../lib/coachSnapshot'
 import {interpretRecovery,formatSleep,differenceLabel,recoveryNarrative} from '../lib/recoveryComparison'
 import {RecoverySparkline} from './RecoverySparkline'
 import {coachTodayChoice} from '../lib/coachTodayChoice.mjs'
-import {recoveryMetricMeaning,recoveryDashboardMeaning} from '../lib/recoveryMeaning.mjs'
+import {recoveryMetricMeaning} from '../lib/recoveryMeaning.mjs'
+import {coachRecoveryAdvice} from '../lib/coachRecoveryAdvice.mjs'
+import type {SevenDayPlan} from '../lib/coachSevenDay.mjs'
+import {CoachAvatar} from './CoachAvatar'
 import {recoveryWeekTrend} from '../lib/recoveryWeekTrend.mjs'
 import '../styles/coach-glance.css'
 
@@ -33,8 +36,8 @@ function shortDay(iso:string){
  const [y,m,d]=iso.split('-')
  return d+'.'+m+'.'+y
 }
-export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactToday=false,recoveryOnly=false}:{
- active:boolean;onCalendar:()=>void;children:ReactNode;sharedSnapshot?:CoachSnapshot|null;compactToday?:boolean;recoveryOnly?:boolean
+export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactToday=false,recoveryOnly=false,dailyPlan=null}:{
+ active:boolean;onCalendar:()=>void;children:ReactNode;sharedSnapshot?:CoachSnapshot|null;compactToday?:boolean;recoveryOnly?:boolean;dailyPlan?:SevenDayPlan|null
 }){
  const [view,setView]=useState<Overview|null>(null)
  const [loading,setLoading]=useState(false)
@@ -136,6 +139,7 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
  const comparison=health?interpretRecovery(view?.healthHistory||[],health.metric_date):null
  const weekTrend=health?recoveryWeekTrend(view?.healthHistory||[],health.metric_date):null
  const [sleep,hrv,rhr]=comparison?.metrics||[]
+ const guidance=coachRecoveryAdvice({today:date,history:view?.healthHistory||[],plan:dailyPlan,context:sharedSnapshot?.life?.context??(view?.blocked?{illness_state:view.blocked}:null),training:sharedSnapshot?.health?.training,completed:!!view?.completedCount})
  return <div className="co-at-a-glance">
   {!recoveryOnly&&<details className="co-today co-today-details" open={compactToday?undefined:true} aria-label="Training heute">
    <summary><span><Icon name="calendar-days"/> Tageskalender &amp; Wetter</span><Icon name="chevron-down"/></summary>
@@ -163,11 +167,17 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
       <span className="co-data-day">{health?'Stand '+shortDay(health.metric_date):'Noch keine Daten'}</span>
     </div>
     <div className="co-recovery-insight">
-      <span className="co-recovery-insight-icon"><Icon name="activity"/></span>
+      <CoachAvatar small mood={guidance.level==='pause'?'firm':guidance.level==='caution'?'focused':guidance.level==='balanced'?'friendly':'supportive'}/>
       <div>
-        <strong>Was deine Werte sagen</strong>
+        <strong>Was deine Werte sagen · Dein Coach</strong>
         <p>{recoveryNarrative(comparison)}</p>
-        <p className="co-recovery-reading">{recoveryDashboardMeaning(comparison)}</p>
+        <div className={'co-recovery-reading co-recovery-guidance '+guidance.level}>
+          <strong>{guidance.title}</strong>
+          <p>{guidance.advice}</p>
+          {guidance.evidence&&<p><b>Warum:</b> {guidance.evidence}</p>}
+          <p><b>Mein Tipp:</b> {guidance.tip}</p>
+          <p>{guidance.planText}</p>
+        </div>
       </div>
     </div>
     <div className="co-trend-grid" role="list" aria-label="Schlaf, HRV und Ruhepuls mit Verlauf der letzten sieben Tage">
@@ -206,6 +216,7 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
         <strong> Ruhepuls:</strong> Wie schnell dein Herz in Ruhe schlägt. Am besten mit deinen eigenen
         Werten vergleichen.</p>
         {weekTrend&&<p><strong>Diese Woche im Vergleich zur Vorwoche:</strong> {weekTrend.summary}</p>}
+        <p>{guidance.bodyCheck} Tagesstress und maximale Body Battery werden nur aus abgeschlossenen Tagen verglichen. Fehlende Werte und heutige unvollständige Tageswerte sind keine Entwarnung.</p>
         <p><strong>So entsteht der Vergleich:</strong> Wir schauen auf deine Messungen aus den
         14 Tagen vor dem neuesten Wert. Der gestrichelte Strich zeigt den Wert in der Mitte
         dieser Messungen (Fachbegriff: Median). Dafür brauchen wir mindestens sieben Tage.

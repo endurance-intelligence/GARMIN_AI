@@ -6,7 +6,7 @@ import {Icon} from './Icon'
 import '../styles/training-rhythm.css'
 const weekdays=['Mo','Di','Mi','Do','Fr','Sa','So']
 const types=[{key:'rowing',title:'Rudern',icon:'waves'},{key:'strength',title:'Stabi & Mobility',icon:'activity'}] as const
-export function TrainingRhythmSettings({active,onSaved}:{active:boolean;onSaved:()=>void}){
+export function TrainingRhythmSettings({active,onSaved,expanded=false}:{active:boolean;onSaved:()=>void;expanded?:boolean}){
  const [draft,setDraft]=useState<TrainingRhythm>(DEFAULT_RHYTHM)
  const [ready,setReady]=useState(false)
  const [busy,setBusy]=useState(false)
@@ -28,7 +28,7 @@ export function TrainingRhythmSettings({active,onSaved}:{active:boolean;onSaved:
   catch(e){setError(e instanceof Error?e.message:'Speichern fehlgeschlagen.')}
   finally{setBusy(false)}
  }
- return <details className="tr-settings">
+ return <details className="tr-settings" open={expanded||undefined}>
   <summary><Icon name="calendar-days"/><span><strong>Mein Trainingsrhythmus</strong><small>Feste Wunschtage für Rudern und Stabi</small></span><Icon name="chevron-down"/></summary>
   <div className="tr-body">
    {types.map(({key,title,icon})=><fieldset key={key} disabled={!ready||busy}>

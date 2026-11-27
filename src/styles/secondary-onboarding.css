@@ -1,0 +1,16 @@
+.onboarding-shell{max-width:760px;margin:0 auto;padding:24px 16px 40px;color:var(--text,#edf2fa)}
+.onboarding-shell header h1{font-size:clamp(24px,5vw,38px);margin:8px 0}
+.onboarding-shell p{line-height:1.55}
+.onboarding-steps{display:flex;flex-wrap:wrap;gap:8px;padding:0;list-style:none;margin:20px 0}
+.onboarding-steps button{display:flex;align-items:center;gap:7px;padding:8px 12px;min-height:44px;background:#152334;color:#b7c8db;border:1px solid #34465b;border-radius:10px;font:inherit;font-size:13px}
+.onboarding-steps [aria-current=step] button{border-color:#a8e6c0;color:#a8e6c0}
+.onboarding-steps span{font-weight:700}
+.onboarding-step{background:#151f2e;border:1px solid #34465b;border-radius:18px;padding:16px;min-width:0}
+.onboarding-shell footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:18px 0}
+.onboarding-shell footer button,.onboarding-shell>button,.onboarding-step>button{min-height:44px;padding:8px 12px;border-radius:10px;border:1px solid #43566b;background:#192b3e;color:#e5edf8;font:inherit}
+.onboarding-shell footer .primary{background:#a8e6c0;color:#0e2921;border-color:#a8e6c0}
+.onboarding-shell button:disabled{opacity:.5}
+.onboarding-shell a{color:#91c7f4}
+.co-recovery-guidance.caution>strong,.co-recovery-guidance.pause>strong{color:#f0c78b}
+.co-recovery-guidance.balanced>strong{color:#a8e6c0}
+.co-recovery-insight>.coach-avatar{flex:0 0 38px;width:38px}
