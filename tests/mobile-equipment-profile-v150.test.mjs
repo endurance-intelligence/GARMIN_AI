@@ -31,7 +31,7 @@ test('settings saves privately, refreshes coach and snapshot includes the owner 
  const reader=read('supabase/functions/_shared/coach-archive-reader.ts')
  assert.match(reader,/normalizeEquipmentProfile\(\{available:equipment.available/)
  assert.match(reader,/garmin_equipment_profile'\).select[^\n]+\.eq\('user_id',userId\)/)
- assert.match(reader,/life:\{context:c,runs,equipmentProfile,trainingRhythm,workoutArchive\}/)
+ assert.match(reader,/life:\{context:c,runs,equipmentProfile,trainingRhythm,workoutArchive,weekRevisions\}/)
  assert.match(read('src/lib/coachSevenDay.mjs'),/equipment:input.life\?\.equipmentProfile/)
  const api=read('supabase/functions/garmin-equipment-profile/index.ts')
  assert.match(api,/auth\.auth\.getUser/)
