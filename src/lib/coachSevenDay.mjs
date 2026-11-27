@@ -582,6 +582,9 @@ export function buildSevenDayCoach(input){
  const weeklyBudgets=[...new Set([coachMonday(today),...rhythmDays.map(d=>coachMonday(d.date))])].map(start=>budgetFor(rhythmDays,start))
  const unfilteredAlternatives=buildDailyTrainingAlternatives({...supplementInput,days:rhythmDays})
  const alternatives=unfilteredAlternatives.flatMap(a=>{
+  const original=rhythmDays.find(d=>d.date===a.date)
+  // Non-running replacements do not remove any forecast running kilometers.
+  if(original&&['rowing','cycling','mobility'].includes(original.kind))return [a]
   const impact=replacementImpact(budgetFor(rhythmDays,a.date),a.date)
   return impact.allowed?[{...a,reason:a.reason+' '+impact.reason}]:[]
  })

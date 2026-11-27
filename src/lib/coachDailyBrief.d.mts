@@ -1,6 +1,7 @@
 import type {SevenDayPlan} from './coachSevenDay.mjs'
 export type CoachDailyBrief={
  date:string;kind:string;label:string;title:string;guidance:string;
+ qualityIntent?:import('./trainingIntent.mjs').QualityIntent|null;qualityBlocked?:boolean;
  reason:string;next:string;minutes:number|null;
  race:{name:string;daysSince:number;actualKm:number|null;linkConfirmed:boolean;dataMissing:boolean}|null;
  dataNote:string;latestHealth:string|null;source:string;actionLabel:string;motive:string;

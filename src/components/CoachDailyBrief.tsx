@@ -3,6 +3,7 @@ import {Icon} from './Icon'
 import type {ReactNode} from 'react'
 import type {GoalSupplementSuggestion} from '../lib/goalTrainingFocus.mjs'
 import {SupplementSessionDetails} from './SupplementSessionDetails'
+import {TrainingQualityMark} from './TrainingQualityMark'
 import {CoachAvatar} from './CoachAvatar'
 import type {CoachMood} from '../lib/coachPersonality.mjs'
 import '../styles/coach-daily-brief.css'
@@ -28,12 +29,13 @@ export function CoachDailyBrief({brief,onDecision,onReportSymptoms,weather,mood=
    </div>
    {brief.minutes!==null&&brief.label!=='TEILNAHME BESTÄTIGT'&&<div className="cdb-hero-duration"><strong>{brief.minutes}<em> min</em></strong><small>VORGESCHLAGENE DAUER</small></div>}
   </div>
+  <TrainingQualityMark intent={brief.qualityIntent} blocked={brief.qualityBlocked} today/>
   {weather&&<div className="cdb-weather">{weather}</div>}
   <div className="cdb-next">
    <strong><Icon name="check-circle"/> DEIN NÄCHSTER SCHRITT</strong>
    <p>{brief.next}</p>
   </div>
-  {supplement&&<div className="cdb-supplement"><small>{supplement.mode==='alternative'?'ODER · AEROBE ALTERNATIVE':'ZIELGERICHTETER SCHWERPUNKT'}</small><strong>{supplement.title} · {supplement.minutes} Min.</strong><p>{supplement.reason}</p><SupplementSessionDetails suggestion={supplement}/><small>{supplement.intensity} · {supplement.mode==='alternative'?'Über die Tagesentscheidung eine Variante auswählen.':'Keine automatische Planänderung.'}</small></div>}
+  {supplement&&<div className="cdb-supplement"><small>{supplement.mode==='alternative'?'ODER · TRAININGSALTERNATIVE':'ZIELGERICHTETER SCHWERPUNKT'}</small><strong>{supplement.title} · {supplement.minutes} Min.</strong><p>{supplement.reason}</p><SupplementSessionDetails suggestion={supplement}/><small>{supplement.intensity} · {supplement.mode==='alternative'?'Über die Tagesentscheidung eine Variante auswählen.':'Keine automatische Planänderung.'}</small></div>}
   <details className="cdb-reason cdb-reason-detail" open={cautious||brief.label==='TEILNAHME BESTÄTIGT'?true:undefined}>
    <summary><Icon name="activity"/> Coach-Einschätzung <Icon name="chevron-down"/></summary>
    <p>{brief.reason}</p>
