@@ -139,7 +139,7 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
  const comparison=health?interpretRecovery(view?.healthHistory||[],health.metric_date):null
  const weekTrend=health?recoveryWeekTrend(view?.healthHistory||[],health.metric_date):null
  const [sleep,hrv,rhr]=comparison?.metrics||[]
- const guidance=coachRecoveryAdvice({today:date,history:view?.healthHistory||[],plan:dailyPlan,context:sharedSnapshot?.life?.context??(view?.blocked?{illness_state:view.blocked}:null),training:sharedSnapshot?.health?.training,completed:!!view?.completedCount})
+ const guidance=coachRecoveryAdvice({today:date,history:(Array.isArray(sharedSnapshot?.health.longRecoveryMetrics)?sharedSnapshot.health.longRecoveryMetrics:view?.healthHistory)||[],plan:dailyPlan,context:sharedSnapshot?.life?.context??(view?.blocked?{illness_state:view.blocked}:null),training:sharedSnapshot?.health?.training,completed:!!view?.completedCount})
  return <div className="co-at-a-glance">
   {!recoveryOnly&&<details className="co-today co-today-details" open={compactToday?undefined:true} aria-label="Training heute">
    <summary><span><Icon name="calendar-days"/> Tageskalender &amp; Wetter</span><Icon name="chevron-down"/></summary>
