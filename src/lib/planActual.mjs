@@ -26,7 +26,7 @@ const expectedSeconds=plan=>{
  const secs=steps.map(x=>x?.endMode==='time'?num(x.durationSeconds):null)
  if(warmup===null||cooldown===null||secs.some(x=>x===null))return null
  const total=warmup+cooldown+secs.reduce((a,b)=>a+b,0)
- return Number.isSafeInteger(total)&&total>=600&&total<=7200?total:null
+ return Number.isSafeInteger(total)&&total>=600&&total<=9000?total:null
 }
 export function assessPlanActual(activity,allActivities,allPlans){
  if(!activity||typeof activity.id!=='string'||!RUN_SPORTS.has(activity.sport))

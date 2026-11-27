@@ -337,6 +337,9 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
     const result=await ownerPost<{published:boolean;intervalsConfirmed:boolean;intervalsEventId:number}>(session,
      'garmin-intervals',{action:'publish',planId:plan.id})
     if(!result.published||!result.intervalsConfirmed)throw Error('Intervals-Bestätigung fehlt')
+    // Legacy idempotent replies may omit the event ID. Reconcile with the
+    // persisted owner record instead of marking an undefined remote ID sent.
+    if(!Number.isSafeInteger(result.intervalsEventId)||result.intervalsEventId<=0)throw Error('Intervals-Event-ID fehlt')
     setPublished(old=>({...old,[plan.id]:{
      id:plan.id,revision:plan.revision,intervals_published_revision:plan.revision,
      intervals_sync_status:'confirmed',intervals_event_id:result.intervalsEventId,intervals_export_version:2}}))
@@ -376,7 +379,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
    if(!session)throw Error('Bitte zuerst anmelden')
    const result=await ownerPost<{published:boolean;intervalsConfirmed:boolean;intervalsEventId:number;validatedStructure:boolean}>(session,
     'garmin-intervals',{action:'repair',planId:plan.id,acknowledge:true})
-   if(!result.published||!result.intervalsConfirmed||!result.validatedStructure)
+   if(!result.published||!result.intervalsConfirmed||!result.validatedStructure||!Number.isSafeInteger(result.intervalsEventId)||result.intervalsEventId<=0)
     throw Error('Die korrigierte Trainingsstruktur wurde nicht bestätigt.')
    setPublished(old=>({...old,[plan.id]:{
     id:plan.id,revision:plan.revision,intervals_published_revision:plan.revision,
