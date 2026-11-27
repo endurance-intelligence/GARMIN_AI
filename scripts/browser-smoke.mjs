@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import {createRequire} from 'node:module'
 import {join} from 'node:path'
+import {instanceStoragePrefix,PRIMARY_URL} from './validate-public-config.mjs'
 import {buildCoachStructuredSnapshot,coachWorkoutAllowed} from '../supabase/functions/_shared/coach-structured-workout.mjs'
 import {buildSevenDayCoach,coachAddDays} from '../src/lib/coachSevenDay.mjs'
 import {quickCoachAction} from '../src/lib/calendarQuickAccept.mjs'
@@ -8,10 +9,13 @@ import {buildIntervalsEvent,buildIntervalsWorkout,validateStoredIntervalsWorkout
 import {assessPlanActual} from '../src/lib/planActual.mjs'
 const require=createRequire(join(process.env.SMOKE_TOOLS_DIR,'package.json'))
 const {chromium}=require('playwright')
-const origin='http://127.0.0.1:4173'
-const url=origin+'/GARMIN_AI/'
+const origin='http://127.0.0.1:'+(process.env.SMOKE_PORT||'4173')
+const secondary=process.env.VITE_GARMIN_INSTANCE==='secondary'
+const url=origin+(secondary?'/GARMIN_AI/athlete/':'/GARMIN_AI/')
 const supabase=new URL(process.env.VITE_GARMIN_SUPABASE_URL)
 const storageKey='sb-'+supabase.hostname.split('.')[0]+'-auth-token'
+const prefix=instanceStoragePrefix(supabase.origin,secondary?'secondary':'primary')
+const primaryStorageKey='sb-'+new URL(PRIMARY_URL).hostname.split('.')[0]+'-auth-token'
 const uid='00000000-0000-4000-8000-000000000004'
 const expires=Math.floor(Date.now()/1000)+3600
 const encode=x=>Buffer.from(JSON.stringify(x)).toString('base64url')
@@ -84,10 +88,17 @@ async function context(mode,width,height,flow=null){
   if(u.pathname==='/functions/v1/garmin-training-plan'&&req.method()==='GET')return send(200,{entries:[]})
   return send(503,{error:'Fixture intentionally unavailable'})
  })
- if(mode!=='anonymous')await ctx.addInitScript(({storageKey,session})=>{
-  localStorage.setItem(storageKey,JSON.stringify(session))
-  sessionStorage.setItem('garmin-ai:last-page:v1','training')
- },{storageKey,session})
+ await ctx.addInitScript(({storageKey,session,prefix,primaryStorageKey,secondary,mode})=>{
+  if(secondary){
+   // A valid primary session must never authorize the other project.
+   localStorage.setItem(primaryStorageKey,JSON.stringify(session))
+   sessionStorage.setItem('garmin-ai:last-page:v1','race')
+  }
+  if(mode!=='anonymous'){
+   localStorage.setItem(storageKey,JSON.stringify(session))
+   sessionStorage.setItem(prefix+'garmin-ai:last-page:v1','training')
+  }
+ },{storageKey,session,prefix,primaryStorageKey,secondary,mode})
  const page=await ctx.newPage()
  const errors=[]
  page.on('pageerror',err=>errors.push(err.message))
@@ -135,6 +146,10 @@ try{
   await page.getByRole('button',{name:'Zurück zu Mehr'}).click()
   await page.getByRole('button',{name:/Stabi Studio/}).waitFor()
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'no full-page horizontal overflow at '+width)
+  if(secondary){
+   assert.equal(await page.evaluate(()=>sessionStorage.getItem('garmin-ai:last-page:v1')),'race','primary navigation is untouched')
+   assert.equal(await page.evaluate(key=>sessionStorage.getItem(key),prefix+'garmin-ai:last-page:v1'),'more','secondary navigation stays in its own namespace')
+  }
   assert.deepEqual(errors,[],'no uncaught browser errors at '+width)
   await ctx.close()
  }

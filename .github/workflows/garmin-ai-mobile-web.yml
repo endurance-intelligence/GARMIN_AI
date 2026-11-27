@@ -74,6 +74,38 @@ jobs:
           node scripts/browser-smoke.mjs
       - name: Verify live private API denies anonymous and invalid sessions
         run: node scripts/security-live-read-smoke.mjs
+      - name: Verify secondary build with synthetic isolated project
+        env:
+          VITE_GARMIN_INSTANCE: secondary
+          VITE_GARMIN_SUPABASE_URL: https://abcdefghijklmnopqrst.supabase.co
+          SMOKE_TOOLS_DIR: ${{ runner.temp }}/garmin-smoke
+          SMOKE_PORT: '4174'
+        run: |
+          export VITE_GARMIN_SUPABASE_PUBLISHABLE_KEY="$(printf '%s_%s_%s' sb publishable fixturefixturefixturefixture)"
+          node scripts/validate-public-config.mjs
+          npm run build -- --outDir "$RUNNER_TEMP/garmin-secondary-fixture"
+          grep -q '/GARMIN_AI/athlete/assets/' "$RUNNER_TEMP/garmin-secondary-fixture/index.html"
+          npm run preview -- --host 127.0.0.1 --port 4174 --strictPort --outDir "$RUNNER_TEMP/garmin-secondary-fixture" > "$RUNNER_TEMP/garmin-secondary-preview.log" 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill "$PREVIEW_PID" 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            if curl --silent --fail http://127.0.0.1:4174/GARMIN_AI/athlete/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/browser-smoke.mjs
+      - name: Build and verify explicitly enabled secondary production app
+        if: vars.GARMIN_SECONDARY_ENABLED == 'true'
+        env:
+          VITE_GARMIN_INSTANCE: secondary
+          VITE_GARMIN_SUPABASE_URL: ${{ vars.GARMIN_SECONDARY_SUPABASE_URL }}
+          VITE_GARMIN_SUPABASE_PUBLISHABLE_KEY: ${{ vars.GARMIN_SECONDARY_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          node scripts/validate-public-config.mjs
+          npm run build -- --outDir "$RUNNER_TEMP/garmin-secondary-production"
+          grep -q '/GARMIN_AI/athlete/assets/' "$RUNNER_TEMP/garmin-secondary-production/index.html"
+          node scripts/security-live-read-smoke.mjs
+          mkdir -p dist/athlete
+          cp -a "$RUNNER_TEMP/garmin-secondary-production/." dist/athlete/
       # Upload the verified build ONCE, in the verification job. Separating
       # upload and deployment avoids the GitHub artifact-indexing race and
       # prevents duplicate "github-pages" artifacts when deploy is retried.
