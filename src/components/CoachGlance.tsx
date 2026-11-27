@@ -180,7 +180,7 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
           <p className="co-recovery-lead">{guidance.advice}</p>
           <div className="co-recovery-next"><span className="co-eyebrow">MEIN TIPP FÜR DICH</span><p>{guidance.tip}</p></div>
           <small className="co-recovery-plan">{guidance.planText}</small>
-          <details className="co-recovery-why"><summary>Warum ich das empfehle</summary><p>{recoveryNarrative(comparison)}</p>{guidance.evidence&&<p>{guidance.evidence}</p>}</details>
+          <details className="co-recovery-why"><summary>Was deine Werte sagen – warum ich das empfehle</summary><p>{recoveryNarrative(comparison)}</p>{guidance.evidence&&<p>{guidance.evidence}</p>}</details>
         </div>
       </div>
     </div>

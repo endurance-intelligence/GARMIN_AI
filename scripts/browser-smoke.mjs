@@ -196,6 +196,22 @@ try{
  const today='2026-11-17',start='2026-11-16'
  const rhythm={rowing:{days:[],minutes:30},strength:{days:[],minutes:30}}
  const snapshot={today,health:{metrics:Array.from({length:18},(_,i)=>({metric_date:coachAddDays(today,i-17),hrv_ms:51,resting_heart_rate:43,sleep_seconds:8*3600})),training:{runKm7:42,previousRunKm7:39,truncated:false,historyStatus:'complete'}},boards:[{start,activities:[],manual:[]}],options:{options:[],choices:[]},plans:{entries:[]},goal:{goal:{race_date:coachAddDays(today,4),race_name:'Synthetic race',distance_km:50}},life:{context:{illness_state:'well',return_started_on:null,blocked_periods:[],run_reviews:[]},runs:[],trainingRhythm:rhythm}}
+ // Exercise the morning panel with real-shaped but entirely synthetic measured rows.
+ snapshot.health.metrics=snapshot.health.metrics.map(r=>({...r,stress_avg:24,body_battery_max:87}))
+ snapshot.health.longRecoveryMetrics=snapshot.health.metrics.map(r=>({...r,sleepDetail:{score:81,deepSeconds:3600,lightSeconds:18000,remSeconds:7200,awakeSeconds:600,sleepStress:20}}))
+ const morningFlow={snapshot,plan:null,writes:[]}
+ const morning=await context('owner',390,844,morningFlow)
+ await morning.page.locator('.footmobile').getByRole('button',{name:'Coach',exact:true}).click()
+ const panel=morning.page.getByRole('region',{name:'Garmin Erholung mit grafischen Trends'})
+ await panel.getByText('Garmin Sleep Score',{exact:false}).waitFor()
+ await panel.getByText('87 / 100',{exact:true}).waitFor()
+ await panel.getByText('24 / 100',{exact:true}).waitFor()
+ assert.equal(await panel.locator('.co-sleep-bar .co-sleep-stage').count(),4)
+ const avatar=await panel.locator('.co-recovery-insight .coach-avatar').boundingBox()
+ assert.ok(avatar&&avatar.width>=80,'morning coach avatar full size')
+ assert.ok(await morning.page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'morning mobile layout has no horizontal overflow')
+ assert.deepEqual(morning.errors,[])
+ await morning.ctx.close()
  const recommendation=buildSevenDayCoach(snapshot)
  const candidate=recommendation.days.find(d=>d.date<=coachAddDays(start,6)&&d.sport==='running'&&quickCoachAction(recommendation,d.date,today)==='draft')
  assert.ok(candidate,'fixture must offer a real draftable running recommendation')
