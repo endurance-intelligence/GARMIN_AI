@@ -16,11 +16,12 @@ type View=typeof views[number]['id']
 export function TrainingPage({active,focus,onGo,onOpenSession,onOpenCalendar}:{active:boolean;onGo:(page:Page)=>void;onOpenSession:(id:string)=>void;onOpenCalendar:()=>void;
  focus?:{activityId:string;token:number}|null}){
  const [view,setView]=useState<View>('session')
+ const [historyFocus,setHistoryFocus]=useState(0)
  useEffect(()=>{
   if(focus?.token!==undefined)setView('session')
  },[focus?.token])
  useEffect(()=>{
-  const history=()=>setView('history')
+  const history=()=>{setHistoryFocus(n=>n+1);setView('history')}
   const development=()=>setView('development')
   window.addEventListener('garmin-ai-open-training-history',history)
   window.addEventListener('garmin-ai-open-training-development',development)
@@ -41,7 +42,7 @@ export function TrainingPage({active,focus,onGo,onOpenSession,onOpenCalendar}:{a
     <strong>{item.title}</strong><small>{item.description}</small>
    </button>)}
   </nav>
-  <TrainingHistory active={active&&view==='history'} onCalendar={onOpenCalendar}/>
+  <TrainingHistory active={active&&view==='history'} focusToken={historyFocus} onCalendar={onOpenCalendar}/>
   <TrainingDevelopment active={active&&view==='development'} onGoals={()=>onGo('goals')} onRacePrep={()=>onGo('race')} onOpenSession={onOpenSession} onOpenCalendar={onOpenCalendar} onStrength={()=>onGo('strength')}/>
   <LiveSessionAnalyst active={active&&view==='session'} focus={focus}/>
   <p className="page-disclaimer">Nur echte Garmin-Daten. Keine künstlichen Trainingsnoten,
