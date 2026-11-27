@@ -12,6 +12,7 @@ export function savedQualityIntent(plan){
  const s=plan.archive_snapshot
  // Only explicit coach workout purpose, never infer from a session name or RPE.
  if(s?.sourceKind==='coach'&&['quality','intervals','tempo','threshold','vo2max','hill_intervals'].includes(s.coachKind))return plan.state==='draft'?'candidate':'planned'
+ if(plan.archive_workout_id&&Array.isArray(s?.group?.steps)&&s.group.steps.filter(x=>x.kind==='run').length>=2&&s.group.steps.some(x=>x.kind==='recovery'))return plan.state==='draft'?'candidate':'planned'
  return null
 }
 export function qualityPresentation(intent){
