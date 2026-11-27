@@ -1,0 +1,10 @@
+.training-view-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 18px;padding:5px;border:1px solid #354b65;border-radius:15px;background:#111c2e}
+.training-view-nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:58px;min-width:0;border:1px solid transparent;border-radius:10px;background:transparent;color:#a9bdd6;padding:8px 5px;cursor:pointer;font:inherit;text-align:center}
+.training-view-nav button strong{font-size:clamp(12px,2vw,15px);overflow-wrap:anywhere}
+.training-view-nav button small{font-size:11px;line-height:1.25;overflow-wrap:anywhere}
+.training-view-nav button[aria-pressed=true]{background:#294961;color:#edf5ff;border-color:#5f86aa}
+.training-view-nav button:focus-visible{outline:2px solid #a8e6c0;outline-offset:2px}
+.training-view-heading{padding:18px clamp(15px,3vw,26px) 12px}
+.training-view-heading h2{font-size:clamp(20px,3vw,27px);letter-spacing:-.03em;margin:0 0 5px;color:#edf5ff}
+.training-view-heading p{font-size:13px;line-height:1.45;color:#a9bdd6;margin:0}
+@media(max-width:420px){.training-view-nav{gap:3px}.training-view-nav button small{font-size:10px}.training-view-nav button{padding:7px 3px}}
