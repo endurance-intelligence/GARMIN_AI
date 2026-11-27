@@ -22,8 +22,8 @@ test('run summary and coach conclusion precede optional technical details; stale
 })
 test('training reuses existing progress cards and lazily loads four completed weeks, no write operations',()=>{
  const page=read('src/pages/TrainingPage.tsx'),s=read('src/components/TrainingDevelopment.tsx')
- assert.match(page,/<TrainingDevelopment active=\{active\} focusToken=\{focus\?\.token\}/)
- assert.match(s,/if\(!active\|\|!open\|\|!garminSupabase\)/)
+ assert.match(page,/<TrainingDevelopment active=\{active&&view==='development'\}/)
+ assert.match(s,/if\(!active\|\|!garminSupabase\)/)
  assert.match(s,/loadCoachSnapshot\(session,today,controller.signal,undefined,4\)/)
  assert.match(s,/<CoachProgressPulse/)
  assert.match(s,/<CoachLongTermCard/)

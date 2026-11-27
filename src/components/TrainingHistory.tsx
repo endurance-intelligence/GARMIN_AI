@@ -26,34 +26,33 @@ function SummaryRows({actual,planned,original}:{actual:HistorySummary;planned:Hi
   })}
  </div>
 }
-export function TrainingHistory({active,onCalendar}:{active:boolean;onCalendar:()=>void}){
+export function TrainingHistory({active,onCalendar,focusToken=0}:{active:boolean;onCalendar:()=>void;focusToken?:number}){
  const today=berlinDateToday(),current=today.slice(0,7)
- const [open,setOpen]=useState(false)
  const [month,setMonth]=useState(current)
  const [view,setView]=useState<'month'|'weeks'>('month')
  const [data,setData]=useState<Awaited<ReturnType<typeof readTrainingMonth>>|null>(null)
  const [loading,setLoading]=useState(false)
  const [error,setError]=useState('')
  const [refresh,setRefresh]=useState(0)
+ useEffect(()=>{if(focusToken){setMonth(current);setRefresh(n=>n+1)}},[focusToken,current])
  useEffect(()=>{
-  const openHistory=()=>{setOpen(true);setMonth(current);setRefresh(n=>n+1);requestAnimationFrame(()=>document.getElementById('training-history')?.scrollIntoView({block:'start',behavior:'smooth'}))}
   const changed=()=>setRefresh(n=>n+1)
-  window.addEventListener('garmin-ai-open-training-history',openHistory);window.addEventListener('garmin-ai-training-history-changed',changed)
-  return ()=>{window.removeEventListener('garmin-ai-open-training-history',openHistory);window.removeEventListener('garmin-ai-training-history-changed',changed)}
- },[current])
+  window.addEventListener('garmin-ai-training-history-changed',changed)
+  return ()=>window.removeEventListener('garmin-ai-training-history-changed',changed)
+ },[])
  useEffect(()=>{
-  if(!active||!open)return
+  if(!active)return
   const controller=new AbortController()
   setLoading(true);setError('');setData(null)
   void readTrainingMonth(month,controller.signal).then(d=>{if(!controller.signal.aborted)setData(d)}).catch(e=>{if(!controller.signal.aborted)setError(e instanceof Error?e.message:'Historie nicht verfügbar.')}).finally(()=>{if(!controller.signal.aborted)setLoading(false)})
   return ()=>controller.abort()
- },[active,open,month,refresh])
+ },[active,month,refresh])
  const model=useMemo(()=>data?.month===month?historyModel(data):null,[data,month])
  const monthLabel=new Intl.DateTimeFormat('de-DE',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(month+'-01T12:00:00Z'))
  if(!active)return null
- return <details id="training-history" className="th-history" open={open} onToggle={e=>setOpen(e.currentTarget.open)}>
-  <summary><span className="th-icon"><Icon name="calendar-days"/></span><span><small>TRAININGSJOURNAL · SOLL &amp; IST</small><strong>Meine Trainingshistorie</strong><span>Wochen und Monate · dauerhaft gespeicherte Planstände</span></span><Icon name="chevron-down"/></summary>
-  {open&&<div className="th-body">
+ return <section id="training-history" className="th-history training-view-panel" aria-label="Meine Trainingshistorie">
+  <header className="training-view-heading"><h2>Meine Trainingshistorie</h2><p>Wochen und Monate · dauerhaft gespeicherte Planstände · Soll &amp; Ist</p></header>
+  <div className="th-body">
    <div className="th-month-nav"><button type="button" aria-label="Vorheriger Monat" disabled={month<='2000-01'} onClick={()=>setMonth(m=>shiftMonth(m,-1))}>‹</button><h3>{monthLabel}</h3><button type="button" aria-label="Nächster Monat" disabled={month>=shiftMonth(current,1)} onClick={()=>setMonth(m=>shiftMonth(m,1))}>›</button></div>
    <div className="th-tabs" role="group" aria-label="Ansicht"><button type="button" aria-pressed={view==='month'} onClick={()=>setView('month')}>Monat</button><button type="button" aria-pressed={view==='weeks'} onClick={()=>setView('weeks')}>Wochen</button></div>
    {loading&&<p role="status">Trainingshistorie wird geladen …</p>}
@@ -73,6 +72,6 @@ export function TrainingHistory({active,onCalendar}:{active:boolean;onCalendar:(
     <p className="th-note">Garmin-Archiv und manuelle Ergänzungseinheiten. Plausible doppelte manuelle Einträge (gleicher Sport, Tag und Dauer ±5 Min.) werden einmal gezählt. Nicht synchronisierte Aktivitäten können fehlen.</p>
    </>}
    <button type="button" className="th-secondary" onClick={onCalendar}>Zum Kalender</button>
-  </div>}
- </details>
+  </div>
+ </section>
 }

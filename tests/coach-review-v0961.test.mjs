@@ -52,7 +52,7 @@ test('only a valid future goal triggers race-day advice',()=>{
 test('real reviews are visible in day calendar, coach week and session analyst',()=>{
  const fs=requireSourceFiles()
  assert.ok(fs.calendar.includes('showDayEvidence&&<CoachEvidenceSummary active={active&&showDayEvidence}'))
- assert.ok(fs.coach.includes('<CoachEvidenceSummary active={active&&open} mode="weekly"'))
+ assert.ok(fs.coach.includes('<CoachEvidenceSummary active={active&&evidenceOpen} mode="weekly"'))
  assert.ok(fs.analyst.includes('<CoachEvidenceSummary active={active} mode="training" activityId={activity.id} embedded/>'))
  assert.ok(fs.analyst.includes('<SessionCoachContext key={details.activity.id}'))
  assert.ok(fs.component.includes("embedded&&mode==='training'"))

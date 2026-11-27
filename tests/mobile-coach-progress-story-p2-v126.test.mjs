@@ -150,7 +150,7 @@ test('P2 follows the daily coach brief and decision workflow, links to existing 
  assert.match(longTerm,/garmin-week-board\?start=/)
  assert.match(longTerm,/<CoachAerobicEfficiencyCard/)
  assert.match(longTerm,/<CoachReferenceRoutesCard/)
- assert.match(analysis,/<CoachLongTermCard today=\{today\} snapshot=\{snapshot\} active=\{active&&open\}\/>/)
+ assert.match(analysis,/<CoachLongTermCard today=\{today\} snapshot=\{snapshot\} active=\{active\}\/>/)
  assert.match(style,/@media\(max-width:430px\)/)
  assert.match(style,/min-height:44px/)
 })

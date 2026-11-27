@@ -92,7 +92,7 @@ test('Coach displays recent Garmin sessions and deep-links exact activity throug
  assert.match(read('src/components/TrainingDevelopment.tsx'),/<CoachSessionBridge snapshot=\{snapshot\}/)
  assert.match(app,/setSessionFocus\(prev=>\(\{activityId,token:/)
  assert.match(app,/go\('training'\)/)
- assert.match(training,/<LiveSessionAnalyst active=\{active\} focus=\{focus\}\/\>/)
+ assert.match(training,/<LiveSessionAnalyst active=\{active&&view==='session'\} focus=\{focus\}\/\>/)
  assert.match(analyst,/const requested=focus\?\.activityId\|\|''/)
  assert.match(analyst,/setSelected\(requested\)/)
  assert.match(analyst,/Es wird kein anderer Lauf stillschweigend geöffnet/)
