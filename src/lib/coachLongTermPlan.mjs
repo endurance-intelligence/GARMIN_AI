@@ -77,7 +77,7 @@ export function buildLongTermCoachPlan({today,goal,health,life,racePortfolio,his
    const cap=reliable?Math.min(km,baseKm):null
    const low=cap===null?null:Math.round(cap*(i===3?.7:.85)),high=cap===null?null:Math.round(cap*(i===3?.85:1))
    weeks.push({index:i+1,start,end,phase:hold?'paused':'base',phaseLabel:hold?'Pause':'Fitness erhalten',
-    trainingMethod:'polarized',qualityOptions:0,polarization:'Überwiegend locker, Intensität individuell prüfen.',
+    trainingMethod:'polarized',qualityOptions:clubSlots&&reliable&&i!==3?clubSlots:0,polarization:'Überwiegend locker, reguläre ORC-Qualitätsreize nur bei ausreichender Erholung.',
     focus:hold?'Erholung hat Vorrang.':'Regelmäßige lockere Läufe, Stabilität und Erholung. Keine Kilometer nachholen.',
     key:'Fit halten · '+km+' km/Woche als gewünschter Richtwert',targetKm:low===null?null:{low,high},longRunMinutes:null,
     kind:'Fitness erhalten',isCurrent:i===0,isRaceWeek:false,status:hold?'caution':'draft'})
