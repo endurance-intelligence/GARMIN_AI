@@ -6,6 +6,7 @@ import {CoachTodayWeather} from '../components/CoachTodayWeather'
 import {CoachGlance} from '../components/CoachGlance'
 import {CoachHealthStatus} from '../components/CoachHealthStatus'
 import {berlinToday} from '../components/WeeklyTrainingOptions'
+import {ArchivedWeekLearningCard} from '../components/ArchivedWeekLearningCard'
 import {TrainingWeekArchive} from '../components/TrainingWeekArchive'
 import {makePlanSnapshot} from '../lib/trainingHistory.mjs'
 import {CoachDailyBrief} from '../components/CoachDailyBrief'
@@ -116,6 +117,7 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
   weather={<CoachTodayWeather active={active} snapshot={sharedSnapshot!} plan={dailyPlan!} onReport={setWeatherAnswer}/>}/>}
 
 
+ {dailyPlan?.archivedLearning&&!snapshotLoading&&!snapshotError&&<ArchivedWeekLearningCard review={dailyPlan.archivedLearning}/>}
  {archiveSnapshot&&!snapshotLoading&&!snapshotError&&<TrainingWeekArchive key={archiveSnapshot.weekStart} active={active} snapshot={archiveSnapshot} compact onHistory={()=>{onGo('training');window.dispatchEvent(new Event('garmin-ai-open-training-history'))}}/>}
  {snapshotLoading&&!sharedSnapshot&&!snapshotError&&<p className="co-data-note" role="status">
   Lade deine Garmin-, Kalender- und Coach-Daten gemeinsam …</p>}
