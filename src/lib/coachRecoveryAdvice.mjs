@@ -73,7 +73,7 @@ export function coachRecoveryAdvice({today,history=[],plan=null,context=null,tra
  if(fresh){
   if(lowSleep)plain.push('Du hast '+fmt(Math.abs(sleep.difference)/60)+' Minuten weniger geschlafen als sonst.')
   else if(shortSleep)plain.push('Du hast weniger als sechs Stunden geschlafen.')
-  else if(sleepQuality.disrupted)plain.push('Deine Nacht war weniger erholsam als sonst.')
+  else if(sleepQuality.disrupted)plain.push('Deine Schlafwerte sind schwächer als sonst.')
   if(lowHrv)plain.push('Deine HRV liegt deutlich unter deinem Normalwert.')
   if(highPulse)plain.push('Dein Ruhepuls ist deutlich höher als sonst.')
  }
@@ -85,7 +85,7 @@ export function coachRecoveryAdvice({today,history=[],plan=null,context=null,tra
  if(!plain.length&&(persistent||weekHrv||weekPulse||weekSleep))plain.push('Deine Werte waren in den letzten Tagen wiederholt auffällig.')
  const raceRest=Number.isInteger(race?.daysSince)&&race.daysSince>=0&&race.daysSince<=21&&['matched','ambiguous','awaiting-sync'].includes(race.status)&&day?.kind==='recovery'&&/wettkampf|renn/i.test(day.title||'')
  const why=(fallback,limit=2)=>plain.slice(0,limit).join(' ')||fallback
- const canSayOtherValuesOkay=fresh&&finite(hrv?.difference)&&finite(pulse?.difference)&&!lowHrv&&!highPulse&&!longTerm.persistentLow&&hrv.median>0&&Math.abs(hrv.difference/hrv.median)<.25
+ const canSayOtherValuesOkay=fresh&&finite(hrv?.difference)&&finite(pulse?.difference)&&!lowHrv&&!highPulse&&Math.abs(pulse.difference)<5&&!longTerm.persistentLow&&hrv.median>0&&Math.abs(hrv.difference/hrv.median)<.25
  const otherValues=canSayOtherValuesOkay&&(lowSleep||shortSleep)&&plain.length===1?' HRV und Ruhepuls sind im kurzfristigen Vergleich unauffällig.':''
  const bodyCheck='Dein aktuelles Körpergefühl kann ich nicht messen. Bei Schmerzen, Schwindel, ungewöhnlicher Atemnot oder deutlichem Krankheitsgefühl nicht trainieren und Beschwerden bei Bedarf medizinisch abklären.'
  const planText=day?'Aktueller Coach-Plan: '+day.title+'.':'Der gemeinsame Tagesplan ist aktuell nicht vollständig verfügbar.'

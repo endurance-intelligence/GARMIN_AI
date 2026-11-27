@@ -19,11 +19,12 @@ test('rest guidance gives the actual reason, never echoes technical planner text
 test('relative markers distinguish typical, mild, strong, missing and stale values',()=>{
  assert.equal(recoveryStatus('sleep_seconds',6.5*3600,8*3600).tone,'notice')
  assert.equal(recoveryStatus('hrv_ms',63,60).tone,'usual')
- assert.equal(recoveryStatus('hrv_ms',48,60).tone,'mild')
+ assert.equal(recoveryStatus('hrv_ms',52,60).tone,'mild')
  assert.equal(recoveryStatus('hrv_ms',20,60).tone,'notice')
  assert.equal(recoveryStatus('resting_heart_rate',53,50).tone,'usual')
  assert.equal(recoveryStatus('stress_avg',30,24).tone,'mild')
  assert.equal(recoveryStatus('body_battery_max',90,80).tone,'higher')
+ assert.equal(recoveryStatus('hrv_ms',60,60,{persistentLow:true}).tone,'notice')
  assert.equal(recoveryStatus('hrv_ms',60,null).tone,'unknown')
  assert.equal(recoveryStatus('hrv_ms',60,60,{fresh:false}).tone,'unknown')
  assert.equal(sleepScoreStatus(history,today).tone,'usual')

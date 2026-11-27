@@ -14,6 +14,7 @@ import {CoachAvatar} from './CoachAvatar'
 import {RecoverySleepDetails} from './RecoverySleepDetails'
 import {RecoveryStatusMark} from './RecoveryStatusMark'
 import {recoveryStatus,sleepScoreStatus} from '../lib/recoveryStatus.mjs'
+import {analyzeLongTermRecovery} from '../lib/longTermRecovery.mjs'
 import {completedDaySignal} from '../lib/recoverySleep.mjs'
 import type {RecoveryDay} from '../lib/recoveryComparison'
 import {recoveryWeekTrend} from '../lib/recoveryWeekTrend.mjs'
@@ -145,6 +146,7 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
  const weekTrend=health?recoveryWeekTrend(view?.healthHistory||[],health.metric_date):null
  const [sleep,hrv,rhr]=comparison?.metrics||[]
  const recoveryHistory:HealthDay[]=(Array.isArray(sharedSnapshot?.health.longRecoveryMetrics)?sharedSnapshot.health.longRecoveryMetrics:view?.healthHistory)||[]
+ const longRecovery=analyzeLongTermRecovery(recoveryHistory,date)
  const energy=[{key:'stress_avg' as const,label:'Stress',tone:'stress',icon:'activity'},{key:'body_battery_max' as const,label:'Body Battery · Maximum',tone:'battery',icon:'battery-charging'}].map(x=>({...x,signal:completedDaySignal(recoveryHistory,date,x.key)}))
  const guidance=coachRecoveryAdvice({today:date,history:recoveryHistory,plan:dailyPlan,context:sharedSnapshot?.life?.context??(view?.blocked?{illness_state:view.blocked}:null),training:sharedSnapshot?.health?.training,completed:!!view?.completedCount})
  return <div className="co-at-a-glance">
@@ -199,7 +201,7 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
            <span className="co-trend-diff">{differenceLabel(entry.row)}</span>}
         </div>
         <strong className="co-trend-value">{entry.value}</strong>
-        <RecoveryStatusMark status={recoveryStatus(entry.key,entry.row?.latest,entry.row?.median,{fresh:health?.metric_date===date})}/>
+        <RecoveryStatusMark status={recoveryStatus(entry.key,entry.row?.latest,entry.row?.median,{fresh:health?.metric_date===date,persistentLow:longRecovery.persistentLow})}/>
         {health?
           <RecoverySparkline history={view?.healthHistory||[]}
             metric={entry.key} day={health.metric_date}

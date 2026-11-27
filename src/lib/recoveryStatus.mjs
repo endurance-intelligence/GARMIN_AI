@@ -3,9 +3,10 @@
 const num=v=>typeof v==='number'&&Number.isFinite(v)
 const status=(tone,label)=>({tone,label,emoji:{usual:'🙂',mild:'😐',notice:'😕',unknown:'—',higher:'🙂'}[tone]})
 const unknown=()=>status('unknown','Kein Vergleich')
-export function recoveryStatus(metric,value,baseline,{fresh=true}={}){
+export function recoveryStatus(metric,value,baseline,{fresh=true,persistentLow=false}={}){
  if(!fresh)return status('unknown','Nicht aktuell')
  if(!num(value))return status('unknown','Kein Messwert')
+ if(metric==='hrv_ms'&&persistentLow)return status('notice','Längerfristig niedriger')
  if(!num(baseline))return unknown()
  const delta=value-baseline
  const negative=(change,mild,strong,betterLabel='Günstiger als sonst')=>change>=strong?status('notice','Deutlich auffällig'):change>=mild?status('mild','Leicht auffällig'):change<=-mild?status('higher',betterLabel):status('usual','Wie gewohnt')
@@ -19,13 +20,13 @@ export function recoveryStatus(metric,value,baseline,{fresh=true}={}){
  if(metric==='hrv_ms'){
   if(baseline<=0)return unknown()
   const ratio=delta/baseline
-  if(ratio<=-.20)return status('notice','Deutlich niedriger')
+  if(ratio<=-.15)return status('notice','Deutlich niedriger')
   if(ratio<=-.10)return status('mild','Etwas niedriger')
   if(ratio>=.25)return status('mild','Deutlich höher')
   if(ratio>=.10)return status('usual','Etwas höher')
   return status('usual','Wie gewohnt')
  }
- if(metric==='resting_heart_rate')return delta<=-5?status('mild','Deutlich niedriger'):negative(delta,4,7,'Niedriger als sonst')
+ if(metric==='resting_heart_rate')return delta<=-5?status('mild','Deutlich niedriger'):negative(delta,4,5,'Niedriger als sonst')
  if(metric==='stress_avg')return negative(delta,5,10,'Weniger als sonst')
  if(metric==='body_battery_max')return negative(-delta,8,15,'Höher als sonst')
  if(metric==='score')return negative(-delta,8,15,'Höher als sonst')
