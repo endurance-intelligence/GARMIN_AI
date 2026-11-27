@@ -22,7 +22,7 @@ export function analyzeArchivedWeeks({today,boards=[],revisions=[]}={}){
   if(!board||!latest||!initial||revisions.some(r=>r.week_start===start&&r.snapshot?.partial!==false))return basic
   // Exclude race/recovery/taper and unknown phase. A race is not a volume error.
   const phase=String(latest.phase||'').toLowerCase()
-  const normal=/grundlag|basis|aufbau|spezif|peak|formaufbau|fit halten|erhalt|base|build|specific/.test(phase)&&!/entlast|regener|wettkampf|taper|pause|erhol/.test(phase)
+  const normal=/grundlag|basis|aufbau|spezif|peak|letzter trainingsblock|formaufbau|fit halten|erhalt|base|build|specific/.test(phase)&&!/entlast|regener|wettkampf|taper|pause|erhol/.test(phase)
   const planned=summarizeEntries(latest.entries,start,end).runKm
   const original=summarizeEntries(initial.entries,start,end).runKm
   const actual=summarizeEntries(collectActual(board.activities,board.manual,today),start,end).runKm
