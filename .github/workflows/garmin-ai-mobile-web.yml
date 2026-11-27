@@ -17,7 +17,7 @@ concurrency:
 jobs:
   verify:
     name: Test full production source
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -55,6 +55,22 @@ jobs:
         run: npm run build
       - name: Validate Pages base path
         run: grep -q '/GARMIN_AI/assets/' dist/index.html
+      - name: Install isolated browser smoke tooling
+        run: |
+          npm install --prefix "$RUNNER_TEMP/garmin-smoke" --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright@1.56.1
+          "$RUNNER_TEMP/garmin-smoke/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Browser smoke against production build (isolated fixtures)
+        env:
+          SMOKE_TOOLS_DIR: ${{ runner.temp }}/garmin-smoke
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > "$RUNNER_TEMP/garmin-preview.log" 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill "$PREVIEW_PID" 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            if curl --silent --fail http://127.0.0.1:4173/GARMIN_AI/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/browser-smoke.mjs
       # Upload the verified build ONCE, in the verification job. Separating
       # upload and deployment avoids the GitHub artifact-indexing race and
       # prevents duplicate "github-pages" artifacts when deploy is retried.
