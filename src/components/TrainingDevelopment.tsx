@@ -62,7 +62,7 @@ export function TrainingDevelopment({active,onGoals,onRacePrep,onOpenSession,onO
      {plan?.adaptiveVolume&&<CoachAdaptiveVolumeCard review={plan.adaptiveVolume}/>}
      <CoachFourWeekCard today={today} snapshot={snapshot}/><CoachMemoryCard today={today} snapshot={snapshot}/>
      {plan?.completedWeek&&<WeeklyPlanActualCard review={plan.completedWeek} onCalendar={onOpenCalendar}/>}
-     <CoachEvidenceSummary active={active} mode="weekly" weekStart={coachAddDays(coachMonday(today),-7)}/>
+     <CoachEvidenceSummary active={active&&evidenceOpen} mode="weekly" weekStart={coachAddDays(coachMonday(today),-7)}/>
      <CrossTrainingCoachCard active={active&&evidenceOpen} onOpen={onStrength}/>
      </>}
     </details>
