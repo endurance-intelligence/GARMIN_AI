@@ -8,7 +8,7 @@ import {PRIMARY_URL,secondaryProjectRef} from './validate-public-config.mjs'
 const ROOT=fileURLToPath(new URL('../',import.meta.url))
 const PRIMARY_REF=new URL(PRIMARY_URL).hostname.split('.')[0]
 export const ownerEndpoints=Object.freeze([
- 'garmin-app-access','garmin-weekly-options','garmin-coach-context','garmin-training-history',
+ 'garmin-athlete-profile','garmin-app-access','garmin-weekly-options','garmin-coach-context','garmin-training-history',
  'garmin-equipment-profile','garmin-cross-training','garmin-coach-goal','garmin-race-goals',
  'garmin-race-route','garmin-week-board','garmin-threshold-calibration','garmin-connect-snapshot',
  'garmin-coach-archive','garmin-training-plan','garmin-intervals','garmin-intervals-insights',

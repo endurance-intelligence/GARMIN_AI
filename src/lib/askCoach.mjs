@@ -63,7 +63,7 @@ export function availableCoachQuestions({today,snapshot,plan,weather}={}){
  const rows=recordedRuns(snapshot,today)
  const training=snapshot.health?.training
  const complete=training?.historyStatus==='complete'&&!training.truncated
- const recovery=coachRecoveryAdvice({today,history:snapshot.health?.metrics,plan,context:snapshot.life?.context,training})
+ const recovery=coachRecoveryAdvice({today,history:Array.isArray(snapshot.health?.longRecoveryMetrics)?snapshot.health.longRecoveryMetrics:snapshot.health?.metrics,plan,context:snapshot.life?.context,training})
  const hasVolume=snapshot.boards?.some(b=>b.start===coachMonday(today)&&Array.isArray(b.activities)&&b.activities.length<250)&&complete&&rows.filter(a=>dateOf(a)>=coachMonday(today)).every(a=>number(a.distance_m)&&a.distance_m>=0)
  const progress=buildCoachProgressStory({today,snapshot})
  const memory=buildCoachMemory({today,snapshot})
@@ -145,7 +145,7 @@ export function answerCoachQuestion({topic,today,snapshot,plan,weather,query,pre
   brief.reason,brief.next,brief.dataNote,brief.symptomNote
  ],brief.source,'decision'):answer('Tagesempfehlung fehlt.',[],'Coach')
  if(topic==='recovery'){
-  const r=coachRecoveryAdvice({today,history:snapshot.health?.metrics,plan,context:snapshot.life?.context,training:snapshot.health?.training})
+  const r=coachRecoveryAdvice({today,history:Array.isArray(snapshot.health?.longRecoveryMetrics)?snapshot.health.longRecoveryMetrics:snapshot.health?.metrics,plan,context:snapshot.life?.context,training:snapshot.health?.training})
   return answer(r.title,[r.advice,r.evidence,r.tip,r.planText,r.bodyCheck],'Gemeinsamer Coach-Kontext · Garmin-Erholungswerte, Verlauf und Belastung','decision')
  }
  if(topic==='progress'){

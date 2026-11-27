@@ -46,3 +46,11 @@ export async function saveTrainingRhythm(rhythm:TrainingRhythm):Promise<Training
  try{localStorage.removeItem(RHYTHM_KEY)}catch{}
  return saved
 }
+
+/** Initialize only an absent secondary rhythm; do not overwrite preferences. */
+export async function ensureEmptyTrainingRhythm(){
+ const result=await request('?rhythm=1')
+ if(result.rhythm!==null)return checkedRhythm(result.rhythm)
+ const saved=await request('?rhythm=1',{method:'POST',body:JSON.stringify({action:'migrate',rhythm:{rowing:{days:[],minutes:30},strength:{days:[],minutes:30}}})})
+ return checkedRhythm(saved.rhythm)
+}

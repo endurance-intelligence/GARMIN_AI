@@ -1,5 +1,6 @@
 import {interpretRecovery,calendarDayOffset,recoveryMedian} from './recoveryComparison.ts'
 import {recoveryWeekTrend} from './recoveryWeekTrend.mjs'
+import {analyzeLongTermRecovery} from './longTermRecovery.mjs'
 
 const finite=v=>typeof v==='number'&&Number.isFinite(v)
 const dateOK=d=>typeof d==='string'&&!!calendarDayOffset(d,0)
@@ -56,7 +57,9 @@ export function coachRecoveryAdvice({today,history=[],plan=null,context=null,tra
  const blocked=!!context?.blocked_periods?.some(b=>b.start<=today&&b.end>=today)
  const sick=context?.illness_state==='sick'||currentPlan?.ill||day?.kind==='illness'
  const returning=context?.illness_state==='returning'||currentPlan?.returning||day?.kind==='return_easy'
+ const longTerm=analyzeLongTermRecovery(rows,today)
  const reasons=[]
+ if(longTerm.summary)reasons.push(longTerm.summary)
  if(lowSleep)reasons.push(fmt(Math.abs(sleep.difference)/60)+' Minuten weniger Schlaf als üblich.')
  if(shortSleep&&!lowSleep)reasons.push('Heute weniger als sechs Stunden Schlaf gemessen.')
  if(lowHrv)reasons.push('HRV deutlich unter deinem üblichen Bereich.')
@@ -73,14 +76,15 @@ export function coachRecoveryAdvice({today,history=[],plan=null,context=null,tra
  const evidence=reasons.join(' ')
  const bodyCheck='Dein aktuelles Körpergefühl kann ich nicht messen. Bei Schmerzen, Schwindel, ungewöhnlicher Atemnot oder deutlichem Krankheitsgefühl nicht trainieren und Beschwerden bei Bedarf medizinisch abklären.'
  const planText=day?'Aktueller Coach-Plan: '+day.title+'.':'Der gemeinsame Tagesplan ist aktuell nicht vollständig verfügbar.'
- const result=(level,title,advice,tip)=>({level,title,advice,tip,evidence,planText,bodyCheck,comparable,latestDay:latest?.metric_date||null})
+ const result=(level,title,advice,tip)=>({level,title,advice,tip:tip+(longTerm.severeLow?' Ein anhaltender, unerklärlicher HRV-Einbruch sollte ärztlich abgeklärt werden. Bei akuten schweren Beschwerden medizinische Hilfe holen.':''),evidence,planText,bodyCheck,comparable,latestDay:latest?.metric_date||null})
  if(sick)return result('pause','Beschwerden haben Vorrang.','Heute keine Belastung. Auch unauffällige Garmin-Werte ändern daran nichts.','Den Beschwerdestatus und den geplanten Wiedereinstieg im Coach prüfen.')
  if(blocked||day?.kind==='blocked'||day?.decision==='declined')return result('pause','Deine Entscheidung hat Vorrang.','Halte den freien Tag ein, unabhängig von der Messlage.','Keine Einheit nachholen.')
  if(completed||day?.kind==='completed')return result('rest','Heute schon trainiert.','Keine zusätzliche Laufeinheit aus dem Morgencheck ableiten.','Trinken, essen, erholen und die Belastungsreaktion beobachten.')
+ if(longTerm.severeLow)return result('caution','Anhaltend ungewöhnlich niedrige HRV.','Auch wenn der kurzfristige Vergleich inzwischen unauffällig aussieht, bleibt der Rückgang gegenüber deiner früheren Messphase bestehen.','Keine intensive oder lange Einheit erzwingen. Erholung und Ursache prüfen; bereits geplante Belastung vor dem Start überprüfen.')
  if(!fresh||comparable<2||!currentPlan||!day)return result('limited','Noch keine sichere Gesamteinordnung.',!fresh?'Heute fehlen aktuelle, vergleichbare Morgenwerte. Ältere Messungen sind keine Aussage zur heutigen Erholung.':comparable<2?'Noch zu wenige persönliche Vergleichswerte.':'Der vollständige Coach-Kontext fehlt.','Keine zusätzliche oder harte Einheit aus dieser Ansicht ableiten. Daten aktualisieren und Körpergefühl berücksichtigen.')
  const mainCount=Number(lowSleep||shortSleep)+Number(lowHrv)+Number(highPulse)
- const combined=mainCount>=2||(mainCount>=1&&(persistent||weekHrv||weekPulse||weekSleep||elevatedStress||lowBattery||rising||hardFeedback))
- const strong=combined||poorFeedback||raceCaution||exhausted||day.selectedGroup?.advice==='skip'
+ const combined=mainCount>=2||(mainCount>=1&&(persistent||weekHrv||weekPulse||weekSleep||((elevatedStress||lowBattery)&&!lowHrv)||rising||hardFeedback))
+ const strong=combined||longTerm.persistentLow||poorFeedback||raceCaution||exhausted||day.selectedGroup?.advice==='skip'
  const protectedDay=['recovery','mobility','illness','blocked','return_easy','rest'].includes(day.kind)||day.qualityBlocked||day.selectedGroup?.advice==='easy'||returning
  if(['recovery','rest','mobility'].includes(day.kind)||day.selectedGroup?.advice==='skip')return result('rest','Erholung hat heute Vorrang.',day.reason||'Der Coach sieht heute eine ruhigere Belastung vor.','Keine zusätzliche Laufeinheit. Eine lockere Bewegung nur, wenn sie zum Tagesplan passt und du dich gut fühlst.')
  if(strong)return result('caution','Heute lieber auf die Bremse treten.','Mehrere Hinweise sprechen gegen zusätzliche Intensität. '+(returning?'Der vorsichtige Wiedereinstieg bleibt maßgeblich.':'Prüfe, ob du die geplante Einheit verschiebst oder mit dem Coach entschärfst.'),'Keine Intervalle oder lange Einheit erzwingen. Nur falls der Tagesplan es zulässt und du dich wirklich gut und beschwerdefrei fühlst: sehr locker beginnen, bei ungewöhnlicher Anstrengung oder auffälligem Puls abbrechen.')

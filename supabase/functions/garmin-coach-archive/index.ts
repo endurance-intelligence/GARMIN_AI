@@ -59,7 +59,10 @@ async function snapshotRequest(req:Request){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(visible)||!Number.isFinite(Date.parse(visible+'T12:00:00Z'))||new Date(visible+'T12:00:00Z').toISOString().slice(0,10)!==visible||coachMonday(visible)!==visible||visible<coachAddDays(today,-180)||visible>coachAddDays(today,180))return send(422,{error:'Invalid week'})
   const db=createClient(project,serviceKey(),{auth:{persistSession:false,autoRefreshToken:false}})
   const data=await readArchiveCoachInput(db,user.id,today,visible)
-  return send(200,{...data,today})
+  const {data:history,error:historyError}=await db.from('garmin_daily_metrics')
+   .select('metric_date,hrv_ms,resting_heart_rate,sleep_seconds,stress_avg,body_battery_max')
+   .gte('metric_date',coachAddDays(today,-89)).lte('metric_date',today).order('metric_date',{ascending:true}).limit(91)
+  return send(200,{...data,health:{...data.health,longRecoveryMetrics:!historyError&&Array.isArray(history)&&history.length<=90?history:null},today})
  }catch(e){
   if(e instanceof Error&&e.message==='Central training rhythm not initialized')return send(409,{error:'Central training rhythm not initialized'})
   return send(503,{error:'Coach data incomplete'})
