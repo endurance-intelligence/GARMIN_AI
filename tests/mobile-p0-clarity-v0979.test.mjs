@@ -56,7 +56,7 @@ test('optional analysis, group invitations and ORC archive fetch only when athle
  assert.match(calendar,/showDayEvidence&&<CoachEvidenceSummary active=\{active&&showDayEvidence\}/)
  assert.match(calendar,/showWeekOptions&&<WeeklyTrainingOptions active=\{active&&showWeekOptions\}/)
  assert.match(calendar,/showWorkoutArchive&&<WorkoutArchivePanel active=\{active&&showWorkoutArchive\}/)
- assert.match(read('src/components/TrainingDevelopment.tsx'),/<CoachEvidenceSummary active=\{active&&open\}/)
+ assert.match(read('src/components/TrainingDevelopment.tsx'),/<CoachEvidenceSummary active=\{active&&evidenceOpen\}/)
  assert.doesNotMatch(home,/<WeeklyTrainingOptions active=\{active\}/)
  assert.match(calendar,/Gruppentermine planen/)
 })
