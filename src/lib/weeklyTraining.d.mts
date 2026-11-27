@@ -5,3 +5,5 @@ export function trainingWeekBaseline(history:unknown,raceDates?:string[]):number
 export function buildWeeklyBudget(input:any):WeeklyBudget|null
 export function replacementImpact(budget:WeeklyBudget|null|undefined,date:string):{allowed:boolean;removedKm:number|null;afterKm:number|null;reason:string}
 export function protectRhythmReplacements(original:CoachDay[],proposed:CoachDay[],budgetFor:(days:CoachDay[],date:string)=>WeeklyBudget|null):CoachDay[]
+
+export function allocateWeeklyRunning(days:CoachDay[],budgetFor:(days:CoachDay[],date:string)=>WeeklyBudget|null,context:{today:string;protectedPhase?:boolean;volumeStatus?:string;alreadyAdjusted?:boolean}):{days:CoachDay[];changes:{date:string;from:number;to:number;reason:string}[]}
