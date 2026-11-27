@@ -26,7 +26,7 @@ function SummaryRows({actual,planned,original}:{actual:HistorySummary;planned:Hi
   })}
  </div>
 }
-export function TrainingHistory({active,onCalendar}:{active:boolean;onCalendar:()=>void}){
+export function TrainingHistory({active,onCalendar,focusToken=0}:{active:boolean;onCalendar:()=>void;focusToken?:number}){
  const today=berlinDateToday(),current=today.slice(0,7)
  const [month,setMonth]=useState(current)
  const [view,setView]=useState<'month'|'weeks'>('month')
@@ -34,6 +34,7 @@ export function TrainingHistory({active,onCalendar}:{active:boolean;onCalendar:(
  const [loading,setLoading]=useState(false)
  const [error,setError]=useState('')
  const [refresh,setRefresh]=useState(0)
+ useEffect(()=>{if(focusToken){setMonth(current);setRefresh(n=>n+1)}},[focusToken,current])
  useEffect(()=>{
   const changed=()=>setRefresh(n=>n+1)
   window.addEventListener('garmin-ai-training-history-changed',changed)
