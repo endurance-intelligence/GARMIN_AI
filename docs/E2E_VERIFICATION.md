@@ -1,13 +1,9 @@
 # Package 4A — E2E verification
 
-## Production read-only audit, 2026-11-27
+## Production audit procedure
 
-- Garmin archive: 621 activities; 613 complete FIT imports and 8 paused FIT imports. All 621 activity-detail records have partial overall status; FIT completeness is a distinct status.
-- Health: 40 days, latest 2026-11-27. Garmin activity and health import runs successful in the last two days.
-- Intervals: connection present; stored confirmed publication links and revision match verified. No new training created or sent.
-- Five Garmin cron jobs active; one partial week archived (2026-11-23), so historical learning does not yet have a complete week.
-- 33 Garmin public tables have RLS enabled. Advisor INFO for closed tables with no client policies is expected for owner-only Edge Function access; leaked-password protection advisor warning remains open (magic-link login in app).
-- Production browser bundle tested with isolated fixtures. No owner credentials, live API writes, or test training events are used. Actual authenticated external workflow and real-device visual acceptance remain separate checks.
+Use read-only aggregate checks for Garmin sync freshness, FIT completeness, health coverage, stored Intervals publication references and revisions, active cron jobs, archived week coverage and RLS. Keep individual athlete data and the audit's live counts out of the public source tree. A partial archive is not a complete historical plan. A stored Intervals confirmation is not a new external delivery test.
 
 ## Automated release gate
-The production workflow builds the app and uses isolated Playwright/Chromium tooling to test sign-out, denied owner access, responsive navigation and session selection before publishing. External requests are intercepted, not sent. This is browser integration coverage, not evidence of a successful real Garmin or Intervals write.
+
+The production workflow builds the app and uses isolated Playwright/Chromium tooling to test sign-out, denied owner access, responsive navigation and session selection before publishing. All external requests are intercepted, not sent. No owner credentials, live API writes or test training events are used. Actual authenticated external workflows and real-device visual acceptance remain separate checks.
