@@ -133,7 +133,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
    if(!session)throw Error('Bitte erneut anmelden.')
    const requestId=ids.current[day.date]||(ids.current[day.date]=crypto.randomUUID())
    const structured=day.sport==='running'&&
-    ['easy','long','return_easy'].includes(day.kind)&&Number.isSafeInteger(day.minutes)
+    ['easy','long','return_easy','intervals'].includes(day.kind)&&Number.isSafeInteger(day.minutes)
    const payload=structured?{
     action:'create_coach_workout',clientRequestId:requestId,date:day.date,
     title:day.title,kind:day.kind,minutes:day.minutes,startTime,
@@ -158,7 +158,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
      sport:day.kind==='mobility'?'strength':day.sport,
      state:'draft',session_type:'event',revision:json.revision||1,
      notes:structured?'Coach · '+day.minutes+' Min. ab '+startTime+
-      ' · 3 zeitgesteuerte Abschnitte · ohne Pace/HF-Ziel':'Nur Kalendereintrag'
+      (day.kind==='intervals'?' · 4 × 2 Min. kontrolliert · 3 Trabpausen':' · 3 zeitgesteuerte Abschnitte · ohne Pace/HF-Ziel'):'Nur Kalendereintrag'
     }]}
    }:prev)
    setReview(null)
@@ -339,10 +339,9 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
       {review===day.date?<div className="c7-confirm">
        <span>{alternative?'Wähle einen Trainingsreiz. Nur die ausgewählte Variante wird als Entwurf gespeichert.':'Nur diesen Vorschlag als Entwurf speichern?'}</span>
        {alternative&&<fieldset className="c7-variants"><legend>Deine Trainingsvarianten</legend><label className={variant==='original'?'is-selected':''}><input type="radio" name="coach-variant" checked={variant==='original'} disabled={saving!==null} onChange={()=>setVariant('original')}/><span><strong>{day.title}</strong><small>{day.minutes} Min. · {day.sport==='running'?'Laufspezifischer Reiz':'Ursprünglicher Trainingsreiz'}</small></span></label><label className={variant==='alternative'?'is-selected':''}><input type="radio" name="coach-variant" checked={variant==='alternative'} disabled={saving!==null} onChange={()=>setVariant('alternative')}/><span><strong>{alternative.title} · {alternative.minutes} Min.</strong><small>{alternative.intensity}</small></span></label>{variant==='alternative'&&<div className="cdb-supplement"><p>{alternative.reason}</p><SupplementSessionDetails suggestion={alternative}/><small>Nur Kalendereintrag; keine automatische Steuerung deines Geräts.</small></div>}</fieldset>}
-       {variant==='original'&&day.sport==='running'&&['easy','long','return_easy'].includes(day.kind)&&
+       {variant==='original'&&day.sport==='running'&&['easy','long','return_easy','intervals'].includes(day.kind)&&
         <div className="c7-structured-preview">
-         <span>Garmin-Workout: {day.minutes} Min. · Einlaufen, lockerer Lauf, Auslaufen.
-          Automatisch zeitgesteuert, ohne Pace- oder HF-Ziel.</span>
+         <span>{day.kind==='intervals'?'Garmin-Workout: 12 Min. einlaufen · 4 × 2 Min. kontrolliert zügig, 3 × 2 Min. traben · 10 Min. auslaufen. Kein Sprint, keine Ausbelastung.':'Garmin-Workout: '+day.minutes+' Min. · Einlaufen, lockerer Lauf, Auslaufen.'} Automatisch zeitgesteuert, ohne Pace- oder HF-Ziel.</span>
          <label>Startzeit in Intervals.icu
           <select value={startTime} onChange={e=>setStartTime(e.target.value)}
            disabled={saving!==null}>
