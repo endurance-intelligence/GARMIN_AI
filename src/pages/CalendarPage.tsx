@@ -137,7 +137,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
  const alternative=trainingAlternativeForDate(coachPlan,selected)
  const visibleBudget=coachPlan?.weeklyBudgets?.find(w=>w.start===start)
  const archiveSnapshot=visibleBudget&&coachPlan&&coachSnapshot?makePlanSnapshot({budget:visibleBudget,days:coachPlan.days,plans:coachSnapshot.plans.entries,options:coachSnapshot.options.options,choices:coachSnapshot.options.choices,today,goalName:coachPlan.goalProfile?.name??null}):null
- const alternativeImpact=alternative?replacementImpact(visibleBudget,selected):null
+ const alternativeImpact=alternative&&coachDay?.kind==='easy'?replacementImpact(visibleBudget,selected):null
  const daySupplement=alternative||(coachPlan?.supplement?.suggestion?.date===selected&&coachPlan.supplement.suggestion.mode==='existing-slot'?coachPlan.supplement.suggestion:null)
  const coachPreview=coachDay&&(coachDay.selectedGroup||(!['existing','completed','chosen','option'].includes(coachDay.kind)&&
   !plans.some(p=>p.training_date===selected&&p.state!=='cancelled')))?coachDay:null
@@ -555,7 +555,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
      {coachPreview.selectedGroup&&<small>{[coachPreview.selectedGroup.startTime?coachPreview.selectedGroup.startTime+' Uhr':'',coachPreview.selectedGroup.location].filter(Boolean).join(' · ')}</small>}
      <p>{coachPreview.reason}</p>
      {coachPreview.recoveryMobility&&<div className="cdb-supplement"><small>OPTIONALE REGENERATION</small><strong>5–10 Min. sanfte Mobility</strong><p>Schmerzfreie Beweglichkeit, ohne Widerstand und ohne Ermüdung. Kein zusätzliches Krafttraining; bei Beschwerden auslassen.</p></div>}
-     {daySupplement&&<div className="cdb-supplement"><small>{alternative?'ODER · AEROBE ALTERNATIVE':'ZIELGERICHTETER SCHWERPUNKT'}</small><strong>{daySupplement.title} · {daySupplement.minutes} Min.</strong><p>{daySupplement.reason}</p><SupplementSessionDetails suggestion={daySupplement}/>{alternativeImpact?.allowed&&<p className="wti-alternative-impact">Wochenprognose mit dieser Alternative: {alternativeImpact.afterKm?.toLocaleString('de-DE')} km statt {visibleBudget?.forecastKm?.toLocaleString('de-DE')} km. Nur eine Variante.</p>}<small>{daySupplement.intensity} · {alternative?'Über „Vorschlag prüfen“ eine Variante auswählen.':'Keine zweite Einheit.'}</small></div>}
+     {daySupplement&&<div className="cdb-supplement"><small>{alternative?'ODER · TRAININGSALTERNATIVE':'ZIELGERICHTETER SCHWERPUNKT'}</small><strong>{daySupplement.title} · {daySupplement.minutes} Min.</strong><p>{daySupplement.reason}</p><SupplementSessionDetails suggestion={daySupplement}/>{alternativeImpact?.allowed&&<p className="wti-alternative-impact">Wochenprognose mit dieser Alternative: {alternativeImpact.afterKm?.toLocaleString('de-DE')} km statt {visibleBudget?.forecastKm?.toLocaleString('de-DE')} km. Nur eine Variante.</p>}<small>{daySupplement.intensity} · {alternative?'Über „Vorschlag prüfen“ eine Variante auswählen.':'Keine zweite Einheit.'}</small></div>}
      {coachPreview.selectedGroup?<small>Deine Teilnahme änderst du über „Gruppentermine planen“. Kein zusätzliches Workout wird angelegt.</small>:<small>Du kannst sie hier im Kalender annehmen, ablehnen oder ändern.</small>}
      {(coachPreview.selectedGroup||coachPreview.approvable&&!coachPreview.decision)&&selected>=today&&selected<=moveDay(today,6)&&
       <button type="button" className="hc-coach-accept" onClick={()=>onOpenCoach(selected)}>
