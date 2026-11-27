@@ -105,6 +105,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
  const [coachSnapshot,setCoachSnapshot]=useState<CoachSnapshot|null>(null)
+ const [snapshotStart,setSnapshotStart]=useState<string|null>(null)
  const [coachError,setCoachError]=useState('')
  const [coachLoading,setCoachLoading]=useState(false)
  const [coachReview,setCoachReview]=useState<string|null>(null)
@@ -139,6 +140,8 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
  const archiveSnapshot=visibleBudget&&coachPlan&&coachSnapshot?makePlanSnapshot({budget:visibleBudget,days:coachPlan.days,plans:coachSnapshot.plans.entries,options:coachSnapshot.options.options,choices:coachSnapshot.options.choices,today,goalName:coachPlan.goalProfile?.name??null}):null
  const alternativeImpact=alternative&&coachDay?.kind==='easy'?replacementImpact(visibleBudget,selected):null
  const daySupplement=alternative||(coachPlan?.supplement?.suggestion?.date===selected&&coachPlan.supplement.suggestion.mode==='existing-slot'?coachPlan.supplement.suggestion:null)
+ const canReviewSelected=selected>=today&&selected<=moveDay(today,13)
+ const decisionReady=!!coachSnapshot&&!coachLoading&&!coachError&&snapshotStart===start&&!!coachPlan?.days.some(d=>d.date===decisionFocus?.date)
  const coachPreview=coachDay&&(coachDay.selectedGroup||(!['existing','completed','chosen','option'].includes(coachDay.kind)&&
   !plans.some(p=>p.training_date===selected&&p.state!=='cancelled')))?coachDay:null
  const days=Array.from({length:7},(_,i)=>moveDay(start,i))
@@ -179,7 +182,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)throw Error('Bitte anmelden.')
    const snapshot=await loadCoachSnapshot(session,today,controller.signal,start,4)
-   if(mounted)setCoachSnapshot(snapshot)
+   if(mounted){setCoachSnapshot(snapshot);setSnapshotStart(start)}
   })().catch(e=>{
    if(mounted&&!(e instanceof Error&&e.name==='AbortError')){
     setCoachSnapshot(null)
@@ -305,7 +308,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
    setCoachSnapshot({...fresh,life:{...fresh.life,context:result.context,runs:result.runs}})
    window.dispatchEvent(new Event('garmin-ai-coach-changed'))
    setNotice(storedChoice==='accepted'?'Erholungstag angenommen. Kein zusätzlicher Kalendereintrag.':storedChoice==='declined'?'Empfehlung abgelehnt. Kein Ersatztraining automatisch geplant.':'Entscheidung wieder offen (50:50). Kein Training gespeichert.')
-   if(reopenForReview&&day.date<=moveDay(today,6))onOpenCoach(day.date)
+   if(reopenForReview&&day.date<=moveDay(today,13))onOpenCoach(day.date)
   }catch(e){setError(e instanceof Error?e.message:'Entscheidung konnte nicht gespeichert werden.')}
   finally{quickLock.current=false;setActing(null)}
  }
@@ -557,7 +560,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
      {coachPreview.recoveryMobility&&<div className="cdb-supplement"><small>OPTIONALE REGENERATION</small><strong>5–10 Min. sanfte Mobility</strong><p>Schmerzfreie Beweglichkeit, ohne Widerstand und ohne Ermüdung. Kein zusätzliches Krafttraining; bei Beschwerden auslassen.</p></div>}
      {daySupplement&&<div className="cdb-supplement"><small>{alternative?'ODER · TRAININGSALTERNATIVE':'ZIELGERICHTETER SCHWERPUNKT'}</small><strong>{daySupplement.title} · {daySupplement.minutes} Min.</strong><p>{daySupplement.reason}</p><SupplementSessionDetails suggestion={daySupplement}/>{alternativeImpact?.allowed&&<p className="wti-alternative-impact">Wochenprognose mit dieser Alternative: {alternativeImpact.afterKm?.toLocaleString('de-DE')} km statt {visibleBudget?.forecastKm?.toLocaleString('de-DE')} km. Nur eine Variante.</p>}<small>{daySupplement.intensity} · {alternative?'Über „Vorschlag prüfen“ eine Variante auswählen.':'Keine zweite Einheit.'}</small></div>}
      {coachPreview.selectedGroup?<small>Deine Teilnahme änderst du über „Gruppentermine planen“. Kein zusätzliches Workout wird angelegt.</small>:<small>Du kannst sie hier im Kalender annehmen, ablehnen oder ändern.</small>}
-     {(coachPreview.selectedGroup||coachPreview.approvable&&!coachPreview.decision)&&selected>=today&&selected<=moveDay(today,6)&&
+     {(coachPreview.selectedGroup||coachPreview.approvable&&!coachPreview.decision)&&canReviewSelected&&
       <button type="button" className="hc-coach-accept" onClick={()=>onOpenCoach(selected)}>
        <Icon name="arrow-up-right"/> {coachPreview.selectedGroup?'Coach-Hinweise ansehen':'Vorschlag prüfen'}
       </button>}
@@ -566,9 +569,9 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
       {coachPreview.minutes} Minuten · {coachPreview.kind==='mobility'?'Stabi/Mobility':coachPreview.kind==='rowing'?'Rudern · locker':coachPreview.kind==='intervals'?'4 × 2 Min. kontrolliert · Trabpausen':
        'Sprechtempo · ohne Pace- oder HF-Zwang'}
      </span>}
-     {coachPreview.approvable&&coachPreview.kind!=='intervals'&&!alternative&&selected>=today&&
+     {coachPreview.approvable&&coachPreview.kind!=='intervals'&&!alternative&&selected>=today&&!canReviewSelected&&
      <details className="hc-coach-manual">
-      <summary>Alternative: direkt im Kalender als Entwurf übernehmen</summary>
+      <summary>Spätere Woche: Entwurf im Kalender vorbereiten</summary>
       {coachReview===selected?
        <div className="hc-coach-confirm">
         <strong>Vorschlag als GARMIN_AI-Entwurf übernehmen?</strong>
@@ -694,8 +697,8 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
   </dialog>
   <dialog className="coach-day-dialog" ref={decisionDialog} aria-label="Coach-Tagesentscheidung" onClose={()=>setDecisionOpen(false)}>
    <header><strong>Coach-Entscheidung</strong><button type="button" onClick={()=>decisionDialog.current?.close()} aria-label="Schließen"><Icon name="x"/></button></header>
-   {decisionOpen&&(coachLoading||!coachSnapshot)&&<p role="status">{coachError||'Coach-Daten werden aktualisiert …'}</p>}
-   <CoachSevenDay key={decisionFocus?.token||0} active={active&&decisionOpen&&!coachLoading&&!!coachSnapshot} focus={decisionFocus} onCalendar={date=>{decisionDialog.current?.close();if(date){setSelected(date);setCoachReview(null)}}} sharedSnapshot={coachSnapshot} onRacePrep={()=>{decisionDialog.current?.close();onGo('race')}} singleDay/>
+   {decisionOpen&&!decisionReady&&<p role="status">{coachError||'Coach-Daten werden aktualisiert …'}</p>}
+   {decisionOpen&&<div hidden={!decisionReady}><CoachSevenDay key={decisionFocus?.token||0} active={active&&decisionOpen&&decisionReady} focus={decisionFocus} onCalendar={date=>{decisionDialog.current?.close();if(date){setSelected(date);setCoachReview(null)}}} sharedSnapshot={coachSnapshot} reviewStart={planStart} snapshotWeek={start} onRacePrep={()=>{decisionDialog.current?.close();onGo('race')}} singleDay/></div>}
   </dialog>
 
  </section>

@@ -31,11 +31,11 @@ test('Calendar uses direct day decisions and individual explicit approval and pu
  assert.match(calendar,/action:'publish'/)
  assert.match(calendar,/disabled=\{!intervalsConnected\|\|acting!==null\}/)
 })
-test('Calendar shows concise coach reason and optional direct draft creation',()=>{
+test('Calendar shows concise coach reason and reserves direct draft creation for later weeks',()=>{
  const cal=read('src/pages/CalendarPage.tsx')
  assert.match(cal,/Die persönliche Empfehlung|Du kannst sie hier im Kalender annehmen, ablehnen oder ändern/)
  assert.match(cal,/<details className="hc-coach-manual">/)
- assert.match(cal,/Alternative: direkt im Kalender als Entwurf übernehmen/)
+ assert.match(cal,/Spätere Woche: Entwurf im Kalender vorbereiten/)
  assert.match(cal,/Ja, als Entwurf übernehmen/)
  assert.match(cal,/Vorschlag prüfen/)
  assert.match(cal,/<p>\{coachPreview.reason\}<\/p>/)

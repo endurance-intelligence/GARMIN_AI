@@ -32,10 +32,10 @@ const formatDate=(day:string)=>new Intl.DateTimeFormat('de-DE',{
  timeZone:'UTC',weekday:'short',day:'2-digit',month:'2-digit'
 }).format(new Date(day+'T12:00:00Z'))
 
-export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep,singleDay=false}:{
+export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep,reviewStart,snapshotWeek,singleDay=false}:{
  active:boolean;focus?:{date:string;token:number}|null;
  onCalendar:(date?:string)=>void;sharedSnapshot?:CoachSnapshot|null;
- onRacePrep?:()=>void;singleDay?:boolean
+ onRacePrep?:()=>void;reviewStart?:string;snapshotWeek?:string;singleDay?:boolean
 }){
  const [snapshot,setSnapshot]=useState<CoachSnapshot|null>(null)
  const [loading,setLoading]=useState(false)
@@ -76,15 +76,15 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
   return ()=>{mounted=false;controller.abort()}
  },[active,today,reload,sharedSnapshot])
  const plan=useMemo(()=>snapshot?buildSevenDayCoach({
-  today,health:snapshot.health,options:snapshot.options,boards:snapshot.boards,
+  today,startDate:reviewStart,health:snapshot.health,options:snapshot.options,boards:snapshot.boards,
   plans:snapshot.plans,goal:snapshot.goal,life:snapshot.life,
   racePortfolio:snapshot.racePortfolio,goalRoute:snapshot.goalRoute
- }):null,[snapshot,today])
+ }):null,[snapshot,today,reviewStart])
  useEffect(()=>{
   if(!active||!focus||lastFocus.current===focus.token||!plan)return
-  lastFocus.current=focus.token
-  // Never silently select a different day if the date is outside the visible 7 days.
+  // Wait until the requested day's actual calendar horizon is available.
   if(!plan.days.some(day=>day.date===focus.date))return
+  lastFocus.current=focus.token
   setSelectedDay(focus.date);setReview(null);setCustomDate(null)
   if(!singleDay)requestAnimationFrame(()=>document.getElementById('c7-week-overview')?.scrollIntoView({
    behavior:'smooth',block:'start'
@@ -183,8 +183,8 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
    if(!session)throw Error('Bitte erneut anmelden.')
    // Refresh evidence before using the existing explicitly confirmed calendar
    // event path. Same day request ID is shared with the original choice.
-   const fresh=await loadCoachSnapshot(session,today,undefined,undefined,4)
-   const current=buildSevenDayCoach({today,health:fresh.health,boards:fresh.boards,options:fresh.options,plans:fresh.plans,goal:fresh.goal,life:fresh.life,racePortfolio:fresh.racePortfolio,goalRoute:fresh.goalRoute})
+   const fresh=await loadCoachSnapshot(session,today,undefined,snapshotWeek,4)
+   const current=buildSevenDayCoach({today,startDate:reviewStart,health:fresh.health,boards:fresh.boards,options:fresh.options,plans:fresh.plans,goal:fresh.goal,life:fresh.life,racePortfolio:fresh.racePortfolio,goalRoute:fresh.goalRoute})
    const next=trainingAlternativeForDate(current,day.date)
    if(!next||JSON.stringify(next)!==JSON.stringify(choice)||fresh.plans.entries.some(p=>p.training_date===day.date&&p.state!=='cancelled')){
     setSnapshot(fresh);setReview(null);throw Error('Die Trainingslage hat sich geändert. Bitte die aktuelle Empfehlung erneut prüfen.')
@@ -261,11 +261,12 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
   finally{setSaving(null)}
  }
  if(!active)return null
+ if(singleDay&&focus&&!plan?.days.some(day=>day.date===focus.date))return <p role="status">Die Empfehlung für diesen Tag wird geprüft …</p>
  return <section className="c7-root" aria-label="Coach Intelligence mit sieben Tagen Trainingsvorschlägen">
   <div className="c7-top">
    <div><span className="c7-eyebrow"><Icon name="sparkles"/> DEIN TRAININGSPLAN</span>
     <h2>{singleDay?'Deine Tagesentscheidung':'Deine nächsten 7 Tage'}</h2>
-    <p>Wähle einen Tag und entscheide gemeinsam mit deinem Coach.</p>
+    <p>{singleDay?'Prüfe die Empfehlung für diesen Kalendertag.':'Wähle einen Tag und entscheide gemeinsam mit deinem Coach.'}</p>
    </div>
    <button type="button" className="c7-refresh" disabled={loading||saving!==null}
     onClick={()=>{setReload(x=>x+1);window.dispatchEvent(new Event('garmin-ai-coach-changed'));setReview(null);setSavedDay(null)}}><Icon name="refresh-cw"/> Aktualisieren</button>
@@ -292,7 +293,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
      Vergangene Entwürfe im Kalender prüfen <Icon name="arrow-up-right"/></button>
    </p>}
   {plan&&<>
-   <WeeklyTrainingCard budget={plan.weeklyBudgets?.find(w=>w.current)}/>
+   {!singleDay&&<WeeklyTrainingCard budget={plan.weeklyBudgets?.find(w=>w.current)}/>}
    <div className="c7-day-nav" id="c7-week-overview" role="tablist" hidden={singleDay}
     aria-label="Wähle einen Tag für deine persönliche Coach-Entscheidung">
     {plan.days.map(day=><button type="button" key={day.date} role="tab"
