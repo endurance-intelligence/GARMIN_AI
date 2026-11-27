@@ -293,3 +293,11 @@ body > .co-dialog-backdrop > .co-dialog{position:absolute;top:50%;left:50%;
 .co-trend-stress{--spark:#f0c78b}.co-trend-battery{--spark:#a8e6c0}
 @media(max-width:760px){.co-recovery-secondary{grid-template-columns:1fr}.co-home .co-recovery-insight{align-items:flex-start;flex-wrap:wrap}.co-recovery-insight>.coach-avatar{width:82px}.co-recovery-coach-copy{flex:1 1 calc(100% - 100px)}.co-recovery-insight .co-recovery-lead{font-size:13px}.co-recovery-insight .co-recovery-next p{font-size:12px}.co-energy-grid .co-trend-tile{padding:10px}.co-energy-grid .co-trend-value{font-size:24px}}
 @media(max-width:420px){.co-home .co-recovery-insight{display:grid;grid-template-columns:1fr;gap:12px}.co-recovery-insight>.coach-avatar{width:88px;justify-self:start}.co-recovery-coach-copy{width:100%}.co-recovery-next{padding:9px 11px}.co-sleep-detail,.co-energy-detail{padding:12px}}
+
+/* Subtle status below the measured value; text makes emoji/color optional. */
+.co-metric-status{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:0;font-size:11px;line-height:1.35;font-weight:650;margin:6px 0;color:#afc0d1}
+.co-metric-status>span{font-size:15px;line-height:1.15}
+.co-metric-status.usual,.co-metric-status.higher{color:#a8e6c0}
+.co-metric-status.mild,.co-metric-status.notice{color:#f0c78b}
+.co-metric-status.unknown{color:#9aadc3}
+.co-sleep-detail>.co-metric-status{margin:8px 0}

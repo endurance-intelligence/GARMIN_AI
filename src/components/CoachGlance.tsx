@@ -12,6 +12,9 @@ import {coachRecoveryAdvice} from '../lib/coachRecoveryAdvice.mjs'
 import type {SevenDayPlan} from '../lib/coachSevenDay.mjs'
 import {CoachAvatar} from './CoachAvatar'
 import {RecoverySleepDetails} from './RecoverySleepDetails'
+import {RecoveryStatusMark} from './RecoveryStatusMark'
+import {recoveryStatus,sleepScoreStatus} from '../lib/recoveryStatus.mjs'
+import {analyzeLongTermRecovery} from '../lib/longTermRecovery.mjs'
 import {completedDaySignal} from '../lib/recoverySleep.mjs'
 import type {RecoveryDay} from '../lib/recoveryComparison'
 import {recoveryWeekTrend} from '../lib/recoveryWeekTrend.mjs'
@@ -143,6 +146,7 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
  const weekTrend=health?recoveryWeekTrend(view?.healthHistory||[],health.metric_date):null
  const [sleep,hrv,rhr]=comparison?.metrics||[]
  const recoveryHistory:HealthDay[]=(Array.isArray(sharedSnapshot?.health.longRecoveryMetrics)?sharedSnapshot.health.longRecoveryMetrics:view?.healthHistory)||[]
+ const longRecovery=analyzeLongTermRecovery(recoveryHistory,date)
  const energy=[{key:'stress_avg' as const,label:'Stress',tone:'stress',icon:'activity'},{key:'body_battery_max' as const,label:'Body Battery · Maximum',tone:'battery',icon:'battery-charging'}].map(x=>({...x,signal:completedDaySignal(recoveryHistory,date,x.key)}))
  const guidance=coachRecoveryAdvice({today:date,history:recoveryHistory,plan:dailyPlan,context:sharedSnapshot?.life?.context??(view?.blocked?{illness_state:view.blocked}:null),training:sharedSnapshot?.health?.training,completed:!!view?.completedCount})
  return <div className="co-at-a-glance">
@@ -197,6 +201,7 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
            <span className="co-trend-diff">{differenceLabel(entry.row)}</span>}
         </div>
         <strong className="co-trend-value">{entry.value}</strong>
+        <RecoveryStatusMark status={recoveryStatus(entry.key,entry.row?.latest,entry.row?.median,{fresh:health?.metric_date===date,persistentLow:longRecovery.persistentLow})}/>
         {health?
           <RecoverySparkline history={view?.healthHistory||[]}
             metric={entry.key} day={health.metric_date}
@@ -206,12 +211,13 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
       </div>)}
     </div>
     <div className="co-recovery-secondary">
-      <RecoverySleepDetails value={recoveryHistory.find(r=>r.metric_date===date)?.sleepDetail}/>
+      <RecoverySleepDetails value={recoveryHistory.find(r=>r.metric_date===date)?.sleepDetail} status={sleepScoreStatus(recoveryHistory,date)}/>
       <section className="co-energy-detail" aria-label="Stress und Body Battery am letzten abgeschlossenen Tag">
         <header><span className="co-eyebrow">BELASTUNG AUSSERHALB DES TRAININGS</span><h3>Deine Energiereserven</h3><small>Gestern · abgeschlossener Tag, kein Live-Wert</small></header>
         <div className="co-energy-grid">{energy.map(entry=><div className={'co-trend-tile co-trend-'+entry.tone} key={entry.key}>
           <div className="co-trend-top"><div className="co-trend-label"><Icon name={entry.icon}/>{entry.label}</div>{entry.signal?.delta!=null&&<span className="co-trend-diff">{entry.signal.delta>0?'+':''}{Math.round(entry.signal.delta)}</span>}</div>
           <strong className="co-trend-value">{valText(entry.signal?.value,'/ 100')}</strong>
+          <RecoveryStatusMark status={recoveryStatus(entry.key,entry.signal?.value,entry.signal?.base)}/>
           {entry.signal&&<RecoverySparkline history={recoveryHistory} metric={entry.key} day={entry.signal.date} median={entry.signal.base} label={entry.label}/>}
           <p className="co-trend-meaning">{entry.signal?.value==null?'Kein Messwert für gestern.':entry.signal.base===null?'Noch kein persönlicher Vergleich.':entry.key==='stress_avg'?(entry.signal.delta!>=10?'Gestern mehr Stress als üblich.':'Gestern keine deutliche Stresszunahme.'):(entry.signal.delta!<=-15?'Gestern geringeres Maximum als üblich.':'Gestern kein deutlich vermindertes Maximum.')}</p>
         </div>)}</div>
@@ -219,7 +225,7 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
     </div>
     <div className="co-recovery-context">
       <span><span className="co-mini-marker"/> Linie: letzte 7 Tage · gestrichelt: dein üblicher Wert</span>
-      <span>Werte allein sind keine Trainingsfreigabe.</span>
+      <span>Smileys: persönlicher Vergleich, kein allgemeiner Gesundheitswert. Werte allein sind keine Trainingsfreigabe.</span>
     </div>
     {(!view?.healthOk||!health)&&<p className="co-data-note">Garmin-Gesundheitsdaten sind momentan nicht verfügbar.</p>}
     {error&&<p className="co-data-note" role="alert">Einige Datenquellen sind gerade nicht erreichbar.</p>}
