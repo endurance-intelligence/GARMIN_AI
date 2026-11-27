@@ -36,3 +36,20 @@ export function plannedSupplementDays({days=[],plans=[],start,end,today,occupied
  }
  return {rowingTarget:result.rowing.size||null,strengthTarget:result.strength.size||null}
 }
+
+/** Existing explicit quality intent occupies the ISO-week slot even if a draft
+ * still awaits approval. Only conditional proposals are suppressed, never a
+ * saved workout. A club attendance by itself is not confirmed quality. */
+export function protectQualitySlots(days,plans=[],roadmap=[],{today,qualityDay=null}={}){
+ const monday=d=>{const x=new Date(d+'T12:00:00Z');x.setUTCDate(x.getUTCDate()-((x.getUTCDay()+6)%7));return x.toISOString().slice(0,10)}
+ const saved=plans.filter(p=>savedQualityIntent(p)&&typeof p.training_date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(p.training_date)&&Number.isFinite(Date.parse(p.training_date+'T12:00:00Z')))
+ return days.map(d=>{
+  if(d.date<today||!qualityIntent(d,{qualityDay}))return d
+  const start=monday(d.date),week=roadmap.find(w=>w.start===start)
+  const occupied=new Set(saved.filter(p=>monday(p.training_date)===start).map(p=>p.training_date))
+  if(!occupied.size&&week?.qualityOptions!==0)return d
+  const reason=occupied.size?'Eine gespeicherte Qualitätseinheit belegt bereits den Wochenplatz.':'In dieser Trainingsphase ist kein zusätzlicher harter Reiz vorgesehen.'
+  const group=d.selectedGroup?.advice==='review'?{...d.selectedGroup,advice:'easy',reason:reason+' Nur locker mitlaufen oder auslassen.'}:d.selectedGroup
+  return {...d,intensityIntent:'low-option',qualitySlotBlocked:true,...(group?{selectedGroup:group}:{}),reason:reason+' Nur locker mitlaufen oder auslassen. Keine zweite Qualitätseinheit.'}
+ })
+}

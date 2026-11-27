@@ -6,11 +6,13 @@ export type CoachDay={
  rhythm?:import('./trainingRhythm.mjs').RhythmEntry[];
  qualityIntent?:import('./trainingIntent.mjs').QualityIntent;
  qualityBlocked?:boolean;
+ weeklyAdjustment?:{from:number;to:number};
  intensityIntent?:'low'|'low-option'|'hard-option'|'quality'
 }
 export type SevenDayPlan={
  today:string;days:CoachDay[];signals:string[];flags:string[];
  attention:boolean;attentionText:string;basedOnActual:boolean;source:string;raceDate:string|null;
+ weeklyAllocation?:{date:string;from:number;to:number;reason:string}[];
  weeklyBudgets?:import('./weeklyTraining.mjs').WeeklyBudget[];
  goalProfile?:import('./goalTrainingFocus.mjs').GoalProfile;
  supplement?:import('./goalTrainingFocus.mjs').GoalSupplement;
