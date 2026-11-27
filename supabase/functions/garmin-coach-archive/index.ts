@@ -1,6 +1,7 @@
 /** One private Coach data reader, two independent authorization paths.
  * GET: verified owner session, read only. POST: cron secret, archive only. */
 import {createClient} from 'npm:@supabase/supabase-js@2'
+import {publicRecoveryRow} from '../../../src/lib/recoverySleep.mjs'
 import {readArchiveCoachInput} from '../_shared/coach-archive-reader.ts'
 import {coachMonday,coachAddDays} from '../../../src/lib/coachSevenDay.mjs'
 import {runCoachArchive} from '../../../src/lib/coachArchiveJob.mjs'
@@ -60,9 +61,9 @@ async function snapshotRequest(req:Request){
   const db=createClient(project,serviceKey(),{auth:{persistSession:false,autoRefreshToken:false}})
   const data=await readArchiveCoachInput(db,user.id,today,visible)
   const {data:history,error:historyError}=await db.from('garmin_daily_metrics')
-   .select('metric_date,hrv_ms,resting_heart_rate,sleep_seconds,stress_avg,body_battery_max')
+   .select('metric_date,hrv_ms,resting_heart_rate,sleep_seconds,stress_avg,body_battery_max,raw_metrics')
    .gte('metric_date',coachAddDays(today,-89)).lte('metric_date',today).order('metric_date',{ascending:true}).limit(91)
-  return send(200,{...data,health:{...data.health,longRecoveryMetrics:!historyError&&Array.isArray(history)&&history.length<=90?history:null},today})
+  return send(200,{...data,health:{...data.health,longRecoveryMetrics:!historyError&&Array.isArray(history)&&history.length<=90?history.map(publicRecoveryRow):null},today})
  }catch(e){
   if(e instanceof Error&&e.message==='Central training rhythm not initialized')return send(409,{error:'Central training rhythm not initialized'})
   return send(503,{error:'Coach data incomplete'})
