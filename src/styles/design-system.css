@@ -1,0 +1,69 @@
+/* GARMIN_AI 3C — shared visual language. Imported after feature styles.
+   Do not encode eligibility in CSS or collapse measured, planned and suggested data. */
+:root{
+ --ds-panel:#151f2e;
+ --ds-inset:#101c2a;
+ --ds-border:#344354;
+ --ds-ink:#f2f6fc;
+ --ds-muted:#a8b8cc;
+ --ds-accent:#a8e6c0;
+ --ds-on-accent:#152b21;
+ --ds-actual:#a8e6c0;
+ --ds-plan:#91c7f4;
+ --ds-draft:#b9b3f0;
+ --ds-suggestion:#ceb9ff;
+ --ds-option:#9fbbba;
+ --ds-warning:#f0c78b;
+ --ds-error:#f3bbad;
+ --ds-radius-card:18px;
+ --ds-radius-inset:12px;
+ --ds-radius-button:10px;
+ --ds-touch:44px;
+ --ds-gap:12px;
+}
+.co-home{--co-ink:var(--ds-ink);--co-muted:var(--ds-muted);--co-accent:var(--ds-accent);--co-panel:var(--ds-panel)}
+/* Standard evidence surfaces; retain dedicated race, warning and quality treatments. */
+.co-home .co-recovery-glance,.hc-weekpanel,.lsa-wrap,.lsa-development,.th-history,.wti-card,.gpg-root,.cpp-root,.rfc-root,.goals-page .rgp-root,.cdl-choice,.cdl-why{
+ background:var(--ds-panel);border-color:var(--ds-border);border-radius:var(--ds-radius-card);color:var(--ds-ink);box-shadow:none;
+}
+.co-home .cdb-root{border-radius:var(--ds-radius-card);border-color:var(--ds-border)}
+.cav-root,.wpa-root{background:var(--ds-panel);border-color:var(--ds-border);border-radius:var(--ds-radius-inset);color:var(--ds-ink)}
+.wpa-root.is-adjusted{border-color:var(--ds-warning)}
+.hc-entry,.hwb-summary,.th-metrics>div,.wti-kpis>div,.gpg-metrics>div,.cpp-metric,.cpp-week-panel,.cpp-interpretation,.wpa-stats>div,.lsa-stat-grid>div,.rfc-summary>.rfc-metric{
+ background:var(--ds-inset);border:1px solid var(--ds-border);border-radius:var(--ds-radius-inset);min-width:0;
+}
+.th-metrics strong,.wti-kpis strong,.gpg-metrics strong,.cpp-metric>strong,.lsa-stat-grid strong,.wpa-stats strong,.rfc-metric strong{
+ color:var(--ds-ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;
+}
+.th-metrics small,.wti-kpis small,.gpg-metrics span,.cpp-metric>span,.lsa-stat-grid span,.wpa-stats span,.rfc-metric small,.training-view-heading p{color:var(--ds-muted)}
+.wti-card{--wti-text:var(--ds-ink);--wti-muted:var(--ds-muted);--wti-line:var(--ds-border);--wti-green:var(--ds-actual);--wti-blue:var(--ds-plan)}
+.th-history{--th-muted:var(--ds-muted);--th-border:var(--ds-border);--th-accent:var(--ds-actual)}
+/* Source/state colors are backed by the existing explicit labels and dashed borders. */
+.hc-key-actual,.wti-fill.actual,.wti-legend i.actual,.cpp-week-fill,.gpg-fill,.th-bar-area i{background:var(--ds-actual)}
+.hc-key-plan,.wti-fill.approved,.wti-legend i.approved{background:var(--ds-plan)}
+.wti-fill.draft,.wti-legend i.draft{background:var(--ds-draft)}
+.wti-fill.suggested,.wti-legend i.suggested{background:var(--ds-suggestion)}
+.hc-key-coach{background:var(--ds-suggestion);border:1px dashed var(--ds-ink)}
+.hc-key-option{border-color:var(--ds-option)}
+.hwb-card.is-actual:not(.type-football):not(.type-strength){border-left-color:var(--ds-actual)}
+.hwb-card.is-planned{border-color:var(--ds-plan);background:#1b2a3e}
+.hwb-card.is-planned .hwb-card-label{color:var(--ds-plan)}
+.hwb-card.is-coach:not(.is-coach-info):not(.is-race):not(.is-rejected){border-color:var(--ds-suggestion)}
+.hc-entry-state.verified,.hc-publish-steps>span.is-done{color:var(--ds-actual)}
+.hc-entry-state.draft{color:var(--ds-draft)}
+.hc-entry-state.waiting,.co-home .cdb-cautious .cdb-label{color:var(--ds-warning)}
+.hc-entry-state.warning{color:var(--ds-error)}
+.hc-entry-state.muted{color:var(--ds-muted)}
+.co-home .cdb-cautious .cdb-next{border-left-color:var(--ds-warning)}
+/* Same hierarchy for explicit primary actions; publish and destructive actions keep their existing roles. */
+.co-home .cdb-actions .cdb-primary,.cdl-root .cdl-primary:not(.cdl-nonwrite),.hc-coach-accept{
+ background:var(--ds-accent);color:var(--ds-on-accent);border-color:var(--ds-accent);
+}
+.co-home .cdb-actions .cdb-primary:hover:not(:disabled),.cdl-root .cdl-primary:not(.cdl-nonwrite):hover:not(:disabled),.hc-coach-accept:hover:not(:disabled){background:#c5f3d8}
+.co-home .cdb-actions button,.cdl-root .cdl-actions button,.hc-coach-accept,.hc-coach-cancel,.hc-refresh,.hc-intervals-button,.training-view-nav button,.goals-race-link,.race-prep-goals-link,.th-secondary{
+ min-height:var(--ds-touch);border-radius:var(--ds-radius-button);touch-action:manipulation;
+}
+.training-view-nav{background:var(--ds-inset);border-color:var(--ds-border);color:var(--ds-muted)}
+.training-view-nav button[aria-pressed=true]{background:#29413e;border-color:var(--ds-accent);color:var(--ds-ink)}
+.training-view-nav button:focus-visible,.co-home .cdb-actions button:focus-visible,.hc-coach-accept:focus-visible,.hc-refresh:focus-visible,.hc-intervals-button:focus-visible,.cdl-root .cdl-actions button:focus-visible,.th-secondary:focus-visible{outline:2px solid var(--ds-accent);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.page{animation:none}}
