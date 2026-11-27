@@ -113,3 +113,51 @@ export function protectRhythmReplacements(original,proposed,budgetFor){
  }
  return result
 }
+
+/** Reconcile only the remaining open suggestions with a measured weekly band.
+ * Never add a day, chase a deficit late in the week, or override another adjustment.
+ * A five-minute increase is the same progression allowance already earned by
+ * adaptive volume; it is not a second increase. Unknown distances stop increases.
+ */
+export function allocateWeeklyRunning(days,budgetFor,{today,protectedPhase=false,volumeStatus,alreadyAdjusted=false}={}){
+ if(!Array.isArray(days)||!valid(today)||protectedPhase||alreadyAdjusted)return {days,changes:[]}
+ const start=weekStart(today),result=[...days],changes=[]
+ const initial=budgetFor(result,start)
+ if(!initial?.current||!initial.target||initial.actualKm===null||initial.forecastKm===null||!initial.paceSeconds||!['base','build','specific','peak'].includes(initial.phase))return {days,changes:[]}
+ const open=d=>eligibleRun(d)&&['easy','long'].includes(d.kind)&&d.date>=today&&weekStart(d.date)===start&&d.intensityIntent==='low'&&initial.proposedParts.some(p=>p.date===d.date&&p.km!==null)
+ const revise=(i,minutes,reason)=>{
+  const old=result[i]
+  if(minutes===old.minutes)return
+  result[i]={...old,minutes,title:(old.kind==='long'?'Langer lockerer Lauf':'Lockerer Lauf')+' · '+minutes+' Min.',reason:old.reason+' Wochenplanung: '+reason+' '+old.minutes+' → '+minutes+' Min. Nur Vorschlag; kein Nachholen.',weeklyAdjustment:{from:old.minutes,to:minutes}}
+  changes.push({date:old.date,from:old.minutes,to:minutes,reason})
+ }
+ // Roadmap long-run duration is a ceiling for the existing open long run,
+ // especially in deload weeks; it is not a command to make a run longer.
+ for(let i=0;i<result.length;i++){
+  const d=result[i]
+  if(open(d)&&d.kind==='long'&&finite(initial.longRunMinutes)&&initial.longRunMinutes>=35&&d.minutes>initial.longRunMinutes)revise(i,initial.longRunMinutes,'Den langen Lauf am Richtwert der aktuellen Trainingsphase ausrichten.')
+ }
+ // Trim existing suggestions in small increments if known forecast is above
+ // the ceiling. Never shorten below the supported draft minimum.
+ let budget=budgetFor(result,start)
+ const order=result.map((d,i)=>({d,i})).filter(({d})=>open(d)).sort((a,b)=>(a.d.kind==='long'?1:0)-(b.d.kind==='long'?1:0)||b.d.date.localeCompare(a.d.date))
+ for(const {i} of order){
+  if(budget.forecastKm<=budget.target.high)break
+  const d=result[i],floor=d.kind==='long'?35:20
+  const next=Math.max(floor,d.minutes-10)
+  if(next<d.minutes){revise(i,next,'Bekannte Wochenprognose liegt über dem oberen Richtwert; Belastung reduzieren.');budget=budgetFor(result,start)}
+ }
+ // Only Mon/Tue, complete quantified current week, a stable four-week
+ // progression decision, no other adjustment, and two available easy slots.
+ // Keep the existing weekly high bound and the low-intensity nature of the run.
+ if(!changes.length&&volumeStatus==='progress'&&today<=add(start,1)&&budget.unknown===0&&budget.forecastKm<budget.target.low){
+  const eligible=result.map((d,i)=>({d,i})).filter(({d})=>open(d)&&d.kind==='easy'&&d.minutes<=55)
+  if(eligible.length>=2){
+   const {d,i}=eligible[0],next=d.minutes+5
+   const trial=result.map((x,j)=>j===i?{...x,minutes:next}:x)
+   const after=budgetFor(trial,start)
+   if(after.forecastKm!==null&&after.forecastKm<=budget.target.high)revise(i,next,'Stabile dokumentierte Laufbasis erlaubt fünf Minuten mehr am Wochenanfang; kein Nachholen.')
+  }
+ }
+ return {days:result,changes}
+}
