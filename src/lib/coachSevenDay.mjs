@@ -1,5 +1,6 @@
 import {buildLongTermCoachPlan} from './coachLongTermPlan.mjs'
 import {buildWeeklyBudget,replacementImpact,protectRhythmReplacements,allocateWeeklyRunning} from './weeklyTraining.mjs'
+import {proposeStandaloneQuality} from './qualityWorkout.mjs'
 import {qualityIntent,savedQualityIntent,protectQualitySlots} from './trainingIntent.mjs'
 import {applyTrainingRhythm} from './trainingRhythm.mjs'
 import {crossTrainingEvidence,buildGoalProfile,buildGoalSupplement,buildDailyTrainingAlternatives} from './goalTrainingFocus.mjs'
@@ -573,10 +574,12 @@ export function buildSevenDayCoach(input){
  const rhythmProposed=applyTrainingRhythm(polarized.days,input.life?.trainingRhythm,{today,protectedPhase:supplementInput.protectedPhase||hardCross,qualityDay:polarized.qualityDay,evidence:crossEvidence.rows,equipment:input.life?.equipmentProfile,options,choices})
  const rhythmAdjusted=protectRhythmReplacements(polarized.days,rhythmProposed,budgetFor)
  const allocation=allocateWeeklyRunning(rhythmAdjusted,budgetFor,{today,protectedPhase:supplementInput.protectedPhase||hardCross,volumeStatus:effectiveVolume.status,alreadyAdjusted:!!volumeStep.appliedDate||!!toleranceStep.appliedDate})
- const qualityDays=protectQualitySlots(allocation.days,plans,roadmap.weeks,{today,qualityDay:polarized.qualityDay})
- const qualitySuppressed=qualityDays.some(d=>d.date===polarized.qualityDay&&d.qualitySlotBlocked)
- const effectiveQualityDay=qualitySuppressed?null:polarized.qualityDay
- const methodMessage=qualitySuppressed?'Kein weiterer harter Reiz: vorhandene Qualitätseinheit oder Wochenphase hat Vorrang.':polarized.message
+ const standalone=proposeStandaloneQuality(allocation.days,{today,boards:input.boards,plans,roadmap:roadmap.weeks,budget:budgetFor(allocation.days,today),polarized,protectedPhase:supplementInput.protectedPhase||hardCross||!!volumeStep.appliedDate||!!toleranceStep.appliedDate||allocation.changes.length>0,volumeStatus:effectiveVolume.status})
+ const candidateDate=standalone.date||polarized.qualityDay
+ const qualityDays=protectQualitySlots(standalone.days,plans,roadmap.weeks,{today,qualityDay:candidateDate})
+ const qualitySuppressed=qualityDays.some(d=>d.date===candidateDate&&d.qualitySlotBlocked)
+ const effectiveQualityDay=qualitySuppressed?null:candidateDate
+ const methodMessage=qualitySuppressed?'Kein weiterer harter Reiz: vorhandene Qualitätseinheit oder Wochenphase hat Vorrang.':standalone.date?'Kontrollierte Einzelintervalle statt eines lockeren Laufs; Freigabe erforderlich.':polarized.message
  flags.push('Trainingsmethode: polarisiert (ca. vier locker / eine hart; mittlere Intensität möglichst wenig). '+methodMessage)
  const rhythmDays=qualityDays.map(day=>{
   if(day.date<today)return day
@@ -600,7 +603,7 @@ export function buildSevenDayCoach(input){
  if(allocation.changes.length)flags.push('Wochenplanung: '+allocation.changes.map(c=>c.date+' '+c.from+' → '+c.to+' Min.').join('; ')+' · nur offene Vorschläge.')
  return {today,days:rhythmDays,signals,flags,goalProfile,supplement,alternatives,weeklyBudgets,weeklyAllocation:allocation.changes,
   trainingMethod:{id:'polarized',qualityDay:effectiveQualityDay,
-   status:qualitySuppressed?'protected':polarized.status,plannedEasy:polarized.easyCount,
+   status:qualitySuppressed?'protected':standalone.date?'optional-hard':polarized.status,plannedEasy:polarized.easyCount,
    message:methodMessage},
   attention:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||allowWeekAdjustment||
   adapted.impact.effect==='shortened'||fourWeekReview.qualityCaution||typeCaution||observationLimited,
