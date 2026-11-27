@@ -12,7 +12,7 @@ export function clubQualityWeek({today,start=monday(today),options=[],choices=[]
  const slots=options.filter(isOrcTrack).sort((a,b)=>a.weekday-b.weekday)
  if(!slots.length)return null
  const end=shift(start,6),activities=boards.flatMap(b=>b.activities||[])
- const actualDates=new Set(activities.filter(a=>isTrackActivity(a)&&date(a)>=start&&date(a)<=end&&date(a)<=today).map(date))
+ const actualDates=new Set(activities.filter(a=>date(a)>=start&&date(a)<=end&&date(a)<=today&&(isTrackActivity(a)||a.sport_type==='track_running'&&slots.some(o=>shift(start,o.weekday-1)===date(a)&&choices.some(c=>c.option_code===o.code&&c.training_date===date(a)&&c.choice==='selected')))).map(date))
  const savedDates=new Set(plans.filter(p=>p.training_date>=start&&p.training_date<=end&&savedQualityIntent(p)).map(p=>p.training_date))
  const sessions=slots.map(o=>{
   const d=shift(start,o.weekday-1),choice=choices.find(c=>c.option_code===o.code&&c.training_date===d)?.choice
@@ -42,7 +42,7 @@ export function archiveGroupSpec(template,groupName){
 /** Only reuse a previously personally selected archive group with a matching
  * completed and reasonably tolerated Track activity. A poster alone does not
  * tell us which pace group the athlete belongs to. */
-export function selectArchiveQuality({today,archive=[],plans=[],boards=[],budget,replaceDate}){
+export function selectArchiveQuality({today,archive=[],plans=[],boards=[],budget,replaceDate,freeSlot=false}){
  if(!Array.isArray(archive)||!budget?.target||!finite(budget.forecastKm)||!finite(budget.paceSeconds))return null
  const actual=boards.flatMap(b=>b.activities||[]).filter(a=>isTrackActivity(a)&&date(a)<today&&date(a)>=shift(today,-28)&&finite(a.distance_m)&&normalizeGarminRpe(a.rpe_raw)!==null&&normalizeGarminRpe(a.rpe_raw)<=7)
  const prior=plans.flatMap(p=>{
@@ -52,8 +52,21 @@ export function selectArchiveQuality({today,archive=[],plans=[],boards=[],budget
   const match=actual.find(a=>date(a)===p.training_date&&Math.abs(a.distance_m-spec.totalMeters)<=Math.max(1000,spec.totalMeters*.15))
   return match?[{spec,match}]:[]
  })
+ // A newly uploaded historic single-group template (or explicitly named
+ // group) may also match a rated Garmin workout without a former calendar draft.
+ const words=s=>String(s||'').toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu,' ').trim()
+ for(const t of archive){
+  const title=words(t.title||t.workout?.title)
+  if(title.length<5)continue
+  for(const g of t.workout?.groups||[]){
+   const spec=archiveGroupSpec(t,g.name),name=words(g.name)
+   if(!spec)continue
+   const match=actual.find(a=>(' '+words(a.activity_name)+' ').includes(' '+title+' ')&&(t.workout.groups.length===1||name.length>=2&&(' '+words(a.activity_name)+' ').includes(' '+name+' '))&&Math.abs(a.distance_m-spec.totalMeters)<=Math.max(1000,spec.totalMeters*.15))
+   if(match)prior.push({spec,match})
+  }
+ }
  if(!prior.length)return null
- const removed=budget.proposedParts?.find(p=>p.date===replaceDate)?.km
+ const removed=freeSlot?0:budget.proposedParts?.find(p=>p.date===replaceDate)?.km
  if(!finite(removed))return null
  const candidates=archive.flatMap(t=>t.workout?.groups?.flatMap(g=>{
   const s=archiveGroupSpec(t,g.name)
@@ -71,17 +84,21 @@ export function proposeClubReplacement(days,{today,week,boards=[],plans=[],archi
  const actual=boards.flatMap(b=>b.activities||[]).filter(a=>date(a)<=today&&date(a)>=shift(today,-6))
  const easyActual=new Set(actual.filter(a=>/run|trail/i.test(a.sport_type||'')&&a.duration_s>=1200&&normalizeGarminRpe(a.rpe_raw)!==null&&normalizeGarminRpe(a.rpe_raw)<=4&&!isTrackActivity(a)).map(date))
  const easy=d=>d.kind==='easy'&&d.sport==='running'&&d.approvable&&!d.decision&&!d.selectedGroup&&d.intensityIntent==='low'
- const candidate=days.filter(d=>easy(d)&&d.date>=today&&d.date<=week.end&&d.minutes>=36&&
-   new Set([...easyActual,...days.filter(x=>x.date!==d.date&&x.date>=today&&x.date<=week.end&&easy(x)).map(x=>x.date)]).size>=3&&
+ const free=d=>d.kind==='recovery'&&d.title==='Erholung / freier Tag'&&!d.decision&&!d.selectedGroup&&!d.rhythm?.some(r=>r.status==='suggested')
+ const otherEasy=d=>easy(d)||d.kind==='long'&&d.approvable&&d.intensityIntent==='low'&&!d.decision||d.selectedGroup?.code==='orc-run-wed'&&d.selectedGroup.advice!=='skip'
+ const candidate=days.filter(d=>(easy(d)&&d.minutes>=30||free(d))&&d.date>=today&&d.date<=week.end&&
+   new Set([...easyActual,...days.filter(x=>x.date!==d.date&&x.date>=today&&x.date<=week.end&&otherEasy(x)).map(x=>x.date)].filter(x=>x!==d.date)).size>=2&&
    !actual.some(a=>date(a)>=shift(d.date,-1)&&date(a)<=d.date&&(/football|soccer/i.test(a.sport_type)||normalizeGarminRpe(a.rpe_raw)>=7||isTrackActivity(a)))&&
    !days.some(x=>Math.abs(Date.parse(x.date+'T12:00:00Z')-Date.parse(d.date+'T12:00:00Z'))===86400000&&
     (['long','race','existing'].includes(x.kind)||x.selectedGroup||x.kind==='option'&&/track|intervall|bahn|football|fußball/i.test(x.title))))
-  .sort((a,b)=>Number(week.slots.some(s=>s.date===b.date))-Number(week.slots.some(s=>s.date===a.date))||a.date.localeCompare(b.date))[0]
+  .sort((a,b)=>Number(free(a))-Number(free(b))||Number(week.slots.some(s=>s.date===a.date))-Number(week.slots.some(s=>s.date===b.date))||a.date.localeCompare(b.date))[0]
  if(!candidate)return {days,date:null}
- const spec=selectArchiveQuality({today,archive,plans,boards,budget,replaceDate:candidate.date})
+ const spec=selectArchiveQuality({today,archive,plans,boards,budget,replaceDate:candidate.date,freeSlot:free(candidate)})
+ const removed=free(candidate)?0:budget.proposedParts?.find(p=>p.date===candidate.date)?.km
+ if(!spec&&(!finite(removed)||budget.forecastKm-removed+36*60/budget.paceSeconds>budget.target.high))return {days,date:null}
  const title=spec?'Archiv · '+spec.title+' · '+spec.group:'Qualität · 4 × 2 Min. kontrollierte Intervalle'
  const reason=spec?'Beide ORC-Track-Termine entfallen. Passende geprüfte Vorlage aus deiner Trainingsbibliothek mit belegter Gruppenverträglichkeit: '+spec.warmupMeters/1000+' km einlaufen, '+spec.efforts+' Intervalle ('+spec.effortMeters/1000+' km), '+spec.recoveryMeters/1000+' km Trabpausen, '+spec.cooldownMeters/1000+' km auslaufen. Gesamt '+spec.totalMeters/1000+' km.':'Beide ORC-Track-Termine entfallen. Noch keine passende vollständig belegte Archivgruppe; konservativer Ersatz: 12 Min. einlaufen, 4 × 2 Min. kontrolliert zügig, 3 × 2 Min. traben, 10 Min. auslaufen.'
- return {date:candidate.date,days:days.map(d=>d===candidate?{...d,kind:'intervals',title,minutes:spec?null:36,intensityIntent:'hard-option',...(spec?{qualityArchive:spec}:{}),reason:reason+' Nur gut erholt und beschwerdefrei, kein zusätzlicher Lauf; deine Freigabe bleibt erforderlich.'}:d)}
+ return {date:candidate.date,days:days.map(d=>d===candidate?{...d,kind:'intervals',title,minutes:spec?null:36,approvable:true,intensityIntent:'hard-option',...(spec?{qualityArchive:spec}:{}),reason:reason+' Nur gut erholt und beschwerdefrei; kein Nachholen ausgefallener Kilometer, deine Freigabe bleibt erforderlich.'}:d)}
 }
 export function buildArchiveQualitySnapshot(spec,startTime){
  if(!spec||!Array.isArray(spec.steps)||! /^(0[5-9]|1[0-9]|2[0-2]):(00|15|30|45)$/.test(startTime))return null
