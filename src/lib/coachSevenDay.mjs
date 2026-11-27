@@ -564,8 +564,6 @@ export function buildSevenDayCoach(input){
    (recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<0),
   boards:input.boards,feedback:life.post_workout_feedback
  })
- flags.push('Trainingsmethode: polarisiert (ca. vier locker / eine hart; '+
-  'mittlere Intensität möglichst wenig). '+polarized.message)
  const goalProfile=buildGoalProfile({today,goal:input.goal,route:input.goalRoute})
  const supplementInput={today,profile:goalProfile,days:polarized.days,boards:input.boards,equipment:input.life?.equipmentProfile,
   protectedPhase:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||observationLimited||allowWeekAdjustment||adapted.impact.effect==='shortened'||fourWeekReview.qualityCaution||typeCaution||(recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<=0)||(raceOffset!==null&&raceOffset>=-14&&raceOffset<=10),qualityDay:polarized.qualityDay}
@@ -576,6 +574,10 @@ export function buildSevenDayCoach(input){
  const rhythmAdjusted=protectRhythmReplacements(polarized.days,rhythmProposed,budgetFor)
  const allocation=allocateWeeklyRunning(rhythmAdjusted,budgetFor,{today,protectedPhase:supplementInput.protectedPhase||hardCross,volumeStatus:effectiveVolume.status,alreadyAdjusted:!!volumeStep.appliedDate||!!toleranceStep.appliedDate})
  const qualityDays=protectQualitySlots(allocation.days,plans,roadmap.weeks,{today,qualityDay:polarized.qualityDay})
+ const qualitySuppressed=qualityDays.some(d=>d.date===polarized.qualityDay&&d.qualitySlotBlocked)
+ const effectiveQualityDay=qualitySuppressed?null:polarized.qualityDay
+ const methodMessage=qualitySuppressed?'Kein weiterer harter Reiz: vorhandene Qualitätseinheit oder Wochenphase hat Vorrang.':polarized.message
+ flags.push('Trainingsmethode: polarisiert (ca. vier locker / eine hart; mittlere Intensität möglichst wenig). '+methodMessage)
  const rhythmDays=qualityDays.map(day=>{
   if(day.date<today)return day
   const saved=plans.filter(p=>p.training_date===day.date)
@@ -597,9 +599,9 @@ export function buildSevenDayCoach(input){
  if(currentBudget?.target)flags.push('Laufumfang dieser ISO-Woche: Richtwert '+currentBudget.target.low+'–'+currentBudget.target.high+' km; '+(currentBudget.forecastKm===null?'Prognose noch offen.':currentBudget.forecastKm+' km aus bekannten Messungen und Vorschlägen. Keine fehlenden Kilometer nachholen.'))
  if(allocation.changes.length)flags.push('Wochenplanung: '+allocation.changes.map(c=>c.date+' '+c.from+' → '+c.to+' Min.').join('; ')+' · nur offene Vorschläge.')
  return {today,days:rhythmDays,signals,flags,goalProfile,supplement,alternatives,weeklyBudgets,weeklyAllocation:allocation.changes,
-  trainingMethod:{id:'polarized',qualityDay:polarized.qualityDay,
-   status:polarized.status,plannedEasy:polarized.easyCount,
-   message:polarized.message},
+  trainingMethod:{id:'polarized',qualityDay:effectiveQualityDay,
+   status:qualitySuppressed?'protected':polarized.status,plannedEasy:polarized.easyCount,
+   message:methodMessage},
   attention:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||allowWeekAdjustment||
   adapted.impact.effect==='shortened'||fourWeekReview.qualityCaution||typeCaution||observationLimited,
   attentionText:ill||input.symptoms?'Krank-Modus aktiv: Trainingsvorschläge sind gesperrt, bis du deine Genesung meldest.':
