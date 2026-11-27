@@ -1,3 +1,4 @@
+import {analyzeArchivedWeeks,applyArchivedWeekLearning} from './archivedWeekLearning.mjs'
 import {buildLongTermCoachPlan} from './coachLongTermPlan.mjs'
 import {buildWeeklyBudget,replacementImpact,protectRhythmReplacements,allocateWeeklyRunning} from './weeklyTraining.mjs'
 import {clubQualityWeek,applyClubQuality,proposeClubReplacement} from './clubQuality.mjs'
@@ -537,7 +538,9 @@ export function buildSevenDayCoach(input){
   recentImpactEffect:adapted.impact.effect})
  // A completed race is not a mandate for further progression. Keep reductions and
  // all race/health guards, but never add volume while waiting for a new goal or holding fitness.
- const effectiveVolume=trainingGoalMode.mode!=='race'&&raceDate&&volume.status==='progress'?
+ const archivedLearning=analyzeArchivedWeeks({today,boards:input.boards,revisions:input.life?.weekRevisions})
+ const guardedVolume=archivedLearning.caution&&volume.status==='progress'?{...volume,status:'maintain',changeMinutes:0,title:'Wochenhistorie: Umfang halten',reason:archivedLearning.summary}:volume
+ const effectiveVolume=trainingGoalMode.mode!=='race'&&raceDate&&guardedVolume.status==='progress'?
   {...volume,status:'maintain',title:'Trainingsniveau beibehalten',changeMinutes:0,
    reason:trainingGoalMode.mode==='maintenance'?'Fit halten · '+trainingGoalMode.weeklyKm+' km/Woche als Richtwert. Keine automatische Umfangssteigerung.':'Wettkampf vorbei. Erst neues Ziel oder Trainingsniveau wählen.'}:volume
  const volumeStep=applyAdaptiveVolume(adapted.days,effectiveVolume,{today})
@@ -559,22 +562,24 @@ export function buildSevenDayCoach(input){
  if(toleranceStep.appliedDate)flags.push('Coach-Lernschleife ('+
   toleranceStep.appliedDate+'): '+toleranceStep.message)
  else if(typeCaution)flags.push('Coach-Lernschleife: Wiederholt hohe Belastung bei geplanten lockeren oder langen Läufen; keine zusätzliche Umfangssteigerung.')
- const polarized=applyPolarizedGuidance(toleranceStep.days,{
+ const learned=applyArchivedWeekLearning(toleranceStep.days,archivedLearning,{today,protectedPhase:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||observationLimited||hardCross||(raceOffset!==null&&raceOffset>=-14&&raceOffset<=21)||(recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<=0),otherAdjustment:allowWeekAdjustment||adapted.impact.effect==='shortened'||!!volumeStep.appliedDate||!!toleranceStep.appliedDate})
+ if(archivedLearning.caution)flags.push(archivedLearning.summary+(learned.appliedDate?' Nächster offener Lauf am '+learned.appliedDate+' um fünf Minuten verkürzt.':''))
+ const polarized=applyPolarizedGuidance(learned.days,{
   today,raceDate,ill,returning,postIllness,caution,
   feedbackCaution,trendReducing,observationLimited,
-  qualityLocked:garminPerception.qualityCaution||fourWeekReview.qualityCaution||typeCaution||hardCross||
+  qualityLocked:archivedLearning.caution||garminPerception.qualityCaution||fourWeekReview.qualityCaution||typeCaution||hardCross||
    (recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<0),
   boards:input.boards,feedback:life.post_workout_feedback
  })
  const goalProfile=buildGoalProfile({today,goal:input.goal,route:input.goalRoute})
  const supplementInput={today,profile:goalProfile,days:polarized.days,boards:input.boards,equipment:input.life?.equipmentProfile,
-  protectedPhase:ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||observationLimited||allowWeekAdjustment||adapted.impact.effect==='shortened'||fourWeekReview.qualityCaution||typeCaution||(recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<=0)||(raceOffset!==null&&raceOffset>=-14&&raceOffset<=10),qualityDay:polarized.qualityDay}
+  protectedPhase:archivedLearning.caution||ill||returning||postIllness||!!input.symptoms||caution||feedbackCaution||trendReducing||trendShortening||observationLimited||allowWeekAdjustment||adapted.impact.effect==='shortened'||fourWeekReview.qualityCaution||typeCaution||(recentRaceOffset!==null&&recentRaceOffset>=-14&&recentRaceOffset<=0)||(raceOffset!==null&&raceOffset>=-14&&raceOffset<=10),qualityDay:polarized.qualityDay}
  const roadmap=buildLongTermCoachPlan({today,goal:input.goal,health,life:input.life,racePortfolio:input.racePortfolio,history:fourWeekReview,options})
  const raceDates=[raceDate,recoveryRaceDate,...history.map(g=>g.race_date)].filter(Boolean)
  const budgetFor=(weekDays,date)=>buildWeeklyBudget({today,start:coachMonday(date),days:weekDays,boards:input.boards,plans,roadmap:roadmap.weeks,protectedPhase:supplementInput.protectedPhase||hardCross,raceDates,rhythm:input.life?.trainingRhythm})
  const rhythmProposed=applyTrainingRhythm(polarized.days,input.life?.trainingRhythm,{today,protectedPhase:supplementInput.protectedPhase||hardCross,qualityDay:polarized.qualityDay,evidence:crossEvidence.rows,equipment:input.life?.equipmentProfile,options,choices})
  const rhythmAdjusted=protectRhythmReplacements(polarized.days,rhythmProposed,budgetFor)
- const allocation=allocateWeeklyRunning(rhythmAdjusted,budgetFor,{today,protectedPhase:supplementInput.protectedPhase||hardCross,volumeStatus:effectiveVolume.status,alreadyAdjusted:!!volumeStep.appliedDate||!!toleranceStep.appliedDate})
+ const allocation=allocateWeeklyRunning(rhythmAdjusted,budgetFor,{today,protectedPhase:supplementInput.protectedPhase||hardCross,volumeStatus:effectiveVolume.status,alreadyAdjusted:!!volumeStep.appliedDate||!!toleranceStep.appliedDate||!!learned.appliedDate})
  const clubWeeks=[...new Set([coachMonday(today),...allocation.days.map(d=>coachMonday(d.date))])].map(start=>clubQualityWeek({today,start,options,choices,days:allocation.days,boards:input.boards,plans})).filter(Boolean)
  const clubWeek=clubWeeks.find(w=>w.start===coachMonday(today))
  const standalone=clubWeek?proposeClubReplacement(allocation.days,{today,week:clubWeek,boards:input.boards,plans,archive:input.life?.workoutArchive,roadmap:roadmap.weeks,budget:budgetFor(allocation.days,today),protectedPhase:supplementInput.protectedPhase||hardCross||!!volumeStep.appliedDate||!!toleranceStep.appliedDate||allocation.changes.length>0,volumeStatus:effectiveVolume.status}):proposeStandaloneQuality(allocation.days,{today,boards:input.boards,plans,roadmap:roadmap.weeks,budget:budgetFor(allocation.days,today),polarized,protectedPhase:supplementInput.protectedPhase||hardCross||!!volumeStep.appliedDate||!!toleranceStep.appliedDate||allocation.changes.length>0,volumeStatus:effectiveVolume.status})
@@ -604,7 +609,7 @@ export function buildSevenDayCoach(input){
  const currentBudget=weeklyBudgets.find(w=>w?.current)
  if(currentBudget?.target)flags.push('Laufumfang dieser ISO-Woche: Richtwert '+currentBudget.target.low+'–'+currentBudget.target.high+' km; '+(currentBudget.forecastKm===null?'Prognose noch offen.':currentBudget.forecastKm+' km aus bekannten Messungen und Vorschlägen. Keine fehlenden Kilometer nachholen.'))
  if(allocation.changes.length)flags.push('Wochenplanung: '+allocation.changes.map(c=>c.date+' '+c.from+' → '+c.to+' Min.').join('; ')+' · nur offene Vorschläge.')
- return {today,days:rhythmDays,signals,flags,goalProfile,supplement,alternatives,weeklyBudgets,weeklyAllocation:allocation.changes,
+ return {today,days:rhythmDays,signals,flags,goalProfile,supplement,alternatives,weeklyBudgets,weeklyAllocation:allocation.changes,archivedLearning:{...archivedLearning,appliedDate:learned.appliedDate},
   trainingMethod:{id:'polarized',qualityDay:effectiveQualityDay,
    status:clubWeek?(standalone.date?'optional-hard':supplementInput.protectedPhase||hardCross?'protected':effectiveQualityDay?'optional-hard':'easy-first'):qualitySuppressed?'protected':standalone.date?'optional-hard':polarized.status,plannedEasy:polarized.easyCount,
    message:methodMessage},
