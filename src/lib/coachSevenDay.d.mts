@@ -14,7 +14,7 @@ export type CoachDay={
 export type SevenDayPlan={
  today:string;days:CoachDay[];signals:string[];flags:string[];
  attention:boolean;attentionText:string;basedOnActual:boolean;source:string;raceDate:string|null;
- archivedLearning?:{status:string;title:string;summary:string;completeWeeks:number;overloadWeeks:number;caution:boolean;appliedDate:string|null;weeks:{start:string;end:string;status:string;originalKm:number|null;plannedKm:number|null;actualKm:number|null;deltaKm:number|null;rated:number;strained:number;overload:boolean}[]};
+ archivedLearning?:{status:string;title:string;summary:string;completeWeeks:number;targetWeeks:number;overloadWeeks:number;caution:boolean;appliedDate:string|null;weeks:{start:string;end:string;status:string;originalKm:number|null;plannedKm:number|null;actualKm:number|null;deltaKm:number|null;targetHigh:number|null;targetDeltaKm:number|null;rated:number;strained:number;overload:boolean}[]};
  weeklyAllocation?:{date:string;from:number;to:number;reason:string}[];
  weeklyBudgets?:import('./weeklyTraining.mjs').WeeklyBudget[];
  goalProfile?:import('./goalTrainingFocus.mjs').GoalProfile;
