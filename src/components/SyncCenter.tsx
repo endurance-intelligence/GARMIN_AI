@@ -418,6 +418,8 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
           <span className={`sync-state sync-state-${data.sources.fit.state||'unknown'}`}>{stateText(data.sources.fit.state)}</span>
         </div>
         <p>{data.sources.fit.pending??'–'} offene FIT-Aktivitäten · {data.sources.fit.counts?.retry??'–'} Wiederholungen · {data.sources.fit.counts?.complete??'–'} vollständig</p>
+        <p>{data.sources.fit.counts?.paused??'–'} pausiert · {data.sources.fit.counts?.unavailable??'–'} Detaildaten nicht verfügbar</p>
+        <small>Fehlende FIT-Messpunkte werden nicht geschätzt. Die Garmin-Aktivität bleibt erhalten; nur die tatsächlich verfügbaren Messdaten werden ausgewertet.</small>
         <p>Garmin Connect Cloud: {data.cloudConnect?.status!=='configured'?
           'Cloud-Speicherstatus unklar – Supabase-Migration prüfen':
           data.cloudConnect.connected?
