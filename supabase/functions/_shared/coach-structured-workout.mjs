@@ -2,7 +2,9 @@
  * Deliberately no invented pace, heart-rate limit, distance or training score.
  * The server constructs this, not the browser. Always draft -> approve -> publish.
  */
+import {QUALITY_SESSION} from '../../../src/lib/qualityWorkout.mjs'
 const plans={
+ intervals:{min:QUALITY_SESSION.minutes,max:QUALITY_SESSION.minutes,label:'Kontrollierte Intervalle'},
  easy:{min:20,max:60,label:'Locker'},
  long:{min:35,max:150,label:'Langer ruhiger Lauf'},
  return_easy:{min:10,max:30,label:'Wiedereinstieg locker'}
@@ -30,7 +32,7 @@ export function coachWorkoutAllowed(context,kind,day){
  if(state.illness_state!=='well')return false
  if(kind==='return_easy')return false
  // The first 14 days following a declared return remain conservative.
- if(kind==='long'&&typeof state.return_started_on==='string'){
+ if(['long','intervals'].includes(kind)&&typeof state.return_started_on==='string'){
   const age=(Date.parse(day+'T12:00:00Z')-
    Date.parse(state.return_started_on+'T12:00:00Z'))/86400000
   if(Number.isFinite(age)&&age>=0&&age<14)return false
@@ -46,13 +48,14 @@ export function buildCoachStructuredSnapshot(input){
   typeof input.startTime!=='string'||!/^(0[5-9]|1[0-9]|2[0-2]):(00|15|30|45)$/.test(input.startTime))
   return null
  const total=input.minutes
- const warmup=Math.min(5,Math.floor(total/3))
- const cooldown=Math.min(5,Math.floor(total/3))
+ const quality=kind==='intervals'
+ const warmup=quality?QUALITY_SESSION.warmup:Math.min(5,Math.floor(total/3))
+ const cooldown=quality?QUALITY_SESSION.cooldown:Math.min(5,Math.floor(total/3))
  const work=total-warmup-cooldown
  if(work<4)return null
  const step=(kind,seconds)=>({kind,distanceMeters:null,
    durationSeconds:seconds,paceSecondsPerKm:null,notes:'',
-   endMode:'time',intensity:kind==='run'?'active':null})
+   endMode:'time',intensity:kind==='run'?(quality?'interval':'active'):null})
  return {
   schemaVersion:1,sourceKind:'coach',coachKind:kind,
   title:input.title.trim(),coachName:'GARMIN_AI Coach',
@@ -63,9 +66,9 @@ export function buildCoachStructuredSnapshot(input){
    {coachReason:input.coachReason.trim()}:{}),
   sourceLabel:'Coach Intelligence · persönlich freigegebener Entwurf',
   startTime:input.startTime,
-  group:{name:'Ruhiger Dauerlauf',
-   notes:'Sprechtempo / subjektiv locker. Kein vorgegebener Pace- oder HF-Grenzwert.',
-   steps:[step('run',work*60)]},
+  group:{name:quality?'Kontrollierte Intervalle':'Ruhiger Dauerlauf',
+   notes:quality?'Zügig und kontrolliert, kein Sprint; Trabpausen locker. Keine erfundene Pace oder HF.':'Sprechtempo / subjektiv locker. Kein vorgegebener Pace- oder HF-Grenzwert.',
+   steps:quality?Array.from({length:QUALITY_SESSION.repeats},(_,i)=>[step('run',QUALITY_SESSION.effort*60),...(i<QUALITY_SESSION.repeats-1?[step('recovery',QUALITY_SESSION.recovery*60)]:[])]).flat():[step('run',work*60)]},
   warmup:step('warmup',warmup*60),
   cooldown:step('cooldown',cooldown*60)
  }
@@ -73,8 +76,13 @@ export function buildCoachStructuredSnapshot(input){
 export function coachWorkoutDuration(snapshot){
  if(snapshot?.sourceKind!=='coach')return null
  const items=[snapshot.warmup,...(snapshot.group?.steps||[]),snapshot.cooldown]
- if(items.length!==3||items.some(x=>!Number.isSafeInteger(x?.durationSeconds)||
+ const quality=snapshot.coachKind==='intervals'
+ if(items.length!==(quality?QUALITY_SESSION.repeats*2+1:3)||items.some(x=>!Number.isSafeInteger(x?.durationSeconds)||
   x.durationSeconds<60||x.endMode!=='time'||x.paceSecondsPerKm!==null))
   return null
+ if(quality){
+  const expected=[['warmup',QUALITY_SESSION.warmup],...Array.from({length:QUALITY_SESSION.repeats},(_,i)=>[['run',QUALITY_SESSION.effort],...(i<QUALITY_SESSION.repeats-1?[['recovery',QUALITY_SESSION.recovery]]:[])]).flat(),['cooldown',QUALITY_SESSION.cooldown]]
+  if(items.some((x,i)=>x.kind!==expected[i][0]||x.durationSeconds!==expected[i][1]*60||x.distanceMeters!==null||(x.kind==='run'&&x.intensity!=='interval')))return null
+ }
  return items.reduce((v,x)=>v+x.durationSeconds,0)
 }
