@@ -542,7 +542,7 @@ export function buildSevenDayCoach(input){
  const guardedVolume=archivedLearning.caution&&volume.status==='progress'?{...volume,status:'maintain',changeMinutes:0,title:'Wochenhistorie: Umfang halten',reason:archivedLearning.summary}:volume
  const effectiveVolume=trainingGoalMode.mode!=='race'&&raceDate&&guardedVolume.status==='progress'?
   {...volume,status:'maintain',title:'Trainingsniveau beibehalten',changeMinutes:0,
-   reason:trainingGoalMode.mode==='maintenance'?'Fit halten · '+trainingGoalMode.weeklyKm+' km/Woche als Richtwert. Keine automatische Umfangssteigerung.':'Wettkampf vorbei. Erst neues Ziel oder Trainingsniveau wählen.'}:volume
+   reason:trainingGoalMode.mode==='maintenance'?'Fit halten · '+trainingGoalMode.weeklyKm+' km/Woche als Richtwert. Keine automatische Umfangssteigerung.':'Wettkampf vorbei. Erst neues Ziel oder Trainingsniveau wählen.'}:guardedVolume
  const volumeStep=applyAdaptiveVolume(adapted.days,effectiveVolume,{today})
  if(volumeStep.appliedDate)flags.push('Adaptive Umfangssteuerung ('+
   volumeStep.appliedDate+'): '+volume.reason)
