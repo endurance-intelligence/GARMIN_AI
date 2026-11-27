@@ -68,20 +68,42 @@ export function coachRecoveryAdvice({today,history=[],plan=null,context=null,tra
  if(poorFeedback||hardFeedback)reasons.push('Deine jüngsten Garmin-Bewertungen zeigen hohe Anstrengung oder schwaches Gefühl.')
  if(raceCaution||exhausted)reasons.push('Die aktuelle Wettkampf-/Erholungsphase erfordert zusätzliche Rücksicht.')
  const evidence=reasons.join(' ')
+ // Speak in short, grounded sentences. Never forward internal planner prose.
+ const plain=[]
+ if(fresh){
+  if(lowSleep)plain.push('Du hast '+fmt(Math.abs(sleep.difference)/60)+' Minuten weniger geschlafen als sonst.')
+  else if(shortSleep)plain.push('Du hast weniger als sechs Stunden geschlafen.')
+  else if(sleepQuality.disrupted)plain.push('Deine Nacht war weniger erholsam als sonst.')
+  if(lowHrv)plain.push('Deine HRV liegt deutlich unter deinem Normalwert.')
+  if(highPulse)plain.push('Dein Ruhepuls ist deutlich höher als sonst.')
+ }
+ if(longTerm.persistentLow)plain.push('Deine HRV ist schon seit mehreren Tagen niedriger als sonst.')
+ if(poorFeedback||hardFeedback)plain.push('Deine letzten Einheiten haben dich gefordert.')
+ if(rising||risingMinutes)plain.push('Du hast zuletzt deutlich mehr trainiert.')
+ if(exhausted)plain.push('Du hast angegeben, dass du noch ziemlich erschöpft bist.')
+ if(elevatedStress||lowBattery)plain.push(elevatedStress?'Gestern hattest du mehr Stress als sonst.':'Gestern waren deine Energiereserven niedriger als sonst.')
+ if(!plain.length&&(persistent||weekHrv||weekPulse||weekSleep))plain.push('Deine Werte waren in den letzten Tagen wiederholt auffällig.')
+ const raceRest=Number.isInteger(race?.daysSince)&&race.daysSince>=0&&race.daysSince<=21&&['matched','ambiguous','awaiting-sync'].includes(race.status)&&day?.kind==='recovery'&&/wettkampf|renn/i.test(day.title||'')
+ const why=(fallback,limit=2)=>plain.slice(0,limit).join(' ')||fallback
+ const canSayOtherValuesOkay=fresh&&finite(hrv?.difference)&&finite(pulse?.difference)&&!lowHrv&&!highPulse&&!longTerm.persistentLow&&hrv.median>0&&Math.abs(hrv.difference/hrv.median)<.25
+ const otherValues=canSayOtherValuesOkay&&(lowSleep||shortSleep)&&plain.length===1?' HRV und Ruhepuls sind im kurzfristigen Vergleich unauffällig.':''
  const bodyCheck='Dein aktuelles Körpergefühl kann ich nicht messen. Bei Schmerzen, Schwindel, ungewöhnlicher Atemnot oder deutlichem Krankheitsgefühl nicht trainieren und Beschwerden bei Bedarf medizinisch abklären.'
  const planText=day?'Aktueller Coach-Plan: '+day.title+'.':'Der gemeinsame Tagesplan ist aktuell nicht vollständig verfügbar.'
  const result=(level,title,advice,tip)=>({level,title,advice,tip:tip+(longTerm.severeLow?' Ein anhaltender, unerklärlicher HRV-Einbruch sollte ärztlich abgeklärt werden. Bei akuten schweren Beschwerden medizinische Hilfe holen.':''),evidence,planText,bodyCheck,comparable,latestDay:latest?.metric_date||null})
- if(sick)return result('pause','Beschwerden haben Vorrang.','Heute keine Belastung. Auch unauffällige Garmin-Werte ändern daran nichts.','Den Beschwerdestatus und den geplanten Wiedereinstieg im Coach prüfen.')
- if(blocked||day?.kind==='blocked'||day?.decision==='declined')return result('pause','Deine Entscheidung hat Vorrang.','Halte den freien Tag ein, unabhängig von der Messlage.','Keine Einheit nachholen.')
- if(completed||day?.kind==='completed')return result('rest','Heute schon trainiert.','Keine zusätzliche Laufeinheit aus dem Morgencheck ableiten.','Trinken, essen, erholen und die Belastungsreaktion beobachten.')
- if(longTerm.severeLow)return result('caution','Anhaltend ungewöhnlich niedrige HRV.','Auch wenn der kurzfristige Vergleich inzwischen unauffällig aussieht, bleibt der Rückgang gegenüber deiner früheren Messphase bestehen.','Keine intensive oder lange Einheit erzwingen. Erholung und Ursache prüfen; bereits geplante Belastung vor dem Start überprüfen.')
- if(!fresh||comparable<2||!currentPlan||!day)return result('limited','Noch keine sichere Gesamteinordnung.',!fresh?'Heute fehlen aktuelle, vergleichbare Morgenwerte. Ältere Messungen sind keine Aussage zur heutigen Erholung.':comparable<2?'Noch zu wenige persönliche Vergleichswerte.':'Der vollständige Coach-Kontext fehlt.','Keine zusätzliche oder harte Einheit aus dieser Ansicht ableiten. Daten aktualisieren und Körpergefühl berücksichtigen.')
+ if(sick)return result('pause','Heute geht Gesundheit vor.','Du hast Beschwerden gemeldet. Auch gute Werte sind dann kein Grund, Sport zu machen.','Ruh dich aus. Trainiere erst wieder, wenn der Wiedereinstieg passt.')
+ if(blocked||day?.kind==='blocked'||day?.decision==='declined')return result('pause','Heute bleibt frei.','Du hast dir heute bewusst freigehalten. Das respektiere ich.','Genieß den freien Tag. Nichts nachholen.')
+ if(completed||day?.kind==='completed')return result('rest','Für heute genug getan.',why('Dein Training ist bereits erledigt.',1),'Trinken, essen, erholen. Keine Extra-Einheit.')
+ if(longTerm.severeLow)return result('caution','Anhaltend ungewöhnlich niedrige HRV.','Deine HRV ist seit vielen Tagen deutlich niedriger als früher. Das würde ich nicht einfach als normal abhaken.','Keine harte oder lange Einheit. Lass die Ursache abklären.')
+ if(!fresh||comparable<2||!currentPlan||!day)return result('limited','Mir fehlen noch Daten.',!fresh?'Für heute habe ich noch keine aktuellen Morgenwerte.':comparable<2?'Ich kenne deinen Normalbereich noch nicht gut genug.':'Ich kenne deinen heutigen Trainingsplan gerade nicht.','Nichts erzwingen. Erst die Daten prüfen und auf dein Gefühl hören.')
  const mainCount=Number(lowSleep||shortSleep||sleepQuality.disrupted)+Number(lowHrv)+Number(highPulse)
  const combined=mainCount>=2||(mainCount>=1&&(persistent||weekHrv||weekPulse||weekSleep||((elevatedStress||lowBattery)&&!lowHrv)||rising||risingMinutes||hardFeedback))
  const strong=combined||longTerm.persistentLow||poorFeedback||raceCaution||exhausted||day.selectedGroup?.advice==='skip'
  const protectedDay=['recovery','mobility','illness','blocked','return_easy','rest'].includes(day.kind)||day.qualityBlocked||day.selectedGroup?.advice==='easy'||returning
- if(['recovery','rest','mobility'].includes(day.kind)||day.selectedGroup?.advice==='skip')return result('rest','Erholung hat heute Vorrang.',day.reason||'Der Coach sieht heute eine ruhigere Belastung vor.','Keine zusätzliche Laufeinheit. Eine lockere Bewegung nur, wenn sie zum Tagesplan passt und du dich gut fühlst.')
- if(strong)return result('caution','Heute lieber auf die Bremse treten.','Mehrere Hinweise sprechen gegen zusätzliche Intensität. '+(returning?'Der vorsichtige Wiedereinstieg bleibt maßgeblich.':'Prüfe, ob du die geplante Einheit verschiebst oder mit dem Coach entschärfst.'),'Keine Intervalle oder lange Einheit erzwingen. Nur falls der Tagesplan es zulässt und du dich wirklich gut und beschwerdefrei fühlst: sehr locker beginnen, bei ungewöhnlicher Anstrengung oder auffälligem Puls abbrechen.')
- if(mainCount||persistent||weekHrv||weekPulse||weekSleep||elevatedStress||lowBattery||hardFeedback||rising||risingMinutes||protectedDay)return result('caution','Deine Tagesform entscheidet.','Die Signale sind nicht durchgehend unauffällig. '+(returning?'Bleibe beim vorsichtigen Wiedereinstieg.':'Trainiere nur, wenn du dich wirklich gut und beschwerdefrei fühlst; bei Müdigkeit lieber verkürzen oder pausieren.'),'Nicht gegen die Müdigkeit anlaufen. Prüfe beim lockeren Einlaufen, ob sich Atmung, Puls und Anstrengung normal anfühlen. Keine zusätzliche Intensität.')
- return result('balanced','Keine deutlichen Warnsignale in den verfügbaren Daten.','Deine vergleichbaren Morgenwerte zeigen keine klare ungünstige Kombination. Das ist keine automatische Trainingsfreigabe.','Orientiere dich am bestehenden Tagesplan. Wenn du dich nicht fit fühlst, darfst du jederzeit reduzieren oder pausieren.')
+ if(['recovery','rest','mobility'].includes(day.kind)||day.selectedGroup?.advice==='skip'){
+  const explanation=raceRest?'Du bist noch in der Erholung nach dem Wettkampf. '+why('Gib deinem Körper die Zeit, die er braucht.',1):why('Heute steht Erholung auf dem Plan.')+otherValues
+  return result('rest','Heute nicht auf Biegen und Brechen.',explanation,'Kein Zusatztraining. Nur locker bewegen, wenn es zum Plan passt und du dich gut fühlst.')
+ }
+ if(strong)return result('caution','Heute lieber auf die Bremse treten.',why(returning?'Du bist noch im Wiedereinstieg.':raceCaution?'Nach dem Wettkampf brauchst du noch Erholung.':'Heute spricht einiges für weniger Belastung.'),'Keine Intervalle oder lange Einheit erzwingen. Wenn der Plan es zulässt und du dich wirklich gut und beschwerdefrei fühlst, nur locker. Bei ungewöhnlicher Anstrengung abbrechen.')
+ if(mainCount||persistent||weekHrv||weekPulse||weekSleep||elevatedStress||lowBattery||hardFeedback||rising||risingMinutes||protectedDay)return result('caution','Heute nicht auf Biegen und Brechen.',why(returning?'Du bist noch im Wiedereinstieg.':'Heute würde ich nichts erzwingen.',1)+otherValues+' Trainiere nur, wenn du dich wirklich gut und beschwerdefrei fühlst.','Locker einlaufen. Fühlt es sich ungewöhnlich schwer an, verkürzen oder abbrechen. Keine zusätzliche Intensität.')
+ return result('balanced','Sieht heute ordentlich aus.','Deine verfügbaren Werte zeigen keine deutlichen Warnsignale. Wie du dich fühlst, zählt trotzdem.','Bleib beim Tagesplan. Wenn du dich nicht fit fühlst, mach weniger oder Pause.')
 }

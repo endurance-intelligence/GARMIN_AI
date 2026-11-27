@@ -207,6 +207,8 @@ try{
  await panel.getByText('87 / 100',{exact:true}).waitFor()
  await panel.getByText('24 / 100',{exact:true}).waitFor()
  assert.equal(await panel.locator('.co-sleep-bar .co-sleep-stage').count(),4)
+ assert.equal(await panel.locator('.co-metric-status').count(),6)
+ assert.equal(await morning.page.locator('.cav-root').count(),0,'no premature weekly learning card')
  const avatar=await panel.locator('.co-recovery-insight .coach-avatar').boundingBox()
  assert.ok(avatar&&avatar.width>=80,'morning coach avatar full size')
  assert.ok(await morning.page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'morning mobile layout has no horizontal overflow')
