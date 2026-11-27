@@ -4,6 +4,7 @@
  * No Garmin OAuth tokens or Garmin API calls exist in this Edge function.
  */
 import {createClient} from 'npm:@supabase/supabase-js@2'
+import {qualityStillAllowed} from '../_shared/quality-guard.ts'
 import {buildCoachStructuredSnapshot,coachWorkoutAllowed} from '../_shared/coach-structured-workout.mjs'
 
 const project='https://eurgupsebxypjqvyizci.supabase.co'
@@ -93,7 +94,7 @@ Deno.serve(async req=>{
       client_request_id:input.clientRequestId,training_date:input.date,
       title:snapshot.title,session_type:'event',sport:'running',
       notes:'Coach Intelligence · '+input.minutes+' Min. ab '+input.startTime+
-       '. 3 zeitgesteuerte Abschnitte. Kein Pace-/HF-Ziel. Freigabe und Intervals-Versand separat.',
+       (input.kind==='intervals'?'. 4 × 2 Min. kontrolliert, 3 Trabpausen. Kein Sprint.':'. 3 zeitgesteuerte Abschnitte.')+' Kein Pace-/HF-Ziel. Freigabe und Intervals-Versand separat.',
       state:'draft',archive_group:snapshot.group.name,archive_snapshot:snapshot
     }
     const {data:existing,error:existingError}=await db.from('garmin_training_plan')
@@ -105,7 +106,7 @@ Deno.serve(async req=>{
         JSON.stringify(existing.archive_snapshot)===JSON.stringify(row.archive_snapshot)
       // JSONB can reorder keys: compare semantic values instead of raw string.
       const wasCoach=existing.archive_snapshot?.sourceKind==='coach'
-      const compatible=wasCoach&&existing.title===row.title&&existing.archive_snapshot?.coachKind===input.kind&&
+      const compatible=wasCoach&&existing.training_date===row.training_date&&existing.title===row.title&&existing.archive_snapshot?.coachKind===input.kind&&
        existing.archive_snapshot?.startTime===input.startTime&&
        existing.archive_snapshot?.group?.steps?.[0]?.durationSeconds===
         row.archive_snapshot.group.steps[0].durationSeconds
@@ -113,6 +114,7 @@ Deno.serve(async req=>{
       return response(200,{saved:true,created:false,id:existing.id,
         revision:existing.revision,state:existing.state,structured:true,garminUpdated:false},h)
     }
+    if(input.kind==='intervals'&&!await qualityStillAllowed(db,user.id,input.date))return response(409,{error:'Qualitätseinheit aktuell nicht vom Coach empfohlen. Bitte Tagesentscheidung aktualisieren.'},h)
     const {data:other,error:otherError}=await db.from('garmin_training_plan')
       .select('id').eq('training_date',input.date).neq('state','cancelled').limit(1)
     if(otherError)return response(503,{error:'Coach day availability unknown'},h)
@@ -180,6 +182,7 @@ Deno.serve(async req=>{
           .eq('user_id',user.id).maybeSingle()
         if(contextError||!coachWorkoutAllowed(context,source.coachKind,current.training_date))
           return response(409,{error:'Coach-Freigabe wegen aktueller Erkrankung oder Sperrtag gestoppt'},h)
+        if(source.coachKind==='intervals'&&!await qualityStillAllowed(db,user.id,current.training_date,input.id))return response(409,{error:'Qualitätsfreigabe aktuell nicht möglich. Coach-Empfehlung prüfen.'},h)
       }
     }
     const changes=approving?
