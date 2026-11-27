@@ -57,7 +57,7 @@ test('type-specific caution blocks new volume progress and reaches the shared se
  assert.equal(analyzeAdaptiveVolume({today,history}).status,'protected')
  const source=readFileSync(new URL('../src/lib/coachSevenDay.mjs',import.meta.url),'utf8')
  assert.match(source,/applyWorkoutToleranceGuidance\(volumeStep.days,fourWeekReview/)
- assert.match(source,/qualityLocked:garminPerception.qualityCaution\|\|fourWeekReview.qualityCaution\|\|typeCaution/)
+ assert.match(source,/qualityLocked:archivedLearning.caution\|\|garminPerception.qualityCaution\|\|fourWeekReview.qualityCaution\|\|typeCaution/)
  assert.match(source,/recentRaceOffset>=-14/)
  assert.match(source,/otherAdjustment:allowWeekAdjustment\|\|adapted.impact.effect==='shortened'/)
 })

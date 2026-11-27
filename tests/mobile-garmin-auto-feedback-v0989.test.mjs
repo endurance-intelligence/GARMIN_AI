@@ -122,6 +122,6 @@ test('Garmin dashboard takes ratings directly from the authenticated week board'
  assert.match(card,/Krankheit, Beschwerden/)
  assert.doesNotMatch(card,/<select|<textarea|record_workout_feedback/)
  assert.match(logic,/analyzeGarminPerception\(input\.boards,today\)/)
- assert.match(logic,/qualityLocked:garminPerception\.qualityCaution/)
+ assert.match(logic,/qualityLocked:archivedLearning\.caution\|\|garminPerception\.qualityCaution/)
  assert.doesNotMatch(read('src/lib/garminPerception.mjs'),/Math\.random\(|postToIntervals|insert\(|upsert\(/)
 })

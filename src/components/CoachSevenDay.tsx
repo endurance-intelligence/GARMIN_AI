@@ -425,7 +425,7 @@ export function CoachSevenDay({active,focus,onCalendar,sharedSnapshot,onRacePrep
     <summary>Trainingsanalyse &amp; Coach-Gedächtnis</summary>
     {snapshot&&<GarminFeedbackCard snapshot={snapshot} today={today}/>}
    <p className="c7-polarized-method" role="note">
-    <Icon name="activity"/> Polarisiert · überwiegend locker · höchstens eine harte Bahnoption.
+    <Icon name="activity"/> Polarisiert · überwiegend locker · gezielte Qualität nach Wochenplanung.
     <span>{plan.trainingMethod?.message}</span>
    </p>
    <CoachNextImpactCard impact={plan.nextImpact}/>
