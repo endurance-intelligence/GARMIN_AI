@@ -17,12 +17,13 @@ import './styles/mobile-first.css'
 import './styles/mobile-ux-v084.css'
 import './styles/navigation-goals.css'
 import './styles/design-system.css'
+import './styles/navigation-mobile.css'
 
 const navigation: {id:Page; name:string; icon:string; mobile:string}[] = [
   {id:'home',name:'Coach',icon:'layout-dashboard',mobile:'Coach'},
   {id:'goals',name:'Goals',icon:'target',mobile:'Goals'},
   {id:'calendar',name:'Kalender',icon:'calendar-days',mobile:'Kalender'},
-  {id:'training',name:'Analyse',icon:'activity',mobile:'Training'},
+  {id:'training',name:'Analyse',icon:'activity',mobile:'Analyse'},
   {id:'race',name:'Race Prep',icon:'flag',mobile:'Race'},
   {id:'more',name:'Mehr',icon:'more-horizontal',mobile:'Mehr'}
 ]
@@ -79,7 +80,8 @@ function App() {
       <div className="profile"><div className="avatar">DK</div><div><b>Personal workspace</b><span>Single athlete · Privat</span></div></div>
     </aside>
     <main className="main"><div className="main-in">
-      <header className="topbar"><div className="crumbs"><span>WORKSPACE</span><span className="slash">/</span><strong>{(page==='gear'?'Equipment':page==='settings'?'Einstellungen':page==='strength'?'Stabi Studio':navigation.find(n=>n.id===page)?.name)}</strong></div><div className="top-actions"><div className="mobile-brand" style={{display:'none'}}><div className="brand-logo"><Icon name="activity"/></div>GARMIN_AI</div><span className="date">GARMIN_AI / DEIN TRAINING</span><span className="pill"><span className="pulse"/> DATEN LIVE · FREIGABE DURCH DICH</span><div className="round-icon"><Icon name="bell"/></div></div></header>
+      <header className="topbar"><div className="crumbs"><span>WORKSPACE</span><span className="slash">/</span><strong>{(page==='gear'?'Equipment':page==='settings'?'Einstellungen':page==='strength'?'Stabi Studio':navigation.find(n=>n.id===page)?.name)}</strong></div><div className="top-actions"><div className="mobile-brand" style={{display:'none'}}><div className="brand-logo"><Icon name="activity"/></div>GARMIN_AI</div><span className="date">GARMIN_AI / DEIN TRAINING</span><span className="pill"><span className="pulse"/> DATEN LIVE · FREIGABE DURCH DICH</span></div></header>
+      {['gear','settings','strength'].includes(page)&&<button type="button" className="workspace-back" onClick={()=>go('more')}><Icon name="chevron-left"/> Zurück zu Mehr</button>}
       <CoachPage active={page==='home'} onGo={go} onOpenCalendar={openCalendar} onOpenDecision={openCoach}/>
       <CalendarPage active={page==='calendar'} focus={calendarFocus} decisionFocus={coachFocus} onOpenCoach={openCoach} onGo={go} onOpenSession={openSession}/>
       <GoalsPage active={page==='goals'} onGo={go} onOpenRaceWeather={openRaceWeather}/>
@@ -94,7 +96,7 @@ function App() {
     </div></main>
   </div>
   <nav className="footmobile" aria-label="Mobile Navigation">
-    {navigation.map(item=><button type="button" key={item.id} className={navActive(page,item.id)?'active':''} aria-current={navActive(page,item.id)?'page':undefined} onClick={()=>go(item.id)}><Icon name={item.icon}/>{item.mobile}</button>)}
+    {navigation.map(item=><button type="button" key={item.id} className={navActive(page,item.id)?'active':''} aria-current={navActive(page,item.id)?'page':undefined} onClick={()=>go(item.id)}><Icon name={item.icon}/><span>{item.mobile}</span></button>)}
   </nav>
   </OnlineAccessGate>
 }

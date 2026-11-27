@@ -12,3 +12,10 @@
 - Race Prep: concrete event preparation and recovery.
 - Future Coach knowledge/research: web-backed sources when useful, private data minimized; no external lookup or model integration in this UX pass.
 - Validate responsive layout, focus navigation, regression tests and production build before release.
+
+## Package 3D
+
+- Six consistent workspace destinations on desktop, phone and tablet; Analyse is named identically. More subpages have an explicit return action. Decorative nonfunctional notification bell removed.
+- A Garmin session deep link is consumed once per token. Manual activity selection takes precedence on refresh; missing requested activities never fall back silently. The same link can be opened again with a new token.
+- Respect both horizontal safe areas and bottom home indicator; main actions remain reachable. Long calendar dialogs retain visible close controls.
+- These are source/CI contracts, not an authenticated real-device visual acceptance test.

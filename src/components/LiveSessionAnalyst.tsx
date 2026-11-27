@@ -126,7 +126,14 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
  focus?:{activityId:string;token:number}|null }) {
   const [zoneSummary,setZoneSummary]=useState<SessionZoneSummary|null>(null)
   const sectionRef=useRef<HTMLElement>(null)
-  useEffect(()=>{if(active&&focus?.activityId)sectionRef.current?.scrollIntoView({block:'start',behavior:'instant'})},[active,focus?.token,focus?.activityId])
+  const scrolledFocus=useRef<number|null>(null)
+  const consumedFocus=useRef<number|null>(null)
+  const requestedActivity=useRef('')
+  useEffect(()=>{
+   if(!active||!focus?.activityId||scrolledFocus.current===focus.token)return
+   scrolledFocus.current=focus.token
+   sectionRef.current?.scrollIntoView({block:'start',behavior:'instant'})
+  },[active,focus?.token,focus?.activityId])
   const [session,setSession] = useState<Session | null>(null)
   const [authReady,setAuthReady] = useState(false)
   const [list,setList] = useState<Activity[]>([])
@@ -154,13 +161,19 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
   useEffect(() => {
     if (!active || !session) return
     let mounted = true
-    const requested=focus?.activityId||''
-    if(requested){setSelected('');setDetails(null)}
+    if(focus&&consumedFocus.current!==focus.token){
+     consumedFocus.current=focus.token
+     const requested=focus?.activityId||''
+     requestedActivity.current=requested
+     if(requested){setSelected('');setDetails(null)}
+    }
     setError('')
     void readPrivate<ActivityListResponse>(session).then(response => {
       if (!mounted) return
       if(!Array.isArray(response.activities))throw Error('Garmin-Aktivitätsliste unvollständig.')
       setList(response.activities)
+      // A manual selection supersedes an old deep link, including during refresh.
+      const requested=requestedActivity.current
       if(requested){
        const found=response.activities.some(a=>String(a.id)===requested)
        if(found)setSelected(requested)
@@ -219,7 +232,7 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
     {garminSupabaseReady && authReady && !session && <p className="lsa-note">Bitte zuerst unter <strong>Einstellungen</strong> anmelden. Der Analyst nutzt denselben privaten Supabase-Zugang wie Recovery.</p>}
     {session && <>
       <label className="lsa-picker">Garmin-Lauf auswählen
-        <select value={selected} onChange={e=>{setDetails(null);setSelected(e.target.value)}}>
+        <select value={selected} onChange={e=>{requestedActivity.current='';setDetails(null);setSelected(e.target.value)}}>
           {!list.length && <option value="">Noch keine Läufe geladen</option>}
           {list.map(a=><option key={a.id} value={a.id}>{a.date?.slice(0,10)} · {a.name} · {runTypes[a.sport]??a.sport}{a.hrSamples>0?' · HF verfügbar':' · Details ausstehend'}</option>)}
         </select>
