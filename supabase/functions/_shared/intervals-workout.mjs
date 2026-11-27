@@ -108,7 +108,7 @@ export function validateStoredIntervalsWorkout(found,snapshot,event){
  if(found.description!==event.description)
   return {ok:false,reason:'Workout text does not match the published version'}
  const expected=buildIntervalsWorkout(snapshot,event.name)
- if(snapshot.sourceKind==='coach'){
+ if(snapshot.sourceKind==='coach'&&snapshot.qualitySource!=='archive'){
   const expectedSecs=expected.steps.reduce((t,s)=>t+(s.durationSeconds||0),0)
   const actualSecs=Number(found.moving_time??found.workout_doc?.duration)
   if(expected.steps.some(s=>s.mode!=='time')||
