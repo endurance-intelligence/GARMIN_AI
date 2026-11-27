@@ -13,11 +13,11 @@ test('Coach and calendar load exactly the same verified 7-day data and same reco
  assert.match(calendar,/loadCoachSnapshot\(session,today,controller\.signal,start,4\)/)
  assert.match(coach,/buildSevenDayCoach\(/)
  assert.match(calendar,/buildSevenDayCoach\(/)
- for(const key of ['read-garmin-health','garmin-weekly-options','garmin-training-plan',
-  'garmin-coach-goal','garmin-coach-context','garmin-week-board'])
-  assert.ok(source.includes(key),'missing '+key)
- assert.match(source,/boards\.every\(board=>Array\.isArray\(board\.activities\)/)
- assert.match(source,/!Array\.isArray\(plans\.entries\)/)
+ const reader=read('supabase/functions/_shared/coach-archive-reader.ts')
+ assert.match(source,/garmin-coach-archive\?week=/)
+ for(const key of ['garmin_daily_metrics','garmin_weekly_training_options','garmin_training_plan','garmin_coach_goals','garmin_coach_context','garmin_activities'])assert.ok(reader.includes(key),'missing '+key)
+ assert.match(source,/data.boards\.every\(\(b:Record<string,unknown>\)=>Array\.isArray\(b\.activities\)/)
+ assert.match(source,/!Array\.isArray\(data.plans\?\.entries\)/)
 })
 test('Seven-day Coach hints are VISIBLE in calendar but not silently scheduled',()=>{
  assert.match(calendar,/coachDays=\{coachPlan\?\.days\|\|\[\]\}/)
