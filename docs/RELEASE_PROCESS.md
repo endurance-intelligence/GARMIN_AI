@@ -39,3 +39,11 @@
 5. Supabase-Schema-Migrationen erfolgen gesondert mit RLS und Verifikation. Kein Service-Key im Browser.
 
 **Warnung:** Ein älteres Commit außerhalb von `main` ist kein alternativer Produktionsstand. Nicht wieder mit fest codierten Feature-Commit-IDs deployen.
+
+## Datenschutz und Security-Release-Gate (4C)
+
+- Öffentliches Repository: ausschließlich Quellcode, synthetische Fixtures und allgemeine technische Dokumentation. Keine produktiven Aktivitäts-, Gesundheits-, Standort-, Konto-, Plan- oder Audit-Daten (auch keine aggregierten persönlichen Kennzahlen), weder in Commits noch PR-Texten, Test-Fixtures, Issues oder CI-Logs.
+- Vor dem ersten Push den gesamten geplanten Diff einschließlich Dokumentation und Fixtures auf persönliche Daten und Zugangsdaten prüfen. Nachträgliches Löschen in einem weiteren Commit beseitigt keine Git-Historie.
+- Der Produktionsbuild akzeptiert ausschließlich den festgelegten Supabase-Projektendpunkt und das moderne Publishable-Key-Format. Keine Service-Role-, Secret- oder Legacy-JWT-Schlüssel in der App.
+- Die CI prüft die produktiven Edge-Reader mit anonymen und ungültigen Sessions sowie verweigerte direkte REST-Reads geschützter Tabellen. Ausschließlich GET, begrenzte Anfragen, keine privaten Antworten oder Zugangsdaten im Log. Erfolgreiche Datenantworten ohne Autorisierung und ungeklärte HTTP-Fehler blockieren die Veröffentlichung.
+- Login per Magic Link/OTP; keine neue Benutzerregistrierung über die Anwendung. Passwort- oder Auth-Konfiguration nur über unterstützte Admin-Schnittstellen ändern und echten Magic-Link-Zugang vor einer Änderung verifizieren.
