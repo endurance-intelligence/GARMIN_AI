@@ -8,6 +8,8 @@ import {readTrainerPhotoLocally} from '../lib/localTrainerPhotoOcr'
 import {interpretLocalPhotoText} from '../lib/localPhotoWorkout'
 import {interpretSpatialTrainerPhoto,spatialPhotoReviewIssues} from '../lib/spatialTrainerPhoto'
 import {WorkoutReviewDialog} from './WorkoutReviewDialog'
+import {withSplitNote} from '../lib/workoutSplitNotes'
+import {extensiveSaturdayFlyer} from '../lib/extensiveSaturdayFlyer'
 import '../styles/workout-archive.css'
 
 type ArchiveResponse={entries:ArchiveRecord[];hasMore:boolean;nextPage:number|null;visionConfigured:boolean}
@@ -72,6 +74,8 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
  const [error,setError]=useState('')
  const [success,setSuccess]=useState('')
  const [editing,setEditing]=useState<TrainerWorkout|null>(null)
+ const [draftKey,setDraftKey]=useState('')
+ const [savedDraft,setSavedDraft]=useState(false)
  const [sourceKind,setSourceKind]=useState<SourceKind>('manual')
  const [imageHash,setImageHash]=useState<string|null>(null)
  const [editGroup,setEditGroup]=useState(0)
@@ -90,6 +94,9 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
  const [previewRecord,setPreviewRecord]=useState<ArchiveRecord|null>(null)
  const requestId=useRef<string>(crypto.randomUUID())
  const planIds=useRef<Map<string,string>>(new Map())
+ useEffect(()=>{if(!active||!garminSupabase)return;let mounted=true;void garminSupabase.auth.getSession().then(({data:{session}})=>{if(!mounted||!session)return;const key='garmin-ai:workout-draft:v1:'+garminSupabaseUrl+':'+session.user.id;setDraftKey(key);try{setSavedDraft(!!sessionStorage.getItem(key))}catch{/* storage disabled */}});return()=>{mounted=false}},[active])
+ useEffect(()=>{if(!draftKey||!editing)return;try{sessionStorage.setItem(draftKey,JSON.stringify({workout:editing,kind:sourceKind,hash:imageHash,id:requestId.current}));setSavedDraft(true)}catch{/* storage unavailable; editor remains open */}},[draftKey,editing,sourceKind,imageHash])
+ function resumeDraft(){if(!draftKey)return;try{const raw=sessionStorage.getItem(draftKey);if(!raw)return;const draft=JSON.parse(raw);if(!draft.workout||!Array.isArray(draft.workout.groups)||!draft.workout.groups.length||!['manual','trainer_photo','orc_reference'].includes(draft.kind))throw Error();begin(draft.workout,draft.kind,draft.hash??null);if(typeof draft.id==='string')requestId.current=draft.id;setSuccess('Entwurf wiederhergestellt. Bitte vor dem Speichern prüfen.')}catch{setError('Entwurf konnte nicht geladen werden.')}}
  useEffect(()=>()=>{if(localPhotoUrlRef.current)URL.revokeObjectURL(localPhotoUrlRef.current)},[])
 
  async function refresh(){
@@ -127,6 +134,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
     text.toLocaleLowerCase('de-DE').includes(needle))
  })
 
+ function canStartNew(){return !savedDraft||window.confirm('Den gesicherten Entwurf durch ein neues Training ersetzen?')}
  async function localImageSelected(file:File|null){
   if(!file)return
   if(!['image/jpeg','image/png','image/webp'].includes(file.type)||
@@ -134,6 +142,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    setError('Bitte JPG, PNG oder WebP unter 8 MB auswählen.')
    return
   }
+  if(!canStartNew())return
   setReviewOpen(true);setPreviewRecord(null)
   setLocalBusy(true);setOcrProgress('Lokale Texterkennung startet …')
   setOcrRaw('');setOcrWarnings([]);setReferenceConfirmed(false);setError('');setSuccess('')
@@ -231,6 +240,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    setError('Bitte JPG, PNG oder WebP bis 2,7 MB auswählen.')
    return
   }
+  if(!canStartNew())return
   setReviewOpen(true);setPreviewRecord(null)
   setBusy(true);setError('');setSuccess('')
   try{
@@ -263,9 +273,10 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
   try{
    const result=await callArchive<{saved:boolean,id:string}>({
     action:'save',clientRequestId:requestId.current,reviewed:true,
-    workout:editing,sourceKind,sourceImageSha256:imageHash
+    workout:{...editing,groups:editing.groups.map(g=>({...g,steps:g.steps.map(withSplitNote)}))},sourceKind,sourceImageSha256:imageHash
    })
    if(result.saved!==true)throw Error('Speichern nicht bestätigt.')
+   if(draftKey)try{sessionStorage.removeItem(draftKey);setSavedDraft(false)}catch{/* storage disabled */}
    setEditing(null);setPreviewRecord(null);setReviewOpen(false)
    setOcrWarnings([]);setOcrRaw('');setOcrIdentifiedGroups(0);setOcrWasTemplate(false)
    setReferenceConfirmed(false)
@@ -312,6 +323,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
     </div>
    </div>
    <div className="wa-import-actions">
+    {savedDraft&&<button type="button" disabled={busy||localBusy} onClick={resumeDraft}>Letzten Entwurf fortsetzen</button>}
     <label className="wa-import-label wa-import-free">
      {localBusy?'Lese Bild auf deinem Gerät …':'Foto kostenlos lokal lesen'}
      <input type="file" accept="image/jpeg,image/png,image/webp"
@@ -320,11 +332,12 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
        e.currentTarget.value='';void localImageSelected(file)}}/>
     </label>
     <button type="button" disabled={busy||localBusy}
-     onClick={()=>begin(blankTrainerWorkout(),'manual')}>Manuell erfassen</button>
+     onClick={()=>{if(canStartNew())begin(blankTrainerWorkout(),'manual')}}>Manuell erfassen</button>
     <button type="button" disabled={busy||localBusy}
-     onClick={()=>begin(previousOrcFlyer(),'orc_reference')}>
+     onClick={()=>{if(canStartNew())begin(previousOrcFlyer(),'orc_reference')}}>
      Schwelle im Wechsel · alle 5 Gruppen
     </button>
+    <button type="button" disabled={busy||localBusy} onClick={()=>{if(!canStartNew())return;begin(extensiveSaturdayFlyer(),'orc_reference')}}>Extensiv &amp; zügig · 1000 m + 200 m · alle 5 Gruppen</button>
    </div>
    {localBusy&&<p className="wa-ocr-progress" role="status">{ocrProgress}</p>}
    <p className="wa-hint">Kostenlose Texterkennung auf deinem Gerät – ohne API-Guthaben.
@@ -374,7 +387,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
       </div>
       <div className="wa-record-actions">
        <button type="button" onClick={()=>viewRecord(record,group)}>Training ansehen</button>
-       <button type="button" onClick={()=>begin(structuredClone(record.workout),'manual')} disabled={busy}>
+       <button type="button" onClick={()=>{if(canStartNew())begin(structuredClone(record.workout),'manual')}} disabled={busy}>
         Als neue Version bearbeiten</button>
        <button type="button" className="wa-plan-button" disabled={busy||date<todayBerlin()||!selected}
         onClick={()=>void plan(record,group)}>Für {date.split('-').reverse().join('.')} vormerken</button>
@@ -398,7 +411,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
   onChange={change} onChangeGroup={changeGroup} onChangeStep={changeStep}
   onSave={()=>void save()}
   onCopy={()=>{
-   if(!previewRecord)return
+   if(!previewRecord||!canStartNew())return
    begin(structuredClone(previewRecord.workout),'manual')
   }}
   onPlan={()=>{

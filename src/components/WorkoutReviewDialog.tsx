@@ -3,6 +3,8 @@ import {createPortal} from 'react-dom'
 import type {ArchiveRecord,TrainerWorkout,TrainerGroup,TrainerStep,WorkoutStepKind} from '../lib/workoutLibrary'
 import {blankStep,formatPace,parsePace,workoutSummary} from '../lib/workoutLibrary'
 import {splitClock} from '../lib/trackLapGuide'
+import {split200Text} from '../lib/workoutSplitNotes'
+import {spatialPhotoReviewIssues} from '../lib/spatialTrainerPhoto'
 import {WorkoutFinishSelector} from './WorkoutFinishSelector'
 import '../styles/workout-review-dialog.css'
 
@@ -38,6 +40,8 @@ export function WorkoutReviewDialog(props:Props){
  const [photoShown,setPhotoShown]=useState(false)
  const [rawShown,setRawShown]=useState(false)
  const [approved,setApproved]=useState(false)
+ const [groupPace,setGroupPace]=useState('')
+ useEffect(()=>{const values=[...new Set((editing?.groups[groupIndex]?.steps||[]).filter(s=>s.kind==='run'&&s.paceSecondsPerKm!==null).map(s=>s.paceSecondsPerKm))];setGroupPace(values.length===1?formatPace(values[0]):'')},[groupIndex,open])
  const closeButton=useRef<HTMLButtonElement>(null)
  const dialog=useRef<HTMLDivElement>(null)
  const closeAction=useRef(onClose)
@@ -80,6 +84,7 @@ export function WorkoutReviewDialog(props:Props){
  const summary=group?workoutSummary(group):null
  const recovering=group?.steps.filter(x=>x.kind==='recovery').length??0
  const availableGroups=workout?.groups.length??0
+ const missingPaces=group?.steps.filter(s=>s.kind==='run'&&s.paceSecondsPerKm===null).length??0
  const headline=editing?'Training prüfen':preview?'Training aus dem Archiv':'Trainingsfoto auslesen'
  const canUseReference=!!photoUrl&&!!ocrRaw&&!ocrWasTemplate
  return createPortal(<div className="wr-backdrop"
@@ -175,7 +180,8 @@ export function WorkoutReviewDialog(props:Props){
           step.kind==='warmup'?'Einlaufen':'Auslaufen'}</span>
          <strong>{shortDistance(step.distanceMeters)}</strong>
          <span className="wr-interval-pace">{step.kind==='run'?paceText(step):
-           step.durationSeconds?splitClock(step.durationSeconds):'locker'}</span>
+           step.durationSeconds?splitClock(step.durationSeconds):step.paceSecondsPerKm!==null?paceText(step):'locker'}</span>
+         {split200Text(step)&&<small className="wr-auto-split">{split200Text(step)}</small>}
         </div>)}
        </div>
        <p className="wr-muted">Einlaufen: {shortDistance(workout.warmup.distanceMeters)}
@@ -210,6 +216,11 @@ export function WorkoutReviewDialog(props:Props){
         <label>Hinweise der Gruppe<input maxLength={350} value={group.notes}
          onChange={e=>onChangeGroup(g=>{g.notes=e.target.value})}/></label>
        </div>
+       <div className="wr-group-pace">
+        <label>Zielpace für die ganze Gruppe<input aria-label="Gruppen-Zielpace" placeholder="5:35" value={groupPace} maxLength={5} onChange={e=>setGroupPace(e.target.value)}/></label>
+        <button type="button" disabled={parsePace(groupPace)===null||!missingPaces} onClick={()=>onChangeGroup(g=>{for(const step of g.steps)if(step.kind==='run'&&step.paceSecondsPerKm===null)step.paceSecondsPerKm=parsePace(groupPace)})}>Fehlende Tempi ergänzen ({missingPaces})</button>
+        <button type="button" disabled={parsePace(groupPace)===null} onClick={()=>onChangeGroup(g=>{for(const step of g.steps)if(step.kind==='run')step.paceSecondsPerKm=parsePace(groupPace)})}>Alle Belastungen auf dieses Tempo setzen</button>
+       </div>
        <div className="wr-edit-steps">
         {group.steps.map((step,i)=><div className="wr-edit-step" key={i}>
          <div className="wr-edit-step-header"><b>Schritt {i+1}</b>
@@ -229,12 +240,13 @@ export function WorkoutReviewDialog(props:Props){
            value={step.distanceMeters??''}
            onChange={e=>onChangeStep(i,s=>({...s,distanceMeters:integer(e.target.value)}))}/></label>
           <label>Tempo/km<input type="text" inputMode="text"
-           key={groupIndex+'-'+i} placeholder="4:20" maxLength={5}
+           key={groupIndex+'-'+i+'-'+step.paceSecondsPerKm} placeholder="4:20" maxLength={5}
            defaultValue={formatPace(step.paceSecondsPerKm)}
            onBlur={e=>onChangeStep(i,s=>({...s,paceSecondsPerKm:parsePace(e.target.value)}))}/></label>
           <label>Sekunden<input type="number" inputMode="numeric" min={10} max={14400}
            value={step.durationSeconds??''}
            onChange={e=>onChangeStep(i,s=>({...s,durationSeconds:integer(e.target.value)}))}/></label>
+          {split200Text(step)&&<small className="wr-auto-split">{split200Text(step)}</small>}
           <label>Notizen<input maxLength={180} value={step.notes}
            onChange={e=>onChangeStep(i,s=>({...s,notes:e.target.value}))}/></label>
          </div>
@@ -265,6 +277,7 @@ export function WorkoutReviewDialog(props:Props){
      <button type="button" onClick={()=>{onManual();setPane('edit')}}>Training manuell erfassen</button>
     </div>}
     {error&&<p className="wr-error" role="alert">{error}</p>}
+    {editing&&error&&spatialPhotoReviewIssues(editing).length>0&&<div className="wr-issue-links">{editing.groups.map((g,i)=>{const issues=spatialPhotoReviewIssues({...editing,groups:[g]});return issues.length?<button type="button" key={i} onClick={()=>{onGroup(i);setPane('edit');dialog.current?.querySelector('.wr-scroll')?.scrollTo({top:0})}}>{issues[0]}</button>:null})}</div>}
     {success&&<p className="wr-success" role="status">{success}</p>}
    </div>
    <footer className="wr-footer">
