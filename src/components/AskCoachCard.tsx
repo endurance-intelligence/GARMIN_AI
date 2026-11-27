@@ -37,7 +37,7 @@ export function AskCoachCard({active,today,snapshot,plan,weather,onDecision,onPr
    {turns.map(t=><div className="ask-turn" key={t.id}>
     <p className="ask-user">{t.query}</p>
     <div className="ask-reply"><CoachAvatar mood={coachChatMood(t.topic)} small/><div className="ask-bubble">
-     <strong>{t.local.title}</strong>{t.local.body.map((p,i)=><p key={i}>{p}</p>)}<small>Quelle: {t.local.source}</small>{t.local.action&&<button type="button" onClick={actions[t.local.action]}>{labels[t.local.action]} <Icon name="arrow-up-right"/></button>}
+     <span className="ask-reply-kicker">DEIN COACH</span><strong className="ask-reply-title">{t.local.title}</strong><div className="ask-reply-body">{t.local.body.map((p,i)=><p key={i}>{p}</p>)}</div>{t.local.action&&<button className="ask-reply-action" type="button" onClick={actions[t.local.action]}>{labels[t.local.action]} <Icon name="arrow-up-right"/></button>}<details className="ask-reply-details"><summary>Hintergrund &amp; Datenbasis</summary>{t.local.details?.map((p,i)=><p key={i}>{p}</p>)}<small>Quelle: {t.local.source}</small></details>
     </div></div>
    </div>)}
    <div ref={bottom}/>
