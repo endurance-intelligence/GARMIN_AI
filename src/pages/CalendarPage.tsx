@@ -698,7 +698,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
   <dialog className="coach-day-dialog" ref={decisionDialog} aria-label="Coach-Tagesentscheidung" onClose={()=>setDecisionOpen(false)}>
    <header><strong>Coach-Entscheidung</strong><button type="button" onClick={()=>decisionDialog.current?.close()} aria-label="Schließen"><Icon name="x"/></button></header>
    {decisionOpen&&!decisionReady&&<p role="status">{coachError||'Coach-Daten werden aktualisiert …'}</p>}
-   {decisionOpen&&decisionReady&&coachSnapshot&&<CoachSevenDay key={decisionFocus?.token||0} active={active&&decisionOpen&&!coachLoading&&!!coachSnapshot} focus={decisionFocus} onCalendar={date=>{decisionDialog.current?.close();if(date){setSelected(date);setCoachReview(null)}}} sharedSnapshot={coachSnapshot} reviewStart={planStart} snapshotWeek={start} onRacePrep={()=>{decisionDialog.current?.close();onGo('race')}} singleDay/>}
+   {decisionOpen&&<div hidden={!decisionReady}><CoachSevenDay key={decisionFocus?.token||0} active={active&&decisionOpen&&decisionReady} focus={decisionFocus} onCalendar={date=>{decisionDialog.current?.close();if(date){setSelected(date);setCoachReview(null)}}} sharedSnapshot={coachSnapshot} reviewStart={planStart} snapshotWeek={start} onRacePrep={()=>{decisionDialog.current?.close();onGo('race')}} singleDay/></div>}
   </dialog>
 
  </section>
