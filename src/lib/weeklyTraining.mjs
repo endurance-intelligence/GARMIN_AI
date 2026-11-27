@@ -81,7 +81,7 @@ export function buildWeeklyBudget({today,start,days=[],boards=[],plans=[],roadma
  const distinctDays=kind=>new Set([...weekActivities.filter(a=>kind==='rowing'?/rowing/i.test(a.sport_type):/strength|weight|mobility|pilates|yoga/i.test(a.sport_type)).map(dayOf),...manual.filter(a=>a.session_date>=start&&a.session_date<=end&&a.session_date<=today&&(kind==='rowing'?a.kind==='rowing':/strength|mobility/i.test(a.kind))).map(a=>a.session_date)]).size
  const phase=protectedPhase?(week?.phase==='recovery'||week?.phase==='race'||week?.phase==='taper'?week.phase:'paused'):week?.phase||'unknown'
  const labels={paused:'Erholung / Belastung prüfen',recovery:'Regeneration',race:'Rennwoche',taper:'Tapering',unknown:'Planungsbasis fehlt'}
- return {start,end,current,phase,phaseLabel:labels[phase]||week?.phaseLabel||'Planungsbasis fehlt',target,actualKm,approvedKm,draftKm,suggestedKm,forecastKm:forecast,unknown,paceSeconds:pace,proposedParts,
+ return {start,end,current,phase,phaseLabel:labels[phase]||(/Entlastungswoche/.test(week?.key||'')?'Entlastungswoche':week?.phaseLabel)||'Planungsbasis fehlt',target,actualKm,approvedKm,draftKm,suggestedKm,forecastKm:forecast,unknown,paceSeconds:pace,proposedParts,
   gapKm:target&&forecast!==null?round(Math.max(0,target.low-forecast)):null,
   longRunMinutes:target?week?.longRunMinutes??null:null,longestActualMinutes:source&&actual.every(a=>finite(a.duration_s)&&a.duration_s>=0)?Math.round(Math.max(0,...actual.map(a=>a.duration_s))/60):null,
   qualityOptions:target?week?.qualityOptions??0:0,
