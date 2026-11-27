@@ -105,6 +105,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
  const [coachSnapshot,setCoachSnapshot]=useState<CoachSnapshot|null>(null)
+ const [snapshotStart,setSnapshotStart]=useState<string|null>(null)
  const [coachError,setCoachError]=useState('')
  const [coachLoading,setCoachLoading]=useState(false)
  const [coachReview,setCoachReview]=useState<string|null>(null)
@@ -140,6 +141,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
  const alternativeImpact=alternative&&coachDay?.kind==='easy'?replacementImpact(visibleBudget,selected):null
  const daySupplement=alternative||(coachPlan?.supplement?.suggestion?.date===selected&&coachPlan.supplement.suggestion.mode==='existing-slot'?coachPlan.supplement.suggestion:null)
  const canReviewSelected=selected>=today&&selected<=moveDay(today,13)
+ const decisionReady=!!coachSnapshot&&!coachLoading&&!coachError&&snapshotStart===start&&!!coachPlan?.days.some(d=>d.date===decisionFocus?.date)
  const coachPreview=coachDay&&(coachDay.selectedGroup||(!['existing','completed','chosen','option'].includes(coachDay.kind)&&
   !plans.some(p=>p.training_date===selected&&p.state!=='cancelled')))?coachDay:null
  const days=Array.from({length:7},(_,i)=>moveDay(start,i))
@@ -180,7 +182,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
    const {data:{session}}=await garminSupabase.auth.getSession()
    if(!session)throw Error('Bitte anmelden.')
    const snapshot=await loadCoachSnapshot(session,today,controller.signal,start,4)
-   if(mounted)setCoachSnapshot(snapshot)
+   if(mounted){setCoachSnapshot(snapshot);setSnapshotStart(start)}
   })().catch(e=>{
    if(mounted&&!(e instanceof Error&&e.name==='AbortError')){
     setCoachSnapshot(null)
@@ -695,8 +697,8 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
   </dialog>
   <dialog className="coach-day-dialog" ref={decisionDialog} aria-label="Coach-Tagesentscheidung" onClose={()=>setDecisionOpen(false)}>
    <header><strong>Coach-Entscheidung</strong><button type="button" onClick={()=>decisionDialog.current?.close()} aria-label="Schließen"><Icon name="x"/></button></header>
-   {decisionOpen&&(coachLoading||!coachSnapshot||!!coachError)&&<p role="status">{coachError||'Coach-Daten werden aktualisiert …'}</p>}
-   {decisionOpen&&!coachLoading&&!coachError&&coachSnapshot&&<CoachSevenDay key={decisionFocus?.token||0} active={active&&decisionOpen&&!coachLoading&&!!coachSnapshot} focus={decisionFocus} onCalendar={date=>{decisionDialog.current?.close();if(date){setSelected(date);setCoachReview(null)}}} sharedSnapshot={coachSnapshot} reviewStart={planStart} snapshotWeek={start} onRacePrep={()=>{decisionDialog.current?.close();onGo('race')}} singleDay/>}
+   {decisionOpen&&!decisionReady&&<p role="status">{coachError||'Coach-Daten werden aktualisiert …'}</p>}
+   {decisionOpen&&decisionReady&&coachSnapshot&&<CoachSevenDay key={decisionFocus?.token||0} active={active&&decisionOpen&&!coachLoading&&!!coachSnapshot} focus={decisionFocus} onCalendar={date=>{decisionDialog.current?.close();if(date){setSelected(date);setCoachReview(null)}}} sharedSnapshot={coachSnapshot} reviewStart={planStart} snapshotWeek={start} onRacePrep={()=>{decisionDialog.current?.close();onGo('race')}} singleDay/>}
   </dialog>
 
  </section>
