@@ -43,3 +43,8 @@ test('owner-only bounded historical versions drive the canonical Coach, with act
  assert.match(coach,/qualityLocked:archivedLearning.caution/)
  assert.match(read('src/pages/CoachPage.tsx'),/<ArchivedWeekLearningCard review=\{dailyPlan.archivedLearning\}/)
 })
+
+test('unknown ORC distances retain unknown totals; stored target is a separate reference',()=>{
+ const x=fixture();x.revisions=x.revisions.map(r=>({...r,snapshot:{...r.snapshot,target:{low:23,high:28},entries:[...r.snapshot.entries,{date:shift(r.week_start,5),kind:'running',source:'selected',km:null,minutes:null,title:'ORC Track'}]}}))
+ const review=analyzeArchivedWeeks(x);assert.equal(review.completeWeeks,0);assert.equal(review.targetWeeks,4);assert.equal(review.weeks[0].plannedKm,null);assert.equal(review.weeks[0].targetHigh,28);assert.equal(review.weeks[0].targetDeltaKm,8);assert.equal(review.caution,true)
+})
