@@ -16,6 +16,7 @@ import './styles/horizon.css'
 import './styles/mobile-first.css'
 import './styles/mobile-ux-v084.css'
 import './styles/navigation-goals.css'
+import './styles/design-system.css'
 
 const navigation: {id:Page; name:string; icon:string; mobile:string}[] = [
   {id:'home',name:'Coach',icon:'layout-dashboard',mobile:'Coach'},
