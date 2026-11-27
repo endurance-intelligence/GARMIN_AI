@@ -23,7 +23,7 @@ async function context(mode,width,height){
   const req=route.request(),u=new URL(req.url())
   if(u.origin===origin)return route.continue()
   if(u.origin!==supabase.origin)return route.abort()
-  const headers={'access-control-allow-origin':origin,'access-control-allow-methods':'GET,POST,OPTIONS','access-control-allow-headers':'*','content-type':'application/json'}
+  const headers={'access-control-allow-origin':origin,'access-control-allow-methods':'GET,POST,OPTIONS','access-control-allow-headers':'authorization,apikey,content-type,x-client-info,x-supabase-api-version','content-type':'application/json'}
   if(req.method()==='OPTIONS')return route.fulfill({status:204,headers})
   const send=(status,body)=>route.fulfill({status,headers,body:JSON.stringify(body)})
   if(u.pathname==='/functions/v1/garmin-app-access')return send(mode==='owner'?200:403,{authorized:mode==='owner'})
