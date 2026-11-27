@@ -36,7 +36,10 @@ export async function readArchiveCoachInput(db:DB,userId:string,today:string,vis
  const first=coachMonday(today),second=coachMonday(coachAddDays(today,6))
  const weeks=[...new Set([coachAddDays(first,-7),first,second,visibleWeek||first,...Array.from({length:4},(_,i)=>coachAddDays(first,-7*(i+1)))])]
  const since=new Date(Date.now()-45*86400000).toISOString().slice(0,10)
- const [metrics,training,options,choices,entries,goal,context,others,equipment,rhythm,workoutArchive,...boards]=await Promise.all([
+ const historyStarts=Array.from({length:4},(_,i)=>coachAddDays(first,-7*(i+1)))
+ // Only first and last immutable version per completed week; bounded independently of revision count.
+ const archivedWeeks=async()=>{const versions=await Promise.all(historyStarts.flatMap(start=>[true,false].map(ascending=>rows(db.from('garmin_weekly_plan_history').select('id,week_start,created_at,snapshot').eq('user_id',userId).eq('week_start',start).order('created_at',{ascending}).order('id',{ascending}).limit(1),'archived week'))));return [...new Map(versions.flat().map(r=>[r.id,r])).values()]}
+ const [metrics,training,options,choices,entries,goal,context,others,equipment,rhythm,workoutArchive,weekRevisions,...boards]=await Promise.all([
   rows(db.from('garmin_daily_metrics').select(metricFields).gte('metric_date',utcDay(29)).order('metric_date',{ascending:true}).limit(31),'health'),
   readTraining(db),
   rows(db.from('garmin_weekly_training_options').select('code,weekday,start_time,timezone,title,sport,location_label,location_lat,location_lon,context_note,enabled,optional').eq('enabled',true).order('weekday').order('start_time').limit(250),'weekly options',250),
@@ -48,6 +51,7 @@ export async function readArchiveCoachInput(db:DB,userId:string,today:string,vis
   one(db.from('garmin_equipment_profile').select('available,treadmill_max_incline_pct').eq('user_id',userId).maybeSingle(),'equipment'),
   one(db.from('garmin_training_rhythm').select('rhythm').eq('user_id',userId).maybeSingle(),'rhythm'),
   rows(db.from('garmin_workout_archive').select('id,title,workout,created_at').order('created_at',{ascending:false}).order('id',{ascending:false}).limit(101),'workout archive').then(a=>a.slice(0,100)),
+  archivedWeeks(),
   ...weeks.map(w=>week(db,userId,w))
  ])
  // Never archive defaults before the user's legacy settings have been migrated.
@@ -60,5 +64,5 @@ export async function readArchiveCoachInput(db:DB,userId:string,today:string,vis
  const runs=c.illness_state==='returning'&&c.return_started_on?(await rows(db.from('garmin_activities').select(activityFields).gte('start_time_local',c.return_started_on).order('start_time_local',{ascending:true}).limit(150),'return runs',150)).filter(x=>/run|jog|trail|treadmill/i.test(x.sport_type||'')).slice(0,3):[]
  const research=goal?await rows(db.from('garmin_race_event_research').select('id,race_date,event_url,event_title,details,evidence,reviewed_at,checked_at').eq('user_id',userId).eq('race_date',goal.race_date).order('reviewed_at',{ascending:false}).limit(5),'race research'):[]
  if(training.truncated)throw Error('Incomplete training evidence')
- return {health:{metrics,training},boards,options:{options,choices},plans:{entries,historyFrom:since},goal:{goal},life:{context:c,runs,equipmentProfile,trainingRhythm,workoutArchive},goalRoute:exactGoalRoute(goal,research),racePortfolio:{primary:goal,others}}
+ return {health:{metrics,training},boards,options:{options,choices},plans:{entries,historyFrom:since},goal:{goal},life:{context:c,runs,equipmentProfile,trainingRhythm,workoutArchive,weekRevisions},goalRoute:exactGoalRoute(goal,research),racePortfolio:{primary:goal,others}}
 }
