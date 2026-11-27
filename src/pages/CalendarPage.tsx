@@ -25,12 +25,14 @@ import type {CoachSnapshot} from '../lib/coachSnapshot'
 import {buildSevenDayCoach} from '../lib/coachSevenDay.mjs'
 import {boundedCoachReason} from '../lib/coachMemory.mjs'
 import type {CoachDay} from '../lib/coachSevenDay.mjs'
+import {canMoveCalendarPlan,validCalendarMove} from '../lib/calendarMove.mjs'
 import '../styles/horizon-calendar.css'
 
 type Plan={
  id:string;training_date:string;title:string;state:string;session_type:string;
  sport:string;archive_snapshot?:unknown;garmin_workout_id:number|null;notes:string;revision:number;
- intervals_event_id:number|null;intervals_published_revision:number|null;intervals_sync_status:string;intervals_export_version:number|null
+ intervals_event_id:number|null;intervals_published_revision:number|null;intervals_sync_status:string;intervals_export_version:number|null;
+ garmin_remote_id?:number|null;confirmed_at?:string|null
 }
 type CalendarEntry={key:string;date:string;title:string;sub:string;note:string;source:'plan';status:string}
 type IntervalsPublication={id:string;revision:number;intervals_published_revision:number|null;intervals_sync_status:string;intervals_event_id:number|null;intervals_export_version:number|null}
@@ -100,6 +102,12 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
  const [acting,setActing]=useState<string|null>(null)
  const [repairArmed,setRepairArmed]=useState<string|null>(null)
  const [deleteArmed,setDeleteArmed]=useState<string|null>(null)
+ const [moveArmed,setMoveArmed]=useState<string|null>(null)
+ const [moveTarget,setMoveTarget]=useState('')
+ const [moveError,setMoveError]=useState('')
+ const [moving,setMoving]=useState(false)
+ const moveLock=useRef(false)
+ const dayDetail=useRef<HTMLDivElement>(null)
  const [cleanupArmed,setCleanupArmed]=useState<string|null>(null)
  const [busy,setBusy]=useState(false)
  const [error,setError]=useState('')
@@ -169,7 +177,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
   if(!/^\d{4}-\d{2}-\d{2}$/.test(focus.date))return
   const targetWeek=Math.round((Date.parse(monday(focus.date)+'T12:00:00Z')-
    Date.parse(monday(today)+'T12:00:00Z'))/(7*86400000))
-  if(!Number.isFinite(targetWeek)||targetWeek< -1||targetWeek>5)return
+  if(!Number.isFinite(targetWeek)||targetWeek< -1||targetWeek>6)return
   lastFocusToken.current=focus.token
   setWeek(targetWeek);setSelected(focus.date);setCoachReview(null)
  },[active,focus,today])
@@ -287,7 +295,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
   if(!garminSupabase||acting||quickLock.current||coachLoading||coachError||!coachPlan||coachPlan.days.find(d=>d.date===day.date)!==day)return
   const action=quickCoachAction(coachPlan,day.date,today)
   if(!quickDecisionAvailable(coachPlan,day.date,today))return
-  setSelected(day.date);setCoachReview(null)
+  selectCalendarDay(day.date)
   if((day.decision||'open')===choice)return
   if(choice==='accepted'&&action==='choose'){onOpenCoach(day.date);return}
   if(choice==='accepted'&&action==='draft'){await acceptCoach(day,true);return}
@@ -311,6 +319,27 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
    if(reopenForReview&&day.date<=moveDay(today,13))onOpenCoach(day.date)
   }catch(e){setError(e instanceof Error?e.message:'Entscheidung konnte nicht gespeichert werden.')}
   finally{quickLock.current=false;setActing(null)}
+ }
+ async function movePlan(plan:Plan){
+  if(!garminSupabase||acting||moveLock.current||!validCalendarMove(plan,today,moveTarget))return
+  moveLock.current=true;setMoving(true);setActing(plan.id);setMoveError('');setError('');setNotice('')
+  const target=moveTarget
+  try{
+   const {data:{session}}=await garminSupabase.auth.getSession()
+   if(!session)throw Error('Bitte anmelden.')
+   const result=await ownerPost<{saved:boolean;id:string;revision:number;state:string;training_date:string}>(session,'garmin-training-plan',{action:'move',id:plan.id,revision:plan.revision,date:target})
+   if(!result.saved||result.id!==plan.id||result.training_date!==target||result.state!=='draft'||result.revision!==plan.revision+1)throw Error('Verschieben nicht bestätigt. Bitte aktualisieren.')
+   setPlans(old=>old.map(p=>p.id===plan.id?{...p,training_date:target,state:result.state,revision:result.revision}:p))
+   setMoveArmed(null);setWeek(Math.round((Date.parse(monday(target)+'T12:00:00Z')-Date.parse(monday(today)+'T12:00:00Z'))/(7*86400000)));setSelected(target);setCoachReview(null)
+   setCoachSnapshot(null);setCoachLoading(true);setRefresh(n=>n+1)
+   setNotice('Training verschoben: '+longDate(target)+'. Gleiche Einheit, neue Freigabe erforderlich. Coach aktualisiert.')
+   window.dispatchEvent(new Event('garmin-ai-coach-changed'))
+  }catch(e){setMoveError(e instanceof Error?e.message:'Verschieben fehlgeschlagen.')}
+  finally{moveLock.current=false;setMoving(false);setActing(null)}
+ }
+ function selectCalendarDay(day:string){
+  setSelected(day);setCoachReview(null);setMoveArmed(null);setMoveError('')
+  if(window.matchMedia('(max-width:740px)').matches)requestAnimationFrame(()=>dayDetail.current?.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}))
  }
  async function approvePlan(plan:Plan){
   if(acting||!garminSupabase)return
@@ -465,7 +494,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
   finally{setActing(null)}
  }
  function changeWeek(delta:number){
-  const next=Math.max(-1,Math.min(5,week+delta))
+  const next=Math.max(-1,Math.min(6,week+delta))
   setWeek(next)
   setSelected(next===0?today:moveDay(monday(today),next*7));setCoachReview(null)
   setNotice('')
@@ -514,7 +543,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
     <div className="hc-weekactions">
      <button type="button" aria-label="Vorherige Woche" onClick={()=>changeWeek(-1)} disabled={week<=-1}>‹</button>
      <button type="button" aria-label="Zur aktuellen Woche" onClick={()=>{setWeek(0);setSelected(today);setCoachReview(null)}}>Heute</button>
-     <button type="button" aria-label="Nächste Woche" onClick={()=>changeWeek(1)} disabled={week>=5}>›</button>
+     <button type="button" aria-label="Nächste Woche" onClick={()=>changeWeek(1)} disabled={week>=6}>›</button>
     </div>
    </div>
    <div className="hc-coach-legend" aria-label="Kalenderstatus erklärt">
@@ -523,12 +552,10 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
     <span><i className="hc-key-coach"/> Coach · Vorschlag</span>
     <span><i className="hc-key-option"/> ORC · optional</span>
    </div>
-   {visibleBudget&&week>=0&&<WeeklyTrainingCard budget={visibleBudget}/>}
-   {archiveSnapshot&&week===0&&<TrainingWeekArchive key={start} active={active} snapshot={archiveSnapshot} onHistory={()=>{onGo('training');window.dispatchEvent(new Event('garmin-ai-open-training-history'))}}/>}
    <CalendarWeekBoard active={active} start={start} selected={selected}
-    today={today} onSelect={day=>{setSelected(day);setCoachReview(null)}}
+    today={today} onSelect={selectCalendarDay}
     onActivities={setWeekActivities} plans={plans} coachDays={coachPlan?.days||[]} refreshKey={refresh} quickAction={date=>quickCoachAction(coachPlan,date,today)} quickDecision={date=>quickDecisionAvailable(coachPlan,date,today)} onQuickAccept={(day,choice)=>void quickAccept(day,choice)} quickBusy={acting!==null||coachLoading||!!coachError||busy}/>
-   <div className="hc-day-content">
+   <div className="hc-day-content" ref={dayDetail}>
     <div className="hc-day-heading">
      <div><span>AUSGEWÄHLTER TAG</span><h3>{longDate(selected)}</h3></div>
      <span className="hc-day-count">{matching.length} {matching.length===1?'gespeicherter Termin':'gespeicherte Termine'}{completedActivities.length?' · '+completedActivities.length+' absolviert':''}{coachPreview?' · 1 Coach-Hinweis':''}</span>
@@ -567,6 +594,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
       <button type="button" className="hc-coach-accept" onClick={()=>onOpenCoach(selected)}>
        <Icon name="arrow-up-right"/> {coachPreview.selectedGroup?'Coach-Hinweise ansehen':'Vorschlag prüfen'}
       </button>}
+     {coachPreview.approvable&&!coachPreview.decision&&<small className="hc-move-hint">Zum Verschieben den Vorschlag zuerst als Entwurf übernehmen.</small>}
      {coachPreview.qualityArchive&&<span className="hc-coach-minutes">{(coachPreview.qualityArchive.totalMeters/1000).toLocaleString('de-DE')} km · Archiv · {coachPreview.qualityArchive.group}</span>}
      {coachPreview.minutes!==null&&!coachPreview.selectedGroup&&<span className="hc-coach-minutes">
       {coachPreview.minutes} Minuten · {coachPreview.kind==='mobility'?'Stabi/Mobility':coachPreview.kind==='rowing'?'Rudern · locker':coachPreview.kind==='intervals'?'4 × 2 Min. kontrolliert · Trabpausen':
@@ -636,6 +664,18 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
           <span className={sent?'is-done':''}>3 · Intervals.icu</span>
          </div>}
          {entry.note&&<details className="hc-plan-notes"><summary>Ablauf ansehen</summary><p>{entry.note}</p></details>}
+         {plan&&canMoveCalendarPlan(plan,today)&&!publication?.intervals_event_id&&deleteArmed!==plan.id&&<div className="hc-move-area">
+          {moveArmed===plan.id?<div className="hc-move-form">
+           <strong>Neuer Trainingstag</strong>
+           <div className="hc-move-dates">{Array.from({length:7},(_,i)=>moveDay(monday(plan.training_date),i)).filter(d=>d>=today&&d!==plan.training_date).map(d=><button type="button" key={d} aria-pressed={moveTarget===d} disabled={moving} onClick={()=>{setMoveTarget(d);setMoveError('')}}>{new Intl.DateTimeFormat('de-DE',{weekday:'short',timeZone:'UTC'}).format(new Date(d+'T12:00:00Z'))}<b>{d.slice(8,10)}.{d.slice(5,7)}.</b></button>)}</div>
+           <label>Oder anderes Datum <input aria-label="Neues Trainingsdatum" type="date" min={today} max={moveDay(today,41)} value={moveTarget} disabled={moving} onChange={e=>{setMoveTarget(e.target.value);setMoveError('')}}/></label>
+           {plans.some(p=>p.id!==plan.id&&p.training_date===moveTarget&&p.state!=='cancelled')&&<p role="status">Am Zieltag steht bereits ein gespeichertes Training. Bitte einen anderen Tag wählen.</p>}
+           <small>Die Einheit bleibt erhalten. Eine vorhandene Freigabe wird zurückgesetzt; nichts wird automatisch übertragen.</small>
+           {moveError&&<p className="hc-error" role="alert">{moveError}</p>}
+           <div className="hc-move-buttons"><button type="button" className="hc-move-confirm" disabled={acting!==null||!validCalendarMove(plan,today,moveTarget)||plans.some(p=>p.id!==plan.id&&p.training_date===moveTarget&&p.state!=='cancelled')} onClick={()=>void movePlan(plan)}>{moving?'Verschiebe …':'Verschieben bestätigen'}</button><button type="button" className="hc-delete-cancel" disabled={moving} onClick={()=>{setMoveArmed(null);setMoveError('')}}>Abbrechen</button></div>
+          </div>:<button type="button" className="hc-move-trigger" disabled={acting!==null} onClick={()=>{setMoveArmed(plan.id);setMoveTarget(moveDay(plan.training_date,-1)>=today?moveDay(plan.training_date,-1):moveDay(plan.training_date,1));setMoveError('');setDeleteArmed(null);setRepairArmed(null)}}><Icon name="calendar-days"/> Verschieben</button>}
+         </div>}
+         {plan&&plan.training_date>=today&&!canMoveCalendarPlan(plan,today)&&<small className="hc-move-hint">Bereits übertragen oder Übertragungsstatus unklar. Verschieben erst nach sicherem Abgleich mit Intervals.icu/Garmin.</small>}
          {plan&&<div className="hc-delete-area">
           {deleteArmed===plan.id?<>
             <p className="hc-delete-warning">{plan.intervals_event_id?
@@ -646,7 +686,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
             <button type="button" disabled={acting!==null} className="hc-delete-cancel"
              onClick={()=>setDeleteArmed(null)}>Abbrechen</button>
            </>:<button type="button" className="hc-delete-trigger"
-             disabled={acting!==null} onClick={()=>{setDeleteArmed(plan.id);setRepairArmed(null)}}>
+             disabled={acting!==null} onClick={()=>{setDeleteArmed(plan.id);setRepairArmed(null);setMoveArmed(null)}}>
              <Icon name="trash-2"/> Training löschen</button>}
          </div>}
          {plan&&plan.state==='draft'&&deleteArmed!==plan.id&&<button type="button" className="hc-intervals-button"
@@ -683,6 +723,10 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
        Freiwillige ORC-Angebote findest du in der Wochenübersicht.</span>
      </div>}
    </div>
+    {(visibleBudget&&week>=0||archiveSnapshot&&week===0)&&<details className="hc-day-extra hc-week-extras"><summary><Icon name="activity"/> Wochenbilanz &amp; Verlauf <small>Optional</small></summary>
+     {visibleBudget&&week>=0&&<WeeklyTrainingCard budget={visibleBudget}/>}
+     {archiveSnapshot&&week===0&&<TrainingWeekArchive key={start} active={active} snapshot={archiveSnapshot} onHistory={()=>{onGo('training');window.dispatchEvent(new Event('garmin-ai-open-training-history'))}}/>}
+    </details>}
     <details className="hc-day-extra" onToggle={event=>setShowDayEvidence(event.currentTarget.open)}>
      <summary><Icon name="activity"/> Analyse des ausgewählten Tages <small>Optional</small></summary>
      {showDayEvidence&&<CoachEvidenceSummary active={active&&showDayEvidence}

@@ -69,13 +69,22 @@ async function context(mode,width,height,flow=null){
     flow.plan={id:'00000000-0000-4000-8000-000000000005',training_date:body.date,title:body.title,state:'draft',session_type:'event',sport:'running',revision:1,archive_snapshot:snap,garmin_workout_id:null,notes:'Fixture',intervals_event_id:null,intervals_published_revision:null,intervals_sync_status:'not_published',intervals_export_version:null}
     return send(201,{saved:true,id:flow.plan.id,state:'draft',revision:1})
    }
+   if(name==='garmin-training-plan'&&body?.action==='move'){
+    flow.writes.push('move')
+    assert.equal(body.id,flow.plan?.id)
+    assert.equal(body.revision,flow.plan?.revision)
+    assert.equal(flow.plan?.intervals_sync_status,'not_published')
+    assert.notEqual(body.date,flow.plan.training_date)
+    flow.plan={...flow.plan,training_date:body.date,state:'draft',revision:flow.plan.revision+1,approved_at:null}
+    return send(200,{saved:true,id:flow.plan.id,state:'draft',revision:flow.plan.revision,training_date:flow.plan.training_date})
+   }
    if(name==='garmin-training-plan'&&body?.action==='approve'){
     flow.writes.push('approve')
     assert.equal(flow.plan?.state,'draft')
     assert.equal(body.id,flow.plan.id)
     assert.equal(body.revision,flow.plan.revision)
-    flow.plan={...flow.plan,state:'pending',revision:2,approved_at:'2026-11-17T12:00:00Z'}
-    return send(200,{saved:true,id:flow.plan.id,state:'pending',revision:2})
+    flow.plan={...flow.plan,state:'pending',revision:flow.plan.revision+1,approved_at:'2026-11-17T12:00:00Z'}
+    return send(200,{saved:true,id:flow.plan.id,state:'pending',revision:flow.plan.revision})
    }
    if(name==='garmin-intervals'&&body?.action==='publish'){
     flow.writes.push('publish')
@@ -230,15 +239,29 @@ try{
  await flowPage.getByRole('button',{name:'Training freigeben',exact:true}).waitFor()
  assert.deepEqual(flow.writes,['create'])
  assert.equal(await flowPage.getByRole('button',{name:'An Intervals.icu senden',exact:true}).count(),0)
+ assert.ok(await flowPage.locator('.hwb-scroll').evaluate(el=>el.scrollWidth<=el.clientWidth+2),'phone agenda fits width')
+ const savedId=flow.plan.id, savedWorkout=JSON.stringify(flow.plan.archive_snapshot)
+ const target=candidate.date===today?coachAddDays(candidate.date,1):coachAddDays(candidate.date,-1)
+ await flowPage.getByRole('button',{name:'Verschieben',exact:true}).click()
+ await flowPage.getByLabel('Neues Trainingsdatum',{exact:true}).fill(target)
+ assert.deepEqual(flow.writes,['create'],'selecting a date is not a write')
+ await flowPage.getByRole('button',{name:'Verschieben bestätigen',exact:true}).click()
+ await flowPage.getByText('Training verschoben:',{exact:false}).waitFor()
+ assert.deepEqual(flow.writes,['create','move'])
+ assert.equal(flow.plan.id,savedId)
+ assert.equal(flow.plan.training_date,target)
+ assert.equal(JSON.stringify(flow.plan.archive_snapshot),savedWorkout)
+ await flowPage.getByRole('button',{name:'Training freigeben',exact:true}).waitFor()
  await flowPage.getByRole('button',{name:'Training freigeben',exact:true}).click()
  await flowPage.getByRole('button',{name:'An Intervals.icu senden',exact:true}).waitFor()
- assert.deepEqual(flow.writes,['create','approve'],'approval does not publish')
+ assert.deepEqual(flow.writes,['create','move','approve'],'approval does not publish')
  await flowPage.getByRole('button',{name:'An Intervals.icu senden',exact:true}).click()
  await flowPage.getByText('Übertragung bestätigt – die Browserantwort war unterbrochen.',{exact:false}).waitFor()
  assert.equal(await flowPage.getByRole('button',{name:'An Intervals.icu senden',exact:true}).count(),0)
- assert.deepEqual(flow.writes,['create','approve','publish'],'missing remote ID is reconciled without duplicate publish')
+ assert.deepEqual(flow.writes,['create','move','approve','publish'],'missing remote ID is reconciled without duplicate publish')
  assert.equal(flow.plan.intervals_published_revision,flow.plan.revision)
  assert.equal(flow.plan.intervals_event_id,12345)
+ assert.equal(await flowPage.getByRole('button',{name:'Verschieben',exact:true}).count(),0,'published workout cannot be locally moved')
  const actual={id:'synthetic-run',date:flow.plan.training_date+' '+flow.plan.archive_snapshot.startTime+':00',sport:'running',durationS:candidate.minutes*60+120,avgHr:135,distanceM:5000}
  const matched=assessPlanActual(actual,[actual],[flow.plan])
  assert.equal(matched.status,'matched')

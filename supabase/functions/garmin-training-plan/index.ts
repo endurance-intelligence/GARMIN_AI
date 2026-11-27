@@ -7,6 +7,7 @@ import {createClient} from 'npm:@supabase/supabase-js@2'
 import {buildArchiveQualitySnapshot} from '../../../src/lib/clubQuality.mjs'
 import {currentQualityCandidate,qualityStillAllowed} from '../_shared/quality-guard.ts'
 import {buildCoachStructuredSnapshot,coachWorkoutAllowed} from '../_shared/coach-structured-workout.mjs'
+import {validCalendarMove} from '../../../src/lib/calendarMove.mjs'
 
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
@@ -174,6 +175,43 @@ Deno.serve(async req=>{
       .insert(row).select('id,revision,state').single()
     if(saveError)return response(409,{error:'Could not create training draft'},h)
     return response(201,{saved:true,created:true,...saved,garminUpdated:false},h)
+  }
+  if(input.action==='move'){
+    if(!uuid(input.id)||!Number.isSafeInteger(input.revision)||Number(input.revision)<1||!date(input.date))
+      return response(422,{error:'Ungültiges Trainingsdatum oder Revision'},h)
+    const localToday=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
+    const target=input.date
+    const {data:current,error:lookupError}=await db.from('garmin_training_plan').select(fields).eq('id',input.id).eq('revision',input.revision).maybeSingle()
+    if(lookupError)return response(503,{error:'Training derzeit nicht abrufbar'},h)
+    if(!validCalendarMove(current,localToday,target))return response(409,{error:'Nur zukünftige, noch nicht übertragene Trainings können verschoben werden.'},h)
+    const [other,context,goal,secondaryGoals,choices,actual,manual]=await Promise.all([
+      db.from('garmin_training_plan').select('id').eq('training_date',target).neq('state','cancelled').neq('id',input.id).limit(1),
+      db.from('garmin_coach_context').select('illness_state,return_started_on,blocked_periods,day_decisions').eq('user_id',user.id).maybeSingle(),
+      db.from('garmin_coach_goals').select('race_date').eq('user_id',user.id).eq('race_date',target).maybeSingle(),
+      db.from('garmin_coach_secondary_goals').select('id').eq('user_id',user.id).eq('race_date',target).limit(1),
+      db.from('garmin_weekly_training_choices').select('option_code').eq('training_date',target).eq('choice','selected').limit(1),
+      db.from('garmin_activities').select('activity_id').gte('start_time_local',target).lt('start_time_local',new Date(Date.parse(target+'T12:00:00Z')+86400000).toISOString().slice(0,10)).limit(1),
+      db.from('garmin_cross_training_sessions').select('id').eq('user_id',user.id).eq('session_date',target).limit(1)
+    ])
+    if([other,context,goal,secondaryGoals,choices,actual,manual].some(r=>r.error))return response(503,{error:'Zieltag konnte nicht vollständig geprüft werden.'},h)
+    if(other.data?.length||goal.data||secondaryGoals.data?.length||choices.data?.length||actual.data?.length||manual.data?.length)
+      return response(409,{error:'Am Zieltag ist bereits Training, ein Wettkampf oder eine absolvierte Einheit vorhanden.'},h)
+    const c=context.data
+    if(c?.illness_state==='sick'||c?.blocked_periods?.some((b:any)=>b.start<=target&&b.end>=target))
+      return response(409,{error:'Der Zieltag ist wegen Krankheit oder Verfügbarkeit gesperrt.'},h)
+    const source=current.archive_snapshot
+    if(source?.sourceKind==='coach'){
+      if(!coachWorkoutAllowed(c,source.coachKind,target))return response(409,{error:'Das Training passt nicht zum aktuellen Wiedereinstieg oder zur Verfügbarkeit.'},h)
+      if(source.coachKind==='intervals'&&!await qualityStillAllowed(db,user.id,target,current.id,source))
+        return response(409,{error:'Diese Qualitätseinheit passt nicht zum Zieltag. Bitte Coach-Empfehlung prüfen.'},h)
+    }
+    const {data:saved,error:saveError}=await db.from('garmin_training_plan').update({training_date:target,state:'draft',approved_at:null,revision:Number(input.revision)+1,updated_at:new Date().toISOString()})
+      .eq('id',input.id).eq('revision',input.revision).eq('training_date',current.training_date)
+      .in('state',['draft','pending']).eq('intervals_sync_status','not_published')
+      .is('intervals_event_id',null).is('intervals_published_revision',null).is('garmin_remote_id',null).is('garmin_workout_id',null).is('confirmed_at',null)
+      .select('id,training_date,state,revision').maybeSingle()
+    if(saveError||!saved)return response(409,{error:'Training wurde inzwischen geändert oder übertragen. Bitte aktualisieren.'},h)
+    return response(200,{saved:true,...saved,garminUpdated:false,intervalsPublished:false},h)
   }
   if(input.action==='approve'||input.action==='cancel'){
     if(!uuid(input.id)||!Number.isSafeInteger(input.revision)||
