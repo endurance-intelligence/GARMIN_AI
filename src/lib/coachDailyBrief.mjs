@@ -80,6 +80,7 @@ export function buildCoachDailyBrief({plan,health,today}={}){
   kind==='completed'?'Konstanz entsteht durch die richtigen Einheiten – nicht durch ständiges Mehr.':
   'Besser werden heißt, passend zu trainieren – nicht jeden Tag härter.'
  return {
+  qualityIntent:day.qualityIntent||null,qualityBlocked:!!day.qualityBlocked,
   date:today,kind,label:group?'TEILNAHME BESTÄTIGT':label,
   title:tidy(group?.title||day.title,150),
   guidance:group?(group.advice==='skip'?'Der Coach rät von der Teilnahme ab.':group.advice==='easy'?'Heute bewusst verkürzt und locker.':guidance):guidance,reason:tidy(day.reason,1400),
