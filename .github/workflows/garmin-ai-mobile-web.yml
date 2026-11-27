@@ -47,6 +47,7 @@ jobs:
             echo "Refusing to bundle an API secret in publicly served JavaScript" >&2
             exit 1
           fi
+          node scripts/validate-public-config.mjs
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Test all maintained integration, UI and security contracts
@@ -71,6 +72,8 @@ jobs:
             sleep 1
           done
           node scripts/browser-smoke.mjs
+      - name: Verify live private API denies anonymous and invalid sessions
+        run: node scripts/security-live-read-smoke.mjs
       # Upload the verified build ONCE, in the verification job. Separating
       # upload and deployment avoids the GitHub artifact-indexing race and
       # prevents duplicate "github-pages" artifacts when deploy is retried.
