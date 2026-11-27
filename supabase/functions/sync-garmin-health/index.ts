@@ -3,10 +3,11 @@
  *  to browsers, logged, or stored in Git. Missing data never becomes zero.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import {normalizeGarminSleep,mergeSleepMetrics} from '../../../src/lib/recoverySleep.mjs'
 
 type JsonMap = Record<string, unknown>
 type HealthColumn = 'hrv_ms' | 'resting_heart_rate' | 'sleep_seconds' | 'stress_avg' | 'body_battery_max'
-type HealthDay = { metric_date: string } & Partial<Record<HealthColumn, number>>
+type HealthDay = { metric_date: string; sleepDetail?: ReturnType<typeof normalizeGarminSleep> } & Partial<Record<HealthColumn, number>>
 type SourceName = 'hrv' | 'daily' | 'sleep' | 'stress' | 'battery'
 
 const GARMIN = 'https://personal.connectapi.garmin.com'
@@ -101,7 +102,10 @@ function normalize(sources: Partial<Record<SourceName, unknown>>, start: string,
     const wrapper = obj(raw)
     const row = Object.keys(obj(wrapper.dailySleepDTO)).length ? obj(wrapper.dailySleepDTO) : wrapper
     const seconds = num(row.sleepTimeSeconds ?? row.totalSleepSeconds, 1, 86400)
-    if (seconds !== undefined) assign(dateOf(row), 'sleep_seconds', Math.round(seconds))
+    const date=dateOf(row)
+    if (seconds !== undefined) assign(date, 'sleep_seconds', Math.round(seconds))
+    const detail=normalizeGarminSleep(row)
+    if(date&&date>=start&&date<=end&&detail){const day=byDate.get(date)??{metric_date:date};day.sleepDetail=detail;byDate.set(date,day)}
   }
   for (const raw of records(sources.stress, ['data', 'dailyStressSummaries', 'stressSummaries'])) {
     const row = obj(raw)
@@ -193,7 +197,7 @@ Deno.serve(async (req: Request) => {
       return {
         metric_date: day.metric_date,
         ...fields,
-        raw_metrics: previous.raw_metrics ?? {},
+        raw_metrics: mergeSleepMetrics(previous.raw_metrics,day.sleepDetail),
         synced_at: now,
       }
     })

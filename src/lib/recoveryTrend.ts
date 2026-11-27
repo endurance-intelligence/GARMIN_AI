@@ -15,16 +15,17 @@ export type RecoveryTrend={
  referenceY:number|null
  validCount:number
 }
-const RANGES:Record<RecoveryMetric,[number,number]>={
+export type RecoveryTrendMetric=RecoveryMetric|'stress_avg'|'body_battery_max'
+const RANGES:Record<RecoveryTrendMetric,[number,number]>={
  sleep_seconds:[3*3600,16*3600],
  hrv_ms:[10,250],
- resting_heart_rate:[25,110]
+ resting_heart_rate:[25,110],stress_avg:[0,100],body_battery_max:[0,100]
 }
 function validValue(v:unknown,[min,max]:[number,number]):number|null{
  return typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max?v:null
 }
 export function recoveryTrend(
- days:RecoveryDay[],metric:RecoveryMetric,anchor:string,baseline:number|null
+ days:RecoveryDay[],metric:RecoveryTrendMetric,anchor:string,baseline:number|null
 ):RecoveryTrend{
  const bounds=RANGES[metric]
  const dates=Array.from({length:7},(_,i)=>calendarDayOffset(anchor,i-6))

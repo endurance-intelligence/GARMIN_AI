@@ -4,7 +4,7 @@
  */
 export type RecoveryDay={
  metric_date:string;hrv_ms:number|null;resting_heart_rate:number|null;
- sleep_seconds:number|null;stress_avg?:number|null;body_battery_max?:number|null
+ sleep_seconds:number|null;stress_avg?:number|null;body_battery_max?:number|null;sleepDetail?:import('./recoverySleep.mjs').SleepDetail|null
 }
 export type RecoveryMetric='sleep_seconds'|'hrv_ms'|'resting_heart_rate'
 export type RecoveryComparison={

@@ -11,12 +11,15 @@ import {recoveryMetricMeaning} from '../lib/recoveryMeaning.mjs'
 import {coachRecoveryAdvice} from '../lib/coachRecoveryAdvice.mjs'
 import type {SevenDayPlan} from '../lib/coachSevenDay.mjs'
 import {CoachAvatar} from './CoachAvatar'
+import {RecoverySleepDetails} from './RecoverySleepDetails'
+import {completedDaySignal} from '../lib/recoverySleep.mjs'
+import type {RecoveryDay} from '../lib/recoveryComparison'
 import {recoveryWeekTrend} from '../lib/recoveryWeekTrend.mjs'
 import '../styles/coach-glance.css'
 
 type CalendarWorkout={weekday:number;code:string;title:string;start_time:string;location_label:string}
 type CoachPlan={training_date:string;title:string;state:string;session_type:string}
-type HealthDay={metric_date:string;hrv_ms:number|null;resting_heart_rate:number|null;sleep_seconds:number|null;stress_avg?:number|null;body_battery_max?:number|null}
+type HealthDay=RecoveryDay
 type WeeklyChoice={option_code:string;training_date:string;choice:string}
 type Overview={
   workout:CalendarWorkout|null;option:CalendarWorkout|null;plan:CoachPlan|null;
@@ -139,7 +142,9 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
  const comparison=health?interpretRecovery(view?.healthHistory||[],health.metric_date):null
  const weekTrend=health?recoveryWeekTrend(view?.healthHistory||[],health.metric_date):null
  const [sleep,hrv,rhr]=comparison?.metrics||[]
- const guidance=coachRecoveryAdvice({today:date,history:(Array.isArray(sharedSnapshot?.health.longRecoveryMetrics)?sharedSnapshot.health.longRecoveryMetrics:view?.healthHistory)||[],plan:dailyPlan,context:sharedSnapshot?.life?.context??(view?.blocked?{illness_state:view.blocked}:null),training:sharedSnapshot?.health?.training,completed:!!view?.completedCount})
+ const recoveryHistory:HealthDay[]=(Array.isArray(sharedSnapshot?.health.longRecoveryMetrics)?sharedSnapshot.health.longRecoveryMetrics:view?.healthHistory)||[]
+ const energy=[{key:'stress_avg' as const,label:'Stress',tone:'stress',icon:'activity'},{key:'body_battery_max' as const,label:'Body Battery · Maximum',tone:'battery',icon:'battery-charging'}].map(x=>({...x,signal:completedDaySignal(recoveryHistory,date,x.key)}))
+ const guidance=coachRecoveryAdvice({today:date,history:recoveryHistory,plan:dailyPlan,context:sharedSnapshot?.life?.context??(view?.blocked?{illness_state:view.blocked}:null),training:sharedSnapshot?.health?.training,completed:!!view?.completedCount})
  return <div className="co-at-a-glance">
   {!recoveryOnly&&<details className="co-today co-today-details" open={compactToday?undefined:true} aria-label="Training heute">
    <summary><span><Icon name="calendar-days"/> Tageskalender &amp; Wetter</span><Icon name="chevron-down"/></summary>
@@ -167,16 +172,15 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
       <span className="co-data-day">{health?'Stand '+shortDay(health.metric_date):'Noch keine Daten'}</span>
     </div>
     <div className="co-recovery-insight">
-      <CoachAvatar small mood={guidance.level==='pause'?'firm':guidance.level==='caution'?'focused':guidance.level==='balanced'?'friendly':'supportive'}/>
-      <div>
-        <strong>Was deine Werte sagen · Dein Coach</strong>
-        <p>{recoveryNarrative(comparison)}</p>
+      <CoachAvatar mood={guidance.level==='pause'?'firm':guidance.level==='caution'?'focused':guidance.level==='balanced'?'friendly':'supportive'}/>
+      <div className="co-recovery-coach-copy">
+        <span className="co-eyebrow">DEIN COACH · MEINE EINSCHÄTZUNG</span>
         <div className={'co-recovery-reading co-recovery-guidance '+guidance.level}>
           <strong>{guidance.title}</strong>
-          <p>{guidance.advice}</p>
-          {guidance.evidence&&<p><b>Warum:</b> {guidance.evidence}</p>}
-          <p><b>Mein Tipp:</b> {guidance.tip}</p>
-          <p>{guidance.planText}</p>
+          <p className="co-recovery-lead">{guidance.advice}</p>
+          <div className="co-recovery-next"><span className="co-eyebrow">MEIN TIPP FÜR DICH</span><p>{guidance.tip}</p></div>
+          <small className="co-recovery-plan">{guidance.planText}</small>
+          <details className="co-recovery-why"><summary>Warum ich das empfehle</summary><p>{recoveryNarrative(comparison)}</p>{guidance.evidence&&<p>{guidance.evidence}</p>}</details>
         </div>
       </div>
     </div>
@@ -201,6 +205,18 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
         <p className="co-trend-meaning">{recoveryMetricMeaning(entry.row)}</p>
       </div>)}
     </div>
+    <div className="co-recovery-secondary">
+      <RecoverySleepDetails value={recoveryHistory.find(r=>r.metric_date===date)?.sleepDetail}/>
+      <section className="co-energy-detail" aria-label="Stress und Body Battery am letzten abgeschlossenen Tag">
+        <header><span className="co-eyebrow">BELASTUNG AUSSERHALB DES TRAININGS</span><h3>Deine Energiereserven</h3><small>Gestern · abgeschlossener Tag, kein Live-Wert</small></header>
+        <div className="co-energy-grid">{energy.map(entry=><div className={'co-trend-tile co-trend-'+entry.tone} key={entry.key}>
+          <div className="co-trend-top"><div className="co-trend-label"><Icon name={entry.icon}/>{entry.label}</div>{entry.signal?.delta!=null&&<span className="co-trend-diff">{entry.signal.delta>0?'+':''}{Math.round(entry.signal.delta)}</span>}</div>
+          <strong className="co-trend-value">{valText(entry.signal?.value,'/ 100')}</strong>
+          {entry.signal&&<RecoverySparkline history={recoveryHistory} metric={entry.key} day={entry.signal.date} median={entry.signal.base} label={entry.label}/>}
+          <p className="co-trend-meaning">{entry.signal?.value==null?'Kein Messwert für gestern.':entry.signal.base===null?'Noch kein persönlicher Vergleich.':entry.key==='stress_avg'?(entry.signal.delta!>=10?'Gestern mehr Stress als üblich.':'Gestern keine deutliche Stresszunahme.'):(entry.signal.delta!<=-15?'Gestern geringeres Maximum als üblich.':'Gestern kein deutlich vermindertes Maximum.')}</p>
+        </div>)}</div>
+      </section>
+    </div>
     <div className="co-recovery-context">
       <span><span className="co-mini-marker"/> Linie: letzte 7 Tage · gestrichelt: dein üblicher Wert</span>
       <span>Werte allein sind keine Trainingsfreigabe.</span>
@@ -210,7 +226,7 @@ export function CoachGlance({active,onCalendar,children,sharedSnapshot,compactTo
     <details className="co-recovery-details">
       <summary>Mehr wissen? Die Werte einfach erklärt</summary>
       <div className="co-recovery-explanation">
-        <p><strong>Schlaf:</strong> Wie lange du geschlafen hast – nicht, wie gut der Schlaf war.
+        <p><strong>Schlaf:</strong> Dauer und geschätzte Qualität der Nacht. Schlafphasen, Score und Wachzeit ergänzen die Dauer, sind aber keine eigenständige Trainingsfreigabe.
         <strong> HRV:</strong> Die Zeit zwischen deinen Herzschlägen schwankt leicht. Diese Schwankung
         kann Hinweise auf Belastung geben, ist aber kein Urteil über deine Fitness.
         <strong> Ruhepuls:</strong> Wie schnell dein Herz in Ruhe schlägt. Am besten mit deinen eigenen

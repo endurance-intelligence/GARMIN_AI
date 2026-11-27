@@ -1,9 +1,10 @@
 import {recoveryTrend} from '../lib/recoveryTrend'
-import type {RecoveryDay,RecoveryMetric} from '../lib/recoveryComparison'
+import type {RecoveryDay} from '../lib/recoveryComparison'
+import type {RecoveryTrendMetric} from '../lib/recoveryTrend'
 
 /** Decorative shape backed only by measured calendar days; missing days break the line. */
 export function RecoverySparkline({history,metric,day,median,label}:{
- history:RecoveryDay[];metric:RecoveryMetric;day:string;
+ history:RecoveryDay[];metric:RecoveryTrendMetric;day:string;
  median:number|null;label:string
 }){
  const trend=recoveryTrend(history,metric,day,median)
@@ -25,7 +26,7 @@ export function RecoverySparkline({history,metric,day,median,label}:{
     </>}
   </svg>
   <div className="co-spark-scale">
-   <span>vor 6 Tagen</span><span>heute</span>
+   <span>vor 6 Tagen</span><span>{day.slice(8,10)}.{day.slice(5,7)}.</span>
   </div>
  </div>
 }

@@ -260,3 +260,36 @@ body > .co-dialog-backdrop > .co-dialog{position:absolute;top:50%;left:50%;
 .co-extra-actions>button{display:flex;align-items:center;justify-content:space-between;gap:10px;
  width:100%;min-height:46px;padding:12px;border:1px solid rgba(157,186,228,.25);
  background:#1c2b44;color:#e4eeff;border-radius:10px;text-align:left;font-size:12px;font-weight:750}
+
+/* Morning coach uses the same full-size avatar and hierarchy as the daily brief. */
+.co-home .co-recovery-insight{padding:clamp(14px,2.4vw,26px);gap:clamp(14px,3vw,28px);align-items:center}
+.co-recovery-insight>.coach-avatar{width:clamp(88px,12vw,144px);flex:0 0 auto}
+.co-recovery-coach-copy{flex:1;min-width:0}
+.co-recovery-insight .co-recovery-guidance{border:0;padding:0;margin:7px 0 0!important}
+.co-recovery-insight .co-recovery-guidance>strong{display:block;font-size:clamp(21px,3vw,30px);line-height:1.15;letter-spacing:-.035em}
+.co-recovery-insight .co-recovery-lead{font-size:14px;line-height:1.6;color:#e5edf8;margin:9px 0}
+.co-recovery-next{border-left:3px solid #a8e6c0;padding:10px 14px;background:#122a2b;border-radius:0 10px 10px 0;margin:12px 0}
+.co-recovery-next .co-eyebrow{color:#a8e6c0}
+.co-recovery-insight .co-recovery-next p{font-size:13px;line-height:1.55;color:#e0ede8}
+.co-recovery-plan{display:block;font-size:12px;color:#aebfd0;line-height:1.5}
+.co-recovery-why summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:#c6b8fb;font-size:12px;font-weight:700}
+.co-recovery-secondary{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px;margin-top:12px}
+.co-sleep-detail,.co-energy-detail{min-width:0;background:#101c2a;border:1px solid #34465b;border-radius:16px;padding:16px}
+.co-sleep-detail header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.co-sleep-detail h3,.co-energy-detail h3{font-size:18px;margin:6px 0 10px;display:flex;gap:8px;align-items:center;letter-spacing:-.02em}
+.co-sleep-detail h3 .ic{width:17px;height:17px;color:#b49aff}
+.co-sleep-score{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.co-sleep-score strong{font-size:28px;font-variant-numeric:tabular-nums}
+.co-sleep-score span,.co-sleep-detail small,.co-energy-detail header small{font-size:11px;color:#aebdd1;line-height:1.5}
+.co-sleep-bar{display:flex;height:13px;border-radius:7px;overflow:hidden;gap:0;margin:18px 0 14px}
+.co-sleep-stage.deep,.co-sleep-dot.deep{background:#8c9bff}.co-sleep-stage.light,.co-sleep-dot.light{background:#77cbeb}.co-sleep-stage.rem,.co-sleep-dot.rem{background:#cf9bdf}.co-sleep-stage.awake,.co-sleep-dot.awake{background:#f0c78b}
+.co-sleep-stage{flex-basis:0;min-width:0}
+.co-sleep-legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+.co-sleep-legend>div{display:grid;grid-template-columns:8px 1fr;gap:3px 7px;align-items:center;min-width:0;font-size:11px;color:#b8c8dc}
+.co-sleep-legend strong{grid-column:2;font-size:16px;color:#f3f6ff;font-variant-numeric:tabular-nums}
+.co-sleep-dot{width:8px;height:8px;border-radius:50%}
+.co-sleep-detail p{font-size:12px;color:#b9c9db;line-height:1.5}
+.co-energy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.co-trend-stress{--spark:#f0c78b}.co-trend-battery{--spark:#a8e6c0}
+@media(max-width:760px){.co-recovery-secondary{grid-template-columns:1fr}.co-home .co-recovery-insight{align-items:flex-start;flex-wrap:wrap}.co-recovery-insight>.coach-avatar{width:82px}.co-recovery-coach-copy{flex:1 1 calc(100% - 100px)}.co-recovery-insight .co-recovery-lead{font-size:13px}.co-recovery-insight .co-recovery-next p{font-size:12px}.co-energy-grid .co-trend-tile{padding:10px}.co-energy-grid .co-trend-value{font-size:24px}}
+@media(max-width:420px){.co-home .co-recovery-insight{display:grid;grid-template-columns:1fr;gap:12px}.co-recovery-insight>.coach-avatar{width:88px;justify-self:start}.co-recovery-coach-copy{width:100%}.co-recovery-next{padding:9px 11px}.co-sleep-detail,.co-energy-detail{padding:12px}}

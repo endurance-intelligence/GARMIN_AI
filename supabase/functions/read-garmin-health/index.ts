@@ -4,6 +4,7 @@
  * This function never changes workouts, recommendations or health records.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import {publicRecoveryRow} from '../../../src/lib/recoverySleep.mjs'
 
 const projectUrl = Deno.env.get('SUPABASE_URL') || ''
 const ownerEmail = (Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL') || '').trim().toLowerCase()
@@ -144,7 +145,7 @@ Deno.serve(async (req: Request) => {
       auth: { persistSession: false, autoRefreshToken: false },
     })
     const { data, error } = await admin.from('garmin_daily_metrics')
-      .select('metric_date,hrv_ms,resting_heart_rate,sleep_seconds,stress_avg,body_battery_max,synced_at')
+      .select('metric_date,hrv_ms,resting_heart_rate,sleep_seconds,stress_avg,body_battery_max,synced_at,raw_metrics')
       .gte('metric_date', utcDay(29))
       .order('metric_date', { ascending: true })
       .limit(31)
@@ -158,7 +159,7 @@ Deno.serve(async (req: Request) => {
     catch (caught) {
       console.error('GARMIN_AI training summary unavailable:', caught instanceof Error ? caught.message : 'unexpected')
     }
-    return reply({ source: 'Garmin / Supabase', requestedDays: 30, metrics: data ?? [], training }, 200, headers)
+    return reply({ source: 'Garmin / Supabase', requestedDays: 30, metrics: (data ?? []).map(publicRecoveryRow), training }, 200, headers)
   } catch {
     return reply({ error: 'Private data endpoint unavailable' }, 503, headers)
   }
