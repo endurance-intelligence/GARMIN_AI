@@ -1,3 +1,4 @@
+import {coachRecoveryAdvice} from './coachRecoveryAdvice.mjs'
 import {buildCoachDailyBrief} from './coachDailyBrief.mjs'
 import {buildCoachProgressStory} from './coachProgressStory.mjs'
 import {analyzeGoalProgress} from './goalProgress.mjs'
@@ -55,6 +56,26 @@ function recordedRuns(snapshot,today){
 const pace=a=>number(a.duration_s)&&a.duration_s>0&&number(a.distance_m)&&a.distance_m>0?Math.round(a.duration_s/(a.distance_m/1000)):null
 const paceLabel=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+' min/km'
 const runLine=a=>[dateOf(a),number(a.distance_m)&&a.distance_m>0?format(a.distance_m/1000)+' km':null,number(a.duration_s)&&a.duration_s>0?format(a.duration_s/60)+' Min.':null,pace(a)!==null?paceLabel(pace(a))+' (Ø aus Dauer/Distanz)':null,number(a.average_heart_rate)&&a.average_heart_rate>0?'Ø '+Math.round(a.average_heart_rate)+' bpm':null].filter(Boolean).join(' · ')
+
+/** Only present one-tap questions with evidence for the requested answer. */
+export function availableCoachQuestions({today,snapshot,plan,weather}={}){
+ if(!snapshot||plan?.today!==today||!Array.isArray(plan.days))return []
+ const rows=recordedRuns(snapshot,today)
+ const training=snapshot.health?.training
+ const complete=training?.historyStatus==='complete'&&!training.truncated
+ const recovery=coachRecoveryAdvice({today,history:snapshot.health?.metrics,plan,context:snapshot.life?.context,training})
+ const hasVolume=snapshot.boards?.some(b=>b.start===coachMonday(today)&&Array.isArray(b.activities)&&b.activities.length<250)&&complete&&rows.filter(a=>dateOf(a)>=coachMonday(today)).every(a=>number(a.distance_m)&&a.distance_m>=0)
+ const progress=buildCoachProgressStory({today,snapshot})
+ const memory=buildCoachMemory({today,snapshot})
+ const permitted={today:plan.days.some(d=>d.date===today),weather:weather?.date===today&&typeof weather.text==='string'&&!!weather.text.trim(),
+ lastRun:rows.some(a=>number(a.distance_m)&&a.distance_m>0&&number(a.duration_s)&&a.duration_s>0),
+ volume:hasVolume,load:complete&&number(training.runKm7)&&number(training.previousRunKm7),
+ method:true,recovery:recovery.latestDay===today&&recovery.comparable>=2,
+ progress:progress?.status==='complete'&&progress.activeWeeks>0,
+ goal:!!snapshot.goal?.goal?.race_name&&!!snapshot.goal?.goal?.race_date&&complete,
+ week:plan.days.some(d=>d.date>=today),memory:memory.entries.some(x=>x.outcome==='matched')||!!plan.fourWeekReview?.workoutTolerance?.some(t=>t.rated>=3)}
+ return COACH_QUESTIONS.filter(q=>permitted[q.id])
+}
 
 export function answerCoachQuestion({topic,today,snapshot,plan,weather,query,previousQuery}={}){
  if(topic==='symptoms')return answer('Beschwerden haben Vorrang.',[
@@ -123,12 +144,10 @@ export function answerCoachQuestion({topic,today,snapshot,plan,weather,query,pre
  if(topic==='today')return brief?answer(brief.title,[
   brief.reason,brief.next,brief.dataNote,brief.symptomNote
  ],brief.source,'decision'):answer('Tagesempfehlung fehlt.',[],'Coach')
- if(topic==='recovery')return answer('Deine Erholung im Kontext.',[
-  brief?.dataNote,plan.attentionText,
-  ...(Array.isArray(plan.signals)&&plan.signals.length?plan.signals.slice(0,4):[
-   'Keine zusätzlichen Warnsignale aus den ausgewerteten Messwerten gemeldet. Das allein beweist keine vollständige Erholung.']),
-  brief?.symptomNote
- ],'Bestehende Coach-Erholungslogik und Garmin-Messwerte','decision')
+ if(topic==='recovery'){
+  const r=coachRecoveryAdvice({today,history:snapshot.health?.metrics,plan,context:snapshot.life?.context,training:snapshot.health?.training})
+  return answer(r.title,[r.advice,r.evidence,r.tip,r.planText,r.bodyCheck],'Gemeinsamer Coach-Kontext · Garmin-Erholungswerte, Verlauf und Belastung','decision')
+ }
  if(topic==='progress'){
   const progress=buildCoachProgressStory({today,snapshot})
   if(!progress)return answer('Noch kein belastbarer Fortschrittsvergleich.',[],'Garmin-Historie','progress')

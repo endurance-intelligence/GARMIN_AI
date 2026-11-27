@@ -68,7 +68,7 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
    buildCoachDailyBrief({today:coachToday,plan:dailyPlan,health:sharedSnapshot.health}):null,
    [dailyPlan,sharedSnapshot,coachToday])
   const openCoachDecision=()=>onOpenDecision(coachToday)
-  const openAskCoach=()=>{const el=document.getElementById('coach-ask');el?.scrollIntoView({behavior:'smooth',block:'start'});el?.querySelector('input')?.focus({preventScroll:true})}
+  const openAskCoach=()=>{const el=document.getElementById('coach-ask');el?.scrollIntoView({behavior:'smooth',block:'start'});el?.querySelector<HTMLButtonElement>('.ask-questions button')?.focus({preventScroll:true})}
   const openProgressHistory=()=>{onGo('training');window.dispatchEvent(new Event('garmin-ai-open-training-development'))}
   const closeRef=useRef<HTMLButtonElement|null>(null)
   useEffect(()=>{
@@ -124,7 +124,7 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
  {snapshotError&&<p className="co-data-note" role="status">
   Gemeinsamer Coach-Snapshot nicht vollständig erreichbar. Die einzelnen Bereiche prüfen ihre Daten separat.</p>}
  {(!snapshotLoading||sharedSnapshot||snapshotError)&&
-  <CoachGlance active={active} onCalendar={()=>onOpenCalendar()} sharedSnapshot={snapshotError?null:sharedSnapshot} recoveryOnly compactToday={!!dailyBrief&&!snapshotLoading&&!snapshotError}>
+  <CoachGlance active={active} onCalendar={()=>onOpenCalendar()} sharedSnapshot={snapshotError?null:sharedSnapshot} dailyPlan={snapshotLoading||snapshotError?null:dailyPlan} recoveryOnly compactToday={!!dailyBrief&&!snapshotLoading&&!snapshotError}>
    <span/>
   </CoachGlance>}
  <div id="coach-ask" className="co-chat-space">

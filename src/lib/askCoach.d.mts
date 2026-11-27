@@ -4,3 +4,5 @@ export type CoachAnswer={title:string;body:string[];source:string;action:'decisi
 export declare const COACH_QUESTIONS:Array<{id:CoachTopic;label:string}>
 export declare function resolveCoachQuestion(raw:unknown):CoachTopic|null
 export declare function answerCoachQuestion(input:{topic:CoachTopic|null;today:string;snapshot:unknown;plan:SevenDayPlan|null;weather?:{date:string;text:string}|null;query?:string;previousQuery?:string}):CoachAnswer
+
+export declare function availableCoachQuestions(input:{today:string;snapshot:unknown;plan:SevenDayPlan|null;weather?:{date:string;text:string}|null}):Array<{id:CoachTopic;label:string}>

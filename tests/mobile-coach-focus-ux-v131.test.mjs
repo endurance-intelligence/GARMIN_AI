@@ -26,8 +26,11 @@ test('existing progress shortcuts reveal the collapsed parent before scrolling',
  assert.match(s,/parent instanceof HTMLDetailsElement\)parent.open=true[\s\S]*setExpanded\(true\)/)
  assert.match(s,/garmin-ai-open-long-term-progress/)
 })
-test('example questions are collapsed but free text and answer remain accessible',()=>{
+test('only evidence-backed one-tap questions are shown, answers remain accessible',()=>{
  const s=read('src/components/AskCoachCard.tsx')
- assert.match(s,/<details className="ask-suggestions">[\s\S]*COACH_QUESTIONS.map[\s\S]*<\/details>[\s\S]*<form className="ask-form"/)
+ assert.match(s,/availableCoachQuestions\(\{today,snapshot,plan,weather\}\)/)
+ assert.match(s,/questions\.map\(q=>/)
+ assert.match(s,/onClick=\{\(\)=>send\(q.label,q.id\)\}/)
+ assert.doesNotMatch(s,/<form|<input/)
  assert.match(s,/aria-live="polite"/)
 })

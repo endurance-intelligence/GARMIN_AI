@@ -34,7 +34,7 @@ export async function loadTrainingRhythm(signal?:AbortSignal):Promise<TrainingRh
  // server uses insert-if-absent, so another device cannot overwrite a profile.
  let legacy:TrainingRhythm|null=null
  try{legacy=normalizeRhythm(JSON.parse(localStorage.getItem(RHYTHM_KEY)||'null'))}catch{}
- if(!legacy)return DEFAULT_RHYTHM
+ if(!legacy)return import.meta.env.VITE_GARMIN_INSTANCE==='secondary'?{rowing:{days:[],minutes:30},strength:{days:[],minutes:30}}:DEFAULT_RHYTHM
  const saved=await request('?rhythm=1',{method:'POST',signal,body:JSON.stringify({action:'migrate',rhythm:legacy})})
  const rhythm=checkedRhythm(saved.rhythm)
  try{localStorage.removeItem(RHYTHM_KEY)}catch{}

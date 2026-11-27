@@ -82,7 +82,9 @@ test('coach today leads the dashboard; next goal stays compact with future weath
 test('morning check explains metrics while keeping the existing Garmin-only charts',()=>{
  const glance=read('src/components/CoachGlance.tsx')
  const css=read('src/styles/coach-glance.css')
- assert.match(glance,/recoveryDashboardMeaning\(comparison\)/)
+ assert.match(glance,/coachRecoveryAdvice\(\{today:date,history:/)
+ assert.match(glance,/guidance\.evidence/)
+ assert.match(glance,/guidance\.tip/)
  assert.match(glance,/recoveryMetricMeaning\(entry\.row\)/)
  assert.match(glance,/<RecoverySparkline/)
  assert.match(glance,/recoveryNarrative\(comparison\)/)

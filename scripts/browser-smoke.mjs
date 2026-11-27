@@ -35,7 +35,7 @@ async function context(mode,width,height,flow=null){
   const headers={'access-control-allow-origin':origin,'access-control-allow-methods':'GET,POST,OPTIONS','access-control-allow-headers':'authorization,apikey,content-type,x-client-info,x-supabase-api-version','content-type':'application/json'}
   if(req.method()==='OPTIONS')return route.fulfill({status:204,headers})
   const send=(status,body)=>route.fulfill({status,headers,body:JSON.stringify(body)})
-  if(u.pathname==='/functions/v1/garmin-app-access')return send(mode==='owner'?200:403,{authorized:mode==='owner'})
+  if(u.pathname==='/functions/v1/garmin-app-access')return send(mode==='owner'||mode==='onboarding'?200:403,{authorized:mode==='owner'||mode==='onboarding'})
   if(u.pathname==='/auth/v1/user'&&req.method()==='GET')return send(200,user)
   if(flow){
    const name=u.pathname.split('/').at(-1)
@@ -95,6 +95,7 @@ async function context(mode,width,height,flow=null){
    sessionStorage.setItem('garmin-ai:last-page:v1','race')
   }
   if(mode!=='anonymous'){
+   if(secondary&&mode!=='onboarding')localStorage.setItem(prefix+'garmin-ai-onboarding-v1:'+session.user.id,'done')
    localStorage.setItem(storageKey,JSON.stringify(session))
    sessionStorage.setItem(prefix+'garmin-ai:last-page:v1','training')
   }
@@ -107,6 +108,24 @@ async function context(mode,width,height,flow=null){
  return {ctx,page,errors}
 }
 try{
+ if(secondary){
+  const setup=await context('onboarding',390,844)
+  await setup.page.getByRole('heading',{name:'Willkommen bei GARMIN_AI.'}).waitFor()
+  assert.equal(await setup.page.locator('.app').count(),0)
+  await setup.page.getByRole('button',{name:'Weiter / später ergänzen'}).click()
+  await setup.page.getByRole('heading',{name:'Trainings auf deine Uhr übertragen'}).waitFor()
+  await setup.page.getByRole('button',{name:'Weiter / später ergänzen'}).click()
+  await setup.page.getByRole('heading',{name:'Wann möchtest du trainieren?'}).waitFor()
+  await setup.page.getByRole('button',{name:'Weiter / später ergänzen'}).click()
+  await setup.page.getByRole('heading',{name:'Was steht dir zur Verfügung?'}).waitFor()
+  await setup.page.getByRole('button',{name:'Weiter / später ergänzen'}).click()
+  await setup.page.getByRole('button',{name:'Zum Dashboard'}).click()
+  await setup.page.locator('.footmobile').waitFor()
+  assert.equal(await setup.page.evaluate(key=>localStorage.getItem(key),prefix+'garmin-ai-onboarding-v1:'+uid),'done')
+  assert.equal(await setup.page.evaluate(key=>localStorage.getItem(key),'garmin-ai-onboarding-v1:'+uid),null)
+  assert.deepEqual(setup.errors,[])
+  await setup.ctx.close()
+ }
  const anon=await context('anonymous',390,844)
  await anon.page.getByRole('button',{name:'Login-Link senden'}).waitFor()
  assert.equal(await anon.page.locator('.app').count(),0,'anonymous must not mount private app')

@@ -11,6 +11,9 @@ import type {Point} from '../lib/gpxRaceRoute.mjs'
 import type {Page} from '../navigation'
 import '../styles/race-prep-layout.css'
 
+// Temporarily disable the entire runner workspace without deleting its saved data or implementation.
+const SHOW_RUNNER_MODE=false
+
 export function RacePage({active,onGo,focusWeatherToken=0}:{
  active:boolean;onGo:(page:Page)=>void;focusWeatherToken?:number
 }){
@@ -48,7 +51,7 @@ export function RacePage({active,onGo,focusWeatherToken=0}:{
     <Icon name="target"/> Ziele verwalten <Icon name="arrow-up-right"/>
    </button>
   </header>
-  <RaceStrategyCard active={active} forecast={raceForecast} onCoach={()=>onGo('home')}/>
+  {SHOW_RUNNER_MODE&&<RaceStrategyCard active={active} forecast={raceForecast} onCoach={()=>onGo('home')}/>}
   <RaceEventDossier active={active} refreshKey={revision}
    onEventCityChange={setEventCity} onCourseChange={setCourse}>
    <RaceForecastCompact active={active} eventCity={eventCity}

@@ -3,6 +3,7 @@ import type {ReactNode} from 'react'
 import type {Session} from '@supabase/supabase-js'
 import {garminSupabase,garminSupabaseReady,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {GarminAuthSettings} from './GarminAuthSettings'
+import {SecondaryOnboarding} from './SecondaryOnboarding'
 import '../styles/online-access.css'
 
 type Status='checking'|'signed-out'|'authorized'|'denied'|'unavailable'|'unconfigured'
@@ -102,7 +103,7 @@ export function OnlineAccessGate({children}:{children:ReactNode}){
     <strong>GARMIN_AI ist noch nicht eingerichtet.</strong>
     <p>Die öffentliche Supabase-Verbindung fehlt in diesem Hosting-Build. Es werden keine privaten Daten angezeigt.</p>
   </div>
-  if(status==='authorized')return <>{children}</>
+  if(status==='authorized')return import.meta.env.VITE_GARMIN_INSTANCE==='secondary'&&authorizedUserId.current?<SecondaryOnboarding key={authorizedUserId.current} userId={authorizedUserId.current}>{children}</SecondaryOnboarding>:<>{children}</>
   return <div className="online-gate-layout">
     <main className="online-gate" aria-label="Privater GARMIN_AI-Zugang">
       <span className="online-gate-eyebrow">GARMIN_AI · PRIVATE WORKSPACE</span>
