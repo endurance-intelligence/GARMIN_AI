@@ -1,6 +1,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
 import {createPortal} from 'react-dom'
 import {Icon} from '../components/Icon'
+import {WeighReminder} from '../components/WeighReminder'
 import {SyncCenter} from '../components/SyncCenter'
 import {CoachTodayWeather} from '../components/CoachTodayWeather'
 import {CoachGlance} from '../components/CoachGlance'
@@ -106,6 +107,7 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
    </button>
   </div>
  </header>
+ <WeighReminder active={active} today={coachToday} onWeigh={()=>setWeightOpen(true)}/>
  {savedWeight!==null&&<p role="status" className="co-saved-note">
   {savedWeight.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})} kg gespeichert ·
   {savedWeightDelivery==='confirmed'?' Intervals.icu bestätigt, nicht Garmin Connect':

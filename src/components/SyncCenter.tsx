@@ -1,6 +1,8 @@
 import {useEffect,useMemo,useState} from 'react'
 import {HealthHistoryChart} from './HealthHistoryChart'
 import {weightHistory} from '../lib/healthOverview.mjs'
+import {adultBmi} from '../lib/healthPreferences.mjs'
+import type {HealthPreferences} from '../lib/healthPreferences.mjs'
 import {weightTrend} from '../lib/weightTrend.mjs'
 import type {Session} from '@supabase/supabase-js'
 import {garminSupabase,garminSupabaseReady,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
@@ -72,8 +74,8 @@ function stateText(value?:string) {
   }
   return states[value||'']||'Status unbekannt'
 }
-export function SyncCenter({active,mode,onSaved,inlineWheel=false,expandedHealth=false}:{active:boolean;mode:'weight'|'status';
- onSaved?:(kg:number,intervalsStatus:'not_published'|'confirmed'|'needs_review',deliveryAttemptFailed:boolean)=>void;inlineWheel?:boolean;expandedHealth?:boolean}){
+export function SyncCenter({active,mode,onSaved,inlineWheel=false,expandedHealth=false,healthPreferences=null}:{active:boolean;mode:'weight'|'status';
+ onSaved?:(kg:number,intervalsStatus:'not_published'|'confirmed'|'needs_review',deliveryAttemptFailed:boolean)=>void;inlineWheel?:boolean;expandedHealth?:boolean;healthPreferences?:HealthPreferences|null}){
   const [session,setSession]=useState<Session|null>(null)
   const [data,setData]=useState<SyncPayload|null>(null)
   const [intervals,setIntervals]=useState<IntervalsStatus|null>(null)
@@ -92,6 +94,8 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false,expandedHealth
   const [sendToIntervals,setSendToIntervals]=useState(false)
   const trendDate=expandedHealth?berlinDay():date
   const trend=useMemo(()=>weightTrend(data?.weightEntries||[],trendDate),[data?.weightEntries,trendDate])
+
+  const bmi=expandedHealth&&trend?.latest?adultBmi(trend.latest[1],healthPreferences,trendDate):null
 
   useEffect(()=>{
     if(!active||!garminSupabase)return
@@ -233,6 +237,7 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false,expandedHealth
       }
       setWeight(kg.toFixed(1))
       setRefresh(n=>n+1)
+      window.dispatchEvent(new Event('garmin-ai-weight-saved'))
       onSaved?.(kg,intervalsStatus,deliveryAttemptFailed)
     }catch(err){
       setError(err instanceof Error?err.message:'Gewicht konnte nicht gespeichert werden.')
@@ -378,6 +383,7 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false,expandedHealth
         today.intervals_sync_status==='needs_review'?' Intervals.icu noch prüfen':
         ' Nur in GARMIN_AI gespeichert'} · Garmin Connect nicht bestätigt.</p>}
       {notice&&<p className="sync-hint" role="status">{notice}</p>}
+      {expandedHealth&&bmi!==null&&<p className="health-bmi-value"><strong>BMI {bmi.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})}</strong> · Gewicht vom {shortWeightDate(trend!.latest![0])} · Orientierung, keine Körperfettmessung</p>}
       {expandedHealth&&data&&<HealthHistoryChart points={weightHistory(data.weightEntries,trendDate)} end={trendDate} label="Gewicht" unit="kg"/>}
       <details className="sync-weight-trend" open={expandedHealth||undefined}>
        <summary>Gewichtstrend · 7 und 28 Tage</summary>
