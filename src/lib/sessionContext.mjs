@@ -1,7 +1,8 @@
 import {normalizeGarminRpe} from './garminPerception.mjs'
+import {assessTrainingPurpose} from './trainingPurposeAssessment.mjs'
 const num=x=>typeof x==='number'&&Number.isFinite(x)
 const run=x=>/run|jog|trail|treadmill/i.test(x?.sport||'')
-export function buildSessionContext(activity,list=[],terrain=[],felt=null){
+export function buildSessionContext(activity,list=[],terrain=[],felt=null,purposeInput=null){
  const rpe=normalizeGarminRpe(activity?.rpeRaw)
  const minutes=num(activity?.durationS)&&activity.durationS>0?Math.round(activity.durationS/60):null
  const pace=num(activity?.distanceM)&&activity.distanceM>0&&num(activity?.durationS)&&activity.durationS>0?Math.round(activity.durationS*1000/activity.distanceM):null
@@ -53,5 +54,13 @@ export function buildSessionContext(activity,list=[],terrain=[],felt=null){
  ]
  const paceText=pace===null?'–':Math.floor(pace/60)+':'+String(pace%60).padStart(2,'0')
  const next=ultra?'Nach dem Lauf auf Fußbeschwerden, Muskelgefühl und ungewöhnliche Müdigkeit achten. Kein Nachholen oder hartes Training; bei Beschwerdefreiheit optional 5–10 Minuten sanfte Mobility ohne Ermüdung, sonst Ruhe.':hard?'Erholung priorisieren und vor dem nächsten intensiven Training die Verträglichkeit prüfen.':'Training nach Wohlbefinden und tatsächlichem Plan fortsetzen; bei Beschwerden Belastung reduzieren.'
- return {verdict,mood,mode,modeLabel,recommendation,factors,cards,paceText,next}
+ const purpose=purposeInput?assessTrainingPurpose({...purposeInput,activity,rpe}):null
+ // The recovery guardrail always takes priority over a single-session grade.
+ // Purpose-specific evaluation remains visible as evidence even then.
+ if(purpose){
+  const primaryCards=purpose.evidence.map((e,i)=>({key:'purpose-'+i,label:e.label,icon:'activity',value:e.value,unit:'',tone:purpose.mode==='caution'?'caution':'neutral',status:'Trainingsziel',detail:e.detail}))
+  if(earlyReturn||longReturn)return {verdict,mood,mode,modeLabel,recommendation,factors,cards:[...primaryCards,...cards],paceText,next,purpose}
+  return {verdict:purpose.verdict,mood:purpose.mood,mode:purpose.mode,modeLabel:purpose.modeLabel,recommendation:purpose.recommendation,factors,cards:[...primaryCards,...cards],paceText,next:purpose.next,purpose}
+ }
+ return {verdict,mood,mode,modeLabel,recommendation,factors,cards,paceText,next,purpose:null}
 }
