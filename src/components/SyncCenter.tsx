@@ -84,6 +84,9 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
   const [refresh,setRefresh]=useState(0)
   const [connecting,setConnecting]=useState(false)
   const [cloudChecking,setCloudChecking]=useState(false)
+  const [activitySyncBusy,setActivitySyncBusy]=useState(false)
+  const [activityRetryAt,setActivityRetryAt]=useState<number|null>(null)
+  const [activitySyncNotice,setActivitySyncNotice]=useState('')
   const [sendToIntervals,setSendToIntervals]=useState(false)
   const trend=useMemo(()=>weightTrend(data?.weightEntries||[],date),[data?.weightEntries,date])
 
@@ -138,6 +141,43 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
     })
     return()=>{mounted=false}
   },[active,mode,session?.access_token,refresh])
+
+  useEffect(()=>{
+    if(!active||activityRetryAt===null)return
+    const remaining=activityRetryAt-Date.now()
+    const timer=window.setTimeout(()=>setActivityRetryAt(null),Math.max(0,remaining))
+    return()=>window.clearTimeout(timer)
+  },[active,activityRetryAt])
+
+  async function syncActivities(){
+    if(!session||activitySyncBusy||activityRetryAt!==null)return
+    setActivitySyncBusy(true);setActivitySyncNotice('');setError('')
+    try{
+      const response=await fetch(garminSupabaseUrl+'/functions/v1/sync-garmin',{
+        method:'POST',cache:'no-store',headers:{
+          authorization:'Bearer '+session.access_token,apikey:garminPublishableKey,
+          'content-type':'application/json'
+        },body:'{}'
+      })
+      const result=await response.json().catch(()=>null) as {ok?:boolean;stored?:number;retryAt?:string;skipped?:boolean}|null
+      const retryAt=Date.parse(result?.retryAt||'')
+      if(Number.isFinite(retryAt)&&retryAt>Date.now())setActivityRetryAt(retryAt)
+      if(response.status===409&&result?.skipped){
+        setActivitySyncNotice('Aktivitäten wurden gerade erst abgefragt. Nächster Versuch ab '+dateText(result.retryAt)+'.')
+      }else if(response.status===429){
+        setActivityRetryAt(Date.now()+5*60_000)
+        setActivitySyncNotice('Garmin begrenzt Anfragen. Die serverseitige Schutzpause läuft; vorhandene Daten bleiben erhalten.')
+      }else if(response.ok&&result?.ok===true&&Number.isInteger(result.stored)&&Number(result.stored)>=0){
+        setActivitySyncNotice('Aktivitäten erfolgreich abgeglichen. Neue FIT-Details können etwas später erscheinen.')
+      }else{
+        setActivitySyncNotice('Import nicht bestätigt. Bitte den letzten erfolgreichen Stand prüfen.')
+      }
+    }catch{
+      setActivitySyncNotice('Import nicht bestätigt. Bitte den letzten erfolgreichen Stand prüfen.')
+    }finally{
+      setActivitySyncBusy(false);setRefresh(n=>n+1)
+    }
+  }
 
   async function save(){
     if(!session||busy)return
@@ -359,6 +399,14 @@ export function SyncCenter({active,mode,onSaved,inlineWheel=false}:{active:boole
         <button type="button" className="secondary" onClick={()=>setRefresh(n=>n+1)}>Prüfen</button>
       </div>
       {session&&data?<>
+        <div className="sync-activity-action">
+          <button type="button" className="secondary" onClick={()=>void syncActivities()}
+            disabled={activitySyncBusy||activityRetryAt!==null}>
+            {activitySyncBusy?'Synchronisiere …':activityRetryAt!==null?'Nächster Import ab '+dateText(new Date(activityRetryAt).toISOString()):'Jetzt synchronisieren'}
+          </button>
+          <small>Aktivitäten automatisch alle 15 Minuten · mindestens 5 Minuten zwischen Importen.</small>
+          {activitySyncNotice&&<p role="status" className="sync-hint">{activitySyncNotice}</p>}
+        </div>
         {data.cloudBackoff?.active&&<div className="sync-garmin-backoff" role="status">
           <strong>Garmin-Zugang vorübergehend pausiert (HTTP 429)</strong>
           <p>Garmin hat den Tokenabruf begrenzt. Der automatische Cloud-Job

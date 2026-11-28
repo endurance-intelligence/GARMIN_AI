@@ -1,0 +1,36 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
+test('owner and cron authorization precede shared atomic import gate and remote request',()=>{
+ const s=read('supabase/functions/sync-garmin/index.ts')
+ assert.match(s,/scheduled = req\.headers\.has\('x-garmin-sync-secret'\)/)
+ assert.match(s,/garmin_verify_cron_token/)
+ assert.match(s,/admin\.auth\.getUser\(manualToken!\)/)
+ assert.match(s,/!user\.email_confirmed_at\|\|user\.email\?\.trim\(\)\.toLowerCase\(\)!==owner/)
+ assert.match(s,/origin&&!headers\['Access-Control-Allow-Origin'\]/)
+ const handler=s.slice(s.indexOf('Deno.serve('))
+ assert.ok(handler.indexOf('await admin.auth.getUser')<handler.indexOf('await api.ready()'))
+ assert.ok(handler.indexOf('await api.ready()')<handler.indexOf("admin.rpc('garmin_claim_activity_sync')"))
+ assert.ok(handler.indexOf("admin.rpc('garmin_claim_activity_sync')")<handler.indexOf('await readActivities(api)'))
+ assert.match(handler,/if\(!gate\.allowed\)[\s\S]*?scheduled\?200:409/)
+ assert.ok(handler.indexOf('if (logError) throw')<handler.indexOf('ok: true'))
+})
+test('cooldown migration is atomic and service-only',()=>{
+ const s=read('supabase/migrations/20261128124736_garmin_activity_sync_gate.sql')
+ assert.match(s,/enable row level security/)
+ assert.match(s,/security invoker/)
+ assert.match(s,/update public\.garmin_activity_sync_gate[\s\S]*?interval '5 minutes'[\s\S]*?where id and next_allowed_at <= clock_timestamp\(\)/)
+ assert.match(s,/revoke all on function public\.garmin_claim_activity_sync\(\) from public, anon, authenticated/)
+})
+test('manual UI confirms only successful import and reads new timestamps',()=>{
+ const s=read('src/components/SyncCenter.tsx')
+ assert.match(s,/Jetzt synchronisieren/)
+ assert.match(s,/response\.status===409&&result\?\.skipped/)
+ assert.match(s,/response\.ok&&result\?\.ok===true&&Number\.isInteger\(result\.stored\)/)
+ assert.match(s,/disabled=\{activitySyncBusy\|\|activityRetryAt!==null\}/)
+ assert.match(s,/setActivitySyncBusy\(false\);setRefresh\(n=>n\+1\)/)
+ const status=read('supabase/functions/garmin-sync-center/index.ts')
+ assert.match(status,/return source==='garmin-personal-api'/)
+ assert.match(status,/thresholdHours:\.5/)
+})
