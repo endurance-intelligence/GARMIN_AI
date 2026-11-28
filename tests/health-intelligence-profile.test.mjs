@@ -9,11 +9,11 @@ test('only capability flags leave the profile probe; missing data are not invent
  assert.deepEqual(profileFieldAvailability(null),{heightCandidate:false,ageCandidate:false,sexCandidate:false,weightCandidate:false})
  assert.equal(cycleAvailability({dayInCycle:10,currentPhase:2}),'schema-review')
 })
-test('both manual probes use the shared guarded client and cycle consent',()=>{
+test('all three Garmin profile and cycle actions use the shared guarded client and consent',()=>{
  const source=read('supabase/functions/garmin-athlete-profile/index.ts')
  assert.match(source,/createGarminPersonalClient/)
- assert.equal(source.match(/await api\.ready\(\)/g)?.length,2)
- assert.equal(source.match(/await api\.getToken\(\)/g)?.length,2)
+ assert.equal(source.match(/await api\.ready\(\)/g)?.length,3)
+ assert.equal(source.match(/await api\.getToken\(\)/g)?.length,3)
  assert.doesNotMatch(source,/personalapitoken-service|console\.log|console\.error/)
  assert.match(source,/profile\?\.cycleEnabled!==true/)
  assert.match(source,/fields:profileFieldAvailability/)

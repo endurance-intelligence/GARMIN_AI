@@ -4,6 +4,7 @@
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { createGarminPersonalClient, GarminPersonalDeferred } from '../_shared/garmin-personal-client.mjs'
+import {syncConsentedCycle} from '../_shared/cycle-history-sync.ts'
 import {normalizeGarminSleep,mergeSleepMetrics} from '../../../src/lib/recoverySleep.mjs'
 
 type JsonMap = Record<string, unknown>
@@ -202,6 +203,8 @@ Deno.serve(async (req: Request) => {
       })
       if (error) throw new Error(`Health database upsert: ${error.code}`)
     }
+    // Cycle import has its own opt-in and daily gate; never changes health job status.
+    try{await syncConsentedCycle(admin,(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase(),api.fetch,token)}catch{/* independent optional import */}
     const message = `window=${start}..${end}; days=${merged.length}; sources=${requests.length - unavailable.length}/${requests.length}; missing=${unavailable.join(',') || 'none'}`
     const { error: logError } = await admin.from('garmin_sync_runs').insert({
       source: 'garmin-health', result: 'success', activity_count: 0,
