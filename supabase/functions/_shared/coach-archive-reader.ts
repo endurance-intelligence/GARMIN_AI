@@ -4,6 +4,7 @@ import {coachMonday,coachAddDays} from '../../../src/lib/coachSevenDay.mjs'
 import {exactGoalRoute} from '../../../src/lib/goalTrainingFocus.mjs'
 import {normalizeEquipmentProfile} from '../../../src/lib/equipmentProfile.mjs'
 import {normalizeRhythm} from '../../../src/lib/trainingRhythm.mjs'
+import {recentEasyCandidates,priorGarminUpper,compactPurposeExposure} from '../../../src/lib/recentPurposeFeedback.mjs'
 
 type DB=ReturnType<typeof createClient>
 const metricFields='metric_date,hrv_ms,resting_heart_rate,sleep_seconds,stress_avg,body_battery_max,synced_at'
@@ -63,6 +64,32 @@ export async function readArchiveCoachInput(db:DB,userId:string,today:string,vis
  for(const k of ['day_decisions','race_recovery_checks','race_activity_links','post_workout_feedback'])c[k]=Array.isArray(c[k])?c[k]:[]
  const runs=c.illness_state==='returning'&&c.return_started_on?(await rows(db.from('garmin_activities').select(activityFields).gte('start_time_local',c.return_started_on).order('start_time_local',{ascending:true}).limit(150),'return runs',150)).filter(x=>/run|jog|trail|treadmill/i.test(x.sport_type||'')).slice(0,3):[]
  const research=goal?await rows(db.from('garmin_race_event_research').select('id,race_date,event_url,event_title,details,evidence,reviewed_at,checked_at').eq('user_id',userId).eq('race_date',goal.race_date).order('reviewed_at',{ascending:false}).limit(5),'race research'):[]
+ // Read only recent, plausibly matched easy runs from existing local Garmin
+ // records. No remote Garmin requests, no profile/record payload in response.
+ // Optional evidence failures must never turn a missing measurement into a warning.
+ const purposeEvidence=await (async()=>{
+  const candidates=recentEasyCandidates({today,boards,plans:entries}).slice(0,4)
+  if(!candidates.length)return []
+  const {data:profiles,error}=await db.from('garmin_hr_profile_snapshots').select('observed_at,profile').order('observed_at',{ascending:false}).limit(12)
+  if(error||!profiles?.length)return []
+  const evidence=await Promise.all(candidates.map(async({activity}:any)=>{
+   const upper=priorGarminUpper(profiles,String(activity.date).slice(0,10))
+   if(upper===null)return null
+   const {data:detail,error:detailError}=await db.from('garmin_activity_details').select('samples,fit_status,fit_record_count').eq('activity_id',activity.id).maybeSingle()
+   if(detailError||!detail)return null
+   let samples=Array.isArray(detail.samples)?detail.samples:[]
+   if(detail.fit_status==='complete'&&Number.isInteger(detail.fit_record_count)&&detail.fit_record_count>1&&detail.fit_record_count<=20000){
+    const {data:chunks,error:chunkError}=await db.from('garmin_fit_record_chunks').select('records').eq('activity_id',activity.id).order('chunk_index',{ascending:true}).limit(100)
+    if(!chunkError&&Array.isArray(chunks)&&chunks.length<100){
+     const records=chunks.flatMap(c=>Array.isArray(c.records)?c.records:[])
+     if(records.length===detail.fit_record_count)samples=records
+    }
+   }
+   if(samples.length>20000)return null
+   return compactPurposeExposure(activity,samples,upper)
+  }))
+  return evidence.filter(Boolean)
+ })().catch(()=>[])
  if(training.truncated)throw Error('Incomplete training evidence')
- return {health:{metrics,training},boards,options:{options,choices},plans:{entries,historyFrom:since},goal:{goal},life:{context:c,runs,equipmentProfile,trainingRhythm,workoutArchive,weekRevisions},goalRoute:exactGoalRoute(goal,research),racePortfolio:{primary:goal,others}}
+ return {health:{metrics,training},boards,options:{options,choices},plans:{entries,historyFrom:since},goal:{goal},life:{context:c,runs,equipmentProfile,trainingRhythm,workoutArchive,weekRevisions,purposeEvidence},goalRoute:exactGoalRoute(goal,research),racePortfolio:{primary:goal,others}}
 }
