@@ -10,6 +10,7 @@ import {RacePage} from './pages/RacePage'
 import {GoalsPage} from './pages/GoalsPage'
 import {GearPage} from './pages/GearPage'
 import {SettingsPage} from './pages/SettingsPage'
+import {HealthPage} from './pages/HealthPage'
 import {StrengthPage} from './pages/StrengthPage'
 import type {Page} from './navigation'
 import './styles/horizon.css'
@@ -28,7 +29,7 @@ const navigation: {id:Page; name:string; icon:string; mobile:string}[] = [
   {id:'more',name:'Mehr',icon:'more-horizontal',mobile:'Mehr'}
 ]
 const navActive=(page:Page,id:Page)=>page===id||
-  (id==='more'&&(page==='gear'||page==='settings'||page==='strength'))
+  (id==='more'&&(page==='gear'||page==='settings'||page==='strength'||page==='health'))
 
 function App() {
   const [calendarFocus,setCalendarFocus]=useState<{date:string;token:number}|null>(null)
@@ -38,7 +39,7 @@ function App() {
   const [page,setPage]=useState<Page>(()=>{
    try{
     const last=sessionStorage.getItem('garmin-ai:last-page:v1')
-    if(last&&(['home','goals','calendar','training','race','more','gear','settings','strength'] as string[]).includes(last))
+    if(last&&(['home','goals','calendar','training','race','more','gear','settings','strength','health'] as string[]).includes(last))
      return last as Page
    }catch{/* Private browsing can block session storage. */}
    return 'home'
@@ -80,7 +81,7 @@ function App() {
       <div className="profile"><div className="avatar">DK</div><div><b>Personal workspace</b><span>Single athlete · Privat</span></div></div>
     </aside>
     <main className="main"><div className="main-in">
-      <header className="topbar"><div className="crumbs"><span>WORKSPACE</span><span className="slash">/</span><strong>{(page==='gear'?'Equipment':page==='settings'?'Einstellungen':page==='strength'?'Stabi Studio':navigation.find(n=>n.id===page)?.name)}</strong></div><div className="top-actions"><div className="mobile-brand" style={{display:'none'}}><div className="brand-logo"><Icon name="activity"/></div>GARMIN_AI</div><span className="date">GARMIN_AI / DEIN TRAINING</span><span className="pill"><span className="pulse"/> DATEN LIVE · FREIGABE DURCH DICH</span></div></header>
+      <header className="topbar"><div className="crumbs"><span>WORKSPACE</span><span className="slash">/</span><strong>{(page==='gear'?'Equipment':page==='settings'?'Einstellungen':page==='strength'?'Stabi Studio':page==='health'?'Gesundheit':navigation.find(n=>n.id===page)?.name)}</strong></div><div className="top-actions"><div className="mobile-brand" style={{display:'none'}}><div className="brand-logo"><Icon name="activity"/></div>GARMIN_AI</div><span className="date">GARMIN_AI / DEIN TRAINING</span><span className="pill"><span className="pulse"/> DATEN LIVE · FREIGABE DURCH DICH</span></div></header>
       {['gear','settings','strength'].includes(page)&&<button type="button" className="workspace-back" onClick={()=>go('more')}><Icon name="chevron-left"/> Zurück zu Mehr</button>}
       <CoachPage active={page==='home'} onGo={go} onOpenCalendar={openCalendar} onOpenDecision={openCoach}/>
       <CalendarPage active={page==='calendar'} focus={calendarFocus} decisionFocus={coachFocus} onOpenCoach={openCoach} onGo={go} onOpenSession={openSession}/>
@@ -91,6 +92,8 @@ function App() {
       <RacePage active={page==='race'} onGo={go} focusWeatherToken={raceWeatherFocus}/>
       <GearPage active={page==='gear'} onGo={go}/>
       <SettingsPage active={page==='settings'} onGo={go}/>
+      {page==='health'&&<button type="button" className="workspace-back" onClick={()=>go('more')}><Icon name="chevron-left"/> Zurück zu Mehr</button>}
+      <HealthPage active={page==='health'} onGo={go}/>
       <MorePage active={page==='more'} onGo={go}/>
       <div className="footer"><span>GARMIN_AI / PERSONAL TRAINING</span><span>GARMIN-DATEN · COACH MIT DEINER FREIGABE</span></div>
     </div></main>
