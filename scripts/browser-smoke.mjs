@@ -240,6 +240,22 @@ try{
  assert.deepEqual(flow.writes,['create'])
  assert.equal(await flowPage.getByRole('button',{name:'An Intervals.icu senden',exact:true}).count(),0)
  assert.ok(await flowPage.locator('.hwb-scroll').evaluate(el=>el.scrollWidth<=el.clientWidth+2),'phone agenda fits width')
+ // Test the same calendar in portrait, landscape and large iPad dimensions,
+ // then verify the wide desktop still has all seven columns.
+ for(const [width,height] of [[820,1180],[1180,820],[1366,1024],[1440,900]]){
+  await flowPage.setViewportSize({width,height})
+  await flowPage.waitForFunction(expected=>getComputedStyle(document.querySelector('.hwb-days')).gridTemplateColumns.split(' ').length===expected,width<=1366?1:7)
+  const rows=await flowPage.locator('.hwb-day').evaluateAll(days=>days.map(day=>({x:day.getBoundingClientRect().x,y:day.getBoundingClientRect().y})))
+  assert.equal(rows.length,7)
+  if(width<=1366){
+   assert.ok(rows.every((row,i)=>i===0||row.y>rows[i-1].y&&Math.abs(row.x-rows[0].x)<2),'vertical tablet agenda at '+width)
+   assert.ok(await flowPage.locator('.hwb-scroll').evaluate(el=>el.scrollWidth<=el.clientWidth+2),'tablet agenda fits width at '+width)
+   const quick=flowPage.locator('.hwb-quick-segment button').first()
+   if(await quick.count())assert.ok((await quick.boundingBox()).height>=44,'tablet touch targets')
+  }else assert.ok(rows.every((row,i)=>i===0||row.x>rows[i-1].x&&Math.abs(row.y-rows[0].y)<2),'desktop week retains columns')
+  assert.ok(await flowPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'calendar page fits width '+width)
+ }
+ await flowPage.setViewportSize({width:390,height:844})
  const savedId=flow.plan.id, savedWorkout=JSON.stringify(flow.plan.archive_snapshot)
  const target=candidate.date===today?coachAddDays(candidate.date,1):coachAddDays(candidate.date,-1)
  await flowPage.getByRole('button',{name:'Verschieben',exact:true}).click()

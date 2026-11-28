@@ -23,3 +23,13 @@ test('move is revision guarded, preserves the same row, requires renewed approva
  assert.match(page,/setCoachSnapshot\(null\);setCoachLoading\(true\);setRefresh/)
  assert.match(read('src/styles/calendar-week-board.css'),/\.hwb-day\{display:grid;grid-template-columns:60px minmax\(0,1fr\)/)
 })
+
+test('agenda and day-detail navigation share the phone/tablet breakpoint, with wider tablet cards',()=>{
+ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
+ const css=read('src/styles/calendar-week-board.css'),page=read('src/pages/CalendarPage.tsx'),horizon=read('src/styles/horizon-calendar.css')
+ assert.match(css,/\/\* Phone and tablet:[^\n]+\n@media\(max-width:1366px\)/)
+ assert.match(css,/@media\(min-width:741px\) and \(max-width:1366px\)/)
+ assert.match(css,/grid-template-columns:88px minmax\(0,1fr\)/)
+ assert.match(horizon,/@media\(max-width:1366px\)/)
+ assert.match(page,/matchMedia\('\(max-width:1366px\)'\)/)
+})
