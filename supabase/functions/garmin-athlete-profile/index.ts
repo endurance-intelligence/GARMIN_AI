@@ -2,7 +2,8 @@
 import {createClient} from 'npm:@supabase/supabase-js@2'
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
-import {normalizeAthleteProfile,cycleAvailability} from '../../../src/lib/athleteProfile.mjs'
+import {createGarminPersonalClient,GarminPersonalDeferred} from '../_shared/garmin-personal-client.mjs'
+import {normalizeAthleteProfile,cycleAvailability,profileFieldAvailability} from '../../../src/lib/athleteProfile.mjs'
 function key(kind:'public'|'secret'){
  try{const value=JSON.parse(Deno.env.get(kind==='public'?'SUPABASE_PUBLISHABLE_KEYS':'SUPABASE_SECRET_KEYS')||'{}');if(typeof value.default==='string'&&value.default)return value.default}catch{/* legacy */}
  return Deno.env.get(kind==='public'?'SUPABASE_ANON_KEY':'SUPABASE_SERVICE_ROLE_KEY')||''
@@ -40,24 +41,37 @@ Deno.serve(async req=>{
    if(error||!data)return reply(503,{error:'Profil nicht gespeichert'})
    return reply(200,{saved:true,profile:normalizeAthleteProfile(data.profile),trainingPlanChanged:false})
   }
+  if(input.action==='check_profile'){
+   const apiKey=Deno.env.get('GARMIN_API_KEY')||''
+   if(!apiKey)return reply(200,{status:'garmin-not-configured'})
+   try{
+    const api=await createGarminPersonalClient(db,apiKey,project)
+    await api.ready()
+    const token=await api.getToken()
+    const r=await api.fetch('https://personal.connectapi.garmin.com/userprofile-service/userprofile/settings',{headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(15000)})
+    if(r.status===429)return reply(200,{status:'garmin-rate-limited'})
+    if(!r.ok||r.status===204)return reply(200,{status:'garmin-unavailable'})
+    return reply(200,{status:'profile-checked',fields:profileFieldAvailability(await r.json())})
+   }catch(e){return reply(200,{status:e instanceof GarminPersonalDeferred&&e.status===429?'garmin-rate-limited':'garmin-unavailable'})}
+  }
   if(input.action==='check_cycle'){
    if(profile?.cycleEnabled!==true)return reply(403,{error:'Zyklusfreigabe fehlt'})
    const apiKey=Deno.env.get('GARMIN_API_KEY')||''
    if(!apiKey)return reply(200,{status:'garmin-not-configured'})
    const base='https://personal.connectapi.garmin.com'
    try{
-    const response=await fetch(base+'/personalapitoken-service/personal-api/personal-api-key/token',{method:'POST',headers:{Authorization:'ApiKey '+apiKey},redirect:'error',signal:AbortSignal.timeout(15000)})
-    if(!response.ok)return reply(200,{status:'garmin-unavailable'})
-    const token=(await response.text()).trim().replace(/^"|"$/g,'')
-    if(!/^[A-Za-z0-9_+/.=-]{20,2048}$/.test(token))return reply(200,{status:'garmin-unavailable'})
+    const api=await createGarminPersonalClient(db,apiKey,project)
+    await api.ready()
+    const token=await api.getToken()
     const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
     const part=(k:string)=>parts.find(p=>p.type===k)?.value||''
     const today=part('year')+'-'+part('month')+'-'+part('day')
-    const r=await fetch(base+'/periodichealth-service/menstrualcycle/summary/'+today,{headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(15000)})
-    if(!r.ok)return reply(200,{status:'cycle-unavailable'})
+    const r=await api.fetch(base+'/periodichealth-service/menstrualcycle/summary/'+today,{headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(15000)})
+    if(r.status===429)return reply(200,{status:'garmin-rate-limited'})
+    if(!r.ok||r.status===204)return reply(200,{status:'cycle-unavailable'})
     // Only capability state leaves this function. Never store or log the raw response.
     return reply(200,{status:cycleAvailability(await r.json())})
-   }catch{return reply(200,{status:'cycle-unavailable'})}
+   }catch(e){return reply(200,{status:e instanceof GarminPersonalDeferred&&e.status===429?'garmin-rate-limited':'cycle-unavailable'})}
   }
   return reply(422,{error:'Ungültige Aktion'})
  }catch{return reply(503,{error:'Athletenprofil nicht erreichbar'})}
