@@ -3,6 +3,7 @@
  * No raw settings/profile payloads in responses or tables. Never writes to Garmin.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createGarminPersonalClient, GarminPersonalDeferred } from '../_shared/garmin-personal-client.mjs'
 import { parseGarminHrProfile } from './profileParser.ts'
 import { allowedHrProfileOrigin } from './corsPolicy.mjs'
 
@@ -33,33 +34,6 @@ function cors(origin: string | null): Record<string,string> {
 function json(value:unknown, status:number, headers:Record<string,string>) {
   return new Response(JSON.stringify(value),{status,headers})
 }
-async function call(path:string, token:string, method:'GET'|'POST'='GET') {
-  const response = await fetch(base + path, {
-    method, headers: method === 'POST'
-      ? { Authorization: `ApiKey ${token}` }
-      : { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    signal:AbortSignal.timeout(15000),
-  })
-  if (!response.ok) throw new Error(`garmin_http_${response.status}`)
-  return await response.text()
-}
-async function getToken(apiKey:string) {
-  let raw:string
-  try {raw=await call('/personalapitoken-service/personal-api/personal-api-key/token',apiKey,'POST')}
-  catch(e) {
-    const message=e instanceof Error ? e.message : ''
-    if(/^garmin_http_\d{3}$/.test(message)) throw new Error('garmin_token_http_'+message.slice(-3))
-    throw e
-  }
-  const content = raw.trim()
-  let token = content.replace(/^"|"$/g,'')
-  if (content.startsWith('{')) {
-    const result = JSON.parse(content) as AnyObject
-    token = String(result.access_token ?? result.accessToken ?? result.token ?? '')
-  }
-  if (!/^[A-Za-z0-9_+/.=-]{20,4096}$/.test(token)) throw new Error('garmin_token_format')
-  return token
-}
 function safeParse(content:string):unknown { try {return JSON.parse(content)} catch {throw new Error('garmin_non_json')} }
 // Do not expose tokens, response bodies, or private profile fields in diagnostics.
 // Garmin's published client uses v2; the web app also uses an explicit generateDefaults parameter.
@@ -70,8 +44,8 @@ const zoneRoutes: {route:Check['route']; path:string}[] = [
   {route:'zones-v2-empty-defaults',path:'/biometric-service/heartRateZones/v2?generateDefaults='},
   {route:'zones-v1',path:'/biometric-service/heartRateZones/'},
 ]
-async function inspect(path:string, token:string): Promise<{status:number;payload:unknown|null}> {
-  const response = await fetch(base + path, {
+async function inspect(fetcher:typeof fetch,path:string, token:string): Promise<{status:number;payload:unknown|null}> {
+  const response = await fetcher(base + path, {
     method:'GET',
     headers:{Authorization:`Bearer ${token}`, Accept:'application/json'},
     signal:AbortSignal.timeout(15000),
@@ -88,6 +62,7 @@ async function fingerprint(payload:unknown):Promise<string> {
   return Array.from(new Uint8Array(hash),x=>x.toString(16).padStart(2,'0')).join('')
 }
 function safeMessage(error:unknown):string {
+  if(error instanceof GarminPersonalDeferred)return 'garmin_http_'+error.status
   const message = error instanceof Error ? error.message : ''
   return /^(garmin_http|garmin_token_http)_\d{3}$/.test(message) ? message :
     ['garmin_non_json','garmin_token_format','unrecognized_running_zones','garmin_zones_unavailable','profile_store_failed','profile_status_failed','garmin_api_key_missing'].includes(message) ? message : 'profile_sync_failed'
@@ -142,14 +117,16 @@ Deno.serve(async (req:Request) => {
     try {
       const apiKey = Deno.env.get('GARMIN_API_KEY')??''
       if (!apiKey) throw new Error('garmin_api_key_missing')
-      const token = await getToken(apiKey)
+      const api=await createGarminPersonalClient(admin,apiKey,supabaseUrl)
+      await api.ready()
+      const token=await api.getToken()
       // Check profile settings independently so HTTP 406 can be attributed to the actual endpoint.
-      const settingsResult=await inspect('/userprofile-service/userprofile/settings',token)
+      const settingsResult=await inspect(api.fetch,'/userprofile-service/userprofile/settings',token)
       checks.push({route:'profile-settings',status:settingsResult.status})
       // Never generate defaults on Garmin or change the user's configured zones.
       let parsed:ReturnType<typeof parseGarminHrProfile>=null
       for (const candidate of zoneRoutes) {
-        const result=await inspect(candidate.path,token)
+        const result=await inspect(api.fetch,candidate.path,token)
         const check:Check={route:candidate.route,status:result.status}
         if(result.status===200 && result.payload!==null) {
           parsed=parseGarminHrProfile(result.payload,settingsResult.payload??{})

@@ -3,6 +3,7 @@
  *  to browsers, logged, or stored in Git. Missing data never becomes zero.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createGarminPersonalClient, GarminPersonalDeferred } from '../_shared/garmin-personal-client.mjs'
 import {normalizeGarminSleep,mergeSleepMetrics} from '../../../src/lib/recoverySleep.mjs'
 
 type JsonMap = Record<string, unknown>
@@ -57,22 +58,14 @@ function adminKey(): string {
   if (legacy) return legacy
   throw new Error('Supabase server key unavailable')
 }
-async function garmin(path: string, auth: 'ApiKey' | 'Bearer', key: string, method = 'GET', label = 'request') {
-  const response = await fetch(GARMIN + path, {
+async function garmin(fetcher: typeof fetch, path: string, auth: 'ApiKey' | 'Bearer', key: string, method = 'GET', label = 'request') {
+  const response = await fetcher(GARMIN + path, {
     method,
     headers: { Authorization: `${auth} ${key}` },
     signal: AbortSignal.timeout(25000),
   })
   if (!response.ok) throw new Error(`${label} HTTP ${response.status}`)
   return response.text()
-}
-async function bearer(key: string): Promise<string> {
-  const token = (await garmin(
-    '/personalapitoken-service/personal-api/personal-api-key/token',
-    'ApiKey', key, 'POST', 'token',
-  )).trim().replace(/^"|"$/g, '')
-  if (!/^[A-Za-z0-9_+/.=-]{20,2048}$/.test(token)) throw new Error('Garmin token format invalid')
-  return token
 }
 
 function normalize(sources: Partial<Record<SourceName, unknown>>, start: string, end: string): HealthDay[] {
@@ -149,7 +142,9 @@ Deno.serve(async (req: Request) => {
   const start = dateUtc(DAYS_BACK)
   const end = dateUtc(0)
   try {
-    const token = await bearer(apiKey)
+    const api = await createGarminPersonalClient(admin, apiKey, url)
+    await api.ready()
+    const token = await api.getToken()
     const requests: [SourceName, string][] = [
       ['hrv', `/hrv-service/hrv/daily/${start}/${end}`],
       ['daily', `/usersummary-service/v2/dailysummaries?startDate=${start}&endDate=${end}`],
@@ -160,7 +155,7 @@ Deno.serve(async (req: Request) => {
     // Independent requests: a temporarily unavailable Garmin endpoint cannot
     // erase or prevent saving measurements from the other endpoints.
     const results = await Promise.allSettled(requests.map(async ([name, path]) => {
-      const payload = await garmin(path, 'Bearer', token, 'GET', name)
+      const payload = await garmin(api.fetch, path, 'Bearer', token, 'GET', name)
       return payload.trim() ? JSON.parse(payload) as unknown : null
     }))
     const sourceData: Partial<Record<SourceName, unknown>> = {}
@@ -226,6 +221,6 @@ Deno.serve(async (req: Request) => {
         message: safe, finished_at: new Date().toISOString(),
       })
     } catch { /* logging errors must not expose health values */ }
-    return json({ ok: false, error: 'Health synchronization failed; check Edge Function logs' }, 502)
+    return json({ ok: false, error: 'Health synchronization deferred or failed; check Edge Function logs' }, error instanceof GarminPersonalDeferred ? (error.status === 429 ? 429 : 503) : 502)
   }
 })

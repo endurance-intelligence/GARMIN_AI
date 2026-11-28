@@ -4,6 +4,7 @@
  *  Neither token nor Garmin data is public. Garmin access is read-only.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createGarminPersonalClient, GarminPersonalDeferred } from '../_shared/garmin-personal-client.mjs'
 
 type RecordLike = Record<string, unknown>
 const GARMIN = 'https://personal.connectapi.garmin.com'
@@ -40,8 +41,8 @@ function adminKey(): string {
   if (legacy) return legacy
   throw new Error('No server-side Supabase secret key available')
 }
-async function garminCall(path: string, type: 'ApiKey' | 'Bearer', secret: string, method = 'GET') {
-  const response = await fetch(GARMIN + path, {
+async function garminCall(fetcher: typeof fetch, path: string, type: 'ApiKey' | 'Bearer', secret: string, method = 'GET') {
+  const response = await fetcher(GARMIN + path, {
     method,
     headers: { Authorization: `${type} ${secret}` },
     signal: AbortSignal.timeout(25000),
@@ -49,16 +50,9 @@ async function garminCall(path: string, type: 'ApiKey' | 'Bearer', secret: strin
   if (!response.ok) throw new Error(`Garmin ${path.includes("/personalapitoken-service/") ? "token" : path.includes("/activitylist-service/") ? "activities" : "detail"} HTTP ${response.status}`)
   return await response.text()
 }
-async function accessToken(key: string): Promise<string> {
-  const value = (await garminCall(
-    '/personalapitoken-service/personal-api/personal-api-key/token', 'ApiKey', key, 'POST'
-  )).trim().replace(/^"|"$/g, '')
-  if (!/^[A-Za-z0-9_+/.=-]{20,2048}$/.test(value)) throw new Error('Unexpected Garmin token')
-  return value
-}
-async function readActivities(key: string) {
-  const token = await accessToken(key)
-  const raw = JSON.parse(await garminCall(
+async function readActivities(api: Awaited<ReturnType<typeof createGarminPersonalClient>>) {
+  const token = await api.getToken()
+  const raw = JSON.parse(await garminCall(api.fetch,
     `/activitylist-service/activities/search/activities?start=0&limit=${LIMIT}`, 'Bearer', token
   )) as unknown
   const object = asObject(raw)
@@ -88,7 +82,7 @@ async function readActivities(key: string) {
   // will be added as separate bounded synchronization jobs.
   if (rows.length) {
     try {
-      const detail = JSON.parse(await garminCall(
+      const detail = JSON.parse(await garminCall(api.fetch,
         `/activity-service/activity/${rows[0].activity_id}`, 'Bearer', token
       )) as unknown
       const summary = asObject(asObject(detail).summaryDTO)
@@ -127,7 +121,9 @@ Deno.serve(async (req: Request) => {
   if (allowed !== true) return json({ error: 'Unauthorized' }, 401)
 
   try {
-    const rows = await readActivities(apiKey)
+    const api = await createGarminPersonalClient(admin, apiKey, url)
+    await api.ready()
+    const rows = await readActivities(api)
     if (rows.length > 0) {
       // Preserve RPE/Feeling enriched by the separate detail job; the ten-item
       // list response contains no such fields for most activities.
@@ -175,6 +171,6 @@ Deno.serve(async (req: Request) => {
         message: 'activity-sync-failed', finished_at: new Date().toISOString(),
       })
     } catch { /* failure visibility best effort; never log Garmin credentials */ }
-    return json({ ok: false, error: 'Synchronization failed; check Edge Function logs' }, 502)
+    return json({ ok: false, error: 'Synchronization deferred or failed; check Edge Function logs' }, error instanceof GarminPersonalDeferred ? (error.status === 429 ? 429 : 503) : 502)
   }
 })

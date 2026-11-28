@@ -4,6 +4,7 @@
  *  is a separate future job. Never return raw health data or credentials.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createGarminPersonalClient, GarminPersonalDeferred } from '../_shared/garmin-personal-client.mjs'
 
 const GARMIN = 'https://personal.connectapi.garmin.com'
 const PAGE_SIZE = 50
@@ -39,8 +40,8 @@ function serviceKey(): string {
   if (legacy) return legacy
   throw new Error('Supabase service credentials unavailable')
 }
-async function request(path: string, kind: 'ApiKey' | 'Bearer', token: string, method = 'GET', label = 'request') {
-  const response = await fetch(GARMIN + path, {
+async function request(fetcher: typeof fetch, path: string, kind: 'ApiKey' | 'Bearer', token: string, method = 'GET', label = 'request') {
+  const response = await fetcher(GARMIN + path, {
     method,
     headers: { Authorization: `${kind} ${token}` },
     signal: AbortSignal.timeout(25000),
@@ -48,14 +49,9 @@ async function request(path: string, kind: 'ApiKey' | 'Bearer', token: string, m
   if (!response.ok) throw new Error(`${label} HTTP ${response.status}`)
   return response.text()
 }
-async function readPage(key: string, offset: number) {
-  const token = (await request(
-    '/personalapitoken-service/personal-api/personal-api-key/token',
-    'ApiKey', key, 'POST', 'token',
-  )).trim().replace(/^"|"$/g, '')
-  if (!/^[A-Za-z0-9_+/.=-]{20,2048}$/.test(token)) throw new Error('Garmin token format')
-
-  const raw = JSON.parse(await request(
+async function readPage(api: Awaited<ReturnType<typeof createGarminPersonalClient>>, offset: number) {
+  const token = await api.getToken()
+  const raw = JSON.parse(await request(api.fetch,
     `/activitylist-service/activities/search/activities?start=${offset}&limit=${PAGE_SIZE}`,
     'Bearer', token, 'GET', 'activity-list',
   )) as unknown
@@ -107,6 +103,8 @@ Deno.serve(async (req: Request) => {
   if (authError) return json({ error: 'Authorization unavailable' }, 503)
   if (valid !== true) return json({ error: 'Unauthorized' }, 401)
 
+  const api = await createGarminPersonalClient(admin, apiKey, url)
+  try { await api.ready() } catch (error) { return json({ok:false,error:'Garmin Personal API temporarily deferred'},error instanceof GarminPersonalDeferred && error.status===429?429:503) }
   const { data: claim, error: claimError } = await admin.rpc('garmin_history_claim')
   if (claimError) {
     console.error('GARMIN_AI history claim failed', claimError.code)
@@ -121,7 +119,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const page = await readPage(apiKey, offset)
+    const page = await readPage(api, offset)
     const { data, error } = await admin.rpc('garmin_history_apply_page', {
       p_lease_token: leaseToken,
       p_offset: offset,
@@ -145,6 +143,6 @@ Deno.serve(async (req: Request) => {
     })
     if (error) console.error('GARMIN_AI history failure recording unavailable', error.code)
     console.error('GARMIN_AI history page failed', safeReason)
-    return json({ ok: false, error: 'History page failed; see backfill state' }, 502)
+    return json({ ok: false, error: 'History page deferred or failed; see backfill state' }, caught instanceof GarminPersonalDeferred ? (caught.status===429?429:503) : 502)
   }
 })

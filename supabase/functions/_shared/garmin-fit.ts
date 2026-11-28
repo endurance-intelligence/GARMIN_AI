@@ -33,9 +33,9 @@ export class GarminFitDownloadError extends Error {
   constructor(readonly status: number) { super(`fit-download HTTP ${status}`) }
 }
 
-export async function downloadAndDecodeFit(activityId: string, bearer: string) {
+export async function downloadAndDecodeFit(activityId: string, bearer: string, fetcher: typeof fetch = fetch) {
   if (!/^\d{5,20}$/.test(activityId)) throw new Error('invalid-fit-activity-id')
-  const response = await fetch(
+  const response = await fetcher(
     `https://personal.connectapi.garmin.com/download-service/files/activity/${activityId}`,
     { headers: { Authorization: `Bearer ${bearer}` }, signal: AbortSignal.timeout(27000) },
   )
