@@ -22,3 +22,12 @@ test('new photo and manual workouts without original stay in the same list',()=>
  assert.equal(items.length,3)
  assert.equal(items[1].versions[0].title,'New')
 })
+
+test('legacy short ORC title can sit under a unique expanded title, never an ambiguous one',()=>{
+ const legacy={...row,title:'Schwelle im Wechsel'}
+ const full={id:'s7',title:'Schwelle im Wechsel – 3 × (3 × 1000 m)'}
+ const items=unifiedLibraryItems([full],[legacy])
+ assert.equal(items.length,1)
+ assert.deepEqual(items[0].versions,[legacy])
+ assert.equal(unifiedLibraryItems([full,{id:'s8',title:'Schwelle im Wechsel – anderes Training'}],[legacy]).length,3)
+})

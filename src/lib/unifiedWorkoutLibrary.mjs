@@ -15,7 +15,11 @@ export function unifiedLibraryItems(sources,entries){
   matches.push(item);byTitle.set(key,matches)
  }
  for(const record of entries){
-  const matches=byTitle.get(workoutTitleKey(record.title))||[]
+  const key=workoutTitleKey(record.title)
+  const exact=byTitle.get(key)||[]
+  // Legacy reference titles may omit the descriptive suffix of an imported poster.
+  // Only a unique full-title or delimiter-separated prefix match organizes versions.
+  const matches=exact.length?exact:key.length>=12?items.filter(item=>item.source&&workoutTitleKey(item.source.title).startsWith(key+'-')):[]
   // Never hide an unrelated manual workout just because it has the same title.
   if(matches.length===1&&record.source_kind==='orc_reference')matches[0].versions.push(record)
   else items.push({key:'archive:'+record.id,source:null,versions:[record]})
