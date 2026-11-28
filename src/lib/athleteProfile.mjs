@@ -18,3 +18,15 @@ export function cycleAvailability(value){
  if(Number.isInteger(value.dayInCycle)&&value.dayInCycle>=1&&value.dayInCycle<=400&&Number.isInteger(value.currentPhase)&&value.currentPhase>=0)return 'schema-review'
  return 'unavailable'
 }
+
+// Capability flags only. Never return values, infer units, or store raw profiles.
+// Explicit key presence is a schema candidate, not verified semantics.
+export function profileFieldAvailability(raw){
+ const obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{}
+ const root=obj(raw)
+ const scopes=[root,obj(root.userData),obj(root.profile),obj(root.settings),obj(root.userProfile)]
+ const has=(keys)=>scopes.some(x=>keys.some(k=>Object.hasOwn(x,k)&&x[k]!==null&&x[k]!==undefined&&x[k]!==''))
+ return {heightCandidate:has(['height','heightCm','heightInCentimeters']),
+  ageCandidate:has(['age','birthDate','dateOfBirth','birthYear']),
+  sexCandidate:has(['gender','sex']),weightCandidate:has(['weight','weightKg','weightInGrams'])}
+}

@@ -47,7 +47,7 @@ export function SecondaryOnboarding({userId,children}:{userId:string;children:Re
  async function checkCycle(){
   if(!savedCycle||!profile.cycleEnabled||busy)return
   setBusy(true);setError('');setNotice('')
-  try{const d=await athleteProfileRequest({action:'check_cycle',confirm:true});setNotice(d.status==='schema-review'?'Garmin liefert Zyklusfelder. Die genaue Phasenzuordnung muss noch verifiziert werden.':d.status==='garmin-not-configured'?'Der persönliche Garmin-Key ist noch nicht eingerichtet.':'Keine auswertbaren Zyklusdaten verfügbar. Prüfe Garmin Connect.')}catch{setError('Zyklusabfrage nicht möglich.')}finally{setBusy(false)}
+  try{const d=await athleteProfileRequest({action:'check_cycle',confirm:true});setNotice(d.status==='schema-review'?'Garmin liefert Zyklusfelder. Die genaue Phasenzuordnung muss noch verifiziert werden.':d.status==='garmin-rate-limited'?'Garmin begrenzt gerade Abfragen. Der gemeinsame API-Schutz bleibt aktiv.':d.status==='garmin-not-configured'?'Der persönliche Garmin-Key ist noch nicht eingerichtet.':'Keine auswertbaren Zyklusdaten verfügbar. Prüfe Garmin Connect.')}catch{setError('Zyklusabfrage nicht möglich.')}finally{setBusy(false)}
  }
  function toggleSport(id:string){setProfile(p=>({...p,sports:p.sports.includes(id)?p.sports.filter(x=>x!==id):[...p.sports,id]}))}
  const labelOf=(value:string|null,options:Array<[string,string]>)=>options.find(([id])=>id===value)?.[1]||'Noch offen'
