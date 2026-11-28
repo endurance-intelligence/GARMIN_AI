@@ -16,7 +16,7 @@ test('run summary and coach conclusion precede optional technical details; stale
  assert.ok(s.indexOf('className="lsa-run-summary"')<s.indexOf('<SessionCoachContext key='))
  assert.ok(s.indexOf('<SessionCoachContext key=')<s.indexOf('<PlanActualReview match='))
  assert.ok(s.indexOf('<PlanActualReview match=')<s.indexOf('<details className="lsa-deep-dive">'))
- assert.match(s,/<CoachEvidenceSummary active=\{active\} mode="training" activityId=\{activity.id\} embedded\/>/)
+ assert.match(s,/<CoachEvidenceSummary active=\{active\} mode="training" activityId=\{activity.id\} embedded onReview=\{setPurposeReview\}\/>/)
  assert.match(s,/loadedDetails\?\.activity.id===selected\?loadedDetails:null/)
  assert.doesNotMatch(s,/Garmin-RPE Rohwert/)
 })
