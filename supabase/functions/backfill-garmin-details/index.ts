@@ -3,6 +3,7 @@
  *  optional structured-workout link. No GPS/polyline and no Garmin writes.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createGarminPersonalClient, GarminPersonalDeferred } from '../_shared/garmin-personal-client.mjs'
 import { downloadAndDecodeFit, GarminFitDownloadError } from '../_shared/garmin-fit.ts'
 import { lazyGarminToken, garminRateLimited } from '../_shared/garmin-demand-token.mjs'
 
@@ -39,8 +40,8 @@ class GarminHttpError extends Error {
     super(`${stage} HTTP ${status}`)
   }
 }
-async function fetchGarmin(path: string, kind: 'ApiKey' | 'Bearer', token: string, method = 'GET', stage = 'garmin') {
-  const response = await fetch(GARMIN + path, {
+async function fetchGarmin(fetcher: typeof fetch, path: string, kind: 'ApiKey' | 'Bearer', token: string, method = 'GET', stage = 'garmin') {
+  const response = await fetcher(GARMIN + path, {
     method, headers: { Authorization: `${kind} ${token}` },
     signal: AbortSignal.timeout(18000),
   })
@@ -51,8 +52,8 @@ async function fetchGarmin(path: string, kind: 'ApiKey' | 'Bearer', token: strin
   try { return JSON.parse(body) as unknown }
   catch { return stage === 'token' ? body.trim() : null }
 }
-async function optionalGarmin(path: string, token: string, stage: string): Promise<unknown> {
-  try { return await fetchGarmin(path, 'Bearer', token, 'GET', stage) }
+async function optionalGarmin(fetcher: typeof fetch, path: string, token: string, stage: string): Promise<unknown> {
+  try { return await fetchGarmin(fetcher, path, 'Bearer', token, 'GET', stage) }
   catch (e) {
     // Optional chart/laps/zones are not exposed for every sport or Personal API key.
     if (e instanceof GarminHttpError && [400, 403, 404, 405, 406].includes(e.status)) return null
@@ -170,16 +171,16 @@ function cleanSummary(raw: unknown) {
     direct_workout_feel: number(s.directWorkoutFeel),
   }
 }
-async function process(id: string, sport: string | null, token: string) {
-  const summary = await fetchGarmin(`/activity-service/activity/${id}`, 'Bearer', token, 'GET', 'summary')
+async function process(fetcher: typeof fetch, id: string, sport: string | null, token: string) {
+  const summary = await fetchGarmin(fetcher, `/activity-service/activity/${id}`, 'Bearer', token, 'GET', 'summary')
   if (summary === null || Object.keys(object(summary)).length === 0) throw new Error('summary-empty')
   const summaryData = cleanSummary(summary)
   const workoutCompatible = /strength|mobility|cardio|pilates|yoga|training|run/i.test(sport ?? '')
   const results = await Promise.all([
-    optionalGarmin(`/activity-service/activity/${id}/details?maxChartSize=1800&maxPolylineSize=0`, token, 'chart'),
-    optionalGarmin(`/activity-service/activity/${id}/laps`, token, 'laps'),
-    optionalGarmin(`/activity-service/activity/${id}/hrTimeInZones`, token, 'zones'),
-    workoutCompatible ? optionalGarmin(`/activity-service/activity/${id}/workouts`, token, 'workouts') : Promise.resolve(null),
+    optionalGarmin(fetcher, `/activity-service/activity/${id}/details?maxChartSize=1800&maxPolylineSize=0`, token, 'chart'),
+    optionalGarmin(fetcher, `/activity-service/activity/${id}/laps`, token, 'laps'),
+    optionalGarmin(fetcher, `/activity-service/activity/${id}/hrTimeInZones`, token, 'zones'),
+    workoutCompatible ? optionalGarmin(fetcher, `/activity-service/activity/${id}/workouts`, token, 'workouts') : Promise.resolve(null),
   ])
   const c = chart(results[0]), l = laps(results[1]), z = zones(results[2])
   return { summary: summaryData, laps: l.items, samples: c.points,
@@ -214,12 +215,9 @@ Deno.serve(async req => {
 
   // An idle scheduler invocation must not contact Garmin at all.
   // Acquire a token only after claiming actual work, then reuse it within this invocation.
-  const getToken = lazyGarminToken(async () => {
-    const result = await fetchGarmin('/personalapitoken-service/personal-api/personal-api-key/token', 'ApiKey', apiKey, 'POST', 'token')
-    const token = (typeof result === 'string' ? result : JSON.stringify(result)).trim().replace(/^"|"$/g, '')
-    if (!/^[A-Za-z0-9_+/.=-]{20,2048}$/.test(token)) throw new Error('Garmin token format')
-    return token
-  })
+  const api = await createGarminPersonalClient(admin, apiKey, url)
+  try { await api.ready() } catch (error) { return json({ok:false,error:'Garmin Personal API temporarily deferred'},error instanceof GarminPersonalDeferred && error.status===429?429:503) }
+  const getToken = lazyGarminToken(api.getToken)
 
   let stored = 0, partial = 0, skipped = false
   // Maximum 2 activities per scheduled invocation; reduces API pressure.
@@ -236,7 +234,7 @@ Deno.serve(async req => {
       return json({ error: 'Invalid detail claim' }, 503)
     }
     try {
-      const d = await process(id, string(claim.sport_type), await getToken())
+      const d = await process(api.fetch, id, string(claim.sport_type), await getToken())
       const { error: storeError } = await admin.rpc('garmin_detail_store', {
         p_activity_id: id, p_lease_token: lease, p_status: d.status,
         p_summary: d.summary, p_laps: d.laps, p_samples: d.samples,
@@ -273,7 +271,7 @@ Deno.serve(async req => {
       return json({ error: 'Invalid FIT claim' }, 503)
     }
     try {
-      const payload = await downloadAndDecodeFit(fitId, await getToken())
+      const payload = await downloadAndDecodeFit(fitId, await getToken(), api.fetch)
       const { records, ...metadata } = payload
       for (let offset = 0; offset < records.length; offset += 2000) {
         const { error: appendError } = await admin.rpc('garmin_fit_append', {
@@ -326,7 +324,7 @@ Deno.serve(async req => {
       if(!/^\d{5,20}$/.test(routeId)||!/^[0-9a-f-]{36}$/.test(lease))
         return json({error:'Invalid route claim'},503)
       try {
-        const track=await downloadAndDecodeFit(routeId,await getToken())
+        const track=await downloadAndDecodeFit(routeId,await getToken(),api.fetch)
         const {error}=await admin.rpc('garmin_route_store',{
           p_activity_id:routeId,p_lease_token:lease,p_fingerprint:track.route
         })
