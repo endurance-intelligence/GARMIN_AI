@@ -1,6 +1,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
 import {createPortal} from 'react-dom'
 import {Icon} from '../components/Icon'
+import {HealthCoachContextCard} from '../components/HealthCoachContextCard'
 import {WeighReminder} from '../components/WeighReminder'
 import {SyncCenter} from '../components/SyncCenter'
 import {CoachTodayWeather} from '../components/CoachTodayWeather'
@@ -120,6 +121,7 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
   weather={<CoachTodayWeather active={active} snapshot={sharedSnapshot!} plan={dailyPlan!} onReport={setWeatherAnswer}/>}/>}
 
 
+ <HealthCoachContextCard active={active&&!snapshotLoading&&!snapshotError} today={coachToday} health={sharedSnapshot?.health.metrics} onHealth={()=>onGo('health')}/>
  {dailyPlan?.archivedLearning&&!snapshotLoading&&!snapshotError&&showArchivedLearning(dailyPlan.archivedLearning,sharedSnapshot?.health.metrics,sharedSnapshot?.boards,coachToday)&&<ArchivedWeekLearningCard review={dailyPlan.archivedLearning}/>}
  {archiveSnapshot&&!snapshotLoading&&!snapshotError&&<TrainingWeekArchive key={archiveSnapshot.weekStart} active={active} snapshot={archiveSnapshot} compact onHistory={()=>{onGo('training');window.dispatchEvent(new Event('garmin-ai-open-training-history'))}}/>}
  {snapshotLoading&&!sharedSnapshot&&!snapshotError&&<p className="co-data-note" role="status">
