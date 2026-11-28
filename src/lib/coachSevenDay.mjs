@@ -10,6 +10,7 @@ import {latestWorkoutFeedback,evaluateWorkoutFeedback} from './postWorkoutFeedba
 import {analyzeWorkoutFeedbackTrend} from './feedbackTrend.mjs'
 import {summarizeLastCompletedWeek} from './completedWeekReview.mjs'
 import {applyPolarizedGuidance} from './polarizedTraining.mjs'
+import {analyzeLongTermRecovery} from './longTermRecovery.mjs'
 import {analyzeGarminPerception} from './garminPerception.mjs'
 import {analyzeCoachFourWeeks} from './coachFourWeeks.mjs'
 import {applyWorkoutToleranceGuidance} from './coachWorkoutTolerance.mjs'
@@ -71,6 +72,13 @@ export function buildSevenDayCoach(input){
   signals.push('Ruhepuls mindestens 7 Schläge über dem jüngsten Median')
  if(sleep?.value!=null&&sleep?.median!=null&&sleep.value<=sleep.median-3600)
   signals.push('Schlafdauer mindestens 60 Minuten unter dem jüngsten Median')
+ // Shared snapshot history is also available to the server-side planner.
+ // Do not use the UI-only 90-day extension for a different calendar decision.
+ const longRecovery=analyzeLongTermRecovery(metrics,today)
+ const freshHrv=metrics.some(r=>r.metric_date>=coachAddDays(today,-2)&&r.metric_date<=today&&valid(r.hrv_ms)&&r.hrv_ms>=10&&r.hrv_ms<=250)
+ const sustainedRecovery=!!(freshHrv&&longRecovery.persistentLow)
+ const severeRecovery=!!(freshHrv&&longRecovery.severeLow)
+ if(sustainedRecovery)signals.push(longRecovery.summary)
  const previous=training?.previousRunKm7,nowKm=training?.runKm7
  const volumeRise=valid(previous)&&previous>=10&&valid(nowKm)&&nowKm>previous*1.4
  if(volumeRise)signals.push('Laufumfang gegenüber der Vorwoche deutlich erhöht')
@@ -107,7 +115,7 @@ export function buildSevenDayCoach(input){
  const purposeCaution=purposeFeedback.active
  const purposeDay=day=>purposeFeedback.findings.some(f=>day>=today&&day>f.date&&day<=f.until)
  const feedbackCaution=workoutAssessment?.avoidHard===true||garminPerception.qualityCaution||purposeCaution
- const caution=!!input.symptoms||signals.length>=2||volumeRise
+ const caution=!!input.symptoms||sustainedRecovery||signals.length>=2||volumeRise
  const feedbackNextDay=(day)=>workoutFeedback&&day>=today&&
   day>workoutFeedback.activityDate&&day<=coachAddDays(workoutFeedback.activityDate,2)
  const garminNextDay=(day)=>garminPerception.qualityCaution&&
@@ -241,10 +249,13 @@ export function buildSevenDayCoach(input){
     'Von dir geblockter Tag. Keine Nachholeinheit geplant.'+
     (existing?' Achtung: Bereits geplanter Termin bleibt bestehen – im Kalender prüfen.':''))
   if(existing)return make(day,'existing',existing.title,null,
-   purposeDay(day)?'Der letzte lockere Auftrag war zu intensiv. Bestehenden Termin prüfen; keine automatische Änderung.':feedbackNextDay(day)&&feedbackCaution?
+   sustainedRecovery&&day>=today?longRecovery.summary+' Bestehenden Termin bewusst prüfen; keine automatische Änderung.':purposeDay(day)?'Der letzte lockere Auftrag war zu intensiv. Bestehenden Termin prüfen; keine automatische Änderung.':feedbackNextDay(day)&&feedbackCaution?
     'Dein letztes Trainingsfeedback empfiehlt mehr Erholung. Den bestehenden Termin im Kalender prüfen; keine automatische Änderung.':
     'Bereits in GARMIN_AI geplant. Keine zweite Einheit erzeugen.',existing.sport||'running')
   if(done)return make(day,'completed','Bereits trainiert',null,'Absolvierte Garmin-/Stabi-Aktivität; keine zusätzliche Planung.')
+  if(severeRecovery&&day>=today&&day<=coachAddDays(today,1))
+   return make(day,'recovery','Anhaltend niedrige HRV · Erholung',null,
+    longRecovery.summary+' Keine harte oder lange Einheit. Anhaltende unerklärliche Veränderungen ärztlich abklären. Morgen mit neuen Werten erneut prüfen.')
   if(feedbackNextDay(day)&&workoutAssessment?.preferRest){
    if(workoutFeedback.symptoms==='clear')return make(day,'illness',
     'Beschwerden nach der Einheit · Pause',null,
@@ -624,6 +635,7 @@ export function buildSevenDayCoach(input){
   attentionText:ill||input.symptoms?'Krank-Modus aktiv: Trainingsvorschläge sind gesperrt, bis du deine Genesung meldest.':
    returning?'Wiedereinstieg aktiv: erste Läufe und deine Folgetag-Rückmeldungen haben Vorrang. Keine automatische Freigabe.':
    postIllness?'Nach dem Wiedereinstieg Belastung weiter schrittweise aufbauen; keine Nachholeinheiten.':
+   sustainedRecovery?longRecovery.summary+' Keine neue Intensität oder Umfangssteigerung. '+(severeRecovery?'Anhaltende unerklärliche Veränderungen ärztlich abklären. ':'')+'Bestehende Termine bleiben erhalten.':
    purposeCaution?'Der letzte lockere Auftrag war zu intensiv. Die nächsten Tage werden konservativ geplant, keine zusätzliche Intensität. Freigegebene Termine bitte prüfen.':
    feedbackCaution?(garminPerception.qualityCaution?
     'Garmin-Bewertungen zeigen zuletzt hohe Belastung oder schwaches Gefühl. '+
