@@ -1,6 +1,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
 import {createPortal} from 'react-dom'
 import {Icon} from '../components/Icon'
+import {CoachRecoveryResponseCard} from '../components/CoachRecoveryResponseCard'
 import {HealthCoachContextCard} from '../components/HealthCoachContextCard'
 import {WeighReminder} from '../components/WeighReminder'
 import {SyncCenter} from '../components/SyncCenter'
@@ -122,6 +123,7 @@ export function CoachPage({active,onGo,onOpenCalendar,onOpenDecision}: {
 
 
  <HealthCoachContextCard active={active&&!snapshotLoading&&!snapshotError} today={coachToday} health={sharedSnapshot?.health.metrics} onHealth={()=>onGo('health')}/>
+ <CoachRecoveryResponseCard active={active&&!snapshotLoading&&!snapshotError} today={coachToday} boards={sharedSnapshot?.boards} health={sharedSnapshot?.health} onHealth={()=>onGo('health')}/>
  {dailyPlan?.archivedLearning&&!snapshotLoading&&!snapshotError&&showArchivedLearning(dailyPlan.archivedLearning,sharedSnapshot?.health.metrics,sharedSnapshot?.boards,coachToday)&&<ArchivedWeekLearningCard review={dailyPlan.archivedLearning}/>}
  {archiveSnapshot&&!snapshotLoading&&!snapshotError&&<TrainingWeekArchive key={archiveSnapshot.weekStart} active={active} snapshot={archiveSnapshot} compact onHistory={()=>{onGo('training');window.dispatchEvent(new Event('garmin-ai-open-training-history'))}}/>}
  {snapshotLoading&&!sharedSnapshot&&!snapshotError&&<p className="co-data-note" role="status">
