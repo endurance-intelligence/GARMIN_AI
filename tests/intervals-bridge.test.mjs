@@ -114,10 +114,10 @@ test('numbered step prompts preserve controls and separate drink break',()=>{
  snap.group.steps[2].notes='L2: 0:52 | 1:44 | 2:36 | 3:28'
  snap.group.steps.splice(2,0,{kind:'recovery',durationSeconds:30,distanceMeters:null,endMode:'time',notes:'Trinkpause: 0:30'})
  const w=buildIntervalsWorkout(snap,base.title)
- assert.equal(w.steps[1].line,'- Press lap (L1: 0:52 | 1:44 | 2:36 | 3:28 | 4:20) 4m20s 4:10-4:30/km Pace intensity=interval')
+ assert.equal(w.steps[1].line,'- Press lap (L1: 0:52|1:44|2:36|3:28|4:20) 4m20s 4:10-4:30/km Pace intensity=interval')
  assert.equal(w.steps[2].line,'- Press lap (T1: 1:25) 1m25s intensity=recovery')
  assert.equal(w.steps[3].line,'- (Trinkpause: 0:30) 30s intensity=recovery')
- assert.equal(w.steps[4].line,'- (L2: 0:52 | 1:44 | 2:36 | 3:28) 800mtr 4:10-4:30/km Pace intensity=interval')
+ assert.equal(w.steps[4].line,'- (L2: 0:52|1:44|2:36|3:28) 800mtr 4:10-4:30/km Pace intensity=interval')
  const event=buildIntervalsEvent({...base,archive_snapshot:snap})
  const remote={...event,moving_time:3500,distance:6000,workout_doc:{steps:w.steps.map(s=>({
   until_lap_press:s.mode==='lap',
@@ -143,4 +143,13 @@ test('arbitrary numeric trainer text cannot enter workout grammar',()=>{
  assert.equal(w.steps[2].prompt,'')
  assert.match(w.steps[1].line,/LAUF 1000er/)
  assert.match(w.steps[2].line,/TRAB 200er/)
+})
+
+test('real Intervals parser regression: compact pipes preserve full step text, spaced pipes truncate',()=>{
+ const snap=structuredClone(base.archive_snapshot)
+ snap.group.steps[0].notes='L1: 0:55 | 1:50 | 2:45 | 3:40 | 4:35'
+ const w=buildIntervalsWorkout(snap,base.title)
+ assert.equal(w.steps[1].prompt,'L1: 0:55|1:50|2:45|3:40|4:35')
+ assert.match(w.steps[1].line,/Press lap \(L1: 0:55\|1:50\|2:45\|3:40\|4:35\)/)
+ assert.doesNotMatch(w.steps[1].line,/ \| /)
 })
