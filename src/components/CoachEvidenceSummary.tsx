@@ -2,14 +2,15 @@ import {useEffect,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import '../styles/coach-evidence-summary.css'
 import {IntervalsCoachContext} from './IntervalsCoachContext'
+import type {PurposeReview} from '../lib/trainingPurposeAssessment.mjs'
 
-type Review={activityId:string;date:string;name:string;type:string;headline:string;
+type Review=PurposeReview&{activityId:string;date:string;name:string;type:string;headline:string;
  positive:string;attention:string;goal:string;quality:string;source:string;short:string;
  averageHr:number|null;kilometerHrs:number[]}
 type Week={weekStart:string;endExclusive:string;runCount:number;distanceKm:number;previousKm:number;
  intervalCount:number;footballCount:number;observation:string;effort:string;next:string}
 type Result={source:string;week:Week;reviews:Review[];updatedAt:string}
-type Props={active:boolean;mode:'calendar'|'training'|'weekly';weekStart?:string;selectedDate?:string;activityId?:string;embedded?:boolean}
+type Props={active:boolean;mode:'calendar'|'training'|'weekly';weekStart?:string;selectedDate?:string;activityId?:string;embedded?:boolean;onReview?:(review:PurposeReview|null)=>void}
 function monday(day:string){
  const date=new Date(day+'T12:00:00Z'),delta=(date.getUTCDay()+6)%7
  date.setUTCDate(date.getUTCDate()-delta)
@@ -20,7 +21,7 @@ function todayBerlin(){
  const value=(key:string)=>parts.find(x=>x.type===key)?.value||''
  return value('year')+'-'+value('month')+'-'+value('day')
 }
-export function CoachEvidenceSummary({active,mode,weekStart,selectedDate,activityId,embedded=false}:Props){
+export function CoachEvidenceSummary({active,mode,weekStart,selectedDate,activityId,embedded=false,onReview}:Props){
  const start=weekStart||monday(todayBerlin())
  const lastCompletedWeek=mode==='weekly'&&start<monday(todayBerlin())
  const [result,setResult]=useState<Result|null>(null)
@@ -50,6 +51,7 @@ export function CoachEvidenceSummary({active,mode,weekStart,selectedDate,activit
   }).finally(()=>{if(mounted)setBusy(false)})
   return ()=>{mounted=false;controller.abort()}
  },[active,activityId,start])
+ useEffect(()=>{onReview?.(active&&activityId?result?.reviews.find(r=>r.activityId===activityId)??null:null)},[active,activityId,result,onReview])
  if(!active)return null
  const reviews=(result?.reviews||[]).filter(r=>mode==='training'?r.activityId===activityId:mode==='calendar'?r.date===selectedDate:false)
  const showWeek=mode==='weekly'

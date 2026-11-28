@@ -1,6 +1,7 @@
 import {useEffect,useMemo,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import type {SessionSample} from '../lib/sessionAnalysis'
+import type {PurposeZoneReference} from '../lib/trainingPurposeAssessment.mjs'
 import {heartZoneDistribution,zoneIndexForHr,splitBarHeight,paceLabel,compactHr,zoneColors} from '../lib/trainingVisuals.mjs'
 import {displayPaceZoneLimits} from './IntervalsCoachContext'
 import {useGarminHrProfile} from '../lib/useGarminHrProfile'
@@ -17,7 +18,7 @@ type LoadComparison={available:boolean;reason?:string;load?:number;median?:numbe
 type CoachFinding={label:string;category:'higher'|'lower'|'usual';text:string;daysToRace?:number|null}
 type Extra={connected:boolean;zones:Zones|null;activity:{load:number|null;hrZoneSeconds:number[]}|null;
  loadContext?:{activity:LoadComparison|null;activityFinding:CoachFinding|null;historyAvailable:boolean}}
-export type SessionZoneSummary={activityId:string;lowShare:number;valid:number}
+export type SessionZoneSummary={activityId:string;lowShare:number;valid:number;reference:PurposeZoneReference|null}
 const decimal=(n:number)=>n.toLocaleString('de-DE',{maximumFractionDigits:1})
 const pct=(n:number)=>n.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})
 const zoneRange=(b:{low:number|null;high:number|null})=>b.low===null?'≤ '+b.high+' bpm':b.high===null?'> '+(b.low-1)+' bpm':b.low+'–'+b.high+' bpm'
@@ -70,7 +71,7 @@ export function SessionVisualInsights({active,activityId,samples,activityDate,av
  const zones=extra?.zones
  const hrBands=useMemo(()=>heartZoneDistribution(samples,zones?.hrZones),[samples,zones?.hrZones])
  const lowShare=hrBands?Math.round(1000*hrBands.bands.slice(0,2).reduce((n,b)=>n+b.count,0)/hrBands.valid)/10:null
- useEffect(()=>{onZoneSummary?.(hrBands&&lowShare!==null?{activityId,lowShare,valid:hrBands.valid}:null)},[activityId,hrBands,lowShare,onZoneSummary])
+ useEffect(()=>{const upperBpm=hrBands?.bands[1]?.high;onZoneSummary?.(hrBands&&lowShare!==null?{activityId,lowShare,valid:hrBands.valid,reference:typeof upperBpm==='number'?{activityId,source:'intervals-current',upperBpm}:null}:null)},[activityId,hrBands,lowShare,onZoneSummary])
  const paceBands=zones?displayPaceZoneLimits(zones.paceZones,zones.thresholdPace):[]
  const splits=review?.type==='intervals'?review?.intervals||[]:review?.kilometers||[]
  const isIntervals=review?.type==='intervals'

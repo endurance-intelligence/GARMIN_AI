@@ -12,6 +12,8 @@ import type {SessionZoneSummary} from './SessionVisualInsights'
 import {completedWeeklyOption} from '../lib/weeklyOptionCompletion'
 import {buildSessionContext} from '../lib/sessionContext.mjs'
 import type {TerrainWindow} from '../lib/sessionContext.mjs'
+import type {PurposeReview} from '../lib/trainingPurposeAssessment.mjs'
+import type {PlanActualMatch} from '../lib/planActual.mjs'
 import { SessionGearEditor } from './SessionGearEditor'
 import {PlanActualReview} from './PlanActualReview'
 import {assessPlanActual} from '../lib/planActual.mjs'
@@ -58,7 +60,8 @@ async function historicalGroupWeather(activity:SessionResponse['activity'],list:
  if(typeof felt!=='number'||!Number.isFinite(felt)||typeof temperature!=='number'||!Number.isFinite(temperature))return null
  return {felt:Math.round(felt),temperature:Math.round(temperature),location:o.location_label,hour}
 }
-function SessionCoachContext({activity,list,terrain,session,active,zoneSummary}:{activity:SessionResponse['activity'];list:Activity[];terrain:TerrainWindow[];session:Session;active:boolean;zoneSummary:SessionZoneSummary|null}){
+function SessionCoachContext({activity,list,terrain,session,active,zoneSummary,samples,planActual}:{activity:SessionResponse['activity'];list:Activity[];terrain:TerrainWindow[];session:Session;active:boolean;zoneSummary:SessionZoneSummary|null;samples:SessionSample[];planActual:PlanActualMatch|null}){
+ const [purposeReview,setPurposeReview]=useState<PurposeReview|null>(null)
  const [felt,setFelt]=useState('')
  const [weather,setWeather]=useState<HistoricalWeather|null>(null)
  const [weatherPending,setWeatherPending]=useState(true)
@@ -68,7 +71,7 @@ function SessionCoachContext({activity,list,terrain,session,active,zoneSummary}:
   return ()=>{mounted=false;clearTimeout(timeout);controller.abort()}
  },[activity,list,session])
  const number= felt.trim()!==''?Number(felt.replace(',','.')):NaN
- const context=buildSessionContext(activity,list,terrain,Number.isFinite(number)&&number>=-80&&number<=65?number:weather)
+ const context=buildSessionContext(activity,list,terrain,Number.isFinite(number)&&number>=-80&&number<=65?number:weather,{match:planActual,review:purposeReview,samples,zoneReference:zoneSummary?.reference??null})
  return <article className={"cr-card lsa-coach-review lsa-coach-"+context.mode} aria-label="Persönliches Coach-Fazit">
   <div className="lsa-coach-hero"><div className="lsa-coach-copy"><div className="cr-label">DEIN COACH · TRAININGSBEWERTUNG</div><span className="lsa-coach-mode">{context.modeLabel}</span><h3>{context.verdict}</h3>{context.recommendation&&<p>{context.recommendation}</p>}<small>Einordnung der verfügbaren Daten, keine medizinische Trainingsfreigabe.</small></div><CoachAvatar mood={context.mood}/></div>
   <div className="lsa-evidence-head"><div><div className="cr-label">BEWERTUNGSGRUNDLAGEN</div><h4>Was meine Bewertung beeinflusst</h4></div><Icon name="layout-dashboard"/></div>
@@ -78,9 +81,9 @@ function SessionCoachContext({activity,list,terrain,session,active,zoneSummary}:
    <strong>{f.key==='hr'&&zoneSummary?zoneSummary.lowShare.toLocaleString('de-DE',{maximumFractionDigits:1})+' % in Intervals Z1 + Z2':f.status}</strong>
    <p>{f.key==='hr'&&zoneSummary?'Anteil von '+zoneSummary.valid.toLocaleString('de-DE')+' gültigen HF-Messpunkten nach den aktuell verfügbaren Intervals-Grenzen. Kein Nachweis für LT1 oder vollständige Erholung.':f.detail}</p>
   </div>)}</div>
-  <div className="lsa-evidence-pace"><Icon name="activity"/><span>Durchschnittspace</span><strong>{context.paceText} {context.paceText!=='–'?'min/km':''}</strong></div>
+  <div className="lsa-evidence-pace"><Icon name="activity"/><span>{context.purpose?.kind==='intervals'?'Gesamtpace · nur Kontext':'Durchschnittspace'}</span><strong>{context.paceText} {context.paceText!=='–'?'min/km':''}</strong></div>
   {weatherPending?<small>Historisches Trainingswetter wird geprüft …</small>:!weather&&<label className="lsa-picker">Gefühlte Temperatur beim Lauf (optional, eigene Angabe, nur für diese Ansicht)<input type="number" min={-80} max={65} step="1" value={felt} placeholder="z. B. -6" onChange={e=>setFelt(e.target.value)}/></label>}
-  <details className="lsa-coach-evidence"><summary>FIT-Abschnitte und Hauptziel · ergänzende Messdaten</summary><CoachEvidenceSummary active={active} mode="training" activityId={activity.id} embedded/></details>
+  <details className="lsa-coach-evidence"><summary>FIT-Abschnitte und Hauptziel · ergänzende Messdaten</summary><CoachEvidenceSummary active={active} mode="training" activityId={activity.id} embedded onReview={setPurposeReview}/></details>
   <div className="lsa-next-step"><Icon name="arrow-up-right"/><div><div className="cr-label">DEIN NÄCHSTER SCHRITT</div><h4>{context.mode==='caution'?'Regeneration und Belastung bewusst steuern':'So geht es weiter'}</h4><p>{context.next}</p></div></div>
  </article>
 }
@@ -247,7 +250,7 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
       </div>}
       {loading && <p className="lsa-note">Lese Garmin-Aktivität …</p>}
       {details && analysis && <>
-        <SessionCoachContext key={details.activity.id} activity={details.activity} list={list} terrain={details.details.terrainWindows||[]} session={session} active={active} zoneSummary={zoneSummary?.activityId===details.activity.id?zoneSummary:null}/>
+        <SessionCoachContext key={details.activity.id} activity={details.activity} list={list} terrain={details.details.terrainWindows||[]} session={session} active={active} zoneSummary={zoneSummary?.activityId===details.activity.id?zoneSummary:null} samples={details.details.samples} planActual={planActual}/>
         <PlanActualReview match={planActual} loading={!plansLoaded&&!planError}
          error={planError}/>
         <SessionIntensityDetails key={details.activity.id} samples={details.details.samples}
