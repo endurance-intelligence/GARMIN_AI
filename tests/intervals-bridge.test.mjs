@@ -106,3 +106,41 @@ test('no private Garmin endpoint involved',()=>{
  const x=buildIntervalsEvent(base)
  assert.doesNotMatch(JSON.stringify(x),/connectapi\.garmin\.com|oauth/i)
 })
+
+test('numbered step prompts preserve controls and separate drink break',()=>{
+ const snap=structuredClone(base.archive_snapshot)
+ snap.group.steps[0].notes='L1: 0:52 | 1:44 | 2:36 | 3:28 | 4:20 · original comment'
+ snap.group.steps[1].notes='T1: 1:25'
+ snap.group.steps[2].notes='L2: 0:52 | 1:44 | 2:36 | 3:28'
+ snap.group.steps.splice(2,0,{kind:'recovery',durationSeconds:30,distanceMeters:null,endMode:'time',notes:'Trinkpause: 0:30'})
+ const w=buildIntervalsWorkout(snap,base.title)
+ assert.equal(w.steps[1].line,'- Press lap (L1: 0:52 | 1:44 | 2:36 | 3:28 | 4:20) 4m20s 4:10-4:30/km Pace intensity=interval')
+ assert.equal(w.steps[2].line,'- Press lap (T1: 1:25) 1m25s intensity=recovery')
+ assert.equal(w.steps[3].line,'- (Trinkpause: 0:30) 30s intensity=recovery')
+ assert.equal(w.steps[4].line,'- (L2: 0:52 | 1:44 | 2:36 | 3:28) 800mtr 4:10-4:30/km Pace intensity=interval')
+ const event=buildIntervalsEvent({...base,archive_snapshot:snap})
+ const remote={...event,moving_time:3500,distance:6000,workout_doc:{steps:w.steps.map(s=>({
+  until_lap_press:s.mode==='lap',
+  text:s.prompt?'('+s.prompt+')':undefined,
+  ...(s.mode==='distance'?{distance:s.dist}:{}),
+  ...(s.mode==='time'?{duration:s.durationSeconds}:{}),
+  ...(s.paceSecondsPerKm!==null?{pace:{start:s.paceSecondsPerKm-10,end:s.paceSecondsPerKm+10,units:'secs/km'}}:{})
+ }))}}
+ assert.equal(validateStoredIntervalsWorkout(remote,snap,event).ok,true)
+ remote.workout_doc.steps[1].text='L1: 0:52'
+ assert.match(validateStoredIntervalsWorkout(remote,snap,event).reason,/Step comment/)
+ remote.workout_doc.steps[1].text='Press lap ('+w.steps[1].prompt+')'
+ assert.equal(validateStoredIntervalsWorkout(remote,snap,event).ok,true)
+ remote.workout_doc.steps[3].duration=600
+ assert.match(validateStoredIntervalsWorkout(remote,snap,event).reason,/Timed step/)
+})
+test('arbitrary numeric trainer text cannot enter workout grammar',()=>{
+ const snap=structuredClone(base.archive_snapshot)
+ snap.group.steps[0].notes='L1: 0:55 1000m 90% intensity=rest'
+ snap.group.steps[1].notes='Trinkpause: 1:00 200m'
+ const w=buildIntervalsWorkout(snap,base.title)
+ assert.equal(w.steps[1].prompt,'')
+ assert.equal(w.steps[2].prompt,'')
+ assert.match(w.steps[1].line,/LAUF 1000er/)
+ assert.match(w.steps[2].line,/TRAB 200er/)
+})
