@@ -23,3 +23,10 @@ test('do not learn from partial syncs, mixed sessions, missing dates or unrecord
  const c=mk();c.health.metrics=c.health.metrics.filter(x=>x.metric_date!==d(4));assert.equal(coachRecoveryResponse(c),null)
  const e=mk();e.boards.flatMap(x=>x.activities).find(x=>x.rpe_raw===80).rpe_raw=null;assert.equal(coachRecoveryResponse(e),null)
 })
+
+test('manual activity on another day does not invalidate the whole ISO week',()=>{
+ const x=mk();x.boards[0].manual.push({session_date:d(2),kind:'rowing'})
+ assert.ok(coachRecoveryResponse(x))
+ x.boards[0].manual.push({session_date:d(4),kind:'rowing'})
+ assert.equal(coachRecoveryResponse(x),null)
+})
