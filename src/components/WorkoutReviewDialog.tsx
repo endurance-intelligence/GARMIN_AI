@@ -99,7 +99,7 @@ export function WorkoutReviewDialog(props:Props){
     <div className="wr-header-title">
      <span className="wr-eyebrow">GARMIN_AI · TRAININGSBIBLIOTHEK</span>
      <h2>{headline}</h2>
-     <p>Ein Fenster. Alle Gruppen. Erst prüfen, dann speichern.</p>
+     <p>{libraryPlan?'Diese Gruppe prüfen und für den gewählten Tag übernehmen.':'Ein Fenster. Alle Gruppen. Erst prüfen, dann speichern.'}</p>
     </div>
     <button type="button" className="wr-close" ref={closeButton}
      disabled={busy||localBusy} aria-label="Trainingsfenster schließen" onClick={onClose}>×</button>
@@ -116,6 +116,7 @@ export function WorkoutReviewDialog(props:Props){
     </div>}
     {photoShown&&photoUrl&&<img className="wr-original" src={photoUrl}
       alt="Originales Trainerfoto für den Vergleich mit den erkannten Trainingsdaten"/>}
+    {libraryPlan&&ocrWarnings.length>0&&<div className="wr-ocr-info"><strong>Hinweise zum Original</strong>{ocrWarnings.map((warning,i)=><p key={i} className="wr-warning">{warning}</p>)}</div>}
     {!!ocrRaw&&<div className="wr-ocr-info">
      <div className="wr-ocr-head">
       <span>{ocrWasTemplate?'Geprüfte ORC-Referenz übernommen':
@@ -257,13 +258,13 @@ export function WorkoutReviewDialog(props:Props){
        <div className="wr-edit-actions">
         <button type="button" onClick={()=>onChangeGroup(g=>g.steps.push(blankStep('run')))}>+ Belastung</button>
         <button type="button" onClick={()=>onChangeGroup(g=>g.steps.push(blankStep('recovery')))}>+ Trabpause</button>
-        {editing.groups.length<12&&<button type="button"
+        {!libraryPlan&&editing.groups.length<12&&<button type="button"
          onClick={()=>{
           const i=editing.groups.length
           onChange(w=>w.groups.push({name:'Gruppe '+(i+1),notes:'',steps:[blankStep()]}))
           onGroup(i)
          }}>+ Gruppe</button>}
-        {editing.groups.length>1&&<button type="button"
+        {!libraryPlan&&editing.groups.length>1&&<button type="button"
          onClick={()=>{
           onChange(w=>w.groups.splice(groupIndex,1))
           onGroup(Math.max(0,groupIndex-1))
