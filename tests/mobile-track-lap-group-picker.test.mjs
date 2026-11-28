@@ -70,7 +70,7 @@ test('original template is gated by explicit user checkbox before replacing part
  assert.match(read('src/components/WorkoutReviewDialog.tsx'),/Deine Gruppe wählen/)
  assert.match(read('src/components/WorkoutReviewDialog.tsx'),/groupIndex===i/)
  assert.match(read('src/components/WorkoutFinishSelector.tsx'),/makeTrackLapGuide\(workout,group.name\)/)
- assert.match(ui,/onClick=\{\(\)=>viewRecord\(record,group\)\}/)
+ assert.match(ui,/onSelectRecord=\{record=>viewRecord\(record,/)
 })
 test('owner-controlled private archive and Garmin write restrictions unchanged',()=>{
  const ui=read('src/components/WorkoutArchivePanel.tsx')
@@ -78,4 +78,14 @@ test('owner-controlled private archive and Garmin write restrictions unchanged',
  assert.match(ui,/action:'plan',templateId:template.id,group,date/)
  assert.match(read('src/App.tsx'),/<OnlineAccessGate>/)
  assert.doesNotMatch(ui,/addWeighIn\(|scheduleWorkout\(|uploadWorkout\(/)
+})
+
+test('calendar confirmation requires OK and never approves or publishes',()=>{
+ const ui=read('src/components/WorkoutArchivePanel.tsx')
+ assert.match(ui,/if\(response.saved!==true\|\|!response.id\)throw Error/)
+ assert.match(ui,/setPlanNotice\(\{title:template.title,group,date,id:response.id/)
+ assert.match(ui,/onCancel=\{e=>e.preventDefault\(\)\}/)
+ assert.match(ui,/onClick=\{acknowledgePlan\}>OK/)
+ assert.match(ui,/An Intervals.icu senden/)
+ assert.doesNotMatch(ui,/action:'approve'|action:'publish'/)
 })

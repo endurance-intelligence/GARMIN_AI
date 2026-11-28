@@ -61,12 +61,20 @@ async function callArchive<T>(body?:Record<string,unknown>,page=0):Promise<T>{
  }
  return json as T
 }
-export function WorkoutArchivePanel({active,date,onPlanned}:{
- active:boolean;date:string;onPlanned:()=>void
+export function WorkoutArchivePanel({active,date,onPlanned,onPlanAcknowledged}:{
+ active:boolean;date:string;onPlanned:()=>void;onPlanAcknowledged:(date:string,id:string)=>void
 }){
  const [open,setOpen]=useState(true)
  const [libraryOpen,setLibraryOpen]=useState(false)
  const [libraryPlan,setLibraryPlan]=useState(false)
+ const [planNotice,setPlanNotice]=useState<{title:string;group:string;date:string;id:string;created:boolean}|null>(null)
+ const planNoticeRef=useRef<HTMLDialogElement>(null)
+ useEffect(()=>{const dialog=planNoticeRef.current;if(planNotice&&dialog&&!dialog.open)dialog.showModal()},[planNotice])
+ function acknowledgePlan(){
+  if(!planNotice)return
+  planNoticeRef.current?.close();setPlanNotice(null);setLibraryOpen(false)
+  onPlanAcknowledged(planNotice.date,planNotice.id)
+ }
  const [loading,setLoading]=useState(false)
  const [entries,setEntries]=useState<ArchiveRecord[]>([])
  const [configured,setConfigured]=useState(false)
@@ -306,10 +314,11 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    const response=await callArchive<{saved:boolean;created:boolean;id:string}>({
     action:'plan',templateId:template.id,group,date,clientRequestId:id
    })
-   if(response.saved!==true)throw Error('Einplanen nicht bestätigt')
+   if(response.saved!==true||!response.id)throw Error('Einplanen nicht bestätigt')
    setSuccess((response.created?'Als Entwurf eingetragen: ':'Bereits im Kalender: ')+
     template.title+' · '+group+'. Kein Garmin-Schreibzugriff.')
    setReviewOpen(false);setPreviewRecord(null)
+   setPlanNotice({title:template.title,group,date,id:response.id,created:response.created===true})
    onPlanned()
   }catch(e){setError(e instanceof Error?e.message:'Planung fehlgeschlagen')}
   finally{setBusy(false)}
@@ -395,5 +404,15 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
   referenceConfirmed={referenceConfirmed} onReferenceConfirm={setReferenceConfirmed}
   onUseReference={loadReviewedOrcGroups} onManual={completeOcrManually}
   photoUrl={localPhotoUrl}/>
+ <dialog className="wa-plan-notice" ref={planNoticeRef} aria-labelledby="wa-plan-notice-title" aria-describedby="wa-plan-notice-description" onCancel={e=>e.preventDefault()}>
+  {planNotice&&<>
+   <span className="wa-notice-check" aria-hidden="true">✓</span>
+   <h3 id="wa-plan-notice-title">{planNotice.created?'Training im Kalender gespeichert':'Training bereits im Kalender'}</h3>
+   <p className="wa-notice-workout">{planNotice.title} · {planNotice.group}<small>{planNotice.date.split('-').reverse().join('.')}</small></p>
+   <p id="wa-plan-notice-description">{planNotice.created?'Das Training ist als Entwurf gespeichert und noch nicht an Intervals.icu gesendet.':'Prüfe jetzt den aktuellen Freigabe- und Sendestatus im Kalender.'}</p>
+   <ol><li>Im Kalender <strong>Training freigeben</strong>.</li><li>Danach <strong>An Intervals.icu senden</strong>.</li></ol>
+   <button type="button" autoFocus onClick={acknowledgePlan}>OK</button>
+  </>}
+ </dialog>
  </>
 }
