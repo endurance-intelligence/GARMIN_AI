@@ -16,6 +16,7 @@ import {applyWorkoutToleranceGuidance} from './coachWorkoutTolerance.mjs'
 import {getTrainingGoalMode} from './trainingGoalMode.mjs'
 import {analyzeAdaptiveVolume,applyAdaptiveVolume} from './coachAdaptiveVolume.mjs'
 import {analyzeAutoRaceRecovery} from './raceRecoveryIntelligence.mjs'
+import {recentPurposeFeedback} from './recentPurposeFeedback.mjs'
 import {analyzeRecentCoachImpact,applyRecentCoachImpact} from './coachNextImpact.mjs'
 /** GARMIN_AI Coach Intelligence v1.0 — conservative, explainable seven-day preview.
  * No synthetic training readiness, direct Garmin write or automatic approval.
@@ -102,7 +103,10 @@ export function buildSevenDayCoach(input){
  const trendShortening=feedbackTrend.kind==='shorten'
  const workoutFeedback=latestWorkoutFeedback(life.post_workout_feedback,today)
  const workoutAssessment=workoutFeedback?evaluateWorkoutFeedback(workoutFeedback):null
- const feedbackCaution=workoutAssessment?.avoidHard===true||garminPerception.qualityCaution
+ const purposeFeedback=recentPurposeFeedback({today,boards:input.boards,plans:input.plans?.entries,evidence:input.life?.purposeEvidence})
+ const purposeCaution=purposeFeedback.active
+ const purposeDay=day=>purposeFeedback.findings.some(f=>day>=today&&day>f.date&&day<=f.until)
+ const feedbackCaution=workoutAssessment?.avoidHard===true||garminPerception.qualityCaution||purposeCaution
  const caution=!!input.symptoms||signals.length>=2||volumeRise
  const feedbackNextDay=(day)=>workoutFeedback&&day>=today&&
   day>workoutFeedback.activityDate&&day<=coachAddDays(workoutFeedback.activityDate,2)
@@ -176,6 +180,7 @@ export function buildSevenDayCoach(input){
    raceDate?'Vergangener Wettkampf: '+goal.race_name+' · neues Ziel oder Trainingsniveau wählen':'Kein Wettkampfziel verfügbar',
   crossNote
  ]
+ if(purposeCaution)flags.push('Trainingsziel verfehlt ('+purposeFeedback.latest.date+'): '+purposeFeedback.latest.reason+' Keine zusätzliche Intensität oder Umfangssteigerung erzwingen.')
  if(hardCross)flags.push('Intensives Rudern/Krafttraining in den letzten zwei Tagen: keine weitere harte Einheit erzwingen.')
  if(activeRaceRecovery)flags.push(
   'Wettkampfnachbereitung: '+(autoRaceRecovery.status==='matched'?
@@ -206,7 +211,7 @@ export function buildSevenDayCoach(input){
    approvable:['easy','long','mobility','return_easy'].includes(kind)})
  let comebackCandidateUsed=false
  const items=days.map((day,i)=>{
-  const dayFeedbackCaution=(feedbackCaution&&feedbackNextDay(day))||garminNextDay(day)
+  const dayFeedbackCaution=(feedbackCaution&&feedbackNextDay(day))||garminNextDay(day)||purposeDay(day)
   const untilRace=raceDate?Math.round((Date.parse(raceDate+'T12:00:00Z')-Date.parse(day+'T12:00:00Z'))/ONE_DAY):null
   const existing=plans.find(p=>p.training_date===day)
   const done=activities.some(a=>a.start_time_local?.slice(0,10)===day)||
@@ -236,7 +241,7 @@ export function buildSevenDayCoach(input){
     'Von dir geblockter Tag. Keine Nachholeinheit geplant.'+
     (existing?' Achtung: Bereits geplanter Termin bleibt bestehen – im Kalender prüfen.':''))
   if(existing)return make(day,'existing',existing.title,null,
-   feedbackNextDay(day)&&feedbackCaution?
+   purposeDay(day)?'Der letzte lockere Auftrag war zu intensiv. Bestehenden Termin prüfen; keine automatische Änderung.':feedbackNextDay(day)&&feedbackCaution?
     'Dein letztes Trainingsfeedback empfiehlt mehr Erholung. Den bestehenden Termin im Kalender prüfen; keine automatische Änderung.':
     'Bereits in GARMIN_AI geplant. Keine zweite Einheit erzeugen.',existing.sport||'running')
   if(done)return make(day,'completed','Bereits trainiert',null,'Absolvierte Garmin-/Stabi-Aktivität; keine zusätzliche Planung.')
@@ -353,6 +358,7 @@ export function buildSevenDayCoach(input){
   }
   const option=options.find(o=>o.enabled&&o.weekday===weekday(day))
   const choice=option?choices.find(c=>c.training_date===day&&c.option_code===option.code)?.choice:null
+  if(purposeDay(day)&&(untilRace===null||untilRace>10))return make(day,'recovery','Erholung nach zu intensivem Grundlagenlauf',null,'Der letzte lockere Auftrag war zu intensiv. '+purposeFeedback.latest.reason+' Keine zusätzlichen Intervalle oder Nachholeinheit. Bestehende Zusagen bleiben sichtbar.')
   if(hardCross&&day>=today&&day<=coachAddDays(today,1)&&(untilRace===null||untilRace>10))return make(day,'recovery','Erholung nach Ergänzungstraining',null,'Zuletzt intensive Ruder- oder Krafteinheit (RPE ≥ 7). Zusätzliche Intensität vermeiden; keine Nachholeinheit.')
   if(postIllness){
    if(option&&choice==='selected')return make(day,'option',option.title+' · nach Krankheit prüfen',null,
@@ -618,6 +624,7 @@ export function buildSevenDayCoach(input){
   attentionText:ill||input.symptoms?'Krank-Modus aktiv: Trainingsvorschläge sind gesperrt, bis du deine Genesung meldest.':
    returning?'Wiedereinstieg aktiv: erste Läufe und deine Folgetag-Rückmeldungen haben Vorrang. Keine automatische Freigabe.':
    postIllness?'Nach dem Wiedereinstieg Belastung weiter schrittweise aufbauen; keine Nachholeinheiten.':
+   purposeCaution?'Der letzte lockere Auftrag war zu intensiv. Die nächsten Tage werden konservativ geplant, keine zusätzliche Intensität. Freigegebene Termine bitte prüfen.':
    feedbackCaution?(garminPerception.qualityCaution?
     'Garmin-Bewertungen zeigen zuletzt hohe Belastung oder schwaches Gefühl. '+
     'Weitere Intensität erst nach Erholung, keine zusätzliche Eingabe notwendig.':
@@ -633,7 +640,7 @@ export function buildSevenDayCoach(input){
   basedOnActual:true,source:'Garmin & bestehender Kalender',raceDate,returning,ill,postIllness,concern,acknowledgedRuns:acknowledged.length,
   recoveryRaceDate,checkedRecently,reportedExhaustion,
   latestWorkoutFeedback:workoutFeedback?.activityId||null,
-  garminPerception,
+  garminPerception,purposeFeedback,
   completedWeek,
   fourWeekReview,
   autoRaceRecovery,

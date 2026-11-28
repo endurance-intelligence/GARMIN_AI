@@ -45,7 +45,7 @@ const result=(kind,verdict,mode,recommendation,next,evidence=[])=>({
  modeLabel:mode==='caution'?'Trainingsziel prüfen':mode==='positive'?'Passender Trainingsreiz':'Ausführung einordnen',
  recommendation,next,evidence
 })
-export function assessTrainingPurpose({activity,match,review,samples=[],zoneReference,rpe,intervalComparison}={}){
+export function assessTrainingPurpose({activity,match,review,samples=[],zoneReference,rpe,intervalComparison,hrExposure}={}){
  const planned=match?.status==='matched'?match.plan:null
  const kind=String(planned?.coachKind||'')
  const matchingReview=review?.activityId===activity?.id?review:null
@@ -55,16 +55,18 @@ export function assessTrainingPurpose({activity,match,review,samples=[],zoneRefe
  if(lowKinds.has(kind)){
   const label=kind==='long'?'ruhiger Longrun':kind==='return_easy'?'lockerer Wiedereinstieg':kind==='recovery'?'Regeneration':'lockerer Grundlagenlauf'
   const ref=zoneReference?.activityId===activity?.id&&zoneReference?.source==='intervals-current'?zoneReference:null
-  const exposure=ref?measuredHrExposure(samples,ref.upperBpm):null
+  const historical=hrExposure?.activityId===activity?.id&&hrExposure?.source==='garmin-historical'?hrExposure:null
+  const exposure=historical||(ref?measuredHrExposure(samples,ref.upperBpm):null)
+  const referenceText=historical?'historisch protokollierte Garmin-Z2-Obergrenze':'aktuell konfigurierte Intervals-Z2-Obergrenze'
   const evidence=[{label:'Trainingsziel',value:label,detail:'Zeitlich plausibel zugeordnete, freigegebene Coach-Vorgabe.'}]
-  if(exposure)evidence.push({label:'Über aktueller Z2-Obergrenze',value:fmt(exposure.aboveShare)+' %',detail:'Ca. '+fmt(exposure.aboveSeconds/60)+' Min. aus gültigen HF-Zeitabschnitten über '+exposure.upperBpm+' bpm. Heutige Intervals-Grenzen, keine historisch bestätigte LT1 oder damals gespeicherte Ziel-HF.'})
+  if(exposure)evidence.push({label:historical?'Über historischer Garmin-Z2-Obergrenze':'Über aktueller Z2-Obergrenze',value:fmt(exposure.aboveShare)+' %',detail:'Ca. '+fmt(exposure.aboveSeconds/60)+' Min. aus gültigen HF-Zeitabschnitten über '+exposure.upperBpm+' bpm. '+(historical?'Vor dem Lauftag gespeichertes Garmin-Profil; keine physiologisch bestätigte LT1 oder gespeicherte Ziel-HF.':'Heutige Intervals-Grenzen, keine historisch bestätigte LT1 oder damals gespeicherte Ziel-HF.')})
   const excessive=exposure&&exposure.aboveShare>=40&&exposure.aboveSeconds>=600
   if(excessive||finite(rpe)&&rpe>=7){
-   const why=(excessive?'Ein erheblicher Teil der gemessenen Belastung lag über deiner aktuell konfigurierten Intervals-Z2-Obergrenze. ':'')+(finite(rpe)&&rpe>=7?'Dein RPE von '+rpe+'/10 ist für diesen lockeren Auftrag hoch. ':'')+
+   const why=(excessive?'Ein erheblicher Teil der gemessenen Belastung lag über deiner '+referenceText+'. ':'')+(finite(rpe)&&rpe>=7?'Dein RPE von '+rpe+'/10 ist für diesen lockeren Auftrag hoch. ':'')+
     (excessive&&finite(rpe)&&rpe<=3?'Auch ein niedriges RPE hebt die gemessene Abweichung nicht auf. ':'')
    return result(kind,'Zu intensiv für den lockeren Auftrag.', 'caution',why+'Das spricht gegen den beabsichtigten ruhigen Trainingsreiz.','Die zusätzliche Belastung berücksichtigen. Vor der nächsten Qualitätseinheit Erholung und aktuelle Belastbarkeit prüfen; keine Intensität nachholen.',evidence)
   }
-  if(exposure&&exposure.aboveShare<=10&&finite(rpe)&&rpe<=3)return result(kind,'Der lockere Trainingsreiz passt.', 'positive','Die gemessene HF lag überwiegend in oder unter den aktuell konfigurierten ersten beiden Intervals-Zonen. Dein Belastungsgefühl passt dazu.','Lockere Einheiten weiter bewusst locker halten. Individuelle Zielgrenzen und Erholung beachten.',evidence)
+  if(exposure&&exposure.aboveShare<=10&&finite(rpe)&&rpe<=3)return result(kind,'Der lockere Trainingsreiz passt.', 'positive','Die gemessene HF lag überwiegend in oder unter den '+(historical?'vor dem Lauf protokollierten ersten beiden Garmin-Zonen':'aktuell konfigurierten ersten beiden Intervals-Zonen')+'. Dein Belastungsgefühl passt dazu.','Lockere Einheiten weiter bewusst locker halten. Individuelle Zielgrenzen und Erholung beachten.',evidence)
   return result(kind,'Lockeres Trainingsziel gezielt prüfen.', 'review',exposure?'Die gemessene HF-Verteilung und dein Empfinden gemeinsam einordnen. Ein exakt historisches HF-Ziel ist nicht gespeichert.':'Für eine belastbare Intensitätsprüfung fehlen ausreichend zeitlich zuordenbare HF-Daten oder persönliche Zonengrenzen.','Nicht schneller laufen, nur um ein Tempo zu erreichen. Die nächste Einheit nach geplantem Zweck und Erholung gestalten.',evidence)
  }
  if(isInterval){

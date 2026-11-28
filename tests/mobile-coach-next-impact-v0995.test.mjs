@@ -117,8 +117,13 @@ test('seven-day Coach integrates matched Garmin evidence but protects the pre-ra
   goal:{goal:{race_name:'Hermannslauf',race_date:'2027-04-25',distance_km:31.1}}}
  const normal=buildSevenDayCoach(base)
  assert.equal(normal.nextImpact.status,'reduce')
- assert.equal(normal.nextImpact.effect,'shortened')
- assert.equal(normal.days.filter(d=>d.title.startsWith('Nach Garmin-Feedback')).length,1)
+ // A clearly excessive easy run now has a stronger, time-limited recovery
+ // recommendation. The older duration reducer must not cut another session.
+ assert.equal(normal.purposeFeedback.active,true)
+ assert.equal(normal.days[0].kind,'recovery')
+ assert.equal(normal.days[1].kind,'recovery')
+ assert.equal(normal.nextImpact.effect,'no-slot')
+ assert.equal(normal.days.filter(d=>d.title.startsWith('Nach Garmin-Feedback')).length,0)
  assert.equal(normal.trainingMethod.id,'polarized')
  const protectedRace=buildSevenDayCoach({...base,
   goal:{goal:{race_name:'Heartbeat Ultra Fulda',race_date:'2026-11-21',

@@ -24,6 +24,7 @@ export type SevenDayPlan={
  trainingGoalMode?:import('./trainingGoalMode.mjs').TrainingGoalMode;
  recoveryRaceDate?:string|null;checkedRecently?:boolean;reportedExhaustion?:number|null;latestWorkoutFeedback?:string|null;
  feedbackTrend?:{level:string;kind:'none'|'reduce'|'shorten'|'maintain';count14:number;count28:number}
+ purposeFeedback?:{active:boolean;findings:Array<{activityId:string;date:string;kind:string;reason:string;until:string;objective:boolean}>;latest:{activityId:string;date:string;kind:string;reason:string;until:string;objective:boolean}|null};
  garminPerception?:import('./garminPerception.mjs').GarminPerception
  nextImpact?:import('./coachNextImpact.mjs').RecentCoachImpact
  completedWeek?:import('./completedWeekReview.mjs').CompletedWeekReview
