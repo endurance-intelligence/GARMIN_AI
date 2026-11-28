@@ -42,7 +42,9 @@ function numberedPrompt(s){
  const chain=time+'(?: \\| '+time+')*'
  const pattern=s.kind==='run'?'^L[1-9]\\d?: (?:'+chain+'|Tempo offen)(?: \\(erste 4000 m\\))?$':
   '^(?:T[1-9]\\d?: (?:'+time+'|Zeit offen)|Trinkpause(?:: '+time+')?)$'
- return new RegExp(pattern).test(prefix)&&prefix.length<=180?prefix:''
+ // Real Intervals parser truncates multiple clock values with spaced pipes.
+ // Compact ASCII pipes preserve exact timestamps and all step controls.
+ return new RegExp(pattern).test(prefix)&&prefix.length<=180?prefix.replaceAll(' | ','|'):''
 }
 const promptText=value=>String(value??'').trim().replace(/^Press lap\s+/i,'').replace(/^\((.*)\)$/,'$1').trim()
 function render(s){
