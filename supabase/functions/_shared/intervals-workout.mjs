@@ -34,6 +34,19 @@ const defaultSeconds=(s)=>{
   s.kind==='recovery'?420:360
  return Math.max(20,Math.min(3*3600,Math.round((dist/1000*reference)/5)*5))
 }
+// Accept only the generated numbered prefix, never arbitrary trainer text.
+function numberedPrompt(s){
+ if(typeof s.notes!=='string'||!['run','recovery'].includes(s.kind))return ''
+ const prefix=s.notes.split(' · ')[0].trim()
+ const time='\\d{1,3}:[0-5]\\d'
+ const chain=time+'(?: \\| '+time+')*'
+ const pattern=s.kind==='run'?'^L[1-9]\\d?: (?:'+chain+'|Tempo offen)(?: \\(erste 4000 m\\))?$':
+  '^(?:T[1-9]\\d?: (?:'+time+'|Zeit offen)|Trinkpause(?:: '+time+')?)$'
+ // Real Intervals parser truncates multiple clock values with spaced pipes.
+ // Compact ASCII pipes preserve exact timestamps and all step controls.
+ return new RegExp(pattern).test(prefix)&&prefix.length<=180?prefix.replaceAll(' | ','|'):''
+}
+const promptText=value=>String(value??'').trim().replace(/^Press lap\s+/i,'').replace(/^\((.*)\)$/,'$1').trim()
 function render(s){
  if(!s||!kinds.has(s.kind))throw Error('Unsupported workout step kind')
  const dist=s.distanceMeters??null,mode=s.endMode??'lap'
@@ -52,8 +65,10 @@ function render(s){
  const label=dist===null?title:title+' '+dist+'er'
  const duration=mode==='distance'?dist+'mtr':timeToken(defaultSeconds(s))
  const target=paceTarget(s.paceSecondsPerKm)
- const line='- '+(mode==='lap'?'Press lap ':'')+[clean(label),duration,target,'intensity='+intensity].filter(Boolean).join(' ')
- return {line,mode,dist,durationSeconds:mode==='time'?s.durationSeconds:null,
+ const prompt=numberedPrompt(s)
+ const stepLabel=prompt?'('+prompt+')':clean(label)
+ const line='- '+(mode==='lap'?'Press lap ':'')+[stepLabel,duration,target,'intensity='+intensity].filter(Boolean).join(' ')
+ return {line,mode,dist,prompt,durationSeconds:mode==='time'?s.durationSeconds:null,
   paceSecondsPerKm:s.paceSecondsPerKm??null}
 }
 export function buildIntervalsWorkout(snapshot,title){
@@ -126,6 +141,8 @@ export function validateStoredIntervalsWorkout(found,snapshot,event){
  for(let i=0;i<expected.steps.length;i++){
   const step=steps[i],spec=expected.steps[i]
   if(!step||typeof step!=='object')return {ok:false,reason:'Invalid parsed step'}
+  if(spec.prompt&&promptText(step.text)!==spec.prompt)
+   return {ok:false,reason:'Step comment missing or changed at step '+(i+1)}
   const lap=step.until_lap_press===true||step.press_lap===true
   if((spec.mode==='lap')!==lap)return {ok:false,reason:'LAP completion mode lost at step '+(i+1)}
   if(spec.mode==='distance'){
