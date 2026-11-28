@@ -4,6 +4,7 @@ import { HeartRateZonesSettings } from '../components/HeartRateZonesSettings'
 import { SyncCenter } from '../components/SyncCenter'
 import { IntervalsConnection } from '../components/IntervalsConnection'
 import {TrainingRhythmSettings} from '../components/TrainingRhythmSettings'
+import { HealthDataAvailability } from '../components/HealthDataAvailability'
 import { EquipmentProfileSettings } from '../components/EquipmentProfileSettings'
 
 export function SettingsPage({ active }: { active: boolean; onGo: (page: Page) => void }) {
@@ -11,6 +12,7 @@ export function SettingsPage({ active }: { active: boolean; onGo: (page: Page) =
     <div className="page-intro"><div><div className="eyebrow">PERSONAL WORKSPACE</div><h1>Weniger Settings.<br/>Mehr Fokus<span style={{ color: 'var(--a)' }}>.</span></h1><p>Deine Verbindungen und Freigaben an einem Ort.</p></div></div>
     {import.meta.env.VITE_GARMIN_INSTANCE==='secondary'&&<button type="button" className="secondary" onClick={()=>window.dispatchEvent(new Event('garmin-ai-open-onboarding'))}>Einrichtungsassistent erneut öffnen</button>}
     <nav className="settings-shortcuts" aria-label="Zu den Einstellungen">
+      <button type="button" onClick={() => document.getElementById('settings-health')?.scrollIntoView({behavior:'smooth'})}>Gesundheitsdaten</button>
       <button type="button" onClick={() => document.getElementById('settings-sync')?.scrollIntoView({behavior:'smooth'})}>Synchronisierung</button>
       <button type="button" onClick={() => document.getElementById('settings-intervals')?.scrollIntoView({behavior:'smooth'})}>Intervals.icu</button>
       <button type="button" onClick={() => document.getElementById('settings-account')?.scrollIntoView({behavior:'smooth'})}>Konto</button>
@@ -22,6 +24,7 @@ export function SettingsPage({ active }: { active: boolean; onGo: (page: Page) =
       <article><small>CONNECTIONS</small><h3>Garmin Personal API</h3><p>Garmin-Aktivitäten und Health-Werte werden serverseitig nach Supabase synchronisiert. Der persönliche Lesezugriff ist separat geschützt.</p><div className="empty-line">Datenquelle: Garmin / Supabase · Automatische Synchronisierung eingerichtet</div></article>
       <article><small>COACH MODE</small><h3>Aktiver Coach mit Freigabe</h3><p>Der Coach nutzt echte Garmin-Daten und erstellt Vorschläge. Nur du kannst Entwürfe freigeben und Workouts an Intervals.icu senden. Der Coach wertet Trainingsverläufe aus und empfiehlt Anpassungen, ohne bestätigte Einheiten eigenmächtig zu überschreiben.</p><label className="toggle"><input type="checkbox" checked disabled/> Coach-Änderungen immer bestätigen</label></article>
     </div>
+    <div id="settings-health" className="settings-anchor"><h2 className="settings-section-title">Gesundheitsdaten</h2><HealthDataAvailability active={active}/></div>
     <div className="settings-anchor" id="settings-rhythm"><h2 className="settings-section-title">Trainingsrhythmus</h2><TrainingRhythmSettings active={active} onSaved={()=>{}}/></div>
     <div id="settings-equipment" className="settings-anchor"><h2 className="settings-section-title">Ausrüstungsprofil</h2><EquipmentProfileSettings active={active}/></div>
     <div id="settings-sync" className="settings-anchor">
