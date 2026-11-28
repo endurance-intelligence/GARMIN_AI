@@ -20,7 +20,7 @@ export function coachRecoveryResponse({today,boards,health}={}){
   const matching=boards.filter(b=>b?.start===week&&Array.isArray(b.activities)&&Array.isArray(b.manual))
   if(matching.length!==1)continue
   const b=matching[0]
-  if(b.manual.some(m=>{const date=m?.training_date??m?.date??m?.start_time_local;return typeof date!=='string'||!validDay(date.slice(0,10))||date.slice(0,10)===d}))continue
+  if(b.manual.some(m=>{const date=m?.session_date??m?.training_date??m?.date??m?.start_time_local;return typeof date!=='string'||!validDay(date.slice(0,10))||date.slice(0,10)===d}))continue
   const acts=b.activities.filter(a=>typeof a?.start_time_local==='string'&&a.start_time_local.slice(0,10)===d)
   if(acts.length!==1)continue
   const a=acts[0],rpe=normalizeGarminRpe(a.rpe_raw)
