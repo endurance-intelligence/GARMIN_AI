@@ -158,3 +158,18 @@
  .hwb-summary-metrics{grid-column:2;grid-row:1/3;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
  .hwb-summary-metrics b{overflow-wrap:anywhere}
 }
+
+/* One semantic metric grid: labels and values share identical alignment. */
+.hwb-layout .hwb-summary{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:12px 14px}
+.hwb-layout .hwb-summary-metrics{grid-column:1/-1;grid-row:auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;min-width:0;border:0}
+.hwb-layout .hwb-summary-metrics>div{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:5px;min-width:0;padding:3px 8px;border:0;text-align:center}
+.hwb-layout .hwb-summary-metrics>div+div{border-left:1px solid #344354}
+.hwb-layout .hwb-summary-metrics span{font-size:11px;line-height:1.3;white-space:normal}
+.hwb-layout .hwb-summary-metrics b{font-size:clamp(15px,2vw,22px);line-height:1.2;letter-spacing:-.025em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+@media(max-width:1366px){
+ .hwb-layout .hwb-summary{padding:11px 6px;gap:0}
+ .hwb-layout .hwb-summary-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .hwb-layout .hwb-summary-metrics>div:last-child{display:none}
+ .hwb-layout .hwb-summary-metrics b{font-size:clamp(14px,2.2vw,21px)}
+}
+@media(max-width:365px){.hwb-layout .hwb-summary-metrics>div{padding-inline:3px}.hwb-layout .hwb-summary-metrics span{font-size:10px}}

@@ -112,9 +112,8 @@ export function CalendarWeekBoard({active,start,selected,today,onSelect,plans,co
   <div className="hwb-layout">
    <aside className="hwb-summary" aria-label="Wochenbilanz">
     <span className="hwb-eyebrow">KW {weekNumber(start)} / BILANZ</span>
-    <strong>{loading?'Lade …':!visibleData?'–':fmt(Math.floor(stats.duration/60))+'h '+String(stats.duration%60).padStart(2,'0')+'m'}</strong>
-    <p>Trainingszeit · tatsächliche Einheiten</p>
     <div className="hwb-summary-metrics">
+     <div><span>Trainingszeit</span><b>{loading?'Lade …':!visibleData?'–':fmt(Math.floor(stats.duration/60))+'h '+String(stats.duration%60).padStart(2,'0')+'m'}</b></div>
      <div><span>Laufen</span><b>{visibleData?fmt(stats.runningDistance,1)+' km':'–'}</b></div>
      <div><span>Einheiten</span><b>{visibleData?stats.count:'–'}</b></div>
      <div><span>Datenlage</span><b>{visibleData?'Garmin':loading?'Lädt …':'Nicht verfügbar'}</b></div>

@@ -261,7 +261,7 @@ try{
  assert.ok(await flowPage.locator('.hwb-scroll').evaluate(el=>el.scrollWidth<=el.clientWidth+2),'phone agenda fits width')
  // Test the same calendar in portrait, landscape and large iPad dimensions,
  // then verify the wide desktop still has all seven columns.
- for(const [width,height] of [[820,1180],[1180,820],[1366,1024],[1440,900]]){
+ for(const [width,height] of [[390,844],[320,740],[820,1180],[1180,820],[1366,1024],[1440,900]]){
   await flowPage.setViewportSize({width,height})
   await flowPage.waitForFunction(expected=>getComputedStyle(document.querySelector('.hwb-days')).gridTemplateColumns.split(' ').length===expected,width<=1366?1:7)
   const rows=await flowPage.locator('.hwb-day').evaluateAll(days=>days.map(day=>({x:day.getBoundingClientRect().x,y:day.getBoundingClientRect().y})))
@@ -269,12 +269,24 @@ try{
   if(width<=1366){
    assert.ok(rows.every((row,i)=>i===0||row.y>rows[i-1].y&&Math.abs(row.x-rows[0].x)<2),'vertical tablet agenda at '+width)
    assert.ok(await flowPage.locator('.hwb-scroll').evaluate(el=>el.scrollWidth<=el.clientWidth+2),'tablet agenda fits width at '+width)
+   const metrics=await flowPage.locator('.hwb-summary-metrics > div:visible').evaluateAll(items=>items.map(el=>({label:el.querySelector('span').textContent,x:el.getBoundingClientRect().x,w:el.getBoundingClientRect().width,labelY:el.querySelector('span').getBoundingClientRect().y,valueY:el.querySelector('b').getBoundingClientRect().y})))
+   assert.deepEqual(metrics.map(m=>m.label),['Trainingszeit','Laufen','Einheiten'])
+   assert.ok(metrics.every(m=>Math.abs(m.w-metrics[0].w)<2&&Math.abs(m.labelY-metrics[0].labelY)<2&&Math.abs(m.valueY-metrics[0].valueY)<2),'equal aligned weekly metric columns at '+width)
    const quick=flowPage.locator('.hwb-quick-segment button').first()
    if(await quick.count())assert.ok((await quick.boundingBox()).height>=44,'tablet touch targets')
   }else assert.ok(rows.every((row,i)=>i===0||row.x>rows[i-1].x&&Math.abs(row.y-rows[0].y)<2),'desktop week retains columns')
   assert.ok(await flowPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'calendar page fits width '+width)
  }
  await flowPage.setViewportSize({width:390,height:844})
+ // Exercise the exact column-flex context that caused a 130px button height.
+ const buttonSize=await flowPage.evaluate(()=>{
+  const card=document.createElement('article');card.className='hc-coach-proposal';card.style.width='280px'
+  const button=document.createElement('button');button.className='hc-coach-accept';button.textContent='Coach-Hinweise ansehen';card.append(button);document.body.append(card)
+  const height=button.getBoundingClientRect().height,basis=getComputedStyle(button).flexBasis
+  card.remove();return {height,basis}
+ })
+ assert.equal(buttonSize.basis,'auto')
+ assert.ok(buttonSize.height>=44&&buttonSize.height<=64,'coach button must not stretch vertically: '+buttonSize.height)
  const savedId=flow.plan.id, savedWorkout=JSON.stringify(flow.plan.archive_snapshot)
  const target=candidate.date===today?coachAddDays(candidate.date,1):coachAddDays(candidate.date,-1)
  await flowPage.getByRole('button',{name:'Verschieben',exact:true}).click()

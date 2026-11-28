@@ -367,3 +367,15 @@
 @media(max-width:1366px){.hc-intro{margin:10px 0 12px}.hc-intro h1{font-size:27px!important;margin:7px 0 4px}.hc-intro p{display:none}.hc-overview{margin:6px 0 12px;flex-wrap:wrap;gap:6px}.hc-overview>div{flex:1 1 100%}.hc-overview>div small{display:none}.hc-overview>div strong{font-size:16px}.hc-overview>div span{font-size:11px}.hc-overview .hc-refresh{flex:1 1 auto;padding:6px 8px;min-height:44px}.hc-weekpanel{padding:12px 9px}.hc-toolbar{margin-bottom:8px}.hc-toolbar small{display:none}.hc-toolbar h2{font-size:17px;margin:0}.hc-coach-legend{padding:6px 8px;margin-bottom:7px;gap:5px 8px}.hc-coach-legend span{font-size:9px}.hc-day-heading{gap:6px;flex-wrap:wrap}.hc-day-count{font-size:10px}.hc-move-trigger{width:100%}.hc-move-buttons button{flex:1 1 110px}.hc-entry{align-items:flex-start}.hc-entry-copy{min-width:0}.hc-day-content{scroll-margin-top:68px}}
 
 @media(min-width:741px) and (max-width:1366px){.hc-intro h1{font-size:32px!important}.hc-overview>div{flex:1 1 240px}.hc-overview .hc-refresh{flex:0 1 auto}.hc-weekpanel{padding:16px}.hc-toolbar h2{font-size:22px}.hc-move-trigger{width:auto}.hc-day-content{scroll-margin-top:76px}}
+
+/* The proposal is a column flexbox: flex-basis:130px on the button
+   used to become its HEIGHT on mobile. Scope row flex only to action rows. */
+.hc-coach-proposal > .hc-coach-accept,
+.hc-coach-manual > .hc-coach-accept{
+ flex:0 0 auto;align-self:flex-start;min-height:44px;height:auto;max-width:100%;
+ padding:10px 14px;line-height:1.3;white-space:normal;
+}
+.hc-coach-proposal > .hc-coach-accept .ic{flex-shrink:0}
+@media(max-width:610px){
+ .hc-coach-proposal > .hc-coach-accept,.hc-coach-manual > .hc-coach-accept{width:100%;max-width:100%;flex:0 0 auto;min-height:44px}
+}
