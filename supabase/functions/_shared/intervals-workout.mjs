@@ -34,6 +34,252 @@ const defaultSeconds=(s)=>{
   s.kind==='recovery'?420:360
  return Math.max(20,Math.min(3*3600,Math.round((dist/1000*reference)/5)*5))
 }
+// Only the generated prefix is eligible for transport. Never inject trainer
+// free text into a syntax where numbers can silently become workout controls.
+function numberedPrompt(s){
+ if(typeof s.notes!=='string'||!['run','recovery'].includes(s.kind))return ''
+ const prefix=s.notes.split(' · ')[0].trim()
+ const time=String.raw`\d{1,3}:[0-5]\d`
+ const chain=time+'(?: \\| '+time+')*'
+ const pattern=s.kind==='run'?'^L[1-9]\\d?: (?:'+chain+'|Tempo offen)(?: \\(erste 4000 m\\))?
+ if(!s||!kinds.has(s.kind))throw Error('Unsupported workout step kind')
+ const dist=s.distanceMeters??null,mode=s.endMode??'lap'
+ if(dist!==null&&!integer(dist,20,50000))throw Error('Invalid step distance')
+ if(!['lap','distance','time'].includes(mode))throw Error('Invalid step completion control')
+ if(mode==='time'&&!integer(s.durationSeconds,10,10800))
+  throw Error('Timed workout must carry an explicit duration')
+ if(mode==='distance'&&dist===null)throw Error('Distance control requires a real distance')
+ const intensity=s.kind==='run'&&s.intensity==='active'?'active':
+  s.kind==='run'?'interval':s.kind==='recovery'?'recovery':
+  s.kind==='warmup'?'warmup':s.kind==='cooldown'?'cooldown':'other'
+ // Deliberately avoid labels like 1000M or 200M: M is a MINUTE suffix
+ // in the Intervals.icu parser and was causing the 207h/1971km bug.
+ const title=s.kind==='run'?'LAUF':s.kind==='recovery'?'TRAB':
+  s.kind==='warmup'?'EINLAUFEN':s.kind==='cooldown'?'AUSLAUFEN':'DRILLS'
+ const label=dist===null?title:title+' '+dist+'er'
+ const duration=mode==='distance'?dist+'mtr':timeToken(defaultSeconds(s))
+ const target=paceTarget(s.paceSecondsPerKm)
+ const prompt=numberedPrompt(s)
+ const stepLabel=prompt?'('+prompt+')':clean(label)
+ const line='- '+(mode==='lap'?'Press lap ':'')+[stepLabel,duration,target,'intensity='+intensity].filter(Boolean).join(' ')
+ return {line,mode,dist,prompt,durationSeconds:mode==='time'?s.durationSeconds:null,
+  paceSecondsPerKm:s.paceSecondsPerKm??null}
+}
+export function buildIntervalsWorkout(snapshot,title){
+ if(!snapshot||typeof snapshot!=='object'||!snapshot.group||
+  !Array.isArray(snapshot.group.steps)||!snapshot.group.steps.length)
+  throw Error('Missing selected and reviewed trainer group')
+ const source=[{kind:'warmup',...(snapshot.warmup||{})},...snapshot.group.steps,
+               {kind:'cooldown',...(snapshot.cooldown||{})}]
+ if(source.length>MAX_STEPS)throw Error('Garmin supports at most 50 workout steps')
+ if(!source.some(s=>s.kind==='run'))throw Error('Workout contains no running steps')
+ const mapped=source.map(render)
+ const description=[
+  'Einlaufen',
+  mapped[0].line,'',
+  clean(snapshot.group.name||'Intervalle'),
+  ...mapped.slice(1,-1).map(x=>x.line),'',
+  'Auslaufen',
+  mapped[mapped.length-1].line
+ ].join('\n')
+ if(description.length>16000)throw Error('Workout description too long')
+ const expectedDistance=source.reduce((total,s)=>total+(s.distanceMeters||0),0)
+ return {name:clean(title)||'GARMIN_AI Training',type:'Run',category:'WORKOUT',target:'PACE',
+  description,stepCount:mapped.length,steps:mapped,expectedDistance}
+}
+export function workoutLocalTime(date){
+ const weekday=new Date(date+'T12:00:00Z').getUTCDay()
+ if(weekday===6)return '09:00' // ORC Track Saturday
+ if([1,2,3].includes(weekday))return '19:00' // Football, Tue Track, Wed Group Run
+ return '18:00' // Custom day: explicit start-time UI to follow
+}
+export function buildIntervalsEvent(plan){
+ if(!plan||!plan.archive_snapshot||!/^[0-9a-f-]{36}$/i.test(String(plan.id))||
+    !/^\d{4}-\d{2}-\d{2}$/.test(String(plan.training_date)))
+  throw Error('Invalid approved plan')
+ const w=buildIntervalsWorkout(plan.archive_snapshot,plan.title)
+ const explicitTime=plan.archive_snapshot.startTime
+ const selectedTime=/^(0[5-9]|1[0-9]|2[0-2]):(00|15|30|45)$/.test(String(explicitTime))?
+  explicitTime:workoutLocalTime(plan.training_date)
+ return {category:w.category,type:w.type,name:w.name,target:w.target,
+   start_date_local:plan.training_date+'T'+selectedTime+':00',
+   external_id:'garmin-ai:'+plan.id,description:w.description}
+}
+function allSteps(steps){
+ if(!Array.isArray(steps))return []
+ return steps.flatMap(s=>Array.isArray(s?.steps)?allSteps(s.steps):[s])
+}
+export function validateStoredIntervalsWorkout(found,snapshot,event){
+ if(!found||found.category!=='WORKOUT'||String(found.type||'').toLowerCase()!=='run')
+  return {ok:false,reason:'Wrong calendar event type'}
+ if(found.external_id!==event.external_id||found.start_date_local!==event.start_date_local)
+  return {ok:false,reason:'External ID or local start time mismatched'}
+ if(found.description!==event.description)
+  return {ok:false,reason:'Workout text does not match the published version'}
+ const expected=buildIntervalsWorkout(snapshot,event.name)
+ if(snapshot.sourceKind==='coach'&&snapshot.qualitySource!=='archive'){
+  const expectedSecs=expected.steps.reduce((t,s)=>t+(s.durationSeconds||0),0)
+  const actualSecs=Number(found.moving_time??found.workout_doc?.duration)
+  if(expected.steps.some(s=>s.mode!=='time')||
+    !Number.isFinite(actualSecs)||Math.abs(actualSecs-expectedSecs)>5)
+   return {ok:false,reason:'Coach workout duration differs from the approved duration'}
+ }
+ const steps=allSteps(found.workout_doc?.steps)
+ if(steps.length!==expected.stepCount)
+  return {ok:false,reason:'Workout step count or structure not parsed'}
+ const moving=Number(found.moving_time??found.workout_doc?.duration)
+ const distance=Number(found.distance??found.workout_doc?.distance)
+ if(!Number.isFinite(moving)||moving<=0||moving>4*3600||
+    !Number.isFinite(distance)||distance<0||distance>60000)
+  return {ok:false,reason:'Impossible duration or distance returned by Intervals.icu'}
+ for(let i=0;i<expected.steps.length;i++){
+  const step=steps[i],spec=expected.steps[i]
+  if(!step||typeof step!=='object')return {ok:false,reason:'Invalid parsed step'}
+  if(spec.prompt&&promptText(step.text)!==spec.prompt)
+   return {ok:false,reason:'Step comment missing or changed at step '+(i+1)}
+  const lap=step.until_lap_press===true||step.press_lap===true
+  if((spec.mode==='lap')!==lap)return {ok:false,reason:'LAP completion mode lost at step '+(i+1)}
+  if(spec.mode==='distance'){
+   const actual=Number(step.distance)
+   if(!Number.isFinite(actual)||Math.abs(actual-spec.dist)>2)
+    return {ok:false,reason:'Distance completion lost at step '+(i+1)}
+  }
+  if(spec.mode==='time'){
+   // Never mistake a LAP-estimated duration for an automatic timed step.
+   const actual=Number(step.duration)
+   if(!Number.isFinite(actual)||Math.abs(actual-spec.durationSeconds)>2)
+    return {ok:false,reason:'Timed step duration missing or changed at step '+(i+1)}
+  }
+  if(spec.paceSecondsPerKm!==null){
+   const pace=step.pace
+   if(!pace||!Number.isFinite(Number(pace.start))||!Number.isFinite(Number(pace.end))||
+      String(pace.units||'')!=='secs/km'||Math.abs(Number(pace.start)-(spec.paceSecondsPerKm-10))>2||
+      Math.abs(Number(pace.end)-(spec.paceSecondsPerKm+10))>2)
+    return {ok:false,reason:'Pace target lost at step '+(i+1)}
+  }
+ }
+ return {ok:true,reason:'parsed'}
+}
+:
+  '^(?:T[1-9]\\d?: (?:'+time+'|Zeit offen)|Trinkpause(?:: '+time+')?)
+ if(!s||!kinds.has(s.kind))throw Error('Unsupported workout step kind')
+ const dist=s.distanceMeters??null,mode=s.endMode??'lap'
+ if(dist!==null&&!integer(dist,20,50000))throw Error('Invalid step distance')
+ if(!['lap','distance','time'].includes(mode))throw Error('Invalid step completion control')
+ if(mode==='time'&&!integer(s.durationSeconds,10,10800))
+  throw Error('Timed workout must carry an explicit duration')
+ if(mode==='distance'&&dist===null)throw Error('Distance control requires a real distance')
+ const intensity=s.kind==='run'&&s.intensity==='active'?'active':
+  s.kind==='run'?'interval':s.kind==='recovery'?'recovery':
+  s.kind==='warmup'?'warmup':s.kind==='cooldown'?'cooldown':'other'
+ // Deliberately avoid labels like 1000M or 200M: M is a MINUTE suffix
+ // in the Intervals.icu parser and was causing the 207h/1971km bug.
+ const title=s.kind==='run'?'LAUF':s.kind==='recovery'?'TRAB':
+  s.kind==='warmup'?'EINLAUFEN':s.kind==='cooldown'?'AUSLAUFEN':'DRILLS'
+ const label=dist===null?title:title+' '+dist+'er'
+ const duration=mode==='distance'?dist+'mtr':timeToken(defaultSeconds(s))
+ const target=paceTarget(s.paceSecondsPerKm)
+ const line='- '+(mode==='lap'?'Press lap ':'')+[clean(label),duration,target,'intensity='+intensity].filter(Boolean).join(' ')
+ return {line,mode,dist,durationSeconds:mode==='time'?s.durationSeconds:null,
+  paceSecondsPerKm:s.paceSecondsPerKm??null}
+}
+export function buildIntervalsWorkout(snapshot,title){
+ if(!snapshot||typeof snapshot!=='object'||!snapshot.group||
+  !Array.isArray(snapshot.group.steps)||!snapshot.group.steps.length)
+  throw Error('Missing selected and reviewed trainer group')
+ const source=[{kind:'warmup',...(snapshot.warmup||{})},...snapshot.group.steps,
+               {kind:'cooldown',...(snapshot.cooldown||{})}]
+ if(source.length>MAX_STEPS)throw Error('Garmin supports at most 50 workout steps')
+ if(!source.some(s=>s.kind==='run'))throw Error('Workout contains no running steps')
+ const mapped=source.map(render)
+ const description=[
+  'Einlaufen',
+  mapped[0].line,'',
+  clean(snapshot.group.name||'Intervalle'),
+  ...mapped.slice(1,-1).map(x=>x.line),'',
+  'Auslaufen',
+  mapped[mapped.length-1].line
+ ].join('\n')
+ if(description.length>16000)throw Error('Workout description too long')
+ const expectedDistance=source.reduce((total,s)=>total+(s.distanceMeters||0),0)
+ return {name:clean(title)||'GARMIN_AI Training',type:'Run',category:'WORKOUT',target:'PACE',
+  description,stepCount:mapped.length,steps:mapped,expectedDistance}
+}
+export function workoutLocalTime(date){
+ const weekday=new Date(date+'T12:00:00Z').getUTCDay()
+ if(weekday===6)return '09:00' // ORC Track Saturday
+ if([1,2,3].includes(weekday))return '19:00' // Football, Tue Track, Wed Group Run
+ return '18:00' // Custom day: explicit start-time UI to follow
+}
+export function buildIntervalsEvent(plan){
+ if(!plan||!plan.archive_snapshot||!/^[0-9a-f-]{36}$/i.test(String(plan.id))||
+    !/^\d{4}-\d{2}-\d{2}$/.test(String(plan.training_date)))
+  throw Error('Invalid approved plan')
+ const w=buildIntervalsWorkout(plan.archive_snapshot,plan.title)
+ const explicitTime=plan.archive_snapshot.startTime
+ const selectedTime=/^(0[5-9]|1[0-9]|2[0-2]):(00|15|30|45)$/.test(String(explicitTime))?
+  explicitTime:workoutLocalTime(plan.training_date)
+ return {category:w.category,type:w.type,name:w.name,target:w.target,
+   start_date_local:plan.training_date+'T'+selectedTime+':00',
+   external_id:'garmin-ai:'+plan.id,description:w.description}
+}
+function allSteps(steps){
+ if(!Array.isArray(steps))return []
+ return steps.flatMap(s=>Array.isArray(s?.steps)?allSteps(s.steps):[s])
+}
+export function validateStoredIntervalsWorkout(found,snapshot,event){
+ if(!found||found.category!=='WORKOUT'||String(found.type||'').toLowerCase()!=='run')
+  return {ok:false,reason:'Wrong calendar event type'}
+ if(found.external_id!==event.external_id||found.start_date_local!==event.start_date_local)
+  return {ok:false,reason:'External ID or local start time mismatched'}
+ if(found.description!==event.description)
+  return {ok:false,reason:'Workout text does not match the published version'}
+ const expected=buildIntervalsWorkout(snapshot,event.name)
+ if(snapshot.sourceKind==='coach'&&snapshot.qualitySource!=='archive'){
+  const expectedSecs=expected.steps.reduce((t,s)=>t+(s.durationSeconds||0),0)
+  const actualSecs=Number(found.moving_time??found.workout_doc?.duration)
+  if(expected.steps.some(s=>s.mode!=='time')||
+    !Number.isFinite(actualSecs)||Math.abs(actualSecs-expectedSecs)>5)
+   return {ok:false,reason:'Coach workout duration differs from the approved duration'}
+ }
+ const steps=allSteps(found.workout_doc?.steps)
+ if(steps.length!==expected.stepCount)
+  return {ok:false,reason:'Workout step count or structure not parsed'}
+ const moving=Number(found.moving_time??found.workout_doc?.duration)
+ const distance=Number(found.distance??found.workout_doc?.distance)
+ if(!Number.isFinite(moving)||moving<=0||moving>4*3600||
+    !Number.isFinite(distance)||distance<0||distance>60000)
+  return {ok:false,reason:'Impossible duration or distance returned by Intervals.icu'}
+ for(let i=0;i<expected.steps.length;i++){
+  const step=steps[i],spec=expected.steps[i]
+  if(!step||typeof step!=='object')return {ok:false,reason:'Invalid parsed step'}
+  const lap=step.until_lap_press===true||step.press_lap===true
+  if((spec.mode==='lap')!==lap)return {ok:false,reason:'LAP completion mode lost at step '+(i+1)}
+  if(spec.mode==='distance'){
+   const actual=Number(step.distance)
+   if(!Number.isFinite(actual)||Math.abs(actual-spec.dist)>2)
+    return {ok:false,reason:'Distance completion lost at step '+(i+1)}
+  }
+  if(spec.mode==='time'){
+   // Never mistake a LAP-estimated duration for an automatic timed step.
+   const actual=Number(step.duration)
+   if(!Number.isFinite(actual)||Math.abs(actual-spec.durationSeconds)>2)
+    return {ok:false,reason:'Timed step duration missing or changed at step '+(i+1)}
+  }
+  if(spec.paceSecondsPerKm!==null){
+   const pace=step.pace
+   if(!pace||!Number.isFinite(Number(pace.start))||!Number.isFinite(Number(pace.end))||
+      String(pace.units||'')!=='secs/km'||Math.abs(Number(pace.start)-(spec.paceSecondsPerKm-10))>2||
+      Math.abs(Number(pace.end)-(spec.paceSecondsPerKm+10))>2)
+    return {ok:false,reason:'Pace target lost at step '+(i+1)}
+  }
+ }
+ return {ok:true,reason:'parsed'}
+}
+
+ return new RegExp(pattern).test(prefix)&&prefix.length<=180?prefix:''
+}
+const promptText=value=>String(value??'').trim().replace(/^Press lap\s+/i,'').replace(/^\((.*)\)$/,'$1').trim()
 function render(s){
  if(!s||!kinds.has(s.kind))throw Error('Unsupported workout step kind')
  const dist=s.distanceMeters??null,mode=s.endMode??'lap'
