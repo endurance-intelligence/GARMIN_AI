@@ -111,7 +111,7 @@ Deno.serve(async req=>{
       // a new source string that might violate a historical CHECK constraint.
       const activityHistory=(activityRuns.data||[]).filter(r=>{
         const source=r.source==null?'':String(r.source).trim().toLowerCase()
-        return source!== 'garmin-health'
+        return source==='garmin-personal-api'
       })
       const first=activityHistory[0]
       const healthFirst=healthRuns.data?.[0]
@@ -128,7 +128,7 @@ Deno.serve(async req=>{
       const activities=classifySync({
         lastAttemptAt:first?.finished_at??null,
         lastSuccessAt:lastSuccess(activityHistory),
-        lastResult:first?.result??null,thresholdHours:3
+        lastResult:first?.result??null,thresholdHours:.5
       })
       const healthState=classifySync({
         lastAttemptAt:healthFirst?.finished_at??null,
