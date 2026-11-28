@@ -4,6 +4,8 @@ const project='https://eurgupsebxypjqvyizci.supabase.co'
 const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
 import {createGarminPersonalClient,GarminPersonalDeferred} from '../_shared/garmin-personal-client.mjs'
 import {normalizeAthleteProfile,cycleAvailability,profileFieldAvailability} from '../../../src/lib/athleteProfile.mjs'
+import {emptyHealthPreferences,normalizeHealthPreferences,explicitGarminProfile,weighReminderDue} from '../../../src/lib/healthPreferences.mjs'
+const healthDay=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
 function key(kind:'public'|'secret'){
  try{const value=JSON.parse(Deno.env.get(kind==='public'?'SUPABASE_PUBLISHABLE_KEYS':'SUPABASE_SECRET_KEYS')||'{}');if(typeof value.default==='string'&&value.default)return value.default}catch{/* legacy */}
  return Deno.env.get(kind==='public'?'SUPABASE_ANON_KEY':'SUPABASE_SERVICE_ROLE_KEY')||''
@@ -24,6 +26,18 @@ Deno.serve(async req=>{
   if(error||!user)return reply(401,{error:'Ungültige Anmeldung'})
   if(!user.email_confirmed_at||user.email?.trim().toLowerCase()!==owner)return reply(403,{error:'Zugriff nicht erlaubt'})
   const db=createClient(project,key('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
+  const todayHealth=healthDay()
+  const readHealth=async()=>{
+   const {data:row,error}=await db.from('garmin_health_preferences').select('height_cm,birth_year,adult_confirmed,weigh_reminder,dismissed_date').eq('user_id',user.id).maybeSingle()
+   if(error)throw Error('health_preferences_read')
+   const preferences=row?normalizeHealthPreferences({heightCm:row.height_cm===null?null:Number(row.height_cm),birthYear:row.birth_year,adultConfirmed:row.adult_confirmed,weighReminder:row.weigh_reminder},todayHealth):emptyHealthPreferences()
+   if(!preferences)throw Error('health_preferences_invalid')
+   // Existing single-athlete weight store, read only whether today is present.
+   const {data:weigh,error:weightError}=await db.from('garmin_weight_outbox').select('weigh_date').eq('weigh_date',todayHealth).maybeSingle()
+   if(weightError)throw Error('weight_status_read')
+   return {preferences,reminderDue:weighReminderDue(preferences,todayHealth,weigh?[todayHealth]:[],row?.dismissed_date),date:todayHealth}
+  }
+  if(req.method==='GET'&&new URL(req.url).searchParams.get('health')==='1')return reply(200,await readHealth())
   const {data:row,error:readError}=await db.from('garmin_athlete_profile').select('profile').eq('user_id',user.id).maybeSingle()
   if(readError)return reply(503,{error:'Athletenprofil nicht erreichbar'})
   const profile=row?normalizeAthleteProfile(row.profile):null
@@ -34,6 +48,18 @@ Deno.serve(async req=>{
   if(raw.length>4000)return reply(413,{error:'Anfrage zu groß'})
   let input;try{input=JSON.parse(raw)}catch{return reply(422,{error:'Ungültiges JSON'})}
   if(!input||input.confirm!==true)return reply(422,{error:'Bestätigung erforderlich'})
+  if(input.action==='save_health'){
+   const next=normalizeHealthPreferences(input.preferences,todayHealth)
+   if(!next)return reply(422,{error:'Gesundheitsprofil ungültig'})
+   const {error}=await db.from('garmin_health_preferences').upsert({user_id:user.id,height_cm:next.heightCm,birth_year:next.birthYear,adult_confirmed:next.adultConfirmed,weigh_reminder:next.weighReminder,updated_at:new Date().toISOString()},{onConflict:'user_id',defaultToNull:false})
+   if(error)return reply(503,{error:'Gesundheitsprofil nicht gespeichert'})
+   return reply(200,{saved:true,...await readHealth()})
+  }
+  if(input.action==='dismiss_weigh'){
+   const {error}=await db.from('garmin_health_preferences').update({dismissed_date:todayHealth,updated_at:new Date().toISOString()}).eq('user_id',user.id)
+   if(error)return reply(503,{error:'Erinnerung nicht geändert'})
+   return reply(200,await readHealth())
+  }
   if(input.action==='save'){
    const next=normalizeAthleteProfile(input.profile)
    if(!next)return reply(422,{error:'Athletenprofil unvollständig oder ungültig'})
@@ -41,7 +67,7 @@ Deno.serve(async req=>{
    if(error||!data)return reply(503,{error:'Profil nicht gespeichert'})
    return reply(200,{saved:true,profile:normalizeAthleteProfile(data.profile),trainingPlanChanged:false})
   }
-  if(input.action==='check_profile'){
+  if(input.action==='check_profile'||input.action==='prefill_health'){
    const apiKey=Deno.env.get('GARMIN_API_KEY')||''
    if(!apiKey)return reply(200,{status:'garmin-not-configured'})
    try{
@@ -51,7 +77,9 @@ Deno.serve(async req=>{
     const r=await api.fetch('https://personal.connectapi.garmin.com/userprofile-service/userprofile/settings',{headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(15000)})
     if(r.status===429)return reply(200,{status:'garmin-rate-limited'})
     if(!r.ok||r.status===204)return reply(200,{status:'garmin-unavailable'})
-    return reply(200,{status:'profile-checked',fields:profileFieldAvailability(await r.json())})
+    const rawProfile=await r.json()
+    if(input.action==='prefill_health')return reply(200,{status:'profile-prefill',candidate:explicitGarminProfile(rawProfile)})
+    return reply(200,{status:'profile-checked',fields:profileFieldAvailability(rawProfile)})
    }catch(e){return reply(200,{status:e instanceof GarminPersonalDeferred&&e.status===429?'garmin-rate-limited':'garmin-unavailable'})}
   }
   if(input.action==='check_cycle'){
