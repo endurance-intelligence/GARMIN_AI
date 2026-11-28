@@ -5,3 +5,6 @@ export const ATHLETE_GOALS:Array<[string,string]>
 export function emptyAthleteProfile():AthleteProfile
 export function normalizeAthleteProfile(value:unknown):AthleteProfile|null
 export function cycleAvailability(value:unknown):'schema-review'|'unavailable'
+
+export type ProfileFieldAvailability={heightCandidate:boolean;ageCandidate:boolean;sexCandidate:boolean;weightCandidate:boolean}
+export function profileFieldAvailability(value:unknown):ProfileFieldAvailability
