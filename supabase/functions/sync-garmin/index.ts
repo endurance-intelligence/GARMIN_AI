@@ -23,10 +23,10 @@ function asNumber(value: unknown): number | null {
 function asText(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null
 }
-function json(data: unknown, status = 200): Response {
+function json(data: unknown, status = 200, headers: Record<string,string> = {}): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers },
   })
 }
 function adminKey(): string {
@@ -47,6 +47,7 @@ async function garminCall(fetcher: typeof fetch, path: string, type: 'ApiKey' | 
     headers: { Authorization: `${type} ${secret}` },
     signal: AbortSignal.timeout(25000),
   })
+  if (response.status === 429) throw new GarminPersonalDeferred(429)
   if (!response.ok) throw new Error(`Garmin ${path.includes("/personalapitoken-service/") ? "token" : path.includes("/activitylist-service/") ? "activities" : "detail"} HTTP ${response.status}`)
   return await response.text()
 }
@@ -94,35 +95,60 @@ async function readActivities(api: Awaited<ReturnType<typeof createGarminPersona
   return rows
 }
 
+function manualCors(origin: string | null): Record<string,string> {
+  const allowlist=(Deno.env.get('GARMIN_APP_ORIGINS')||'').split(',').map(x=>x.trim()).filter(Boolean)
+  if (!origin || !(origin==='https://endurance-intelligence.github.io' ||
+    /^http:\/\/(127\.0\.0\.1|localhost):517[3-9]$/.test(origin) || allowlist.includes(origin))) return {}
+  return {'Access-Control-Allow-Origin':origin,'Vary':'Origin',
+    'Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info',
+    'Access-Control-Allow-Methods':'POST,OPTIONS'}
+}
 Deno.serve(async (req: Request) => {
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  const origin=req.headers.get('origin')
+  const headers=manualCors(origin)
+  const reply=(data:unknown,status=200)=>json(data,status,headers)
+  if(origin&&!headers['Access-Control-Allow-Origin'])return reply({error:'Origin not allowed'},403)
+  if(req.method==='OPTIONS')return new Response(null,{status:204,headers})
+  if (req.method !== 'POST') return reply({ error: 'Method not allowed' }, 405)
+  const scheduled = req.headers.has('x-garmin-sync-secret')
   const submittedToken = req.headers.get('x-garmin-sync-secret') ?? ''
-  if (!/^[a-f0-9]{64}$/.test(submittedToken)) return json({ error: 'Unauthorized' }, 401)
+  const manualToken = /^Bearer\s+(.+)$/i.exec(req.headers.get('authorization')||'')?.[1]
+  if(scheduled ? !/^[a-f0-9]{64}$/.test(submittedToken) : !manualToken)
+    return reply({error:'Unauthorized'},401)
   const apiKey = Deno.env.get('GARMIN_API_KEY') ?? ''
   const url = Deno.env.get('SUPABASE_URL') ?? ''
-  if (!apiKey || !url) return json({ error: 'Server configuration incomplete' }, 503)
+  if (!apiKey || !url) return reply({ error: 'Server configuration incomplete' }, 503)
 
   let admin
   try {
     admin = createClient(url, adminKey(), {
       auth: { autoRefreshToken: false, persistSession: false },
     })
-  } catch { return json({ error: 'Supabase admin configuration incomplete' }, 503) }
+  } catch { return reply({ error: 'Supabase admin configuration incomplete' }, 503) }
 
   // The verifier is service-role-only; the token lives solely in encrypted
   // Supabase Vault, never in Git, browser code or an Edge Function environment.
-  const { data: allowed, error: authorizationError } = await admin.rpc(
-    'garmin_verify_cron_token', { p_token: submittedToken }
-  )
-  if (authorizationError) {
-    console.error('GARMIN_AI scheduler authorization unavailable:', authorizationError.code)
-    return json({ error: 'Authorization service unavailable' }, 503)
+  if (scheduled) {
+    const {data:allowed,error:authorizationError}=await admin.rpc('garmin_verify_cron_token',{p_token:submittedToken})
+    if(authorizationError)return reply({error:'Authorization service unavailable'},503)
+    if(allowed!==true)return reply({error:'Unauthorized'},401)
+  } else {
+    const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
+    if(!owner)return reply({error:'Manual sync not configured'},503)
+    const {data:{user},error}=await admin.auth.getUser(manualToken!)
+    if(error||!user)return reply({error:'Invalid session'},401)
+    if(!user.email_confirmed_at||user.email?.trim().toLowerCase()!==owner)
+      return reply({error:'Not authorized'},403)
   }
-  if (allowed !== true) return json({ error: 'Unauthorized' }, 401)
 
   try {
     const api = await createGarminPersonalClient(admin, apiKey, url)
     await api.ready()
+    const {data:gate,error:gateError}=await admin.rpc('garmin_claim_activity_sync')
+    if(gateError||typeof gate?.allowed!=='boolean'||typeof gate?.retryAt!=='string')
+      return reply({error:'Sync protection unavailable'},503)
+    if(!gate.allowed)
+      return reply({ok:false,skipped:true,retryAt:gate.retryAt,error:'Activity sync cooldown'},scheduled?200:409)
     const rows = await readActivities(api)
     if (rows.length > 0) {
       // Preserve RPE/Feeling enriched by the separate detail job; the ten-item
@@ -158,7 +184,7 @@ Deno.serve(async (req: Request) => {
       finished_at: new Date().toISOString(),
     })
     if (logError) throw new Error(`Sync log: ${logError.message}`)
-    return json({ ok: true, source: 'Garmin Personal API', stored: rows.length })
+    return reply({ ok: true, source: 'Garmin Personal API', stored: rows.length, retryAt:gate.retryAt })
   } catch (error) {
     // Do not disclose keys or raw Garmin data in error messages or logs.
     const message = error instanceof Error ? error.message : 'Unexpected synchronization failure'
@@ -171,6 +197,6 @@ Deno.serve(async (req: Request) => {
         message: 'activity-sync-failed', finished_at: new Date().toISOString(),
       })
     } catch { /* failure visibility best effort; never log Garmin credentials */ }
-    return json({ ok: false, error: 'Synchronization deferred or failed; check Edge Function logs' }, error instanceof GarminPersonalDeferred ? (error.status === 429 ? 429 : 503) : 502)
+    return reply({ ok: false, error: 'Synchronization deferred or failed; check Edge Function logs' }, error instanceof GarminPersonalDeferred ? (error.status === 429 ? 429 : 503) : 502)
   }
 })
