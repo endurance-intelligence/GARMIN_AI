@@ -128,10 +128,23 @@
 
 .hwb-card.is-coach.is-rejected{border-style:dashed;opacity:.8}.hwb-card.is-coach.is-rejected strong{text-decoration:line-through;color:#aeb9c9}
 
-/* Phone: real agenda, not a horizontally clipped desktop week. */
-@media(max-width:740px){
+/* Phone and tablet: real agenda, not a horizontally clipped desktop week. */
+@media(max-width:1366px){
  .hwb-root{margin:10px 0 16px}.hwb-title{margin-bottom:8px;align-items:center}.hwb-title h3{font-size:18px;margin:3px 0}.hwb-title .hwb-eyebrow{display:none}.hwb-period{padding:5px 7px;font-size:10px}
  .hwb-layout{display:flex;flex-direction:column;gap:8px;padding:0;border:0;background:none}.hwb-scroll{order:-1;overflow:visible;scroll-snap-type:none;margin:0;border-radius:0}.hwb-days{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;min-height:0;gap:6px}
  .hwb-day{display:grid;grid-template-columns:60px minmax(0,1fr);align-items:stretch;min-height:58px;border-radius:10px;overflow:hidden}.hwb-day-header{min-height:58px;height:100%;padding:8px 5px;justify-content:center;align-items:center;flex-direction:column;gap:3px;text-align:center}.hwb-date{display:flex;flex-direction:column;align-items:center;gap:3px}.hwb-date b{font-size:19px!important}.hwb-date b small{font-size:10px}.hwb-day-hint{margin:0;font-size:9px}
  .hwb-day-cards{min-height:0;padding:5px;gap:5px;justify-content:center}.hwb-card{padding:8px 10px;min-height:44px;gap:3px;border-radius:8px}.hwb-card strong{font-size:13px;line-height:1.35}.hwb-card-label{font-size:9px}.hwb-card>small{display:none}.hwb-card.is-confirmed-group>small.hwb-group-guidance{display:block}.hwb-card>span:not(.hwb-card-label){font-size:11px}.hwb-coach-stack{gap:4px}.hwb-quick-segment{gap:4px}.hwb-quick-segment .hwb-quick-accept{min-height:44px}.hwb-quick-note{display:none}.hwb-empty{margin:0;text-align:left;padding:10px;font-size:11px}.hwb-summary{padding:9px 10px;gap:4px;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center}.hwb-summary>.hwb-eyebrow,.hwb-summary>p,.hwb-summary>small{display:none}.hwb-summary>strong{font-size:16px!important}.hwb-summary-metrics{flex:1;justify-content:flex-end;gap:8px}.hwb-summary-metrics>div{padding:0;gap:4px}.hwb-summary-metrics>div:last-child{display:none}.hwb-foot{font-size:10px;margin-top:7px}
+}
+
+/* Tablet: keep the same seven-row agenda, with readable dates and larger cards. */
+@media(min-width:741px) and (max-width:1366px){
+ .hwb-root{margin:14px 0 20px}.hwb-title h3{font-size:23px}.hwb-period{font-size:12px}
+ .hwb-days{gap:8px}.hwb-day{grid-template-columns:88px minmax(0,1fr);min-height:70px}
+ .hwb-day-header{padding:10px 8px}.hwb-date b{font-size:24px!important}
+ .hwb-day-cards{padding:8px;gap:7px}.hwb-card{padding:10px 14px;min-height:52px;gap:4px}
+ .hwb-card strong{font-size:15px}.hwb-card>small{display:block;font-size:12px;overflow-wrap:anywhere}
+ .hwb-card>span:not(.hwb-card-label){font-size:12px}.hwb-card-label{font-size:10px}
+ .hwb-quick-segment{max-width:360px;gap:6px}.hwb-quick-segment .hwb-quick-accept{min-height:44px}
+ .hwb-summary{padding:12px 14px}.hwb-summary>strong{font-size:20px!important}
+ .hwb-summary-metrics>div:last-child{display:flex}.hwb-summary-metrics{min-width:0}
 }

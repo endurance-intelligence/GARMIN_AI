@@ -339,7 +339,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
  }
  function selectCalendarDay(day:string){
   setSelected(day);setCoachReview(null);setMoveArmed(null);setMoveError('')
-  if(window.matchMedia('(max-width:740px)').matches)requestAnimationFrame(()=>dayDetail.current?.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}))
+  if(window.matchMedia('(max-width:1366px)').matches)requestAnimationFrame(()=>dayDetail.current?.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}))
  }
  async function approvePlan(plan:Plan){
   if(acting||!garminSupabase)return
