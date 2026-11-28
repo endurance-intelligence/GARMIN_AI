@@ -10,7 +10,6 @@ import {interpretSpatialTrainerPhoto,spatialPhotoReviewIssues} from '../lib/spat
 import {WorkoutReviewDialog} from './WorkoutReviewDialog'
 import {OrcPrivateLibrary} from './OrcPrivateLibrary'
 import {withNumberedSplitNotes} from '../lib/workoutSplitNotes'
-import {extensiveSaturdayFlyer} from '../lib/extensiveSaturdayFlyer'
 import '../styles/workout-archive.css'
 
 type ArchiveResponse={entries:ArchiveRecord[];hasMore:boolean;nextPage:number|null;visionConfigured:boolean}
@@ -65,7 +64,9 @@ async function callArchive<T>(body?:Record<string,unknown>,page=0):Promise<T>{
 export function WorkoutArchivePanel({active,date,onPlanned}:{
  active:boolean;date:string;onPlanned:()=>void
 }){
- const [open,setOpen]=useState(false)
+ const [open,setOpen]=useState(true)
+ const [libraryOpen,setLibraryOpen]=useState(false)
+ const [libraryPlan,setLibraryPlan]=useState(false)
  const [loading,setLoading]=useState(false)
  const [entries,setEntries]=useState<ArchiveRecord[]>([])
  const [configured,setConfigured]=useState(false)
@@ -203,21 +204,32 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
   setOcrWarnings(old=>[...old,'Alle Schritte müssen anhand des Fotos ergänzt werden.'])
  }
  function begin(workout:TrainerWorkout,kind:SourceKind,hash:string|null=null){
-  setPreviewRecord(null);setReviewOpen(true)
+  setLibraryPlan(false);setPreviewRecord(null);setReviewOpen(true)
   setEditing(workout);setSourceKind(kind);setImageHash(hash)
   setEditGroup(workout.groups.findIndex(g=>g.name==='Wolf')>=0?
    workout.groups.findIndex(g=>g.name==='Wolf'):0)
   setError('');setSuccess('')
   requestId.current=crypto.randomUUID()
  }
+ function reviewLibrarySource(workout:TrainerWorkout,hash:string,groupIndex:number,reviewRequired:boolean,sourceNotes:string,photo:string){
+  if(!canStartNew())return
+  const selected=workout.groups[groupIndex]
+  if(!selected)return
+  // A reviewed selection is a derived copy; the complete multi-group original remains immutable.
+  begin({...structuredClone(workout),groups:[structuredClone(selected)]},'orc_reference',hash)
+  setLibraryPlan(true);setEditGroup(0);setOcrRaw('');setOcrWasTemplate(false)
+  setOcrWarnings([...(reviewRequired?['Prüfung offen: Bitte die Angaben dieser Gruppe mit dem Originalbild vergleichen.']:[]),...(sourceNotes?[sourceNotes]:[])])
+  if(localPhotoUrlRef.current)URL.revokeObjectURL(localPhotoUrlRef.current)
+  localPhotoUrlRef.current=null;setLocalPhotoUrl(photo)
+ }
  function viewRecord(record:ArchiveRecord,groupName:string){
-  setEditing(null);setPreviewRecord(record);setReviewOpen(true)
+  setLibraryPlan(false);setEditing(null);setPreviewRecord(record);setReviewOpen(true)
   setEditGroup(Math.max(0,record.workout.groups.findIndex(g=>g.name===groupName)))
   setOcrRaw('');setOcrWarnings([]);setError('');setSuccess('')
  }
  function closeReview(){
   if(busy||localBusy)return
-  setReviewOpen(false);setPreviewRecord(null);setEditing(null)
+  setLibraryPlan(false);setReviewOpen(false);setPreviewRecord(null);setEditing(null)
   setOcrWarnings([]);setOcrRaw('');setOcrIdentifiedGroups(0)
   setOcrWasTemplate(false);setReferenceConfirmed(false)
   if(localPhotoUrlRef.current)URL.revokeObjectURL(localPhotoUrlRef.current)
@@ -261,9 +273,9 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
   }catch(e){setError(e instanceof Error?e.message:'Bildanalyse fehlgeschlagen')}
   finally{setBusy(false)}
  }
- async function save(){
-  if(!editing||busy)return
-  if(sourceKind==='trainer_photo'){
+ async function save(planAfter=false){
+  if(!editing||busy||planAfter&&date<todayBerlin())return
+  if(sourceKind==='trainer_photo'||libraryPlan){
    const issues=spatialPhotoReviewIssues(editing)
    if(issues.length){
     setError('Noch unvollständige Trainingsgruppen: '+issues.join(' · '))
@@ -276,15 +288,20 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
     action:'save',clientRequestId:requestId.current,reviewed:true,
     workout:{...editing,groups:editing.groups.map(g=>({...g,steps:withNumberedSplitNotes(g.steps)}))},sourceKind,sourceImageSha256:imageHash
    })
-   if(result.saved!==true)throw Error('Speichern nicht bestätigt.')
+   if(result.saved!==true||!result.id)throw Error('Speichern nicht bestätigt.')
    if(draftKey)try{sessionStorage.removeItem(draftKey);setSavedDraft(false)}catch{/* storage disabled */}
-   setEditing(null);setPreviewRecord(null);setReviewOpen(false)
+   const selected=editing.groups[editGroup]
+   const record:ArchiveRecord={id:result.id,title:editing.title,coach_name:editing.trainer,source_label:editing.sourceLabel,source_kind:sourceKind,source_image_sha256:imageHash,workout:{...editing,groups:editing.groups.map(g=>({...g,steps:withNumberedSplitNotes(g.steps)}))},created_at:new Date().toISOString()}
+   setEditing(null);setPreviewRecord(planAfter?record:null);setReviewOpen(planAfter);setLibraryPlan(false)
    setOcrWarnings([]);setOcrRaw('');setOcrIdentifiedGroups(0);setOcrWasTemplate(false)
    setReferenceConfirmed(false)
    if(localPhotoUrlRef.current)URL.revokeObjectURL(localPhotoUrlRef.current)
    localPhotoUrlRef.current=null;setLocalPhotoUrl(null)
    await refresh()
-   setSuccess('Trainertraining im Archiv gespeichert. Alle Gruppen bleiben verfügbar.')
+   if(planAfter&&selected){
+    // After the acknowledged save, a failed plan is retried from preview, never saved twice.
+    await plan(record,selected.name)
+   }else setSuccess('Trainertraining im Archiv gespeichert.')
   }catch(e){setError(e instanceof Error?e.message:'Vorlage nicht gespeichert')}
   finally{setBusy(false)}
  }
@@ -324,6 +341,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
     </div>
    </div>
    <div className="wa-import-actions">
+    <button type="button" className="wa-library-select" aria-expanded={libraryOpen} disabled={busy||localBusy} onClick={()=>setLibraryOpen(v=>!v)}>Aus Bibliothek auswählen {libraryOpen?'▴':'▾'}</button>
     {savedDraft&&<button type="button" disabled={busy||localBusy} onClick={resumeDraft}>Letzten Entwurf fortsetzen</button>}
     <label className="wa-import-label wa-import-free">
      {localBusy?'Lese Bild auf deinem Gerät …':'Foto kostenlos lokal lesen'}
@@ -334,11 +352,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
     </label>
     <button type="button" disabled={busy||localBusy}
      onClick={()=>{if(canStartNew())begin(blankTrainerWorkout(),'manual')}}>Manuell erfassen</button>
-    <button type="button" disabled={busy||localBusy}
-     onClick={()=>{if(canStartNew())begin(previousOrcFlyer(),'orc_reference')}}>
-     Schwelle im Wechsel · alle 5 Gruppen
-    </button>
-    <button type="button" disabled={busy||localBusy} onClick={()=>{if(!canStartNew())return;begin(extensiveSaturdayFlyer(),'orc_reference')}}>Extensiv &amp; zügig · 1000 m + 200 m · alle 5 Gruppen</button>
+
    </div>
    {localBusy&&<p className="wa-ocr-progress" role="status">{ocrProgress}</p>}
    <p className="wa-hint">Kostenlose Texterkennung auf deinem Gerät – ohne API-Guthaben.
@@ -355,7 +369,10 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
     </label>
    </details>}
 
-   <OrcPrivateLibrary disabled={busy||localBusy||reviewOpen} onReview={(workout,hash)=>{if(canStartNew())begin(workout,'orc_reference',hash)}}/>
+   {libraryOpen&&<section className="wa-library-picker" aria-label="Training aus Bibliothek auswählen">
+   <h3>Training auswählen · {date.split('-').reverse().join('.')}</h3>
+   <p className="wa-hint">Wähle ein Original oder ein bereits geprüftes Training. Gruppe prüfen und direkt für diesen Kalendertag übernehmen.</p>
+   <OrcPrivateLibrary date={date} disabled={busy||localBusy||reviewOpen} onReview={reviewLibrarySource}/>
    <div className="wa-list-header">
     <strong>Dein Trainingsarchiv</strong>
     <span>{entries.length} geladene Vorlagen</span>
@@ -365,7 +382,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
       placeholder="Name, Gruppe, Trainer …" maxLength={100}/>
    </label>
    {!loading&&entries.length===0&&<p className="wa-hint">
-    Noch keine gespeicherte Vorlage. Übernimm die vorherige ORC-Einheit oder erfasse ein neues Trainertraining.
+    Noch keine geprüfte Vorlage. Wähle oben ein importiertes ORC-Original oder erfasse ein neues Trainertraining.
    </p>}
    <div className="wa-list">
     {shown.map(record=>{
@@ -400,10 +417,11 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    {!loading&&shown.length===0&&entries.length>0&&<p className="wa-hint">Keine passende Vorlage unter den geladenen Trainings.</p>}
    {hasMore&&<button type="button" className="wa-load-more" disabled={loading}
     onClick={()=>void loadMore()}>{loading?'Lade …':'Weitere 100 Vorlagen laden'}</button>}
+   </section>}
    {success&&<p className="wa-success" role="status">{success}</p>}
    {error&&<p className="wa-error" role="alert">{error}</p>}
    <p className="wa-hint">Einplanen erstellt nur einen privaten Entwurf. Garmin-Workout-Erstellung
-    und automatische Coach-Auswahl bleiben bis zur separaten Prüfung deaktiviert.</p>
+    erfolgt erst nach deiner Freigabe im Kalender.</p>
   </div>}
  </details>
  <WorkoutReviewDialog
@@ -412,6 +430,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
   onGroup={setEditGroup} onClose={closeReview}
   onChange={change} onChangeGroup={changeGroup} onChangeStep={changeStep}
   onSave={()=>void save()}
+  libraryPlan={libraryPlan} onSaveAndPlan={()=>void save(true)} canPlan={date>=todayBerlin()}
   onCopy={()=>{
    if(!previewRecord||!canStartNew())return
    begin(structuredClone(previewRecord.workout),'manual')

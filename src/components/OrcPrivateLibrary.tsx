@@ -16,7 +16,7 @@ async function request<T>(body:Record<string,unknown>):Promise<T>{
  if(!r.ok)throw Error(result.error||'Import nicht verfügbar (HTTP '+r.status+').')
  return result
 }
-export function OrcPrivateLibrary({onReview,disabled}:{onReview:(workout:TrainerWorkout,hash:string)=>void;disabled:boolean}){
+export function OrcPrivateLibrary({onReview,disabled,date}:{onReview:(workout:TrainerWorkout,hash:string,groupIndex:number,reviewRequired:boolean,sourceNotes:string,photo:string)=>void;disabled:boolean;date:string}){
  const [sources,setSources]=useState<Source[]>([])
  const [detail,setDetail]=useState<Detail|null>(null)
  const [group,setGroup]=useState(0)
@@ -25,6 +25,9 @@ export function OrcPrivateLibrary({onReview,disabled}:{onReview:(workout:Trainer
  const [error,setError]=useState('')
  const [filter,setFilter]=useState('')
  const [showPhoto,setShowPhoto]=useState(false)
+ const [detailLoading,setDetailLoading]=useState(false)
+ const detailRef=useRef<HTMLDivElement>(null)
+ useEffect(()=>{if(detail)detailRef.current?.scrollIntoView({block:'nearest'})},[detail])
  const lock=useRef(false)
  const detailSeq=useRef(0)
  async function refresh(){
@@ -49,32 +52,36 @@ export function OrcPrivateLibrary({onReview,disabled}:{onReview:(workout:Trainer
   finally{lock.current=false;setBusy(false);await refresh()}
  }
  async function select(id:string){
-  const seq=++detailSeq.current;setError('');setDetail(null);setShowPhoto(false);setGroup(0)
-  try{const result=await request<Detail>({action:'orc_source_detail',id});if(seq===detailSeq.current)setDetail(result)}catch(e){if(seq===detailSeq.current)setError(e instanceof Error?e.message:'Original nicht geladen.')}
+  const seq=++detailSeq.current;setError('');setDetail(null);setShowPhoto(false);setGroup(0);setDetailLoading(true)
+  try{const result=await request<Detail>({action:'orc_source_detail',id});if(seq===detailSeq.current){setGroup(Math.max(0,result.entry.workout.groups.findIndex(g=>g.name==='Wolf')));setDetail(result)}}catch(e){if(seq===detailSeq.current)setError(e instanceof Error?e.message:'Original nicht geladen.')}finally{if(seq===detailSeq.current)setDetailLoading(false)}
  }
  const chosen=detail?.entry.workout.groups[group]
  const comments=numberedStepComments(chosen?.steps||[])
  return <section className="wa-orc-library" aria-label="Private ORC-Originalbibliothek">
   <div className="wa-list-header"><strong>ORC-Originalbibliothek</strong><span>{sources.length} Originale</span></div>
-  <p className="wa-hint">ZIP-Paket einmal vollständig prüfen und importieren. Jede Grafik bleibt eine eigene Vorlage. Originale und offene Prüfpunkte bleiben privat erhalten.</p>
+  <details className="wa-zip-management"><summary>ZIP-Import verwalten</summary>
+  <p className="wa-hint">Originale bleiben unverändert. Ein erneuter Import erzeugt keine Duplikate.</p>
   <label className="wa-import-label wa-import-free">{busy?'Import läuft …':'ORC-ZIP importieren'}<input type="file" accept=".zip,application/zip" disabled={busy||disabled} onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value='';if(f)void importZip(f)}}/></label>
+  </details>
   {status&&<p role="status" className="wa-success">{status}</p>}
   {error&&<p role="alert" className="wa-error">{error}</p>}
-  {sources.length>0&&<label className="wa-search">ORC-Vorlage suchen<input value={filter} onChange={e=>setFilter(e.target.value)} placeholder="Trainingstitel"/></label>}
-  <div className="wa-orc-list">{sources.filter(s=>s.title.toLocaleLowerCase('de-DE').includes(filter.toLocaleLowerCase('de-DE'))).map(s=><button type="button" key={s.id} onClick={()=>void select(s.id)}>{s.title}{s.review_required&&<small>Prüfung offen</small>}</button>)}</div>
-  {detail&&chosen&&<div className="wa-orc-detail">
-   <button type="button" onClick={()=>{detailSeq.current++;setDetail(null)}}>Details schließen</button>
+  {!detail&&sources.length>0&&<label className="wa-search">ORC-Vorlage suchen<input value={filter} onChange={e=>setFilter(e.target.value)} placeholder="Trainingstitel"/></label>}
+  {detailLoading&&<p role="status">Training wird geladen …</p>}
+  {!detail&&<div className="wa-orc-list">{sources.filter(s=>s.title.toLocaleLowerCase('de-DE').includes(filter.toLocaleLowerCase('de-DE'))).map(s=><button type="button" key={s.id} disabled={busy||disabled||detailLoading} onClick={()=>void select(s.id)}><span>{s.title}</span><small>{s.review_required?'Prüfung offen':'Auswählen ›'}</small></button>)}</div>}
+  {detail&&chosen&&<div className="wa-orc-detail" ref={detailRef}>
+   <button type="button" onClick={()=>{detailSeq.current++;setDetail(null)}}>‹ Zurück zur Trainingsauswahl</button>
    <h4>{detail.entry.workout.title}</h4>
-   <p>{detail.entry.reviewRequired?'Prüfung erforderlich – noch nicht für automatische Planung freigegeben.':'Originalvorlage – vor Übernahme individuell prüfen.'}</p>
+   <p>{detail.entry.reviewRequired?'Prüfung erforderlich – noch nicht für automatische Planung freigegeben.':'Originalvorlage – Gruppe auswählen und für den Kalendertag übernehmen.'}</p>
    <p>{detail.entry.sourceNotes}</p>
    <button type="button" onClick={()=>setShowPhoto(v=>!v)}>{showPhoto?'Originalbild ausblenden':'Originalbild anzeigen'}</button>
    {showPhoto&&<img alt="Originale ORC-Trainingsgrafik" src={'data:'+detail.image_content_type+';base64,'+detail.image_base64}/>}
    <label>Gruppe<select value={group} onChange={e=>setGroup(Number(e.target.value))}>{detail.entry.workout.groups.map((g,i)=><option key={i} value={i}>{g.name}</option>)}</select></label>
+   <button type="button" className="wa-library-select" disabled={disabled||busy} onClick={()=>onReview(structuredClone(detail.entry.workout),detail.entry.sourceImageSha256,group,detail.entry.reviewRequired,detail.entry.sourceNotes,'data:'+detail.image_content_type+';base64,'+detail.image_base64)}> {chosen.name} prüfen &amp; für {date.split('-').reverse().join('.')} übernehmen ›</button>
    <p>Einlaufen: {detail.entry.workout.warmup.distanceMeters??'–'} m · {detail.entry.workout.warmup.notes}</p>
    <p>{chosen.notes}</p>
    <ol>{chosen.steps.map((s,i)=><li key={i}>{s.kind==='run'?'Belastung':s.kind==='recovery'?(isDrinkBreak(s)?'Trinkpause':'Trabpause'):s.kind} · {s.distanceMeters===null?'':s.distanceMeters+' m'} {s.durationSeconds===null?'':s.durationSeconds+' s'} {s.paceSecondsPerKm===null?'':formatPace(s.paceSecondsPerKm)+'/km'}<small>{comments[i]}{s.notes?' · '+s.notes:''}</small></li>)}</ol>
    <p>Auslaufen: {detail.entry.workout.cooldown.notes}</p>
-   <button type="button" disabled={disabled||busy} onClick={()=>onReview(structuredClone(detail.entry.workout),detail.entry.sourceImageSha256)}>Als neue Vorlage prüfen</button>
+   <p>Die ausgewählte Gruppe wird als geprüfte Version übernommen. Alle Gruppen des Originals bleiben in der Bibliothek.</p>
   </div>}
  </section>
 }

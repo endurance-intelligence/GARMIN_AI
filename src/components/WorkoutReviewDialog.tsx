@@ -18,6 +18,7 @@ type Props={
  onChangeGroup:(fn:(g:TrainerGroup)=>void)=>void
  onChangeStep:(index:number,fn:(s:TrainerStep)=>TrainerStep)=>void
  onSave:()=>void;onCopy:()=>void;onPlan:()=>void
+ libraryPlan?:boolean;onSaveAndPlan?:()=>void;canPlan?:boolean
  date:string;error:string;success:string
  ocrRaw:string;ocrWarnings:string[];ocrIdentifiedGroups:number;ocrWasTemplate:boolean
  referenceConfirmed:boolean;onReferenceConfirm:(value:boolean)=>void
@@ -32,7 +33,7 @@ function paceText(step:TrainerStep){
 export function WorkoutReviewDialog(props:Props){
  const {
   open,busy,localBusy,ocrProgress,editing,preview,groupIndex,onGroup,
-  onClose,onChange,onChangeGroup,onChangeStep,onSave,onCopy,onPlan,date,
+  onClose,onChange,onChangeGroup,onChangeStep,onSave,onCopy,onPlan,date,libraryPlan,onSaveAndPlan,canPlan,
   error,success,ocrRaw,ocrWarnings,ocrIdentifiedGroups,ocrWasTemplate,
   referenceConfirmed,onReferenceConfirm,onUseReference,onManual,photoUrl
  }=props
@@ -86,7 +87,7 @@ export function WorkoutReviewDialog(props:Props){
  const recovering=group?.steps.filter(x=>x.kind==='recovery'&&!isDrinkBreak(x)).length??0
  const availableGroups=workout?.groups.length??0
  const missingPaces=group?.steps.filter(s=>s.kind==='run'&&s.paceSecondsPerKm===null).length??0
- const headline=editing?'Training prüfen':preview?'Training aus dem Archiv':'Trainingsfoto auslesen'
+ const headline=libraryPlan?'Bibliothek · Gruppe prüfen':editing?'Training prüfen':preview?'Training aus dem Archiv':'Trainingsfoto auslesen'
  const canUseReference=!!photoUrl&&!!ocrRaw&&!ocrWasTemplate
  return createPortal(<div className="wr-backdrop"
    onPointerDown={event=>{
@@ -285,13 +286,14 @@ export function WorkoutReviewDialog(props:Props){
     {editing&&<>
      <label className="wr-confirm"><input type="checkbox" checked={approved}
       onChange={event=>setApproved(event.target.checked)}/>
-      Ich habe die Trainerangaben und alle Gruppen geprüft.</label>
+      {libraryPlan?'Ich habe diese Gruppe anhand des Originals geprüft.':'Ich habe die Trainerangaben und alle Gruppen geprüft.'}</label>
      <button type="button" className="wr-save" disabled={busy||localBusy||!approved}
       onClick={onSave}>{busy?'Speichern …':'Geprüfte Vorlage archivieren'}</button>
+     {libraryPlan&&<button type="button" className="wr-save" disabled={busy||localBusy||!approved||!canPlan} onClick={onSaveAndPlan}>{busy?'Speichern …':'Für '+date.split('-').reverse().join('.')+' übernehmen'}</button>}
     </>}
     {preview&&<>
      <button type="button" onClick={onCopy}>Als neue Version bearbeiten</button>
-     <button type="button" className="wr-save" disabled={busy} onClick={onPlan}>
+     <button type="button" className="wr-save" disabled={busy||canPlan===false} onClick={onPlan}>
       Für {date.split('-').reverse().join('.')} vormerken</button>
     </>}
     {!editing&&!preview&&<span className="wr-footer-muted">Noch keine Vorlage zum Speichern bereit.</span>}

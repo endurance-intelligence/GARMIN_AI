@@ -43,3 +43,12 @@ test('private import keeps owner gate and never inserts into reviewed archive',(
  assert.match(block,/from\('garmin_orc_source'\)\.insert\(row\)/)
  assert.doesNotMatch(block,/garmin_training_plan|garmin_workout_archive|\.update\(/)
 })
+
+test('planning a reviewed copy never changes original or auto-publishes',()=>{
+ const page=readFileSync(new URL('../src/components/WorkoutArchivePanel.tsx',import.meta.url),'utf8')
+ assert.match(page,/begin\(\{\.\.\.structuredClone\(workout\),groups:\[structuredClone\(selected\)\]\},'orc_reference',hash\)/)
+ assert.match(page,/action:'save',clientRequestId:requestId.current,reviewed:true/)
+ assert.match(page,/if\(planAfter&&selected\)\{/)
+ assert.match(page,/await plan\(record,selected.name\)/)
+ assert.doesNotMatch(page,/action:'publish'|action:'orc_import'/)
+})
