@@ -3,6 +3,7 @@
  * reference-zone uncertainty and next action. No inferred LT1 or plan match.
  * Only the already-conservative matched plan may establish planned intent.
  */
+import {intervalTargetVerdict} from './intervalTargetComparison.mjs'
 const finite=x=>typeof x==='number'&&Number.isFinite(x)
 const validHr=x=>finite(x)&&x>=35&&x<=220
 const lowKinds=new Set(['easy','return_easy','long','recovery'])
@@ -44,7 +45,7 @@ const result=(kind,verdict,mode,recommendation,next,evidence=[])=>({
  modeLabel:mode==='caution'?'Trainingsziel prüfen':mode==='positive'?'Passender Trainingsreiz':'Ausführung einordnen',
  recommendation,next,evidence
 })
-export function assessTrainingPurpose({activity,match,review,samples=[],zoneReference,rpe}={}){
+export function assessTrainingPurpose({activity,match,review,samples=[],zoneReference,rpe,intervalComparison}={}){
  const planned=match?.status==='matched'?match.plan:null
  const kind=String(planned?.coachKind||'')
  const matchingReview=review?.activityId===activity?.id?review:null
@@ -74,6 +75,11 @@ export function assessTrainingPurpose({activity,match,review,samples=[],zoneRefe
   const times=laps.every(l=>finite(l.durationS)&&l.durationS>0)?laps.reduce((sum,l)=>sum+l.durationS,0):null
   evidence.push({label:'Erkannte Belastungen',value:String(laps.length),detail:fmt(distance)+' m Belastungsdistanz; ohne Trabpausen und Ein-/Auslaufen.'})
   if(times!==null)evidence.push({label:'Pace der Belastungen',value:clock(times*1000/distance)+'/km',detail:'Distanzgewichteter Wert nur der erkannten Belastungen, keine Gesamtlaufpace.'})
+  const target=intervalTargetVerdict(intervalComparison)
+  if(target){
+   evidence.push({label:'Soll-Ist · '+intervalComparison.group,value:intervalComparison.near+'/'+intervalComparison.judged,detail:intervalComparison.judged?'Bewertbare Abschnitte nahe am Richtwert. '+intervalComparison.reason:'Keine eindeutig bewertbaren festen Zielpaces.'})
+   return result('intervals',target.headline,target.mode,target.text,target.next,evidence)
+  }
   const comparable=Math.max(...laps.map(l=>l.distanceM))/Math.min(...laps.map(l=>l.distanceM))<=1.1
   const first=laps[0],last=laps.at(-1)
   const observation=comparable?'Erste/letzte Belastung: '+clock(first.paceSeconds)+' / '+clock(last.paceSeconds)+' min/km.':'Unterschiedliche Intervalllängen – kein pauschales Urteil über Tempokonstanz.'

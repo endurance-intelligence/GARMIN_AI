@@ -12,6 +12,8 @@ import type {SessionZoneSummary} from './SessionVisualInsights'
 import {completedWeeklyOption} from '../lib/weeklyOptionCompletion'
 import {buildSessionContext} from '../lib/sessionContext.mjs'
 import type {TerrainWindow} from '../lib/sessionContext.mjs'
+import {compareIntervalTargets} from '../lib/intervalTargetComparison.mjs'
+import type {IntervalTargetComparison} from '../lib/intervalTargetComparison.mjs'
 import type {PurposeReview} from '../lib/trainingPurposeAssessment.mjs'
 import type {PlanActualMatch} from '../lib/planActual.mjs'
 import { SessionGearEditor } from './SessionGearEditor'
@@ -60,7 +62,23 @@ async function historicalGroupWeather(activity:SessionResponse['activity'],list:
  if(typeof felt!=='number'||!Number.isFinite(felt)||typeof temperature!=='number'||!Number.isFinite(temperature))return null
  return {felt:Math.round(felt),temperature:Math.round(temperature),location:o.location_label,hour}
 }
-function SessionCoachContext({activity,list,terrain,session,active,zoneSummary,samples,planActual}:{activity:SessionResponse['activity'];list:Activity[];terrain:TerrainWindow[];session:Session;active:boolean;zoneSummary:SessionZoneSummary|null;samples:SessionSample[];planActual:PlanActualMatch|null}){
+const intervalPace=(n:number|null)=>n===null?'–':Math.floor(Math.round(n)/60)+':'+String(Math.round(n)%60).padStart(2,'0')
+function IntervalTargetReview({comparison:c}:{comparison:IntervalTargetComparison}){
+ if(c.status!=='plausible')return <div className="lsa-interval-targets"><div className="cr-label">SOLL / IST · INTERVALLE</div><p>{c.reason}</p>{c.expected!==null&&<small>{c.observed} erkannte Belastungen · {c.expected} geplant. Kein Beweis für ausgelassene Wiederholungen.</small>}</div>
+ const labels={near:'Nah am Soll',fast:'Schneller',slow:'Langsamer','reference-only':'Richtwert'} as const
+ return <section className="lsa-interval-targets" aria-label="Soll-Ist-Vergleich der Belastungsintervalle">
+  <div className="cr-label">SOLL / IST · {c.group}</div><h4>{c.observed} / {c.expected} Belastungen</h4>
+  <p>{c.planTitle}</p>
+  <div className="lsa-target-rows">{c.rows.map(row=><div className="lsa-target-row" key={row.repeat}>
+   <div><strong>L{row.repeat} · {row.targetDistance} m</strong><small>Ist {Math.round(row.actualDistance)} m · {intervalPace(row.actualDuration)} min</small></div>
+   <div><small>Soll / Ist (min/km)</small><strong>{intervalPace(row.targetPace)} / {intervalPace(row.actualPace)}</strong></div>
+   <div><span className={'lsa-target-status '+row.status}>{labels[row.status]}</span><small>{row.avgHr===null?'HF –':Math.round(row.avgHr)+' bpm'}</small></div>
+  </div>)}</div>
+  <small>{c.reason} Vergleichsband ±3 %, mindestens 3 s/km. Ein-/Auslaufen sowie Trab-/Trinkpausen nicht in der Intervallnote.</small>
+ </section>
+}
+
+function SessionCoachContext({activity,list,terrain,session,active,zoneSummary,samples,planActual,planEntries}:{activity:SessionResponse['activity'];list:Activity[];terrain:TerrainWindow[];session:Session;active:boolean;zoneSummary:SessionZoneSummary|null;samples:SessionSample[];planActual:PlanActualMatch|null;planEntries:PlanActualPlan[]}){
  const [purposeReview,setPurposeReview]=useState<PurposeReview|null>(null)
  const [felt,setFelt]=useState('')
  const [weather,setWeather]=useState<HistoricalWeather|null>(null)
@@ -71,9 +89,11 @@ function SessionCoachContext({activity,list,terrain,session,active,zoneSummary,s
   return ()=>{mounted=false;clearTimeout(timeout);controller.abort()}
  },[activity,list,session])
  const number= felt.trim()!==''?Number(felt.replace(',','.')):NaN
- const context=buildSessionContext(activity,list,terrain,Number.isFinite(number)&&number>=-80&&number<=65?number:weather,{match:planActual,review:purposeReview,samples,zoneReference:zoneSummary?.reference??null})
+ const intervalComparison=useMemo(()=>compareIntervalTargets({activity,activities:list,plans:planEntries,review:purposeReview}),[activity,list,planEntries,purposeReview])
+ const context=buildSessionContext(activity,list,terrain,Number.isFinite(number)&&number>=-80&&number<=65?number:weather,{match:planActual,review:purposeReview,samples,zoneReference:zoneSummary?.reference??null,intervalComparison})
  return <article className={"cr-card lsa-coach-review lsa-coach-"+context.mode} aria-label="Persönliches Coach-Fazit">
   <div className="lsa-coach-hero"><div className="lsa-coach-copy"><div className="cr-label">DEIN COACH · TRAININGSBEWERTUNG</div><span className="lsa-coach-mode">{context.modeLabel}</span><h3>{context.verdict}</h3>{context.recommendation&&<p>{context.recommendation}</p>}<small>Einordnung der verfügbaren Daten, keine medizinische Trainingsfreigabe.</small></div><CoachAvatar mood={context.mood}/></div>
+  {context.purpose?.kind==='intervals'&&<IntervalTargetReview comparison={intervalComparison}/>}
   <div className="lsa-evidence-head"><div><div className="cr-label">BEWERTUNGSGRUNDLAGEN</div><h4>Was meine Bewertung beeinflusst</h4></div><Icon name="layout-dashboard"/></div>
   <div className="lsa-evidence-grid">{context.cards.map(f=><div className={'lsa-evidence-card tone-'+f.tone} key={f.key}>
    <div className="lsa-evidence-label"><Icon name={f.icon}/><span>{f.label}</span></div>
@@ -250,7 +270,7 @@ export function LiveSessionAnalyst({ active, focus }: { active: boolean;
       </div>}
       {loading && <p className="lsa-note">Lese Garmin-Aktivität …</p>}
       {details && analysis && <>
-        <SessionCoachContext key={details.activity.id} activity={details.activity} list={list} terrain={details.details.terrainWindows||[]} session={session} active={active} zoneSummary={zoneSummary?.activityId===details.activity.id?zoneSummary:null} samples={details.details.samples} planActual={planActual}/>
+        <SessionCoachContext key={details.activity.id} activity={details.activity} list={list} terrain={details.details.terrainWindows||[]} session={session} active={active} zoneSummary={zoneSummary?.activityId===details.activity.id?zoneSummary:null} samples={details.details.samples} planActual={planActual} planEntries={plansLoaded?planEntries:[]}/>
         <PlanActualReview match={planActual} loading={!plansLoaded&&!planError}
          error={planError}/>
         <SessionIntensityDetails key={details.activity.id} samples={details.details.samples}
