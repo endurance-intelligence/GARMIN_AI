@@ -4,6 +4,7 @@
  */
 import {createClient} from 'npm:@supabase/supabase-js@2'
 import {validateTrainerWorkout} from '../_shared/workout-archive-schema.mjs'
+import {validateOrcSource,canonicalJson,validOrcId} from '../../../src/lib/orcSource.mjs'
 
 const project='https://eurgupsebxypjqvyizci.supabase.co'
 const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
@@ -219,6 +220,29 @@ Deno.serve(async req=>{
   let body:unknown
   try{body=JSON.parse(text)}catch{return respond(422,{error:'Invalid JSON'},h)}
   if(!plain(body))return respond(422,{error:'Invalid request'},h)
+  if(body.action==='orc_sources'){
+   const {data,error}=await db.from('garmin_orc_source').select('id,title,source_number,review_required').order('source_number').order('id').limit(1000)
+   if(error)return respond(503,{error:'ORC-Bibliothek nicht verfügbar'},h)
+   return respond(200,{sources:data||[]},h)
+  }
+  if(body.action==='orc_source_detail'){
+   if(!validOrcId(body.id))return respond(422,{error:'Ungültige Vorlage'},h)
+   const {data,error}=await db.from('garmin_orc_source').select('source_entry,image_base64,image_content_type').eq('id',body.id).maybeSingle()
+   if(error)return respond(503,{error:'Original nicht verfügbar'},h)
+   if(!data)return respond(404,{error:'Vorlage nicht gefunden'},h)
+   return respond(200,{entry:data.source_entry,image_base64:data.image_base64,image_content_type:data.image_content_type},h)
+  }
+  if(body.action==='orc_import'){
+   let row
+   try{row=await validateOrcSource(body.entry,body.image)}catch{return respond(422,{error:'Originalbild oder Trainingsstruktur ungültig'},h)}
+   const {data:found,error:lookup}=await db.from('garmin_orc_source').select('source_entry,source_sha256').eq('id',row.id).maybeSingle()
+   if(lookup)return respond(503,{error:'ORC-Bibliothek nicht verfügbar'},h)
+   if(found)return canonicalJson(found.source_entry)===canonicalJson(row.source_entry)&&found.source_sha256===row.source_sha256?
+    respond(200,{saved:true,id:row.id,created:false},h):respond(409,{error:'Vorlagen-ID mit abweichendem Original belegt'},h)
+   const {error}=await db.from('garmin_orc_source').insert(row)
+   if(error)return respond(409,{error:'Original konnte nicht gespeichert werden'},h)
+   return respond(201,{saved:true,id:row.id,created:true},h)
+  }
   if(body.action==='parse_photo'){
    if(!visionAvailable())return respond(503,{code:'vision_not_configured'},h)
    const parsed=await parsePhoto(body)
