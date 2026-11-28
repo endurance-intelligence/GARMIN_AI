@@ -4,6 +4,7 @@
  */
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { downloadAndDecodeFit, GarminFitDownloadError } from '../_shared/garmin-fit.ts'
+import { lazyGarminToken, garminRateLimited } from '../_shared/garmin-demand-token.mjs'
 
 const GARMIN = 'https://personal.connectapi.garmin.com'
 type Dict = Record<string, unknown>
@@ -211,15 +212,14 @@ Deno.serve(async req => {
   if (authError) return json({ error: 'Authorization unavailable' }, 503)
   if (valid !== true) return json({ error: 'Unauthorized' }, 401)
 
-  let token: string
-  try {
+  // An idle scheduler invocation must not contact Garmin at all.
+  // Acquire a token only after claiming actual work, then reuse it within this invocation.
+  const getToken = lazyGarminToken(async () => {
     const result = await fetchGarmin('/personalapitoken-service/personal-api/personal-api-key/token', 'ApiKey', apiKey, 'POST', 'token')
-    token = (typeof result === 'string' ? result : JSON.stringify(result)).trim().replace(/^"|"$/g, '')
+    const token = (typeof result === 'string' ? result : JSON.stringify(result)).trim().replace(/^"|"$/g, '')
     if (!/^[A-Za-z0-9_+/.=-]{20,2048}$/.test(token)) throw new Error('Garmin token format')
-  } catch (error) {
-    console.error('GARMIN_AI detail auth failed', safeError(error).reason)
-    return json({ error: 'Garmin authorization unavailable' }, 502)
-  }
+    return token
+  })
 
   let stored = 0, partial = 0, skipped = false
   // Maximum 2 activities per scheduled invocation; reduces API pressure.
@@ -236,7 +236,7 @@ Deno.serve(async req => {
       return json({ error: 'Invalid detail claim' }, 503)
     }
     try {
-      const d = await process(id, string(claim.sport_type), token)
+      const d = await process(id, string(claim.sport_type), await getToken())
       const { error: storeError } = await admin.rpc('garmin_detail_store', {
         p_activity_id: id, p_lease_token: lease, p_status: d.status,
         p_summary: d.summary, p_laps: d.laps, p_samples: d.samples,
@@ -256,7 +256,7 @@ Deno.serve(async req => {
       })
       if (failError) console.error('GARMIN_AI detail fail record unavailable', failError.code)
       console.error('GARMIN_AI detail activity failed', safe.reason)
-      if (safe.rateLimited) break
+      if (safe.rateLimited || garminRateLimited(error)) return json({ok:false,error:'Garmin rate limited; remaining jobs deferred',stored,partial},429)
     }
   }
   // FIT belongs to the EXISTING private detail worker, not a parallel importer.
@@ -273,7 +273,7 @@ Deno.serve(async req => {
       return json({ error: 'Invalid FIT claim' }, 503)
     }
     try {
-      const payload = await downloadAndDecodeFit(fitId, token)
+      const payload = await downloadAndDecodeFit(fitId, await getToken())
       const { records, ...metadata } = payload
       for (let offset = 0; offset < records.length; offset += 2000) {
         const { error: appendError } = await admin.rpc('garmin_fit_append', {
@@ -307,6 +307,7 @@ Deno.serve(async req => {
       })
       if (fitFailError) console.error('GARMIN_AI FIT fail-record error', fitFailError.code)
       console.error('GARMIN_AI FIT enrichment failed', reason)
+      if(garminRateLimited(error))return json({ok:false,error:'Garmin rate limited; route job deferred',stored,partial},429)
     }
   }
   // Historic FIT is already complete: backfill one compact route fingerprint
@@ -325,7 +326,7 @@ Deno.serve(async req => {
       if(!/^\d{5,20}$/.test(routeId)||!/^[0-9a-f-]{36}$/.test(lease))
         return json({error:'Invalid route claim'},503)
       try {
-        const track=await downloadAndDecodeFit(routeId,token)
+        const track=await downloadAndDecodeFit(routeId,await getToken())
         const {error}=await admin.rpc('garmin_route_store',{
           p_activity_id:routeId,p_lease_token:lease,p_fingerprint:track.route
         })
@@ -339,6 +340,7 @@ Deno.serve(async req => {
           p_activity_id:routeId,p_lease_token:lease,p_reason:reason,p_permanent:permanent
         })
         if(failError)console.error('GARMIN_AI route failure storage unavailable',failError.code)
+        if(garminRateLimited(error))return json({ok:false,error:'Garmin rate limited',stored,partial},429)
       }
     }
   }
