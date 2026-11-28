@@ -5,6 +5,8 @@ const owner=(Deno.env.get('GARMIN_HEALTH_OWNER_EMAIL')||'').trim().toLowerCase()
 import {createGarminPersonalClient,GarminPersonalDeferred} from '../_shared/garmin-personal-client.mjs'
 import {normalizeAthleteProfile,cycleAvailability,profileFieldAvailability} from '../../../src/lib/athleteProfile.mjs'
 import {emptyHealthPreferences,normalizeHealthPreferences,explicitGarminProfile,weighReminderDue} from '../../../src/lib/healthPreferences.mjs'
+import {publicCycleState} from '../../../src/lib/cycleHistory.mjs'
+import {syncCycleHistory} from '../_shared/cycle-history-sync.ts'
 const healthDay=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
 function key(kind:'public'|'secret'){
  try{const value=JSON.parse(Deno.env.get(kind==='public'?'SUPABASE_PUBLISHABLE_KEYS':'SUPABASE_SECRET_KEYS')||'{}');if(typeof value.default==='string'&&value.default)return value.default}catch{/* legacy */}
@@ -27,6 +29,12 @@ Deno.serve(async req=>{
   if(!user.email_confirmed_at||user.email?.trim().toLowerCase()!==owner)return reply(403,{error:'Zugriff nicht erlaubt'})
   const db=createClient(project,key('secret'),{auth:{persistSession:false,autoRefreshToken:false}})
   const todayHealth=healthDay()
+  const readCycle=async()=>{
+   const {data,error}=await db.from('garmin_cycle_history').select('enabled,status,last_attempt_on,observations').eq('user_id',user.id).maybeSingle()
+   if(error)throw Error('cycle_history_read')
+   return publicCycleState(data,todayHealth)
+  }
+  if(req.method==='GET'&&new URL(req.url).searchParams.get('cycle')==='1')return reply(200,await readCycle())
   const readHealth=async()=>{
    const {data:row,error}=await db.from('garmin_health_preferences').select('height_cm,birth_year,adult_confirmed,weigh_reminder,dismissed_date').eq('user_id',user.id).maybeSingle()
    if(error)throw Error('health_preferences_read')
@@ -48,6 +56,27 @@ Deno.serve(async req=>{
   if(raw.length>4000)return reply(413,{error:'Anfrage zu groß'})
   let input;try{input=JSON.parse(raw)}catch{return reply(422,{error:'Ungültiges JSON'})}
   if(!input||input.confirm!==true)return reply(422,{error:'Bestätigung erforderlich'})
+  if(input.action==='cycle_consent'){
+   if(typeof input.enabled!=='boolean')return reply(422,{error:'Zyklusfreigabe ungültig'})
+   const current=await readCycle()
+   if(current.enabled!==input.enabled){
+    const {error}=await db.from('garmin_cycle_history').upsert({user_id:user.id,enabled:input.enabled,generation:crypto.randomUUID(),observations:[],last_attempt_on:null,status:'idle',updated_at:new Date().toISOString()},{onConflict:'user_id'})
+    if(error)return reply(503,{error:'Zyklusfreigabe nicht gespeichert'})
+   }
+   return reply(200,await readCycle())
+  }
+  if(input.action==='sync_cycle_today'){
+   if(!(await readCycle()).enabled)return reply(403,{error:'Automatische Zyklusfreigabe fehlt'})
+   const apiKey=Deno.env.get('GARMIN_API_KEY')||''
+   if(!apiKey)return reply(503,{error:'Garmin nicht eingerichtet'})
+   try{
+    const api=await createGarminPersonalClient(db,apiKey,project)
+    await api.ready()
+    const token=await api.getToken()
+    await syncCycleHistory(db,user.id,api.fetch,token)
+    return reply(200,await readCycle())
+   }catch{return reply(503,{error:'Zyklusabgleich derzeit nicht verfügbar'})}
+  }
   if(input.action==='save_health'){
    const next=normalizeHealthPreferences(input.preferences,todayHealth)
    if(!next)return reply(422,{error:'Gesundheitsprofil ungültig'})
