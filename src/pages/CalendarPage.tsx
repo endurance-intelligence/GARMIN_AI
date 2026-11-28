@@ -652,7 +652,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
        const sent=previouslyPublished&&!needsRepair
        const eligible=!!plan&&eligiblePlanIds.includes(plan.id)
        const state=sent?{text:'Intervals.icu bestätigt · Garmin prüfen',type:'verified'}:plan?.state==='pending'&&!eligible?{text:'Geplant · nur Kalender',type:'verified'}:readState(entry.status)
-       return <article className={'hc-entry hc-entry-'+state.type} key={entry.key}>
+       return <article className={'hc-entry hc-entry-'+state.type} key={entry.key} id={plan?'calendar-plan-'+plan.id:undefined}>
         <div className="hc-entry-symbol"><Icon name="calendar-days"/></div>
         <div className="hc-entry-copy">
          <strong>{entry.title}</strong>
@@ -735,7 +735,8 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
    <details className="hc-day-extra" onToggle={event=>setShowWorkoutArchive(event.currentTarget.open)}>
     <summary><Icon name="folder-open"/> Trainingsbibliothek <small>Training auswählen</small></summary>
     {showWorkoutArchive&&<WorkoutArchivePanel active={active&&showWorkoutArchive} date={selected}
-     onPlanned={()=>setRefresh(n=>n+1)}/>}
+     onPlanned={()=>setRefresh(n=>n+1)}
+     onPlanAcknowledged={(date,id)=>{setSelected(date);setCoachReview(null);requestAnimationFrame(()=>{const target=document.getElementById('calendar-plan-'+id)||dayDetail.current;target?.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})})}}/>}
    </details>
   </div>
   <dialog className="hc-group-dialog" ref={groupDialog} aria-labelledby="hc-group-title" onClose={()=>setShowWeekOptions(false)}>
