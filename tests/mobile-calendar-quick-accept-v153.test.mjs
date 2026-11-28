@@ -28,7 +28,7 @@ test('quick actions are real owner-confirmed writes; rest does not create a work
  assert.match(p,/An Intervals.icu senden/)
  assert.doesNotMatch(p,/hc-week-planner|hc-source-details/)
  assert.match(p,/Analyse des ausgewählten Tages/)
- assert.match(p,/Workout-Bibliothek &amp; ORC-Import/)
+ assert.match(p,/Trainingsbibliothek <small>Training auswählen/)
 })
 
 test('three decision controls remain visible for already accepted/declined days and can reopen',()=>{

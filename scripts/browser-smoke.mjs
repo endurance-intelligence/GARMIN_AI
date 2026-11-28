@@ -23,6 +23,8 @@ const token=encode({alg:'HS256',typ:'JWT'})+'.'+encode({sub:uid,aud:'authenticat
 const user={id:uid,aud:'authenticated',role:'authenticated',email:'fixture@example.invalid',app_metadata:{provider:'email'},user_metadata:{},created_at:'2025-01-01T00:00:00Z'}
 const session={access_token:token,refresh_token:'fixture-not-a-real-refresh-token',expires_at:expires,expires_in:3600,token_type:'bearer',user}
 const activities=['fixture-a','fixture-b'].map((id,i)=>({id,name:'Fixture Run '+(i+1),date:'2026-11-25',sport:'running',distanceM:5000,durationS:1800,avgHr:135,rpeRaw:2,detailStatus:'partial',hrSamples:0,laps:0}))
+const librarySource={id:'00000000-0000-4000-8000-000000000031',number:1,sourceImage:'images/fixture.png',sourceImageSha256:'a'.repeat(64),sourceKind:'orc_reference',category:'Fixture',reviewRequired:true,sourceNotes:'Original prüfen',individualRule:{},workout:{version:1,title:'Bibliothek Fixture 1000 m',trainer:'Fixture',sourceLabel:'Fixture',warmup:{distanceMeters:2000,durationSeconds:null,notes:'Einlaufen'},cooldown:{distanceMeters:null,durationSeconds:null,notes:'Auslaufen'},groups:['Wolf','Tiger'].map((name,i)=>({name,notes:'Fixture',steps:[{kind:'run',distanceMeters:1000,durationSeconds:null,paceSecondsPerKm:275+i*20,notes:''},{kind:'recovery',distanceMeters:200,durationSeconds:null,paceSecondsPerKm:300+i*20,notes:''}]}))}}
+const fixtureArchiveId='00000000-0000-4000-8000-000000000032'
 const browser=await chromium.launch({headless:true})
 async function context(mode,width,height,flow=null){
  const ctx=await browser.newContext({viewport:{width,height},serviceWorkers:'block'})
@@ -48,6 +50,23 @@ async function context(mode,width,height,flow=null){
   if(flow){
    const name=u.pathname.split('/').at(-1)
    const body=req.method()==='POST'?req.postDataJSON():null
+   if(flow.library&&name==='garmin-workout-archive'){
+    if(req.method()==='GET')return send(200,{entries:flow.savedArchive?[flow.savedArchive]:[],hasMore:false,nextPage:null,visionConfigured:false})
+    if(body?.action==='orc_sources')return send(200,{sources:[{id:librarySource.id,title:librarySource.workout.title,source_number:1,review_required:true}]})
+    if(body?.action==='orc_source_detail'){assert.equal(body.id,librarySource.id);return send(200,{entry:librarySource,image_base64:'iVBORw0KGgo=',image_content_type:'image/png'})}
+    if(body?.action==='save'){
+     flow.writes.push('archive-save')
+     assert.equal(body.reviewed,true);assert.equal(body.sourceKind,'orc_reference');assert.equal(body.sourceImageSha256,librarySource.sourceImageSha256)
+     assert.equal(body.workout.groups.length,1);assert.equal(body.workout.groups[0].name,'Tiger')
+     assert.match(body.workout.groups[0].steps[0].notes,/^L1: 0:59/)
+     flow.savedArchive={id:fixtureArchiveId,title:body.workout.title,workout:body.workout,coach_name:'Fixture',source_label:'Fixture',source_kind:'orc_reference',source_image_sha256:body.sourceImageSha256,created_at:'2026-11-17T11:00:00Z'}
+     return send(201,{saved:true,id:fixtureArchiveId})
+    }
+    if(body?.action==='plan'){
+     flow.writes.push('archive-plan');assert.equal(body.templateId,fixtureArchiveId);assert.equal(body.group,'Tiger');assert.equal(body.date,flow.snapshot.today)
+     return send(200,{saved:true,created:true,id:'00000000-0000-4000-8000-000000000033'})
+    }
+   }
    if(name==='garmin-training-history'&&req.method()==='GET')return send(200,{rhythm:flow.snapshot.life.trainingRhythm})
    if(name==='garmin-training-history'&&req.method()==='POST'&&body?.snapshot&&body?.requestId){
     // Automatic immutable evidence archiving is not a training-plan mutation.
@@ -285,6 +304,28 @@ try{
  assert.deepEqual(flowErrors,[])
  await flowCtx.close()
  console.log('Coach browser workflow passed: proposal, explicit draft, separate approval, publish reconciliation, no duplicate and measured plan-actual.')
+
+ const libraryFlow={snapshot,plan:null,writes:[],library:true}
+ const library=await context('owner',390,844,libraryFlow)
+ await library.page.locator('.footmobile').getByRole('button',{name:'Kalender',exact:true}).click()
+ await library.page.locator('.hc-day-extra > summary').filter({hasText:'Trainingsbibliothek'}).click()
+ await library.page.getByRole('button',{name:'Aus Bibliothek auswählen',exact:false}).click()
+ await library.page.getByRole('button',{name:/Bibliothek Fixture 1000 m/}).click()
+ await library.page.locator('.wa-orc-detail select').selectOption('1')
+ await library.page.getByRole('button',{name:/Tiger prüfen & für/}).click()
+ const review=library.page.getByRole('dialog',{name:'Trainertraining prüfen'})
+ await review.getByText('Prüfung offen: Bitte die Angaben dieser Gruppe mit dem Originalbild vergleichen.').waitFor()
+ const take=review.getByRole('button',{name:/^Für .* übernehmen$/})
+ assert.ok(await take.isDisabled(),'review is required before save+plan')
+ assert.deepEqual(libraryFlow.writes,[])
+ await review.getByRole('checkbox',{name:'Ich habe diese Gruppe anhand des Originals geprüft.'}).check()
+ await take.click()
+ await library.page.getByText('Als Entwurf eingetragen: Bibliothek Fixture 1000 m · Tiger.',{exact:false}).waitFor()
+ assert.deepEqual(libraryFlow.writes,['archive-save','archive-plan'])
+ assert.equal(librarySource.workout.groups.length,2,'source fixture never changed')
+ assert.deepEqual(library.errors,[])
+ await library.ctx.close()
+ console.log('Library browser workflow passed: original selection, review, chosen group, save then calendar draft, no remote publish.')
 
  console.log('Browser smoke passed: anonymous, denied, isolated owner navigation, three viewports, manual session selection.')
 }finally{await browser.close()}

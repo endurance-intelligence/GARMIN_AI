@@ -733,7 +733,7 @@ export function CalendarPage({active,focus,onOpenCoach,decisionFocus,onGo,onOpen
       mode="calendar" weekStart={start} selectedDate={selected}/>}
     </details>
    <details className="hc-day-extra" onToggle={event=>setShowWorkoutArchive(event.currentTarget.open)}>
-    <summary><Icon name="folder-open"/> Workout-Bibliothek &amp; ORC-Import <small>Bei Bedarf</small></summary>
+    <summary><Icon name="folder-open"/> Trainingsbibliothek <small>Training auswählen</small></summary>
     {showWorkoutArchive&&<WorkoutArchivePanel active={active&&showWorkoutArchive} date={selected}
      onPlanned={()=>setRefresh(n=>n+1)}/>}
    </details>

@@ -64,3 +64,17 @@ test('archived training preview opens same dialog rather than an inline expanded
  assert.match(modal,/Als neue Version bearbeiten/)
  assert.doesNotMatch(page,/className="wa-record-details"|setExpanded\(/)
 })
+
+test('library selection uses a reviewed group and acknowledged archive ID before creating a calendar draft',()=>{
+ assert.match(page,/Aus Bibliothek auswählen/)
+ assert.doesNotMatch(page,/Extensiv &amp; zügig · 1000 m/)
+ assert.match(page,/groups:\[structuredClone\(selected\)\]/)
+ assert.match(page,/await plan\(record,selected.name\)/)
+ assert.match(page,/setPreviewRecord\(planAfter\?record:null\)/)
+ assert.match(modal,/Ich habe diese Gruppe anhand des Originals geprüft/)
+ assert.match(modal,/onClick=\{onSaveAndPlan\}/)
+ const library=read('src/components/OrcPrivateLibrary.tsx')
+ assert.match(library,/Zurück zur Trainingsauswahl/)
+ assert.match(library,/group,detail.entry.reviewRequired/)
+ assert.match(library,/ZIP-Import verwalten/)
+})

@@ -34,6 +34,6 @@ test('archive remains a private draft-only source for future coach use',()=>{
  assert.match(sql,/archive_snapshot/)
  assert.match(sql,/'draft',v\.id,p_group/)
  const ui=read('src/components/WorkoutArchivePanel.tsx')
- assert.match(ui,/Coach-Auswahl bleiben bis zur separaten Prüfung deaktiviert/)
+ assert.match(ui,/erfolgt erst nach deiner Freigabe im Kalender/)
  assert.doesNotMatch(ui,/scheduleWorkout\(|uploadWorkout\(/)
 })
