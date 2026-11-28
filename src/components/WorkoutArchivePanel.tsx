@@ -8,6 +8,7 @@ import {readTrainerPhotoLocally} from '../lib/localTrainerPhotoOcr'
 import {interpretLocalPhotoText} from '../lib/localPhotoWorkout'
 import {interpretSpatialTrainerPhoto,spatialPhotoReviewIssues} from '../lib/spatialTrainerPhoto'
 import {WorkoutReviewDialog} from './WorkoutReviewDialog'
+import {OrcPrivateLibrary} from './OrcPrivateLibrary'
 import {withNumberedSplitNotes} from '../lib/workoutSplitNotes'
 import {extensiveSaturdayFlyer} from '../lib/extensiveSaturdayFlyer'
 import '../styles/workout-archive.css'
@@ -354,6 +355,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
     </label>
    </details>}
 
+   <OrcPrivateLibrary disabled={busy||localBusy||reviewOpen} onReview={(workout,hash)=>{if(canStartNew())begin(workout,'orc_reference',hash)}}/>
    <div className="wa-list-header">
     <strong>Dein Trainingsarchiv</strong>
     <span>{entries.length} geladene Vorlagen</span>
