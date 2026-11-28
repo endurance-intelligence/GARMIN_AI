@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {healthOverview,shiftDay} from '../lib/healthOverview.mjs'
 import {HealthHistoryChart} from '../components/HealthHistoryChart'
+import {CycleHistoryCard} from '../components/CycleHistoryCard'
 import {HealthProfileCard} from '../components/HealthProfileCard'
 import type {HealthPreferences} from '../lib/healthPreferences.mjs'
 import {SyncCenter} from '../components/SyncCenter'
@@ -24,6 +25,6 @@ export function HealthPage({active,onGo}:{active:boolean;onGo:(p:Page)=>void}){
   <div className="health-section"><h2>Regeneration & Gesundheit</h2><p>Deine persönlichen Werte aus Garmin · 7-Tage-Median erst ab vier Messungen.</p>
   {status==='loading'&&<p role="status">Lade Messwerte …</p>}{status==='error'&&<p role="alert">Gesundheitsdaten konnten nicht geladen werden.</p>}
   {status==='ok'&&<div className="health-metric-grid">{metrics.map(m=>{const spec=specs[m.key];const end=['stress_avg','body_battery_max'].includes(m.key)?shiftDay(today,-1):today;return <article key={m.key}><small>{spec.name}</small><h3>{m.latest?fmt(spec.convert(m.latest.value))+' '+spec.unit:'–'}</h3><p>{m.latest?'Messdatum: '+m.latest.date:'Noch kein Messwert'}{end!==today?' · letzter abgeschlossener Tag':''}</p><p>7-Tage-Median: <strong>{m.median!==null?fmt(spec.convert(m.median))+' '+spec.unit:'Noch zu wenig Daten'}</strong> · {m.count}/7</p><HealthHistoryChart points={m.points.map(p=>({...p,value:spec.convert(p.value)}))} end={end} label={spec.name} unit={spec.unit}/></article>})}</div>}
-  </div><p>Keine Diagnose oder automatische Trainingsfreigabe. Zyklusdaten werden derzeit nicht automatisch importiert.</p>
+  </div><CycleHistoryCard active={active}/><p>Keine Diagnose oder automatische Trainingsfreigabe.</p>
  </section>
 }
