@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {
- blankTrainerWorkout,previousOrcFlyer,workoutSummary
+ blankTrainerWorkout,previousOrcFlyer
 } from '../lib/workoutLibrary'
 import type {ArchiveRecord,TrainerWorkout,TrainerGroup,TrainerStep} from '../lib/workoutLibrary'
 import {readTrainerPhotoLocally} from '../lib/localTrainerPhotoOcr'
@@ -72,7 +72,6 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
  const [configured,setConfigured]=useState(false)
  const [hasMore,setHasMore]=useState(false)
  const [nextPage,setNextPage]=useState<number|null>(null)
- const [search,setSearch]=useState('')
  const [error,setError]=useState('')
  const [success,setSuccess]=useState('')
  const [editing,setEditing]=useState<TrainerWorkout|null>(null)
@@ -91,7 +90,6 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
  const [referenceConfirmed,setReferenceConfirmed]=useState(false)
  const [localPhotoUrl,setLocalPhotoUrl]=useState<string|null>(null)
  const localPhotoUrlRef=useRef<string|null>(null)
- const [choice,setChoice]=useState<Record<string,string>>({})
  const [reviewOpen,setReviewOpen]=useState(false)
  const [previewRecord,setPreviewRecord]=useState<ArchiveRecord|null>(null)
  const requestId=useRef<string>(crypto.randomUUID())
@@ -128,13 +126,6 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
   }catch(e){setError(e instanceof Error?e.message:'Weitere Vorlagen nicht geladen.')}
   finally{setLoading(false)}
  }
- const shown=entries.filter(record=>{
-  const needle=search.trim().toLocaleLowerCase('de-DE')
-  if(!needle)return true
-  return [record.title,record.coach_name,record.source_label,
-   ...record.workout.groups.map(g=>g.name)].some(text=>
-    text.toLocaleLowerCase('de-DE').includes(needle))
- })
 
  function canStartNew(){return !savedDraft||window.confirm('Den gesicherten Entwurf durch ein neues Training ersetzen?')}
  async function localImageSelected(file:File|null){
@@ -330,7 +321,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    <span className="wa-icon">↗</span>
    <span><strong>Trainingsbibliothek</strong>
     <small>Trainer-Foto importieren · für später archivieren · jederzeit wiederholen</small></span>
-   <span className="wa-count">{open?(loading?'…':entries.length+' Vorlagen'):'Öffnen'}</span>
+   <span className="wa-count">{open?'Auswahl':'Öffnen'}</span>
   </summary>
   {open&&<div className="wa-content">
    <div className="wa-header">
@@ -372,51 +363,9 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
    {libraryOpen&&<section className="wa-library-picker" aria-label="Training aus Bibliothek auswählen">
    <h3>Training auswählen · {date.split('-').reverse().join('.')}</h3>
    <p className="wa-hint">Wähle ein Original oder ein bereits geprüftes Training. Gruppe prüfen und direkt für diesen Kalendertag übernehmen.</p>
-   <OrcPrivateLibrary date={date} disabled={busy||localBusy||reviewOpen} onReview={reviewLibrarySource}/>
-   <div className="wa-list-header">
-    <strong>Dein Trainingsarchiv</strong>
-    <span>{entries.length} geladene Vorlagen</span>
-   </div>
-   <label className="wa-search">Archiv durchsuchen
-    <input type="search" value={search} onChange={e=>setSearch(e.target.value)}
-      placeholder="Name, Gruppe, Trainer …" maxLength={100}/>
-   </label>
-   {!loading&&entries.length===0&&<p className="wa-hint">
-    Noch keine geprüfte Vorlage. Wähle oben ein importiertes ORC-Original oder erfasse ein neues Trainertraining.
-   </p>}
-   <div className="wa-list">
-    {shown.map(record=>{
-     const group=choice[record.id]||
-      (record.workout.groups.some(g=>g.name==='Wolf')?'Wolf':
-       record.workout.groups[0]?.name||'')
-     const selected=record.workout.groups.find(g=>g.name===group)
-     const overview=selected?workoutSummary(selected):null
-     return <article className="wa-record" key={record.id}>
-      <div className="wa-record-head">
-       <div><strong>{record.title}</strong><small>{record.coach_name||'Trainer nicht angegeben'}
-        {record.source_label?' · '+record.source_label:''}</small></div>
-       <span>{record.workout.groups.length} {record.workout.groups.length===1?'Gruppe':'Gruppen'}</span>
-      </div>
-      <div className="wa-record-controls">
-       <label>Gruppe<select value={group} onChange={e=>setChoice(prev=>({...prev,[record.id]:e.target.value}))}>
-        {record.workout.groups.map(g=><option value={g.name} key={g.name}>{g.name}</option>)}
-       </select></label>
-       <span>{overview?.intervals||0} Belastungen
-        {overview?.distanceMeters?' · '+(overview.distanceMeters/1000).toLocaleString('de-DE')+' km':''}</span>
-      </div>
-      <div className="wa-record-actions">
-       <button type="button" onClick={()=>viewRecord(record,group)}>Training ansehen</button>
-       <button type="button" onClick={()=>{if(canStartNew())begin(structuredClone(record.workout),'manual')}} disabled={busy}>
-        Als neue Version bearbeiten</button>
-       <button type="button" className="wa-plan-button" disabled={busy||date<todayBerlin()||!selected}
-        onClick={()=>void plan(record,group)}>Für {date.split('-').reverse().join('.')} vormerken</button>
-      </div>
-     </article>
-    })}
-   </div>
-   {!loading&&shown.length===0&&entries.length>0&&<p className="wa-hint">Keine passende Vorlage unter den geladenen Trainings.</p>}
-   {hasMore&&<button type="button" className="wa-load-more" disabled={loading}
-    onClick={()=>void loadMore()}>{loading?'Lade …':'Weitere 100 Vorlagen laden'}</button>}
+   <OrcPrivateLibrary date={date} disabled={busy||localBusy||reviewOpen} onReview={reviewLibrarySource}
+    entries={entries} loading={loading} hasMore={hasMore} onLoadMore={()=>void loadMore()}
+    onSelectRecord={record=>viewRecord(record,record.workout.groups.some(g=>g.name==='Wolf')?'Wolf':record.workout.groups[0]?.name||'')}/> 
    </section>}
    {success&&<p className="wa-success" role="status">{success}</p>}
    {error&&<p className="wa-error" role="alert">{error}</p>}

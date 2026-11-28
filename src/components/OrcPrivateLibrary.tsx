@@ -2,9 +2,10 @@ import {useEffect,useRef,useState} from 'react'
 import {garminSupabase,garminSupabaseUrl,garminPublishableKey} from '../lib/garminSupabase'
 import {readOrcZip,encodeOrcImage} from '../lib/orcZip.mjs'
 import type {OrcSourceEntry} from '../lib/orcZip.mjs'
-import type {TrainerWorkout} from '../lib/workoutLibrary'
+import type {TrainerWorkout,ArchiveRecord} from '../lib/workoutLibrary'
 import {formatPace} from '../lib/workoutLibrary'
 import {numberedStepComments,isDrinkBreak} from '../lib/workoutSplitNotes'
+import {unifiedLibraryItems,libraryItemMatches} from '../lib/unifiedWorkoutLibrary.mjs'
 type Source={id:string;title:string;source_number:number;review_required:boolean}
 type Detail={entry:OrcSourceEntry;image_base64:string;image_content_type:string}
 async function request<T>(body:Record<string,unknown>):Promise<T>{
@@ -16,8 +17,9 @@ async function request<T>(body:Record<string,unknown>):Promise<T>{
  if(!r.ok)throw Error(result.error||'Import nicht verfügbar (HTTP '+r.status+').')
  return result
 }
-export function OrcPrivateLibrary({onReview,disabled,date}:{onReview:(workout:TrainerWorkout,hash:string,groupIndex:number,reviewRequired:boolean,sourceNotes:string,photo:string)=>void;disabled:boolean;date:string}){
+export function OrcPrivateLibrary({onReview,disabled,date,entries,loading,hasMore,onLoadMore,onSelectRecord}:{onReview:(workout:TrainerWorkout,hash:string,groupIndex:number,reviewRequired:boolean,sourceNotes:string,photo:string)=>void;disabled:boolean;date:string;entries:ArchiveRecord[];loading:boolean;hasMore:boolean;onLoadMore:()=>void;onSelectRecord:(record:ArchiveRecord)=>void}){
  const [sources,setSources]=useState<Source[]>([])
+ const [sourcesReady,setSourcesReady]=useState(false)
  const [detail,setDetail]=useState<Detail|null>(null)
  const [group,setGroup]=useState(0)
  const [busy,setBusy]=useState(false)
@@ -31,7 +33,7 @@ export function OrcPrivateLibrary({onReview,disabled,date}:{onReview:(workout:Tr
  const lock=useRef(false)
  const detailSeq=useRef(0)
  async function refresh(){
-  try{const data=await request<{sources:Source[]}>({action:'orc_sources'});setSources(data.sources)}catch(e){setError(e instanceof Error?e.message:'Bibliothek nicht geladen.')}
+  try{const data=await request<{sources:Source[]}>({action:'orc_sources'});setSources(data.sources);setSourcesReady(true)}catch(e){setError(e instanceof Error?e.message:'Bibliothek nicht geladen.')}
  }
  useEffect(()=>{void refresh()},[])
  async function importZip(file:File){
@@ -55,19 +57,26 @@ export function OrcPrivateLibrary({onReview,disabled,date}:{onReview:(workout:Tr
   const seq=++detailSeq.current;setError('');setDetail(null);setShowPhoto(false);setGroup(0);setDetailLoading(true)
   try{const result=await request<Detail>({action:'orc_source_detail',id});if(seq===detailSeq.current){setGroup(Math.max(0,result.entry.workout.groups.findIndex(g=>g.name==='Wolf')));setDetail(result)}}catch(e){if(seq===detailSeq.current)setError(e instanceof Error?e.message:'Original nicht geladen.')}finally{if(seq===detailSeq.current)setDetailLoading(false)}
  }
+ const items=unifiedLibraryItems(sources,entries)
+ const current=detail?items.find(item=>item.source?.id===detail.entry.id):undefined
  const chosen=detail?.entry.workout.groups[group]
  const comments=numberedStepComments(chosen?.steps||[])
  return <section className="wa-orc-library" aria-label="Private ORC-Originalbibliothek">
-  <div className="wa-list-header"><strong>ORC-Originalbibliothek</strong><span>{sources.length} Originale</span></div>
+  <div className="wa-list-header"><strong>Alle Trainings</strong><span>{sourcesReady&&!loading?items.length+' Vorlagen':'Lade …'}</span></div>
   <details className="wa-zip-management"><summary>ZIP-Import verwalten</summary>
   <p className="wa-hint">Originale bleiben unverändert. Ein erneuter Import erzeugt keine Duplikate.</p>
   <label className="wa-import-label wa-import-free">{busy?'Import läuft …':'ORC-ZIP importieren'}<input type="file" accept=".zip,application/zip" disabled={busy||disabled} onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value='';if(f)void importZip(f)}}/></label>
   </details>
   {status&&<p role="status" className="wa-success">{status}</p>}
   {error&&<p role="alert" className="wa-error">{error}</p>}
-  {!detail&&sources.length>0&&<label className="wa-search">ORC-Vorlage suchen<input value={filter} onChange={e=>setFilter(e.target.value)} placeholder="Trainingstitel"/></label>}
+  {!detail&&<label className="wa-search">Bibliothek durchsuchen<input type="search" value={filter} onChange={e=>setFilter(e.target.value)} placeholder="Name, Gruppe, Trainer …"/></label>}
   {detailLoading&&<p role="status">Training wird geladen …</p>}
-  {!detail&&<div className="wa-orc-list">{sources.filter(s=>s.title.toLocaleLowerCase('de-DE').includes(filter.toLocaleLowerCase('de-DE'))).map(s=><button type="button" key={s.id} disabled={busy||disabled||detailLoading} onClick={()=>void select(s.id)}><span>{s.title}</span><small>{s.review_required?'Prüfung offen':'Auswählen ›'}</small></button>)}</div>}
+  {!detail&&<div className="wa-orc-list">{items.filter(item=>libraryItemMatches(item,filter)).map(item=>item.source?
+   <button type="button" key={item.key} disabled={busy||disabled||detailLoading} onClick={()=>void select(item.source!.id)}><span>{item.source.title}</span><small>{item.source.review_required?'Prüfung offen':'Auswählen ›'}</small></button>:
+   <button type="button" key={item.key} disabled={busy||disabled||detailLoading} onClick={()=>onSelectRecord(item.versions[0])}><span>{item.versions[0].title}</span><small>Geprüft ›</small></button>
+  )}</div>}
+  {!detail&&!loading&&sourcesReady&&items.filter(item=>libraryItemMatches(item,filter)).length===0&&<p className="wa-hint">Keine passende Vorlage in der Bibliothek.</p>}
+  {!detail&&hasMore&&<button type="button" className="wa-load-more" disabled={loading||busy} onClick={onLoadMore}>{loading?'Lade …':'Weitere 100 Vorlagen laden'}</button>}
   {detail&&chosen&&<div className="wa-orc-detail" ref={detailRef}>
    <button type="button" onClick={()=>{detailSeq.current++;setDetail(null)}}>‹ Zurück zur Trainingsauswahl</button>
    <h4>{detail.entry.workout.title}</h4>
@@ -82,6 +91,10 @@ export function OrcPrivateLibrary({onReview,disabled,date}:{onReview:(workout:Tr
    <ol>{chosen.steps.map((s,i)=><li key={i}>{s.kind==='run'?'Belastung':s.kind==='recovery'?(isDrinkBreak(s)?'Trinkpause':'Trabpause'):s.kind} · {s.distanceMeters===null?'':s.distanceMeters+' m'} {s.durationSeconds===null?'':s.durationSeconds+' s'} {s.paceSecondsPerKm===null?'':formatPace(s.paceSecondsPerKm)+'/km'}<small>{comments[i]}{s.notes?' · '+s.notes:''}</small></li>)}</ol>
    <p>Auslaufen: {detail.entry.workout.cooldown.notes}</p>
    <p>Die ausgewählte Gruppe wird als geprüfte Version übernommen. Alle Gruppen des Originals bleiben in der Bibliothek.</p>
+   {!!current?.versions.length&&<details className="wa-zip-management"><summary>Bereits gespeicherte Versionen ({current.versions.length})</summary>
+    <p className="wa-hint">Vorhandene Versionen mit gleichem Titel bleiben separat nutzbar und werden nicht mit dem Original verschmolzen.</p>
+    {current.versions.map(record=><button type="button" key={record.id} disabled={disabled||busy} onClick={()=>onSelectRecord(record)}><span>{record.workout.groups.map(g=>g.name).join(', ')}</span><small>{record.created_at.slice(0,10)} ›</small></button>)}
+   </details>}
   </div>}
  </section>
 }

@@ -58,7 +58,7 @@ test('review gate and protected owner-only archive save remain unchanged',()=>{
  assert.match(read('src/App.tsx'),/<OnlineAccessGate>/)
 })
 test('archived training preview opens same dialog rather than an inline expanded list',()=>{
- assert.match(page,/onClick=\{\(\)=>viewRecord\(record,group\)\}/)
+ assert.match(page,/onSelectRecord=\{record=>viewRecord\(record,/)
  assert.match(page,/setPreviewRecord\(record\);setReviewOpen\(true\)/)
  assert.match(modal,/Für \{date\.split/)
  assert.match(modal,/Als neue Version bearbeiten/)

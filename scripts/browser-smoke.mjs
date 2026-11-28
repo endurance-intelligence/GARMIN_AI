@@ -317,12 +317,14 @@ try{
  await flowCtx.close()
  console.log('Coach browser workflow passed: proposal, explicit draft, separate approval, publish reconciliation, no duplicate and measured plan-actual.')
 
- const libraryFlow={snapshot,plan:null,writes:[],library:true}
+ const libraryFlow={snapshot,plan:null,writes:[],library:true,savedArchive:{id:'00000000-0000-4000-8000-000000000099',title:librarySource.workout.title,workout:{...librarySource.workout,groups:[librarySource.workout.groups[0]]},coach_name:'Fixture',source_label:'Fixture',source_kind:'orc_reference',source_image_sha256:librarySource.sourceImageSha256,created_at:'2026-11-16T11:00:00Z'}}
  const library=await context('owner',390,844,libraryFlow)
  await library.page.locator('.footmobile').getByRole('button',{name:'Kalender',exact:true}).click()
  await library.page.locator('.hc-day-extra > summary').filter({hasText:'Trainingsbibliothek'}).click()
  await library.page.getByRole('button',{name:'Aus Bibliothek auswählen',exact:false}).click()
  await library.page.getByRole('button',{name:/Bibliothek Fixture 1000 m/}).click()
+ assert.equal(await library.page.getByText('Dein Trainingsarchiv',{exact:true}).count(),0)
+ await library.page.getByText('Bereits gespeicherte Versionen (1)',{exact:true}).waitFor()
  await library.page.locator('.wa-orc-detail select').selectOption('1')
  await library.page.getByRole('button',{name:/Tiger prüfen & für/}).click()
  const review=library.page.getByRole('dialog',{name:'Trainertraining prüfen'})
