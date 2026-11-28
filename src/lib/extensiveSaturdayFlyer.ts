@@ -1,5 +1,5 @@
 import type {TrainerWorkout,TrainerStep} from './workoutLibrary.ts'
-import {withSplitNote} from './workoutSplitNotes.ts'
+import {withNumberedSplitNotes} from './workoutSplitNotes.ts'
 /** Exact trainer poster supplied 2026-11-27; only loaded explicitly for owner review.
  * Jog range retained verbatim; single numeric pace uses its midpoint.
  * Purple break replaces the jog at the division, as drawn. LAP termination
@@ -18,10 +18,10 @@ export function extensiveSaturdayFlyer():TrainerWorkout{
  groups:groups.map(g=>{
   const steps:TrainerStep[]=[]
   for(let i=0;i<g.count;i++){
-   steps.push(withSplitNote({kind:'run',distanceMeters:1000,durationSeconds:null,paceSecondsPerKm:g.pace,notes:'I'+(i+1)+' · knapp unter Schwelle, kontrolliert',endMode:'lap'}))
+   steps.push({kind:'run',distanceMeters:1000,durationSeconds:null,paceSecondsPerKm:g.pace,notes:'I'+(i+1)+' · knapp unter Schwelle, kontrolliert',endMode:'lap'})
    if(i===g.count-1)continue
    steps.push(i+1===g.first?{kind:'recovery',distanceMeters:null,durationSeconds:60,paceSecondsPerKm:null,notes:'1 Minute Trinkpause · LAP nach 60 Sekunden',endMode:'lap'}:{kind:'recovery',distanceMeters:200,durationSeconds:null,paceSecondsPerKm:g.jog,notes:'Zügige Trabpause · '+g.range+' min/km',endMode:'lap'})
   }
-  return {name:g.name,notes:g.first+' + '+(g.count-g.first)+' · 1000 m knapp unter Schwelle · 200 m zügig ('+g.range+'/km) · 1 Minute Trinkpause zwischen den Blöcken',steps}
+  return {name:g.name,notes:g.first+' + '+(g.count-g.first)+' · 1000 m knapp unter Schwelle · 200 m zügig ('+g.range+'/km) · 1 Minute Trinkpause zwischen den Blöcken',steps:withNumberedSplitNotes(steps)}
  })}
 }

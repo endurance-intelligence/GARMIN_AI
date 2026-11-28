@@ -9,7 +9,7 @@ import {interpretLocalPhotoText} from '../lib/localPhotoWorkout'
 import {interpretSpatialTrainerPhoto,spatialPhotoReviewIssues} from '../lib/spatialTrainerPhoto'
 import {WorkoutReviewDialog} from './WorkoutReviewDialog'
 import {OrcPrivateLibrary} from './OrcPrivateLibrary'
-import {withSplitNote} from '../lib/workoutSplitNotes'
+import {withNumberedSplitNotes} from '../lib/workoutSplitNotes'
 import {extensiveSaturdayFlyer} from '../lib/extensiveSaturdayFlyer'
 import '../styles/workout-archive.css'
 
@@ -274,7 +274,7 @@ export function WorkoutArchivePanel({active,date,onPlanned}:{
   try{
    const result=await callArchive<{saved:boolean,id:string}>({
     action:'save',clientRequestId:requestId.current,reviewed:true,
-    workout:{...editing,groups:editing.groups.map(g=>({...g,steps:g.steps.map(withSplitNote)}))},sourceKind,sourceImageSha256:imageHash
+    workout:{...editing,groups:editing.groups.map(g=>({...g,steps:withNumberedSplitNotes(g.steps)}))},sourceKind,sourceImageSha256:imageHash
    })
    if(result.saved!==true)throw Error('Speichern nicht bestätigt.')
    if(draftKey)try{sessionStorage.removeItem(draftKey);setSavedDraft(false)}catch{/* storage disabled */}

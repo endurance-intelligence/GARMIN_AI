@@ -52,7 +52,7 @@ test('review gate and protected owner-only archive save remain unchanged',()=>{
  assert.match(modal,/Ich habe die Trainerangaben und alle Gruppen geprüft/)
  assert.match(modal,/disabled=\{busy\|\|localBusy\|\|!approved\}/)
  assert.match(page,/action:'save',clientRequestId:requestId.current,reviewed:true/)
- assert.match(page,/workout:\{\.\.\.editing,groups:editing\.groups\.map\(g=>\(\{\.\.\.g,steps:g\.steps\.map\(withSplitNote\)\}\)\)\},sourceKind,sourceImageSha256:imageHash/)
+ assert.match(page,/workout:\{\.\.\.editing,groups:editing\.groups\.map\(g=>\(\{\.\.\.g,steps:withNumberedSplitNotes\(g\.steps\)\}\)\)\},sourceKind,sourceImageSha256:imageHash/)
  assert.match(page,/action:'plan',templateId:template.id,group,date/)
  assert.doesNotMatch(page,/scheduleWorkout\(|uploadWorkout\(|addWeighIn\(/)
  assert.match(read('src/App.tsx'),/<OnlineAccessGate>/)

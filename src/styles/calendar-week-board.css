@@ -148,3 +148,13 @@
  .hwb-summary{padding:12px 14px}.hwb-summary>strong{font-size:20px!important}
  .hwb-summary-metrics>div:last-child{display:flex}.hwb-summary-metrics{min-width:0}
 }
+
+/* Tablet weekly balance: separate duration, distance, count and data source.
+   Keep the time label paired with its value, not glued to running distance. */
+@media(min-width:741px) and (max-width:1366px){
+ .hwb-summary{display:grid;grid-template-columns:minmax(105px,1fr) minmax(0,3fr);gap:5px 20px;align-items:center}
+ .hwb-summary>p{display:block;grid-column:1;grid-row:1;font-size:11px;color:#a8b8cc;margin:0}
+ .hwb-summary>strong{grid-column:1;grid-row:2;white-space:nowrap}
+ .hwb-summary-metrics{grid-column:2;grid-row:1/3;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+ .hwb-summary-metrics b{overflow-wrap:anywhere}
+}

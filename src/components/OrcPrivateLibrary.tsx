@@ -4,7 +4,7 @@ import {readOrcZip,encodeOrcImage} from '../lib/orcZip.mjs'
 import type {OrcSourceEntry} from '../lib/orcZip.mjs'
 import type {TrainerWorkout} from '../lib/workoutLibrary'
 import {formatPace} from '../lib/workoutLibrary'
-import {split200Text} from '../lib/workoutSplitNotes'
+import {numberedStepComments,isDrinkBreak} from '../lib/workoutSplitNotes'
 type Source={id:string;title:string;source_number:number;review_required:boolean}
 type Detail={entry:OrcSourceEntry;image_base64:string;image_content_type:string}
 async function request<T>(body:Record<string,unknown>):Promise<T>{
@@ -53,6 +53,7 @@ export function OrcPrivateLibrary({onReview,disabled}:{onReview:(workout:Trainer
   try{const result=await request<Detail>({action:'orc_source_detail',id});if(seq===detailSeq.current)setDetail(result)}catch(e){if(seq===detailSeq.current)setError(e instanceof Error?e.message:'Original nicht geladen.')}
  }
  const chosen=detail?.entry.workout.groups[group]
+ const comments=numberedStepComments(chosen?.steps||[])
  return <section className="wa-orc-library" aria-label="Private ORC-Originalbibliothek">
   <div className="wa-list-header"><strong>ORC-Originalbibliothek</strong><span>{sources.length} Originale</span></div>
   <p className="wa-hint">ZIP-Paket einmal vollständig prüfen und importieren. Jede Grafik bleibt eine eigene Vorlage. Originale und offene Prüfpunkte bleiben privat erhalten.</p>
@@ -71,7 +72,7 @@ export function OrcPrivateLibrary({onReview,disabled}:{onReview:(workout:Trainer
    <label>Gruppe<select value={group} onChange={e=>setGroup(Number(e.target.value))}>{detail.entry.workout.groups.map((g,i)=><option key={i} value={i}>{g.name}</option>)}</select></label>
    <p>Einlaufen: {detail.entry.workout.warmup.distanceMeters??'–'} m · {detail.entry.workout.warmup.notes}</p>
    <p>{chosen.notes}</p>
-   <ol>{chosen.steps.map((s,i)=><li key={i}>{s.kind==='run'?'Belastung':s.kind==='recovery'?'Pause':s.kind} · {s.distanceMeters===null?'':s.distanceMeters+' m'} {s.durationSeconds===null?'':s.durationSeconds+' s'} {s.paceSecondsPerKm===null?'':formatPace(s.paceSecondsPerKm)+'/km'}<small>{s.notes}{split200Text(s)?' · '+split200Text(s):''}</small></li>)}</ol>
+   <ol>{chosen.steps.map((s,i)=><li key={i}>{s.kind==='run'?'Belastung':s.kind==='recovery'?(isDrinkBreak(s)?'Trinkpause':'Trabpause'):s.kind} · {s.distanceMeters===null?'':s.distanceMeters+' m'} {s.durationSeconds===null?'':s.durationSeconds+' s'} {s.paceSecondsPerKm===null?'':formatPace(s.paceSecondsPerKm)+'/km'}<small>{comments[i]}{s.notes?' · '+s.notes:''}</small></li>)}</ol>
    <p>Auslaufen: {detail.entry.workout.cooldown.notes}</p>
    <button type="button" disabled={disabled||busy} onClick={()=>onReview(structuredClone(detail.entry.workout),detail.entry.sourceImageSha256)}>Als neue Vorlage prüfen</button>
   </div>}

@@ -90,7 +90,7 @@ test('save stays owner-approved and photo-hashed without changing protected Garm
  const ui=read('src/components/WorkoutArchivePanel.tsx')
  const server=read('supabase/functions/garmin-workout-archive/index.ts')
  assert.match(ui,/action:'save',clientRequestId:requestId\.current,reviewed:true/)
- assert.match(ui,/workout:\{\.\.\.editing,groups:editing\.groups\.map\(g=>\(\{\.\.\.g,steps:g\.steps\.map\(withSplitNote\)\}\)\)\},sourceKind,sourceImageSha256:imageHash/)
+ assert.match(ui,/workout:\{\.\.\.editing,groups:editing\.groups\.map\(g=>\(\{\.\.\.g,steps:withNumberedSplitNotes\(g\.steps\)\}\)\)\},sourceKind,sourceImageSha256:imageHash/)
  assert.match(server,/body\.sourceKind==='trainer_photo'/)
  assert.match(server,/body\.reviewed!==true/)
  assert.doesNotMatch(ui,/scheduleWorkout\(|uploadWorkout\(|addWeighIn\(/)
