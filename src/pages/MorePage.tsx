@@ -10,6 +10,11 @@ export function MorePage({active,onGo}:{active:boolean;onGo:(page:Page)=>void}){
    <p>Deine Ausrüstung, Garmin-Verbindungen und Einstellungen – dort, wo du sie brauchst.</p>
   </div>
   <div className="hc-more-grid">
+   <button type="button" className="hc-more-link" onClick={()=>onGo('health')}>
+    <span className="hc-more-symbol"><Icon name="activity"/></span>
+    <span><strong>Gesundheit</strong><small>Gewicht, HRV, Ruhepuls, Schlaf, Stress und Body Battery</small></span>
+    <span className="hc-more-chevron">›</span>
+   </button>
    <button type="button" className="hc-more-link" onClick={()=>onGo('gear')}>
     <span className="hc-more-symbol"><Icon name="footprints"/></span>
     <span><strong>Equipment</strong><small>Laufschuhe, Garmin-Zuordnungen und Kilometerstände</small></span>
