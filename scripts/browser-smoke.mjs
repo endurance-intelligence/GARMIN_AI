@@ -322,7 +322,12 @@ try{
  await library.page.locator('.footmobile').getByRole('button',{name:'Kalender',exact:true}).click()
  await library.page.locator('.hc-day-extra > summary').filter({hasText:'Trainingsbibliothek'}).click()
  await library.page.getByRole('button',{name:'Aus Bibliothek auswählen',exact:false}).click()
- await library.page.getByRole('button',{name:/Bibliothek Fixture 1000 m/}).click()
+ // The reviewed archive and immutable originals load independently.
+ // Wait for both lists, then select the ORIGINAL, not a same-title reviewed copy.
+ await library.page.locator('.wa-orc-library .wa-list-header').getByText('1 Vorlagen',{exact:true}).waitFor()
+ const original=library.page.locator('.wa-orc-list').getByRole('button',{name:/Bibliothek Fixture 1000 m.*Prüfung offen/})
+ await original.waitFor()
+ await original.click()
  assert.equal(await library.page.getByText('Dein Trainingsarchiv',{exact:true}).count(),0)
  await library.page.getByText('Bereits gespeicherte Versionen (1)',{exact:true}).waitFor()
  await library.page.locator('.wa-orc-detail select').selectOption('1')
