@@ -1,6 +1,7 @@
 import {useState} from 'react'
 import type {TrainerWorkout,TrainerStep,WorkoutEndMode} from '../lib/workoutLibrary'
-import {makeTrackLapGuide,splitClock} from '../lib/trackLapGuide'
+import {makeTrackLapGuide} from '../lib/trackLapGuide'
+import {numberedStepComments,isDrinkBreak} from '../lib/workoutSplitNotes'
 import {applyFinishPreset,toWorkoutTransferDraft,workoutTransferInstructions} from '../lib/workoutStepControls'
 import '../styles/workout-finish-selector.css'
 
@@ -13,6 +14,7 @@ export function WorkoutFinishSelector({workout,groupIndex,editable,onChange,onCh
  const [copyMessage,setCopyMessage]=useState('')
  const group=workout.groups[groupIndex]
  if(!group)return null
+ const comments=numberedStepComments(group.steps)
  const cues=makeTrackLapGuide(workout,group.name)
  const draft=toWorkoutTransferDraft(workout,group.name)
  function setMode(index:number,mode:WorkoutEndMode){
@@ -53,16 +55,14 @@ export function WorkoutFinishSelector({workout,groupIndex,editable,onChange,onCh
     <div className="wf-step-index">{String(cue.index).padStart(2,'0')}</div>
     <div className="wf-step-description">
      <strong>{cue.type==='run'?'Intervall '+cue.repeat+'/'+cue.repeats:
-      cue.type==='recovery'?'Trabpause':
+      cue.type==='recovery'?(group.steps[cue.index-2]&&isDrinkBreak(group.steps[cue.index-2])?'Trinkpause':'Trabpause'):
       cue.type==='warmup'?'Einlaufen':
       cue.type==='cooldown'?'Auslaufen':'Übung'}</strong>
      <small>{cue.type==='run'?'Satz '+cue.block+'/'+cue.blocks+' · ':''}
       {cue.distanceMeters!==null?cue.distanceMeters+' m':'ohne feste Distanz'}
       {cue.paceLabel?' · '+cue.paceLabel+'/km':''}
      </small>
-     {cue.type==='run'&&cue.expectedSeconds!==null&&<small className="wf-split">
-      400 m: {splitClock(cue.fourHundredSeconds)} · Gesamt: {splitClock(cue.expectedSeconds)}
-     </small>}
+     {comments[cue.index-2]&&<small className="wf-split">{comments[cue.index-2]}</small>}
     </div>
     <div className="wf-step-mode">
      {editable&&cue.type!=='drill'?<label>

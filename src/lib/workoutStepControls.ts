@@ -2,6 +2,7 @@
  * Trainer archive remains immutable: editing creates a new private revision.
  */
 import type {TrainerWorkout,WorkoutEndMode} from './workoutLibrary.ts'
+import {numberedStepComments} from './workoutSplitNotes.ts'
 import {makeTrackLapGuide,lapStepSummary} from './trackLapGuide.ts'
 export const GARMIN_CUSTOM_WORKOUT_MAX_STEPS=50
 export function applyFinishPreset(workout:TrainerWorkout,groupIndex:number,mode:WorkoutEndMode){
@@ -43,13 +44,15 @@ export function toWorkoutTransferDraft(workout:TrainerWorkout,groupName:string){
 }
 export function workoutTransferInstructions(workout:TrainerWorkout,groupName:string):string{
  const w=toWorkoutTransferDraft(workout,groupName)
+ const comments=numberedStepComments(workout.groups.find(g=>g.name===groupName)?.steps||[])
  const heading=w.title+'\nGarmin Connect: Training & Planung > Trainings > Training erstellen\n'+
   'Nur Anleitung – noch NICHT an Garmin gesendet.\n'
  const lines=w.steps.map(s=>
   String(s.position).padStart(2,'0')+'. '+s.description+
   (s.targetPaceSecondsPerKm!==null?' · Zielpace: '+
    Math.floor(s.targetPaceSecondsPerKm/60)+':'+
-   String(s.targetPaceSecondsPerKm%60).padStart(2,'0')+' min/km':''))
+   String(s.targetPaceSecondsPerKm%60).padStart(2,'0')+' min/km':'')+
+  (comments[s.position-2]?'\n    '+comments[s.position-2]:''))
  return heading+'\n'+lines.join('\n')+
   (w.canFitGarmin?'':'\nACHTUNG: Mehr als 50 Schritte – Garmin-Workout muss angepasst werden.')
 }

@@ -3,7 +3,7 @@ import {createPortal} from 'react-dom'
 import type {ArchiveRecord,TrainerWorkout,TrainerGroup,TrainerStep,WorkoutStepKind} from '../lib/workoutLibrary'
 import {blankStep,formatPace,parsePace,workoutSummary} from '../lib/workoutLibrary'
 import {splitClock} from '../lib/trackLapGuide'
-import {split200Text} from '../lib/workoutSplitNotes'
+import {numberedStepComments,isDrinkBreak} from '../lib/workoutSplitNotes'
 import {spatialPhotoReviewIssues} from '../lib/spatialTrainerPhoto'
 import {WorkoutFinishSelector} from './WorkoutFinishSelector'
 import '../styles/workout-review-dialog.css'
@@ -81,8 +81,9 @@ export function WorkoutReviewDialog(props:Props){
  if(!open)return null
  const workout=editing??preview?.workout??null
  const group=workout?.groups[groupIndex]??null
+ const comments=numberedStepComments(group?.steps||[])
  const summary=group?workoutSummary(group):null
- const recovering=group?.steps.filter(x=>x.kind==='recovery').length??0
+ const recovering=group?.steps.filter(x=>x.kind==='recovery'&&!isDrinkBreak(x)).length??0
  const availableGroups=workout?.groups.length??0
  const missingPaces=group?.steps.filter(s=>s.kind==='run'&&s.paceSecondsPerKm===null).length??0
  const headline=editing?'Training prüfen':preview?'Training aus dem Archiv':'Trainingsfoto auslesen'
@@ -176,12 +177,12 @@ export function WorkoutReviewDialog(props:Props){
          className={'wr-interval '+(step.kind==='run'?'wr-interval-run':'')}>
          <span className="wr-interval-index">{String(i+1).padStart(2,'0')}</span>
          <span className="wr-interval-kind">{step.kind==='run'?'Belastung':
-          step.kind==='recovery'?'Trabpause':step.kind==='drill'?'Übung':
+          step.kind==='recovery'?(isDrinkBreak(step)?'Trinkpause':'Trabpause'):step.kind==='drill'?'Übung':
           step.kind==='warmup'?'Einlaufen':'Auslaufen'}</span>
          <strong>{shortDistance(step.distanceMeters)}</strong>
          <span className="wr-interval-pace">{step.kind==='run'?paceText(step):
            step.durationSeconds?splitClock(step.durationSeconds):step.paceSecondsPerKm!==null?paceText(step):'locker'}</span>
-         {split200Text(step)&&<small className="wr-auto-split">{split200Text(step)}</small>}
+         {comments[i]&&<small className="wr-auto-split">{comments[i]}</small>}
         </div>)}
        </div>
        <p className="wr-muted">Einlaufen: {shortDistance(workout.warmup.distanceMeters)}
@@ -246,8 +247,8 @@ export function WorkoutReviewDialog(props:Props){
           <label>Sekunden<input type="number" inputMode="numeric" min={10} max={14400}
            value={step.durationSeconds??''}
            onChange={e=>onChangeStep(i,s=>({...s,durationSeconds:integer(e.target.value)}))}/></label>
-          {split200Text(step)&&<small className="wr-auto-split">{split200Text(step)}</small>}
-          <label>Notizen<input maxLength={180} value={step.notes}
+          {comments[i]&&<small className="wr-auto-split">{comments[i]}</small>}
+          <label>Kommentar / zusätzliche Notizen<input maxLength={180} value={step.notes}
            onChange={e=>onChangeStep(i,s=>({...s,notes:e.target.value}))}/></label>
          </div>
         </div>)}
