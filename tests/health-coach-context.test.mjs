@@ -12,3 +12,13 @@ test('weight only, sparse or stale data, or no adult opt-in do not produce alert
  const base={today,weights,health,adultConfirmed:true}
  for(const update of [{health:[]},{weights:weights.slice(0,5)},{adultConfirmed:false},{health:health.map(r=>({...r,resting_heart_rate:49}))},{weights:weights.filter((_,i)=>i>3)}])assert.equal(healthCoachContext({...base,...update}),null)
 })
+
+test('completed-day stress and battery corroborate a recovery signal but do not count twice',()=>{
+ const dayOnly=Array.from({length:29},(_,i)=>({metric_date:day(i),hrv_ms:i<14?40:55,resting_heart_rate:49,sleep_seconds:27000,stress_avg:i>=1&&i<=14?40:20,body_battery_max:i>=1&&i<=14?55:85}))
+ const r=healthCoachContext({today,weights,health:dayOnly,adultConfirmed:true})
+ assert.equal(r.signals.length,2)
+ assert.match(r.signals[1],/Tagesstress höher und Body Battery niedriger/)
+ assert.equal(healthCoachContext({today,weights,health:dayOnly.map(v=>({...v,hrv_ms:55})),adultConfirmed:true}),null)
+ const partial=dayOnly.map(v=>({...v,stress_avg:v.metric_date===today?100:20,body_battery_max:v.metric_date===today?0:85}))
+ assert.equal(healthCoachContext({today,weights,health:partial,adultConfirmed:true}),null)
+})

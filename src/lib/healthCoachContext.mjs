@@ -18,10 +18,18 @@ export function healthCoachContext({today,weights,health,adultConfirmed}={}){
  const hrv=compare(health,'metric_date','hrv_ms',today,7,10,250)
  const pulse=compare(health,'metric_date','resting_heart_rate',today,7,25,110)
  const sleep=compare(health,'metric_date','sleep_seconds',today,7,3*3600,16*3600)
+ const stress=compare(health,'metric_date','stress_avg',shift(today,-1),7,0,100)
+ const battery=compare(health,'metric_date','body_battery_max',shift(today,-1),7,0,100)
  const signals=[]
  if(hrv&&hrv.delta/hrv.previous<=-.15)signals.push('HRV niedriger')
  if(pulse&&pulse.delta>=5)signals.push('Ruhepuls höher')
  if(sleep&&sleep.delta<=-3600)signals.push('Schlaf kürzer')
+ // Stress and Body Battery are related Garmin-derived metrics. Count them
+ // as ONE corroborating signal, not two independent observations.
+ const daytime=[]
+ if(stress&&stress.delta>=10)daytime.push('Tagesstress höher')
+ if(battery&&battery.delta<=-15)daytime.push('Body Battery niedriger')
+ if(daytime.length)signals.push(daytime.join(' und '))
  // Conservative descriptive cut-off, not a clinical threshold.
  const changed=Math.abs(weight.delta)>=Math.max(.5,weight.previous*.01)
  if(!changed||signals.length<2)return null
